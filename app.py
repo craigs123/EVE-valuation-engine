@@ -161,16 +161,14 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("**How to select an area:**\n1. Use the toolbar on the map (top left corner)\n2. Click the ▢ (rectangle) or ⬟ (polygon) icon\n3. Draw your area on the map\n4. The area will be automatically saved")
+    st.info("**How to select an area:**\n1. Look for the drawing toolbar in the top-left corner of the map\n2. Click the rectangle (▢) or polygon (⬟) tool\n3. Click and drag on the map to draw your area\n4. Complete the shape and it will be automatically saved")
     
-    # Create interactive map with better default view
+    # Create interactive map
+    m = folium.Map(location=[40.0, -100.0], zoom_start=4)  # Focus on US for better starting view
+    
+    # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
         coords = st.session_state.area_coordinates
-        center_lat = sum(coord[1] for coord in coords) / len(coords)
-        center_lon = sum(coord[0] for coord in coords) / len(coords)
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=12)
-        
-        # Add current selection to map as a highlight
         folium.Polygon(
             locations=[(coord[1], coord[0]) for coord in coords],
             color='green',
@@ -179,10 +177,10 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
-    else:
-        m = folium.Map(location=[20, 0], zoom_start=2)  # Global view
     
-    # Add drawing tools with standard configuration
+
+    
+    # Add drawing tools
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
@@ -194,16 +192,20 @@ with col1:
             'circlemarker': False,
         },
         edit_options={
-            'remove': True, 
+            'remove': True,
             'edit': False
         }
     )
     draw.add_to(m)
     
-
-    
-    # Display map and capture interactions
-    map_data = st_folium(m, width=700, height=400, returned_objects=["all_drawings"], key="area_map")
+    # Display map 
+    map_data = st_folium(
+        m, 
+        width=700, 
+        height=400,
+        returned_objects=["all_drawings"],
+        key="area_map"
+    )
     
     # Show helpful instructions and status
     if st.session_state.get('selected_area'):
