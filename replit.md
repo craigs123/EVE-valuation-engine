@@ -10,6 +10,7 @@ Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
+Data integrity preference: Honest documentation of data limitations; authentic satellite data APIs preferred over unreliable fallback methods.
 
 ## System Architecture
 
@@ -35,7 +36,7 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
 - **Multi-Ecosystem Analysis**: Advanced spatial grid analysis (4x4 sub-areas) for detecting and valuing multiple ecosystem types within selected areas
-- **Automatic Ecosystem Detection**: Intelligent spectral analysis using NDVI, NDWI, and NDBI indices combined with geographic context for ecosystem classification
+- **Ecosystem Detection Architecture**: Framework for authentic satellite data integration (ESA WorldCover, Google Earth Engine, USGS APIs) with transparent fallback to manual selection when APIs unavailable
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
@@ -52,7 +53,7 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Data Standards**: All values standardized to 2020 International dollars per hectare per year for global comparability
 - **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
 - **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas
-- **Automatic Type Detection**: Spectral analysis (NDVI, NDWI, NDBI) combined with geographic context for intelligent ecosystem classification
+- **Authentic Data Integration**: System designed for ESA WorldCover (10m satellite data), Google Earth Engine, and USGS APIs - currently uses transparent geographic fallback with clear limitation warnings
 
 ## External Dependencies
 

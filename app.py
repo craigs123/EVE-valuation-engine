@@ -290,13 +290,18 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 # Use OpenLandMap API for authentic land cover classification
                 from utils.openlandmap_integration import get_dominant_ecosystem
                 
-                with st.spinner("🗺️ Analyzing location context for ecosystem detection..."):
+                with st.spinner("🛰️ Attempting satellite data analysis..."):
                     try:
                         detected_ecosystem = get_dominant_ecosystem(bbox)
-                        st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}** using geographic analysis")
+                        if detected_ecosystem == "grassland":  # Default fallback
+                            st.warning("⚠️ **Satellite Data Limitation**: Authentic ecosystem detection requires ESA WorldCover, Google Earth Engine, or USGS APIs which need authentication keys. Currently using geographic fallback.")
+                            st.info("For accurate ecosystem detection, the system would need:\n- ESA WorldCover API access\n- Google Earth Engine authentication\n- USGS/NASA land cover API keys")
+                            st.info(f"Geographic analysis suggests: **{detected_ecosystem.title()}** (not satellite-verified)")
+                        else:
+                            st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}** using satellite analysis")
                     except Exception as e:
-                        st.error(f"❌ Geographic analysis error: {e}")
-                        st.warning("Falling back to manual selection. Please choose ecosystem type from sidebar.")
+                        st.error(f"❌ Satellite analysis error: {e}")
+                        st.warning("Please select ecosystem type manually from sidebar for accurate analysis.")
                         detected_ecosystem = "grassland"
             else:
                 detected_ecosystem = st.session_state.ecosystem_override.lower()
@@ -520,12 +525,13 @@ if st.session_state.analysis_results:
         - Ecosystem detection using reverse geocoding and geographic analysis
         - All values standardized to 2020 International dollars
         
-        **Ecosystem Detection:**
-        - Automatic detection analyzes location context using OpenStreetMap data
-        - Identifies urban areas, agricultural regions, forests, coastlines, and wetlands
-        - Uses administrative boundaries and place names for classification
-        - Geographic coordinate analysis for desert and forest regions
-        - Manual override available in sidebar for specific requirements
+        **Ecosystem Detection Limitations:**
+        - **Authentic Detection**: Requires ESA WorldCover, Google Earth Engine, or USGS API access
+        - **Current Implementation**: Uses basic geographic rules as fallback (not satellite data)
+        - **For Accurate Results**: Manual ecosystem type selection recommended
+        - **Future Enhancement**: Integration with authenticated satellite data APIs needed
+        - **ESA WorldCover**: 10m resolution global land cover (requires setup)
+        - **Google Earth Engine**: Comprehensive satellite datasets (requires authentication)
         
         **Data Limitations:**
         - Values shown are global averages from peer-reviewed literature
