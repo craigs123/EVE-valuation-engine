@@ -380,8 +380,9 @@ if st.session_state.analysis_results:
             st.metric("Total Annual Value", f"${results['total_value']:,}")
         with col2:
             per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
-            st.metric("Value per Hectare", f"${per_ha:.0f}/ha")
-            st.caption(f"${per_ha:.0f} per hectare annually")
+            st.metric("Value per Hectare", "")
+            st.markdown(f"**${per_ha:.0f}/ha**")
+            st.caption("per hectare annually")
         with col3:
             st.metric("Area Analyzed", f"{results['area_ha']:,.0f} ha")
         
@@ -420,8 +421,9 @@ if st.session_state.analysis_results:
                 
         with col_metrics[1]:
             per_ha_detailed = results.get('value_per_ha', results['total_value']/results['area_ha'])
-            st.metric("Value per Hectare", f"${per_ha_detailed:.0f}/ha")
-            st.caption(f"${per_ha_detailed:.0f} per hectare annually")
+            st.metric("Value per Hectare", "")
+            st.markdown(f"**${per_ha_detailed:.0f}/ha**")
+            st.caption("per hectare annually")
             with st.expander("💡 Per hectare calculation"):
                 st.markdown(f"""
                 **Value per Hectare**: ${per_ha_detailed:.0f}/ha/year
