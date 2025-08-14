@@ -183,13 +183,8 @@ with col1:
         lats = [coord[1] for coord in coords[:-1]]  # Exclude last duplicate point
         lons = [coord[0] for coord in coords[:-1]]
         
-        col_bounds1, col_bounds2 = st.columns(2)
-        with col_bounds1:
-            st.markdown(f"<small>**Min Latitude:** {min(lats):.6f}</small>", unsafe_allow_html=True)
-            st.markdown(f"<small>**Min Longitude:** {min(lons):.6f}</small>", unsafe_allow_html=True)
-        with col_bounds2:
-            st.markdown(f"<small>**Max Latitude:** {max(lats):.6f}</small>", unsafe_allow_html=True)
-            st.markdown(f"<small>**Max Longitude:** {max(lons):.6f}</small>", unsafe_allow_html=True)
+        st.markdown(f"<small>**Latitude:** {min(lats):.6f} to {max(lats):.6f}</small>", unsafe_allow_html=True)
+        st.markdown(f"<small>**Longitude:** {min(lons):.6f} to {max(lons):.6f}</small>", unsafe_allow_html=True)
         
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):
