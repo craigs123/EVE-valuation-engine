@@ -100,75 +100,96 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
+    st.info("Draw a rectangle on the canvas below to select your analysis area")
     
-    # Simple coordinate input method
-    st.info("Enter coordinates to define a rectangular area for analysis")
+    # Use drawable canvas for area selection
+    from streamlit_drawable_canvas import st_canvas
     
-    col_coord1, col_coord2 = st.columns(2)
-    with col_coord1:
-        min_lat = st.number_input("Min Latitude", value=40.0, format="%.6f", key="min_lat")
-        min_lon = st.number_input("Min Longitude", value=-100.0, format="%.6f", key="min_lon")
-    with col_coord2:
-        max_lat = st.number_input("Max Latitude", value=41.0, format="%.6f", key="max_lat")
-        max_lon = st.number_input("Max Longitude", value=-99.0, format="%.6f", key="max_lon")
+    # Create a drawing canvas overlaid on a simple map background
+    canvas_result = st_canvas(
+        fill_color="rgba(46, 139, 87, 0.3)",
+        stroke_width=3,
+        stroke_color="#2e8b57",
+        background_color="#e6f3ff",
+        update_streamlit=True,
+        height=400,
+        width=700,
+        drawing_mode="rect",
+        point_display_radius=0,
+        key="area_canvas",
+    )
     
-    if st.button("📍 Set Area from Coordinates", type="primary"):
-        # Validate coordinates
-        if min_lat >= max_lat or min_lon >= max_lon:
-            st.error("Invalid coordinates: Min values must be less than Max values")
-        else:
-            # Create rectangular coordinates
-            coordinates = [
-                [min_lon, min_lat],
-                [max_lon, min_lat], 
-                [max_lon, max_lat],
-                [min_lon, max_lat],
-                [min_lon, min_lat]
-            ]
-            
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            # Calculate and show area
-            area_coords = np.array(coordinates)
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.success(f"Area set: {area_ha:.1f} hectares")
-            st.rerun()
+    # Process canvas drawings
+    if canvas_result.json_data is not None:
+        objects = canvas_result.json_data["objects"]
+        if objects and len(objects) > 0:
+            # Get the latest rectangle
+            latest_rect = objects[-1]
+            if latest_rect["type"] == "rect":
+                # Convert canvas coordinates to geographic coordinates
+                # Canvas: 700x400, representing roughly US bounds
+                canvas_width = 700
+                canvas_height = 400
+                
+                # Geographic bounds (approximate US)
+                min_lon, max_lon = -125, -65
+                min_lat, max_lat = 25, 50
+                
+                # Extract rectangle coordinates
+                left = latest_rect["left"]
+                top = latest_rect["top"]
+                width = latest_rect["width"]
+                height = latest_rect["height"]
+                
+                # Convert to geographic coordinates
+                rect_min_lon = min_lon + (left / canvas_width) * (max_lon - min_lon)
+                rect_max_lon = min_lon + ((left + width) / canvas_width) * (max_lon - min_lon)
+                rect_max_lat = max_lat - (top / canvas_height) * (max_lat - min_lat)
+                rect_min_lat = max_lat - ((top + height) / canvas_height) * (max_lat - min_lat)
+                
+                # Create coordinates array
+                coordinates = [
+                    [rect_min_lon, rect_min_lat],
+                    [rect_max_lon, rect_min_lat],
+                    [rect_max_lon, rect_max_lat],
+                    [rect_min_lon, rect_max_lat],
+                    [rect_min_lon, rect_min_lat]
+                ]
+                
+                # Check if this is a new selection
+                current_coords = st.session_state.get('area_coordinates', [])
+                is_new_selection = (not current_coords or coordinates != current_coords)
+                
+                if is_new_selection:
+                    # Save the new selection
+                    st.session_state.selected_area = {
+                        'type': 'Polygon',
+                        'coordinates': coordinates
+                    }
+                    st.session_state.area_coordinates = coordinates
+                    st.session_state.analysis_results = None
+                    
+                    # Calculate and show area
+                    area_coords = np.array(coordinates)
+                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+                    area_ha = area_km2 * 100
+                    st.success(f"Area selected: {area_ha:.1f} hectares")
+                    st.rerun()
     
-    # Display map with selection
-    m = folium.Map(location=[40.5, -99.5], zoom_start=4, dragging=False)
-    
-    # Add existing selection if available
+    # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+        st.markdown("### 📍 Selected Area Coordinates")
         coords = st.session_state.area_coordinates
-        folium.Polygon(
-            locations=[(coord[1], coord[0]) for coord in coords],
-            color='green',
-            weight=3,
-            fillColor='green',
-            fillOpacity=0.2,
-            popup="Selected Area"
-        ).add_to(m)
         
-        # Center map on selection
+        # Calculate bounding box
         lats = [coord[1] for coord in coords[:-1]]
         lons = [coord[0] for coord in coords[:-1]]
-        center_lat = (min(lats) + max(lats)) / 2
-        center_lon = (min(lons) + max(lons)) / 2
-        m.location = [center_lat, center_lon]
         
-        # Display coordinates
-        st.markdown("### 📍 Selected Area Details")
-        col_area1, col_area2 = st.columns(2)
-        with col_area1:
+        col_bounds1, col_bounds2 = st.columns(2)
+        with col_bounds1:
             st.metric("Min Latitude", f"{min(lats):.6f}")
             st.metric("Min Longitude", f"{min(lons):.6f}")
-        with col_area2:
+        with col_bounds2:
             st.metric("Max Latitude", f"{max(lats):.6f}")
             st.metric("Max Longitude", f"{max(lons):.6f}")
         
@@ -177,9 +198,8 @@ with col1:
         area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
         area_ha = area_km2 * 100
         st.metric("Area Size", f"{area_ha:.1f} hectares")
-    
-    # Display map
-    st_folium(m, width=700, height=300, key="display_map")
+    else:
+        st.warning("No area selected yet. Draw a rectangle on the canvas above.")
     
     # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
