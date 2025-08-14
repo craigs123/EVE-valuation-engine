@@ -161,7 +161,7 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.caption("Zoom in and select area to analyse on the map. You can select a square or polygon by first clicking on the appropriate icon.")
+    st.info("**How to select an area:**\n1. Use the toolbar on the map (top left corner)\n2. Click the ▢ (rectangle) or ⬟ (polygon) icon\n3. Draw your area on the map\n4. The area will be automatically saved")
     
     # Create interactive map with better default view
     if st.session_state.selected_area and st.session_state.area_coordinates:
@@ -182,7 +182,7 @@ with col1:
     else:
         m = folium.Map(location=[20, 0], zoom_start=2)  # Global view
     
-    # Add drawing tools with better configuration
+    # Add drawing tools with enhanced configuration
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
@@ -195,15 +195,41 @@ with col1:
         },
         edit_options={
             'remove': True, 
-            'edit': False  # Disable editing to prevent confusion - user draws new area instead
-        }
+            'edit': True
+        },
+        position='topleft'
     )
     draw.add_to(m)
+    
+    # Add custom CSS to make drawing tools more prominent
+    folium.Html('''
+    <style>
+    .leaflet-draw-toolbar a {
+        background-color: #4CAF50 !important;
+        border: 2px solid #45a049 !important;
+        border-radius: 4px !important;
+        margin: 2px !important;
+    }
+    .leaflet-draw-toolbar a:hover {
+        background-color: #45a049 !important;
+    }
+    .leaflet-draw-draw-rectangle, .leaflet-draw-draw-polygon {
+        font-weight: bold !important;
+        font-size: 16px !important;
+    }
+    </style>
+    ''', script=True).add_to(m)
     
 
     
     # Display map and capture interactions
     map_data = st_folium(m, width=700, height=400, returned_objects=["all_drawings"], key="area_map")
+    
+    # Show helpful instructions and status
+    if st.session_state.get('selected_area'):
+        st.success("✅ Area selected! You can now run analysis or select a different area.")
+    else:
+        st.warning("📍 No area selected yet. Use the drawing tools (▢ rectangle or ⬟ polygon) on the map above.")
     
     # Debug: Show map data for troubleshooting
     if st.checkbox("🔍 Debug Map Data", help="Show technical details for troubleshooting"):
