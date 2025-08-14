@@ -100,20 +100,66 @@ with col1:
     
     # Drawing controls
     col_draw1, col_draw2, col_draw3 = st.columns(3)
+    
+    # Initialize drawing mode
+    if 'drawing_mode' not in st.session_state:
+        st.session_state.drawing_mode = False
+    
     with col_draw1:
-        if st.button("Clear Drawing", key="clear_draw"):
-            if 'polygon_points' in st.session_state:
-                del st.session_state.polygon_points
+        if st.button("🎯 Start Drawing", key="start_draw"):
+            st.session_state.drawing_mode = True
+            if 'polygon_points' not in st.session_state:
+                st.session_state.polygon_points = []
             st.rerun()
     
     with col_draw2:
-        finish_drawing = st.button("Finish Drawing", key="finish_draw")
+        if st.button("✅ Finish Drawing", key="finish_draw"):
+            if st.session_state.get('polygon_points') and len(st.session_state.polygon_points) >= 3:
+                # Close the polygon
+                coordinates = st.session_state.polygon_points + [st.session_state.polygon_points[0]]
+                
+                st.session_state.selected_area = {
+                    'type': 'Polygon',
+                    'coordinates': coordinates
+                }
+                st.session_state.area_coordinates = coordinates
+                st.session_state.analysis_results = None
+                st.session_state.drawing_mode = False
+                
+                # Calculate area
+                area_coords = np.array(coordinates)
+                area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+                area_ha = area_km2 * 100
+                
+                # Clear points
+                st.session_state.polygon_points = []
+                st.success(f"Polygon completed: {area_ha:.1f} hectares")
+                st.rerun()
+            else:
+                st.warning("Need at least 3 points to create a polygon")
     
     with col_draw3:
-        use_coords = st.checkbox("Enter coordinates manually", key="manual_coords")
+        if st.button("🗑️ Clear", key="clear_draw"):
+            st.session_state.polygon_points = []
+            st.session_state.drawing_mode = False
+            st.rerun()
     
-    # Create interactive map
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+    # Manual coordinates option
+    use_coords = st.checkbox("Enter coordinates manually", key="manual_coords")
+    
+    # Create interactive map with drawing mode configuration
+    if st.session_state.get('drawing_mode'):
+        # Drawing mode - disable dragging
+        m = folium.Map(
+            location=[40.0, -100.0], 
+            zoom_start=4,
+            dragging=False,
+            scrollWheelZoom=True,
+            doubleClickZoom=False
+        )
+    else:
+        # Normal navigation mode
+        m = folium.Map(location=[40.0, -100.0], zoom_start=4)
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
@@ -159,44 +205,24 @@ with col1:
         key="area_map"
     )
     
-    # Handle map clicks for polygon creation
-    if map_data and map_data.get('last_clicked'):
+    # Handle map clicks for polygon creation - only when in drawing mode
+    if st.session_state.get('drawing_mode') and map_data and map_data.get('last_clicked'):
         clicked_point = [map_data['last_clicked']['lng'], map_data['last_clicked']['lat']]
         
         # Avoid duplicate clicks
         if not st.session_state.polygon_points or clicked_point != st.session_state.polygon_points[-1]:
             st.session_state.polygon_points.append(clicked_point)
-            st.success(f"Added point {len(st.session_state.polygon_points)}: {clicked_point[1]:.6f}°N, {clicked_point[0]:.6f}°E")
+            st.success(f"Point {len(st.session_state.polygon_points)} added: {clicked_point[1]:.6f}°N, {clicked_point[0]:.6f}°E")
             st.rerun()
-    
-    # Handle finish drawing
-    if finish_drawing and st.session_state.polygon_points:
-        if len(st.session_state.polygon_points) >= 3:
-            # Close the polygon
-            coordinates = st.session_state.polygon_points + [st.session_state.polygon_points[0]]
-            
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            # Calculate area
-            area_coords = np.array(coordinates)
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.success(f"Polygon completed: {area_ha:.1f} hectares")
-            
-            # Clear points
-            st.session_state.polygon_points = []
-            st.rerun()
-        else:
-            st.warning("Need at least 3 points to create a polygon")
     
     # Show current drawing status
-    if st.session_state.polygon_points:
-        st.info(f"Drawing polygon: {len(st.session_state.polygon_points)} points added")
+    if st.session_state.get('drawing_mode'):
+        if st.session_state.get('polygon_points'):
+            st.info(f"🎯 Drawing mode: {len(st.session_state.polygon_points)} points added. Click map to add more points.")
+        else:
+            st.info("🎯 Drawing mode active: Click on the map to add polygon points")
+    elif st.session_state.get('polygon_points'):
+        st.info(f"Current polygon: {len(st.session_state.polygon_points)} points")
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
