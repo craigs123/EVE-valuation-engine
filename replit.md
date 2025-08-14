@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a Streamlit-based geospatial analysis application called the Ecosystem Valuation Engine (EVE), designed for environmental researchers to track ecosystem growth and natural capital using satellite data. EVE provides an interactive mapping interface where users can select geographic areas and analyze various environmental metrics including NDVI (Normalized Difference Vegetation Index), forest cover, carbon storage, and biodiversity indices. The application combines satellite imagery processing with natural capital calculations to provide comprehensive ecosystem health assessments over time.
+This is a Streamlit-based geospatial analysis application called the Ecosystem Valuation Engine (EVE), designed for environmental researchers to measure ecosystem growth through economic valuation of ecosystem services. EVE focuses on four main categories of ecosystem services: provisioning (food, water, timber), regulating (climate, water regulation, erosion control), cultural (recreation, spiritual value), and supporting (soil formation, nutrient cycling). The application combines satellite imagery processing with established economic valuation coefficients to track ecosystem service value changes over time.
 
 ## User Preferences
 
@@ -22,11 +22,13 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 - **Modular Design**: Utilities organized into separate modules for specific functionalities
 - **Data Processing Pipeline**: 
   - Satellite data acquisition and processing (`satellite_data.py`)
+  - Ecosystem services valuation engine (`ecosystem_services.py`)
   - Natural capital metrics calculation (`natural_capital_metrics.py`) 
   - Visualization generation (`visualization.py`)
   - Data export capabilities (`data_export.py`)
-- **Analysis Engine**: Calculates ecosystem health indicators using satellite imagery and environmental data
-- **Time Series Processing**: Handles temporal analysis of environmental changes over user-selected date ranges
+- **Economic Valuation Engine**: Calculates monetary values for ecosystem services using established coefficients
+- **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services separately
+- **Time Series Processing**: Handles temporal analysis of ecosystem service value changes over time
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
@@ -34,10 +36,10 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 - **Export Formats**: CSV and JSON export capabilities for analysis results
 
 ### Calculation Methodology
-- **Carbon Storage**: Uses ecosystem-specific conversion factors (forest: 150 tons CO2/hectare, wetland: 200, grassland: 50)
-- **Biodiversity Assessment**: Weighted scoring system considering vegetation diversity, habitat connectivity, edge density, and fragmentation
-- **NDVI Analysis**: Vegetation health assessment using normalized difference vegetation index
-- **Forest Cover**: Land use classification and coverage percentage calculations
+- **Ecosystem Services Valuation**: Uses established economic coefficients for different service categories and ecosystem types
+- **Service Categories**: Provisioning (food, water, timber), Regulating (climate, water, erosion control), Cultural (recreation, spiritual), Supporting (soil, nutrients, habitat)
+- **Quality Adjustment**: Values are adjusted based on ecosystem quality derived from satellite indicators (NDVI, spectral health, data quality)
+- **Temporal Analysis**: Tracks value changes over time to measure ecosystem growth or degradation in economic terms
 
 ## External Dependencies
 

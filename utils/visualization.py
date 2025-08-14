@@ -462,6 +462,132 @@ def create_export_summary_chart(metrics_data: Dict[str, Any]) -> go.Figure:
     
     return fig
 
+def create_services_dashboard(services_data: Dict[str, Any]) -> Optional[go.Figure]:
+    """
+    Create a comprehensive dashboard for ecosystem services valuation
+    
+    Args:
+        services_data: Dictionary containing ecosystem services data
+        
+    Returns:
+        Plotly figure object or None if no data
+    """
+    if not services_data or 'time_series' not in services_data:
+        return None
+    
+    time_series = services_data['time_series']
+    if not time_series:
+        return None
+    
+    # Extract data for visualization
+    dates = [datetime.fromisoformat(point['date'].replace('Z', '')) for point in time_series]
+    total_values = [point['total_value'] for point in time_series]
+    
+    # Extract service category values
+    categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+    category_values = {}
+    
+    for category in categories:
+        category_values[category] = [point.get(category, {}).get('total', 0) for point in time_series]
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=(
+            'Total Ecosystem Services Value Over Time',
+            'Service Categories Comparison',
+            'Value Distribution by Category',
+            'Ecosystem Quality Timeline'
+        ),
+        specs=[
+            [{"type": "scatter"}, {"type": "bar"}],
+            [{"type": "pie"}, {"type": "scatter"}]
+        ]
+    )
+    
+    # 1. Total value time series
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=total_values,
+            mode='lines+markers',
+            name='Total Value',
+            line=dict(color='#2E7D32', width=3),
+            marker=dict(size=8),
+            hovertemplate='<b>Total Value</b><br>Date: %{x}<br>Value: $%{y:,.0f}/year<extra></extra>'
+        ),
+        row=1, col=1
+    )
+    
+    # 2. Service categories comparison (latest values)
+    latest_point = time_series[-1]
+    category_names = []
+    category_totals = []
+    
+    for category in categories:
+        if category in latest_point:
+            category_names.append(category.title())
+            category_totals.append(latest_point[category].get('total', 0))
+    
+    fig.add_trace(
+        go.Bar(
+            x=category_names,
+            y=category_totals,
+            name='Service Categories',
+            marker_color=['#2E7D32', '#4CAF50', '#81C784', '#A5D6A7'],
+            hovertemplate='<b>%{x}</b><br>Value: $%{y:,.0f}/year<extra></extra>'
+        ),
+        row=1, col=2
+    )
+    
+    # 3. Pie chart of service distribution
+    fig.add_trace(
+        go.Pie(
+            labels=category_names,
+            values=category_totals,
+            name="Distribution",
+            marker_colors=['#2E7D32', '#4CAF50', '#81C784', '#A5D6A7'],
+            hovertemplate='<b>%{label}</b><br>Value: $%{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+        ),
+        row=2, col=1
+    )
+    
+    # 4. Ecosystem quality over time
+    quality_mapping = {'excellent': 5, 'good': 4, 'fair': 3, 'poor': 2, 'degraded': 1, 'unknown': 0}
+    quality_values = [quality_mapping.get(point.get('ecosystem_quality', 'unknown'), 0) for point in time_series]
+    
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=quality_values,
+            mode='lines+markers',
+            name='Ecosystem Quality',
+            line=dict(color='#FF6B6B', width=2),
+            marker=dict(size=8, color=quality_values, colorscale='RdYlGn', cmin=1, cmax=5),
+            hovertemplate='<b>Ecosystem Quality</b><br>Date: %{x}<br>Quality: %{text}<extra></extra>',
+            text=[point.get('ecosystem_quality', 'unknown').title() for point in time_series]
+        ),
+        row=2, col=2
+    )
+    
+    # Update layout
+    fig.update_layout(
+        title_text="Ecosystem Services Valuation Dashboard",
+        height=800,
+        template='plotly_white',
+        showlegend=False
+    )
+    
+    # Update axis labels
+    fig.update_xaxes(title_text="Date", row=1, col=1)
+    fig.update_yaxes(title_text="Value (USD/year)", row=1, col=1)
+    fig.update_xaxes(title_text="Service Category", row=1, col=2)
+    fig.update_yaxes(title_text="Value (USD/year)", row=1, col=2)
+    fig.update_xaxes(title_text="Date", row=2, col=2)
+    fig.update_yaxes(title_text="Quality Score", row=2, col=2)
+    
+    return fig
+
 def get_metric_unit(metric_name: str) -> str:
     """
     Get the appropriate unit for a given metric
@@ -477,7 +603,12 @@ def get_metric_unit(metric_name: str) -> str:
         'forest_cover': 'Percentage (%)',
         'carbon_storage': 'Tons CO₂',
         'water_quality': 'Quality Score (0-100)',
-        'biodiversity_index': 'Biodiversity Score (0-100)'
+        'biodiversity_index': 'Biodiversity Score (0-100)',
+        'ecosystem_services_total': 'USD per year',
+        'provisioning': 'USD per year',
+        'regulating': 'USD per year',
+        'cultural': 'USD per year',
+        'supporting': 'USD per year'
     }
     
     return units.get(metric_name, 'Value')
