@@ -1167,15 +1167,22 @@ ESVD Integration [Computer software]. (2024).
         
         with col2:
             st.write("**Analysis Summary:**")
-            st.json({
+            summary_data = {
                 'analysis_date': datetime.now().isoformat(),
-                'time_range': {
-                    'start': results['time_range'][0].isoformat(),
-                    'end': results['time_range'][1].isoformat()
-                },
-                'metrics_calculated': list(metrics_data.keys()),
+                'metrics_calculated': list(metrics_data.keys()) if metrics_data else [],
                 'area_type': st.session_state.selected_area['type'] if st.session_state.selected_area else 'None'
-            })
+            }
+            
+            # Add time range if available
+            if 'time_range' in results:
+                time_range = results['time_range']
+                if isinstance(time_range, (list, tuple)) and len(time_range) >= 2:
+                    summary_data['time_range'] = {
+                        'start': time_range[0].isoformat() if hasattr(time_range[0], 'isoformat') else str(time_range[0]),
+                        'end': time_range[1].isoformat() if hasattr(time_range[1], 'isoformat') else str(time_range[1])
+                    }
+            
+            st.json(summary_data)
 
 # Footer
 st.markdown("---")
