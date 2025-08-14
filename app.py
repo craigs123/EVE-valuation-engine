@@ -182,7 +182,7 @@ with col1:
     else:
         m = folium.Map(location=[20, 0], zoom_start=2)  # Global view
     
-    # Add drawing tools with enhanced configuration
+    # Add drawing tools with standard configuration
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
@@ -195,30 +195,10 @@ with col1:
         },
         edit_options={
             'remove': True, 
-            'edit': True
-        },
-        position='topleft'
+            'edit': False
+        }
     )
     draw.add_to(m)
-    
-    # Add custom CSS to make drawing tools more prominent
-    folium.Html('''
-    <style>
-    .leaflet-draw-toolbar a {
-        background-color: #4CAF50 !important;
-        border: 2px solid #45a049 !important;
-        border-radius: 4px !important;
-        margin: 2px !important;
-    }
-    .leaflet-draw-toolbar a:hover {
-        background-color: #45a049 !important;
-    }
-    .leaflet-draw-draw-rectangle, .leaflet-draw-draw-polygon {
-        font-weight: bold !important;
-        font-size: 16px !important;
-    }
-    </style>
-    ''', script=True).add_to(m)
     
 
     
