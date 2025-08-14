@@ -56,9 +56,45 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("Select Your Area")
-    st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Create map - center on selected area if available
+    # Simple coordinate input method
+    st.info("Enter coordinates to define a rectangular area:")
+    
+    col_coord1, col_coord2 = st.columns(2)
+    with col_coord1:
+        st.write("**Southwest Corner:**")
+        min_lat = st.number_input("Latitude", value=40.0, format="%.6f", key="min_lat")
+        min_lon = st.number_input("Longitude", value=-100.0, format="%.6f", key="min_lon")
+    with col_coord2:
+        st.write("**Northeast Corner:**")
+        max_lat = st.number_input("Latitude", value=41.0, format="%.6f", key="max_lat")
+        max_lon = st.number_input("Longitude", value=-99.0, format="%.6f", key="max_lon")
+    
+    if st.button("Set Area from Coordinates", type="primary"):
+        # Create rectangular coordinates
+        coordinates = [
+            [min_lon, min_lat],
+            [max_lon, min_lat], 
+            [max_lon, max_lat],
+            [min_lon, max_lat],
+            [min_lon, min_lat]
+        ]
+        
+        st.session_state.selected_area = {
+            'type': 'Polygon',
+            'coordinates': coordinates
+        }
+        st.session_state.area_coordinates = coordinates
+        st.session_state.analysis_results = None
+        
+        # Calculate and show area
+        area_coords = np.array(coordinates)
+        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        st.success(f"Area set: {area_ha:.1f} hectares")
+        st.rerun()
+    
+    # Display map with selected area
     if st.session_state.selected_area and st.session_state.area_coordinates:
         coords = st.session_state.area_coordinates
         lats = [coord[1] for coord in coords[:-1]]
@@ -82,7 +118,7 @@ with col1:
             
         m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
         
-        # Add existing selection
+        # Add selected area
         folium.Polygon(
             locations=[(coord[1], coord[0]) for coord in coords],
             color='green',
@@ -94,73 +130,39 @@ with col1:
     else:
         # Default map view
         m = folium.Map(location=[40.0, -100.0], zoom_start=4)
-
-    # Add drawing plugin to the map
-    from folium.plugins import Draw
-    draw = Draw(
-        draw_options={
-            'polyline': False,
-            'polygon': True,
-            'circle': False,
-            'rectangle': True,
-            'marker': False,
-            'circlemarker': False,
-        },
-        edit_options={'remove': True}
-    )
-    draw.add_to(m)
     
-    # Display map with drawing capability
-    map_data = st_folium(
-        m, 
-        width=700, 
-        height=400,
-        returned_objects=["all_drawings"],
-        key="area_map"
-    )
+    # Display map (no drawing tools for now)
+    st_folium(m, width=700, height=400, key="display_map")
     
-    # Process map interactions
-    if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
-        latest_drawing = map_data['all_drawings'][-1]
-        
-        if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
-            coordinates = latest_drawing['geometry']['coordinates'][0]
-            
-            # Check if this is a new selection
-            current_coords = st.session_state.get('area_coordinates', [])
-            is_new_selection = (not current_coords or coordinates != current_coords)
-            
-            if is_new_selection:
-                # Save the new selection
-                st.session_state.selected_area = {
-                    'type': latest_drawing['geometry']['type'],
-                    'coordinates': coordinates
-                }
-                st.session_state.area_coordinates = coordinates
-                st.session_state.analysis_results = None
-                
-                # Calculate and show area
-                area_coords = np.array(coordinates)
-                if len(area_coords) > 2:
-                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_ha = area_km2 * 100
-                    st.success(f"Area selected: {area_ha:.1f} hectares")
-                st.rerun()
-        else:
-            st.warning("Please draw a polygon or rectangle area")
+    # Sample areas for quick testing
+    st.markdown("---")
+    st.markdown("**Quick Test Areas:**")
+    sample_areas = {
+        "Central Park, NYC": (40.764, -73.973, 40.800, -73.949),
+        "Golden Gate Park, SF": (37.769, -122.511, 37.775, -122.453),
+        "Hyde Park, London": (51.508, -0.175, 51.513, -0.159)
+    }
     
-    # Display coordinates if area selected
-    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        st.markdown("### Selected Area Coordinates")
-        coords = st.session_state.area_coordinates
+    selected_sample = st.selectbox("Or choose a sample area:", ["None"] + list(sample_areas.keys()))
+    
+    if selected_sample != "None" and st.button(f"Load {selected_sample}"):
+        min_lat, min_lon, max_lat, max_lon = sample_areas[selected_sample]
+        coordinates = [
+            [min_lon, min_lat],
+            [max_lon, min_lat], 
+            [max_lon, max_lat],
+            [min_lon, max_lat],
+            [min_lon, min_lat]
+        ]
         
-        lats = [coord[1] for coord in coords[:-1]]
-        lons = [coord[0] for coord in coords[:-1]]
-        
-        st.markdown(f"**Latitude:** {min(lats):.6f} to {max(lats):.6f}")
-        st.markdown(f"**Longitude:** {min(lons):.6f} to {max(lons):.6f}")
-    else:
-        st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
+        st.session_state.selected_area = {
+            'type': 'Polygon',
+            'coordinates': coordinates
+        }
+        st.session_state.area_coordinates = coordinates
+        st.session_state.analysis_results = None
+        st.success(f"Loaded {selected_sample}")
+        st.rerun()
 
 with col2:
     st.subheader("Analysis Preview")
