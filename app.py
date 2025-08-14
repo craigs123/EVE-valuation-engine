@@ -63,7 +63,8 @@ with st.sidebar:
     ecosystem_override = st.selectbox(
         "Ecosystem Type",
         options=["Auto-detect from satellite data", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"],
-        help="Override automatic ecosystem detection if needed"
+        index=1,  # Default to "Forest" instead of auto-detect
+        help="Select ecosystem type for your area. Auto-detect requires satellite data not available in this demo."
     )
     
     # Analysis detail level
@@ -284,70 +285,9 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
             
             # Determine ecosystem type
             if st.session_state.ecosystem_override == "Auto-detect from satellite data":
-                # Geographic-based ecosystem detection using location rules
-                avg_lat = sum(lats) / len(lats)
-                avg_lon = sum(lons) / len(lons)
-                
-                # Major urban area detection
-                urban_areas = [
-                    # US Major Cities
-                    (40.7128, -74.0060, 0.5),  # NYC Manhattan
-                    (40.6892, -74.0445, 0.3),  # NYC Brooklyn/Jersey
-                    (34.0522, -118.2437, 0.5), # Los Angeles
-                    (41.8781, -87.6298, 0.3),  # Chicago
-                    (37.7749, -122.4194, 0.5), # San Francisco
-                    (38.9072, -77.0369, 0.2),  # Washington DC
-                    (29.7604, -95.3698, 0.3),  # Houston
-                    (33.4484, -112.0740, 0.3), # Phoenix
-                    (39.7392, -104.9903, 0.3), # Denver
-                    (47.6062, -122.3321, 0.3), # Seattle
-                    (42.3601, -71.0589, 0.3),  # Boston
-                    (25.7617, -80.1918, 0.3),  # Miami
-                    # International Cities
-                    (51.5074, -0.1278, 0.3),   # London
-                    (48.8566, 2.3522, 0.3),   # Paris
-                    (35.6762, 139.6503, 0.5), # Tokyo
-                    (52.5200, 13.4050, 0.3),  # Berlin
-                    (55.7558, 37.6176, 0.3),  # Moscow
-                ]
-                
-                # Check if area overlaps with major urban centers
-                is_urban = False
-                for urban_lat, urban_lon, radius in urban_areas:
-                    if (abs(avg_lat - urban_lat) < radius and abs(avg_lon - urban_lon) < radius):
-                        is_urban = True
-                        break
-                
-                if is_urban:
-                    detected_ecosystem = "urban"
-                # Coastal detection - near major coastlines
-                elif ((abs(avg_lat) < 45 and (avg_lon < -120 or avg_lon > 120)) or  # Pacific coasts
-                      (avg_lat > 25 and avg_lat < 50 and avg_lon > -85 and avg_lon < -70) or  # US East coast
-                      (avg_lat > 50 and avg_lon > -10 and avg_lon < 30) or  # European coasts
-                      (avg_lat > -35 and avg_lat < 35 and avg_lon > 100 and avg_lon < 155)):  # SE Asian coasts
-                    detected_ecosystem = "coastal"
-                # Desert regions
-                elif ((avg_lat > 20 and avg_lat < 40 and avg_lon > -120 and avg_lon < -100) or  # US Southwest
-                      (avg_lat > 15 and avg_lat < 35 and avg_lon > -15 and avg_lon < 45) or  # Sahara/Middle East
-                      (avg_lat > -30 and avg_lat < -15 and avg_lon > 110 and avg_lon < 155)):  # Australian deserts
-                    detected_ecosystem = "desert"
-                # Wetland regions (Florida Everglades, Louisiana, etc.)
-                elif ((avg_lat > 25 and avg_lat < 30 and avg_lon > -85 and avg_lon < -80) or  # Florida
-                      (avg_lat > 29 and avg_lat < 32 and avg_lon > -93 and avg_lon < -89)):  # Louisiana
-                    detected_ecosystem = "wetland"
-                # Agricultural regions (Great Plains, Central Valley, etc.)
-                elif ((avg_lat > 35 and avg_lat < 45 and avg_lon > -105 and avg_lon < -95) or  # Great Plains
-                      (avg_lat > 36 and avg_lat < 40 and avg_lon > -122 and avg_lon < -119) or  # Central Valley
-                      (avg_lat > 40 and avg_lat < 55 and avg_lon > -5 and avg_lon < 30)):  # European farmland
-                    detected_ecosystem = "agricultural"
-                # Forest regions (Pacific Northwest, Northeast, etc.)
-                elif ((avg_lat > 45 and avg_lon > -125 and avg_lon < -115) or  # Pacific Northwest
-                      (avg_lat > 40 and avg_lat < 50 and avg_lon > -80 and avg_lon < -65) or  # Northeast US
-                      (avg_lat > 45 and avg_lat < 65 and avg_lon > -10 and avg_lon < 40)):  # Northern Europe
-                    detected_ecosystem = "forest"
-                # Default to grassland for temperate regions
-                else:
-                    detected_ecosystem = "grassland"
+                # Since we don't have actual satellite data, show warning and default to most common type
+                st.warning("⚠️ Satellite data detection not available. Using ecosystem type override or defaulting to 'grassland'. Please select specific ecosystem type from sidebar for accurate analysis.")
+                detected_ecosystem = "grassland"
             else:
                 detected_ecosystem = st.session_state.ecosystem_override.lower()
             
@@ -562,17 +502,21 @@ if st.session_state.analysis_results:
         st.markdown("""
         **Data Sources:**
         - **ESVD (Ecosystem Services Valuation Database)**: 10,000+ peer-reviewed economic valuations
-        - **Geographic Rules**: Simple location-based ecosystem classification
         - **TEEB Database**: The Economics of Ecosystems and Biodiversity coefficients
         
         **Methodology:**
         - Economic values from published ESVD/TEEB literature (global averages)
-        - Ecosystem detection using geographic location rules (not satellite data)
+        - Manual ecosystem type selection recommended for accuracy
         - All values standardized to 2020 International dollars
+        
+        **Ecosystem Detection Limitations:**
+        - Automatic detection requires satellite imagery analysis not available in this demo
+        - For accurate analysis, manually select ecosystem type from sidebar dropdown
+        - Real implementation would use NDVI, NDWI, NDBI indices from satellite data
         
         **Data Limitations:**
         - Values shown are global averages from peer-reviewed literature
-        - The full ESVD database (10,000+ records) includes regional adjustments for income, purchasing power, and local economic conditions
+        - The full ESVD database includes regional adjustments for local economic conditions
         - Access to location-specific ESVD values requires licensing from the ESVD consortium
         - For precise regional valuations, consult the official ESVD database at esvd.info
         """)
