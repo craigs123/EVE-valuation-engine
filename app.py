@@ -95,7 +95,7 @@ with col1:
         # Default map view
         m = folium.Map(location=[40.0, -100.0], zoom_start=4)
 
-    # Add drawing tools
+    # Add drawing plugin to the map
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
@@ -106,10 +106,7 @@ with col1:
             'marker': False,
             'circlemarker': False,
         },
-        edit_options={
-            'remove': True,
-            'edit': False
-        }
+        edit_options={'remove': True}
     )
     draw.add_to(m)
     
