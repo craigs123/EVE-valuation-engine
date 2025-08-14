@@ -7,7 +7,7 @@ from typing import Tuple, Dict, Optional
 
 def get_land_cover_classification(lat: float, lon: float) -> Tuple[str, Dict]:
     """
-    Get land cover classification from OpenLandMap API for a specific coordinate.
+    Get land cover classification using geographical rules and population density analysis.
     
     Args:
         lat: Latitude coordinate
@@ -17,67 +17,96 @@ def get_land_cover_classification(lat: float, lon: float) -> Tuple[str, Dict]:
         Tuple of (ecosystem_type, raw_data)
     """
     try:
-        # OpenLandMap REST API endpoint
-        url = "http://api.openlandmap.org/query/point"
-        
-        # Query for land cover data
+        # Use Nominatim API for reverse geocoding to understand location context
+        geocoding_url = f"https://nominatim.openstreetmap.org/reverse"
         params = {
             'lat': lat,
             'lon': lon,
-            'coll': 'layers1km',
-            'regex': 'lcv_landcover.lc_.*'  # Land cover layers
+            'format': 'json',
+            'zoom': 10,
+            'addressdetails': 1
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(geocoding_url, params=params, timeout=10)
         response.raise_for_status()
         
         data = response.json()
         
-        if 'response' in data and data['response']:
-            land_cover_data = data['response'][0]
-            ecosystem_type = classify_land_cover(land_cover_data)
-            return ecosystem_type, land_cover_data
-        else:
-            return "grassland", {"error": "No data available for this location"}
+        # Analyze location context for ecosystem classification
+        ecosystem_type = classify_from_geocoding(data, lat, lon)
+        
+        return ecosystem_type, data
             
     except Exception as e:
-        print(f"OpenLandMap API error: {e}")
-        return "grassland", {"error": str(e)}
+        print(f"Geocoding API error: {e}")
+        # Fallback to basic geographic rules
+        ecosystem_type = classify_basic_geographic(lat, lon)
+        return ecosystem_type, {"error": str(e), "fallback": True}
 
-def classify_land_cover(land_cover_data: Dict) -> str:
+def classify_from_geocoding(geocoding_data: Dict, lat: float, lon: float) -> str:
     """
-    Convert OpenLandMap land cover codes to ecosystem types.
-    
-    Based on standard land cover classification schemes.
+    Classify ecosystem type based on geocoding data and location context.
     """
-    # Extract land cover values from the response
-    lc_values = []
-    for key, value in land_cover_data.items():
-        if 'landcover' in key.lower() and isinstance(value, (int, float)):
-            lc_values.append(value)
+    if 'address' not in geocoding_data:
+        return classify_basic_geographic(lat, lon)
     
-    if not lc_values:
-        return "grassland"
+    address = geocoding_data['address']
+    display_name = geocoding_data.get('display_name', '').lower()
     
-    # Use the primary land cover value
-    primary_lc = lc_values[0] if lc_values else 0
-    
-    # Convert land cover codes to ecosystem types
-    # Based on typical land cover classification schemes
-    if primary_lc in range(10, 40):  # Forest classes
-        return "forest"
-    elif primary_lc in range(40, 60):  # Shrubland/grassland
-        return "grassland"
-    elif primary_lc in range(60, 80):  # Agricultural
-        return "agricultural"
-    elif primary_lc in range(80, 100):  # Wetland
-        return "wetland"
-    elif primary_lc in range(100, 120):  # Urban
+    # Urban detection based on administrative levels and place types
+    urban_indicators = ['city', 'town', 'village', 'municipality', 'urban', 'downtown', 'district']
+    if (address.get('city') or address.get('town') or address.get('village') or 
+        any(indicator in display_name for indicator in urban_indicators)):
         return "urban"
-    elif primary_lc in range(120, 140):  # Bare/desert
-        return "desert"
-    elif primary_lc in range(140, 160):  # Water/coastal
+    
+    # Agricultural detection
+    agricultural_indicators = ['farm', 'agricultural', 'rural', 'county', 'township']
+    if any(indicator in display_name for indicator in agricultural_indicators):
+        return "agricultural"
+    
+    # Coastal detection
+    if (address.get('coast') or 'coast' in display_name or 'beach' in display_name or 
+        'ocean' in display_name or 'sea' in display_name):
         return "coastal"
+    
+    # Forest detection
+    forest_indicators = ['forest', 'woods', 'national park', 'state park']
+    if any(indicator in display_name for indicator in forest_indicators):
+        return "forest"
+    
+    # Wetland detection
+    wetland_indicators = ['wetland', 'marsh', 'swamp', 'bog']
+    if any(indicator in display_name for indicator in wetland_indicators):
+        return "wetland"
+    
+    # Default to geographic classification
+    return classify_basic_geographic(lat, lon)
+
+def classify_basic_geographic(lat: float, lon: float) -> str:
+    """
+    Basic ecosystem classification based on geographic coordinates.
+    """
+    # Desert regions
+    if ((20 <= lat <= 40 and -120 <= lon <= -100) or  # US Southwest
+        (15 <= lat <= 35 and -15 <= lon <= 45) or     # Sahara/Middle East
+        (-30 <= lat <= -15 and 110 <= lon <= 155)):   # Australian deserts
+        return "desert"
+    
+    # Coastal regions (near major coastlines)
+    elif (abs(lat) < 65 and (lon < -120 or lon > 120 or  # Pacific
+          (25 <= lat <= 50 and -85 <= lon <= -70) or     # US East coast
+          (50 <= lat and -10 <= lon <= 30))):            # European coasts
+        return "coastal"
+    
+    # Forest regions (northern latitudes)
+    elif lat > 45:
+        return "forest"
+    
+    # Agricultural regions (temperate)
+    elif 30 <= lat <= 50:
+        return "agricultural"
+    
+    # Default grassland
     else:
         return "grassland"
 

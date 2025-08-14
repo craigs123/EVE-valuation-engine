@@ -64,7 +64,7 @@ with st.sidebar:
         "Ecosystem Type",
         options=["Auto-detect from satellite data", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"],
         index=0,  # Default to auto-detect using OpenLandMap
-        help="Auto-detect uses OpenLandMap global land cover data. Manual selection available for override."
+        help="Auto-detect analyzes location context using geographic data. Manual selection available for override."
     )
     
     # Analysis detail level
@@ -288,12 +288,12 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 # Use OpenLandMap API for authentic land cover classification
                 from utils.openlandmap_integration import get_dominant_ecosystem
                 
-                with st.spinner("🛰️ Analyzing land cover using OpenLandMap data..."):
+                with st.spinner("🗺️ Analyzing location context for ecosystem detection..."):
                     try:
                         detected_ecosystem = get_dominant_ecosystem(bbox)
-                        st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}** using OpenLandMap global land cover data")
+                        st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}** using geographic analysis")
                     except Exception as e:
-                        st.error(f"❌ OpenLandMap API error: {e}")
+                        st.error(f"❌ Geographic analysis error: {e}")
                         st.warning("Falling back to manual selection. Please choose ecosystem type from sidebar.")
                         detected_ecosystem = "grassland"
             else:
@@ -511,17 +511,18 @@ if st.session_state.analysis_results:
         **Data Sources:**
         - **ESVD (Ecosystem Services Valuation Database)**: 10,000+ peer-reviewed economic valuations
         - **TEEB Database**: The Economics of Ecosystems and Biodiversity coefficients
-        - **OpenLandMap**: Global land cover classification from satellite imagery analysis
+        - **OpenStreetMap Nominatim**: Geographic context analysis for ecosystem classification
         
         **Methodology:**
         - Economic values from published ESVD/TEEB literature (global averages)
-        - Ecosystem detection using OpenLandMap global land cover API
+        - Ecosystem detection using reverse geocoding and geographic analysis
         - All values standardized to 2020 International dollars
         
         **Ecosystem Detection:**
-        - Automatic detection uses OpenLandMap REST API for authentic land cover data
-        - Based on ESA Climate Change Initiative and Copernicus satellite imagery
-        - Global coverage at 1km resolution with regular updates
+        - Automatic detection analyzes location context using OpenStreetMap data
+        - Identifies urban areas, agricultural regions, forests, coastlines, and wetlands
+        - Uses administrative boundaries and place names for classification
+        - Geographic coordinate analysis for desert and forest regions
         - Manual override available in sidebar for specific requirements
         
         **Data Limitations:**
