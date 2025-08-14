@@ -102,8 +102,18 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Create interactive map
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+    # Create interactive map with panning disabled
+    m = folium.Map(
+        location=[40.0, -100.0], 
+        zoom_start=4,
+        dragging=False,
+        zoom_control=True,
+        scrollWheelZoom=False,
+        doubleClickZoom=False,
+        boxZoom=False,
+        keyboard=False,
+        tap=False
+    )
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
@@ -276,10 +286,19 @@ if analyze_button and st.session_state.selected_area:
         import time
         time.sleep(2)
         
+        # Calculate area for results
+        coords = st.session_state.area_coordinates
+        area_coords = np.array(coords)
+        if len(area_coords) > 2:
+            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
+        else:
+            area_ha = 100
+        
         # Store simple results
         st.session_state.analysis_results = {
             'total_value': 12500,
-            'area_ha': area_ha if 'area_ha' in locals() else 100,
+            'area_ha': area_ha,
             'ecosystem_type': 'Forest' if st.session_state.ecosystem_override == "Auto-detect from satellite data" else st.session_state.ecosystem_override
         }
         st.success("Analysis complete!")
