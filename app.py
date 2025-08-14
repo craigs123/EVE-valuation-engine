@@ -245,17 +245,13 @@ with col1:
         # Analysis detail level (moved from sidebar)
         analysis_detail = st.selectbox(
             "Analysis Detail",
-            options=["Quick Overview", "Detailed Analysis"],
-            help="Quick overview shows main values. Detailed includes service categories and trends.",
+            options=["Summary Analysis", "Detailed Analysis"],
+            help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
             key="analysis_detail_main"
         )
         
-        # Store setting and determine metrics
+        # Store setting
         st.session_state.analysis_detail = analysis_detail
-        if analysis_detail == "Detailed Analysis":
-            selected_metrics = ['ecosystem_services_total', 'provisioning', 'regulating', 'cultural', 'supporting']
-        else:
-            selected_metrics = ['ecosystem_services_total']
     
     with col_button:
         st.write("") # spacing
@@ -370,39 +366,64 @@ if analyze_button and st.session_state.selected_area:
 # Display results if available
 if st.session_state.analysis_results:
     st.markdown("---")
-    st.subheader("📈 Analysis Results")
     
-    results = st.session_state.analysis_results
+    # Different displays based on analysis detail level
+    analysis_mode = st.session_state.get('analysis_detail', 'Summary Analysis')
     
-    col_metrics = st.columns(3)
-    with col_metrics[0]:
-        col_val, col_help1 = st.columns([4, 1])
-        with col_val:
-            st.metric("Total Ecosystem Value", f"${results['total_value']:,}/year")
-        with col_help1:
-            if st.button("❓", key="help_total", help="Show total value calculation"):
-                st.session_state['show_total_calc'] = True
-                
-    with col_metrics[1]:
-        col_val, col_help2 = st.columns([4, 1])
-        with col_val:
-            st.metric("Value per Hectare", f"${results.get('value_per_ha', results['total_value']/results['area_ha']):.0f}/ha/year")
-        with col_help2:
-            if st.button("❓", key="help_per_ha", help="Show per hectare calculation"):
-                st.session_state['show_per_ha_calc'] = True
-                
-    with col_metrics[2]:
-        col_val, col_help3 = st.columns([4, 1])
-        with col_val:
-            st.metric("Ecosystem Type", results['ecosystem_type'])
-        with col_help3:
-            if st.button("❓", key="help_ecosystem", help="Show ecosystem detection details"):
-                st.session_state['show_ecosystem_details'] = True
+    if analysis_mode == "Summary Analysis":
+        st.subheader("📈 Summary Results")
+        results = st.session_state.analysis_results
+        
+        # Simple metrics display for summary
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Annual Value", f"${results['total_value']:,}")
+        with col2:
+            st.metric("Value per Hectare", f"${results.get('value_per_ha', results['total_value']/results['area_ha']):.0f}/ha")
+        with col3:
+            st.metric("Area Analyzed", f"{results['area_ha']:,.0f} ha")
+        
+        # Basic info
+        st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+        
+        # Option to upgrade to detailed view
+        if st.button("🔍 View Detailed Analysis", type="secondary"):
+            st.session_state['analysis_detail'] = 'Detailed Analysis'
+            st.rerun()
+            
+    else:  # Detailed Analysis
+        st.subheader("📈 Detailed Analysis Results")
+        results = st.session_state.analysis_results
+        
+        col_metrics = st.columns(3)
+        with col_metrics[0]:
+            col_val, col_help1 = st.columns([4, 1])
+            with col_val:
+                st.metric("Total Ecosystem Value", f"${results['total_value']:,}/year")
+            with col_help1:
+                if st.button("❓", key="help_total", help="Show total value calculation"):
+                    st.session_state['show_total_calc'] = True
+                    
+        with col_metrics[1]:
+            col_val, col_help2 = st.columns([4, 1])
+            with col_val:
+                st.metric("Value per Hectare", f"${results.get('value_per_ha', results['total_value']/results['area_ha']):.0f}/ha/year")
+            with col_help2:
+                if st.button("❓", key="help_per_ha", help="Show per hectare calculation"):
+                    st.session_state['show_per_ha_calc'] = True
+                    
+        with col_metrics[2]:
+            col_val, col_help3 = st.columns([4, 1])
+            with col_val:
+                st.metric("Ecosystem Type", results['ecosystem_type'])
+            with col_help3:
+                if st.button("❓", key="help_ecosystem", help="Show ecosystem detection details"):
+                    st.session_state['show_ecosystem_details'] = True
     
-    # Show calculation details when requested
-    if st.session_state.get('show_total_calc', False):
-        with st.expander("📊 Total Ecosystem Value - Calculation Details", expanded=True):
-            st.markdown(f"""
+        # Show calculation details when requested  
+        if st.session_state.get('show_total_calc', False):
+            with st.expander("📊 Total Ecosystem Value - Calculation Details", expanded=True):
+                st.markdown(f"""
             **Total Ecosystem Value Calculation**: ${results['total_value']:,}/year
             
             This value represents the annual economic contribution of all ecosystem services in the selected area.
@@ -417,16 +438,16 @@ if st.session_state.analysis_results:
             - ESVD Database: 10,874+ peer-reviewed value estimates
             - TEEB Integration: Economics of Ecosystems and Biodiversity
             - Scientific Standards: 2020 International dollars per hectare per year
-            """)
-            if st.button("Close", key="close_total"):
-                st.session_state['show_total_calc'] = False
-                st.rerun()
-    
-    if st.session_state.get('show_per_ha_calc', False):
-        with st.expander("📊 Per Hectare Value - Calculation Details", expanded=True):
-            per_ha_value = results.get('value_per_ha', results['total_value']/results['area_ha'])
-            st.markdown(f"""
-            **Value per Hectare Calculation**: ${per_ha_value:.0f}/ha/year
+                """)
+                if st.button("Close", key="close_total"):
+                    st.session_state['show_total_calc'] = False
+                    st.rerun()
+        
+        if st.session_state.get('show_per_ha_calc', False):
+            with st.expander("📊 Per Hectare Value - Calculation Details", expanded=True):
+                per_ha_value = results.get('value_per_ha', results['total_value']/results['area_ha'])
+                st.markdown(f"""
+                **Value per Hectare Calculation**: ${per_ha_value:.0f}/ha/year
             
             **Formula**: Total Value ÷ Area
             - Total Value: ${results['total_value']:,}/year
@@ -440,20 +461,20 @@ if st.session_state.analysis_results:
             **Regional Context**:
             This value has been adjusted by a factor of {results.get('regional_factor', 1.0):.2f} to account for:
             - Local income levels and purchasing power
-            - Regional cost of living differences  
-            - Data availability and quality for this geographic area
-            """)
-            if st.button("Close", key="close_per_ha"):
-                st.session_state['show_per_ha_calc'] = False
-                st.rerun()
-    
-    if st.session_state.get('show_ecosystem_details', False):
-        with st.expander("📊 Ecosystem Type Detection - Method Details", expanded=True):
-            st.markdown(f"""
-            **Detected Ecosystem Type**: {results['ecosystem_type']}
-            
-            **Detection Method**:
-            """)
+                - Regional cost of living differences  
+                - Data availability and quality for this geographic area
+                """)
+                if st.button("Close", key="close_per_ha"):
+                    st.session_state['show_per_ha_calc'] = False
+                    st.rerun()
+        
+        if st.session_state.get('show_ecosystem_details', False):
+            with st.expander("📊 Ecosystem Type Detection - Method Details", expanded=True):
+                st.markdown(f"""
+                **Detected Ecosystem Type**: {results['ecosystem_type']}
+                
+                **Detection Method**:
+                """)
             
             if 'detected_ecosystem' in st.session_state:
                 ecosystem_info = st.session_state.detected_ecosystem
@@ -597,3 +618,9 @@ if st.session_state.analysis_results:
                     if st.button("Close Details", key=f"close_{category}"):
                         st.session_state[f'show_{category}_details'] = False
                         st.rerun()
+        
+        # Option to switch to summary view
+        st.markdown("---")
+        if st.button("📊 Switch to Summary View", type="secondary"):
+            st.session_state['analysis_detail'] = 'Summary Analysis'
+            st.rerun()
