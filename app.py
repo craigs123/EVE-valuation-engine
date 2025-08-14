@@ -100,7 +100,7 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
+    st.info("Map starts in rectangle drawing mode - click and drag to select your area")
     
     # Create interactive map with panning disabled
     m = folium.Map(
@@ -127,7 +127,7 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add drawing tools
+    # Add drawing tools with auto-start rectangle mode
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
@@ -141,9 +141,34 @@ with col1:
         edit_options={
             'remove': True,
             'edit': False
-        }
+        },
+        position='topleft'
     )
     draw.add_to(m)
+    
+    # Add custom JavaScript to auto-enable rectangle drawing mode
+    auto_draw_js = """
+    <script>
+    function enableDrawMode() {
+        setTimeout(function() {
+            var drawControl = document.querySelector('.leaflet-draw-draw-rectangle');
+            if (drawControl && !document.querySelector('.leaflet-draw-toolbar-button-enabled')) {
+                drawControl.click();
+            }
+        }, 1000);
+    }
+    
+    // Try to enable draw mode when map loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', enableDrawMode);
+    } else {
+        enableDrawMode();
+    }
+    </script>
+    """
+    
+    # Add the JavaScript to the map
+    m.get_root().html.add_child(folium.Element(auto_draw_js))
     
     # Display map with drawing capability
     map_data = st_folium(
