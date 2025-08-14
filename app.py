@@ -492,18 +492,6 @@ with col2:
                 st.success("🏖️ Coastal areas provide storm protection and recreation value!")
     else:
         st.info("Draw an area on the map to see preview")
-        
-        # Show ecosystem value examples
-        st.write("**Ecosystem Value Examples:**")
-        examples = [
-            ("🦆 Wetlands", "$32,400/ha/year", "Water regulation, habitat"),
-            ("🌲 Forests", "$4,700/ha/year", "Carbon storage, biodiversity"),
-            ("🏖️ Coastal", "$5,700/ha/year", "Storm protection, recreation"),
-            ("🌾 Grasslands", "$230/ha/year", "Food production, soil health"),
-        ]
-        
-        for ecosystem, value, services in examples:
-            st.write(f"**{ecosystem}**: {value} - {services}")
 
 # Analysis Results Section
 if st.session_state.analysis_results:
