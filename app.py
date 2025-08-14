@@ -109,7 +109,7 @@ with col1:
     fig = go.Figure()
     
     # Add base map
-    fig.add_trace(go.Scattermapbox(
+    fig.add_trace(go.Scattermap(
         lat=[40],
         lon=[-100],
         mode='markers',
@@ -123,7 +123,7 @@ with col1:
         lats = [coord[1] for coord in coords]
         lons = [coord[0] for coord in coords]
         
-        fig.add_trace(go.Scattermapbox(
+        fig.add_trace(go.Scattermap(
             lat=lats,
             lon=lons,
             mode='lines',
@@ -136,62 +136,17 @@ with col1:
     
     # Configure map layout
     fig.update_layout(
-        mapbox=dict(
+        map=dict(
             style="open-street-map",
             center=dict(lat=40, lon=-100),
             zoom=3
         ),
         height=400,
-        margin=dict(l=0, r=0, t=0, b=0),
-        dragmode='select'
+        margin=dict(l=0, r=0, t=0, b=0)
     )
     
-    # Display the map and capture selection
-    selected_data = st.plotly_chart(
-        fig, 
-        use_container_width=True, 
-        selection_mode='box',
-        key="plotly_map"
-    )
-    
-    # Process box selection
-    if selected_data and 'selection' in selected_data and selected_data['selection']['box']:
-        box = selected_data['selection']['box'][0]
-        
-        # Extract coordinates from selection box
-        min_lat = box['y'][0]
-        max_lat = box['y'][1]
-        min_lon = box['x'][0]
-        max_lon = box['x'][1]
-        
-        # Create coordinates array
-        coordinates = [
-            [min_lon, min_lat],
-            [max_lon, min_lat],
-            [max_lon, max_lat],
-            [min_lon, max_lat],
-            [min_lon, min_lat]
-        ]
-        
-        # Check if this is a new selection
-        current_coords = st.session_state.get('area_coordinates', [])
-        is_new_selection = (not current_coords or coordinates != current_coords)
-        
-        if is_new_selection:
-            # Save the new selection
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            # Calculate and show area
-            area_coords = np.array(coordinates)
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.success(f"Area selected: {area_ha:.1f} hectares")
-            st.rerun()
+    # Display the map 
+    st.plotly_chart(fig, use_container_width=True, key="plotly_map")
     
     # Alternative simple selection method
     st.markdown("### Alternative: Quick Area Selection")
