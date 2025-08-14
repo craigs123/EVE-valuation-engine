@@ -89,12 +89,32 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Create interactive map
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
-    
-    # Add existing selection if available
+    # Create interactive map - center on selected area if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
         coords = st.session_state.area_coordinates
+        # Calculate center of selected area
+        lats = [coord[1] for coord in coords[:-1]]
+        lons = [coord[0] for coord in coords[:-1]]
+        center_lat = sum(lats) / len(lats)
+        center_lon = sum(lons) / len(lons)
+        
+        # Calculate appropriate zoom level based on area size
+        lat_range = max(lats) - min(lats)
+        lon_range = max(lons) - min(lons)
+        max_range = max(lat_range, lon_range)
+        
+        if max_range < 0.01:  # Very small area
+            zoom_level = 12
+        elif max_range < 0.1:  # Small area
+            zoom_level = 10
+        elif max_range < 1.0:  # Medium area
+            zoom_level = 8
+        else:  # Large area
+            zoom_level = 6
+            
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
+        
+        # Add existing selection
         folium.Polygon(
             locations=[(coord[1], coord[0]) for coord in coords],
             color='green',
@@ -103,6 +123,9 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
+    else:
+        # Default map view
+        m = folium.Map(location=[40.0, -100.0], zoom_start=4)
 
     # Add drawing tools
     from folium.plugins import Draw
