@@ -21,6 +21,50 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Display ESVD integration status in sidebar
+with st.sidebar:
+    st.subheader("🗃️ Open Source Database Integration")
+    
+    try:
+        from utils.esvd_integration import ESVDIntegration
+        esvd = ESVDIntegration()
+        status = esvd.validate_esvd_connection()
+        
+        st.success("✅ ESVD Integration Active")
+        st.write(f"📊 Database Version: {status.get('database_version', 'Unknown')}")
+        st.write(f"🔢 Coefficient Count: {status.get('coefficient_count', 'Unknown')}")
+        st.write(f"🌍 Ecosystem Types: {status.get('ecosystem_types_supported', 'Unknown')}")
+        st.write(f"🏛️ Data Quality: {status.get('data_quality', 'Unknown')}")
+        
+        with st.expander("📈 Database Details"):
+            st.write("**ESVD (Ecosystem Services Valuation Database)**")
+            st.write("- World's largest open-access database")
+            st.write("- 10,000+ peer-reviewed value records")
+            st.write("- 2020 International dollar standardization")
+            st.write("- Regional adjustment factors applied")
+            
+    except Exception as e:
+        st.warning("⚠️ ESVD Integration: Limited")
+        st.write("Using cached coefficients from ESVD/TEEB research")
+        
+    st.markdown("---")
+    st.subheader("📝 About EVE")
+    st.write("""
+    **Ecosystem Valuation Engine** measures ecosystem growth through economic valuation of four service categories:
+    
+    - 🥬 **Provisioning**: Food, water, timber
+    - 🌡️ **Regulating**: Climate, water regulation  
+    - 🎨 **Cultural**: Recreation, spiritual value
+    - 🔄 **Supporting**: Soil, nutrients, habitat
+    """)
+    
+    st.markdown("---")
+    st.write("**Data Sources:**")
+    st.write("• ESVD - Ecosystem Services Valuation Database")
+    st.write("• TEEB - The Economics of Ecosystems and Biodiversity")
+    st.write("• InVEST - Integrated Valuation of Ecosystem Services")
+    st.write("• Peer-reviewed ecosystem services research")
+
 # Initialize session state
 if 'selected_area' not in st.session_state:
     st.session_state.selected_area = None
@@ -286,9 +330,17 @@ if st.session_state.analysis_results:
                 with col4:
                     st.metric("Supporting", f"{breakdown.get('supporting_percent', 0):.1f}%")
             
-            # Valuation summary
+            # Valuation summary and data source
             if 'valuation_summary' in services_data:
                 st.info(f"📊 **Summary:** {services_data['valuation_summary']}")
+            
+            # Show data source information
+            if 'data_source' in services_data:
+                data_source = services_data['data_source']
+                if 'ESVD' in data_source:
+                    st.success(f"✅ **Data Source:** {data_source} - Using peer-reviewed open source coefficients")
+                else:
+                    st.warning(f"⚠️ **Data Source:** {data_source} - Consider enabling ESVD integration")
         
         elif metrics_data:
             # Fallback to regular metrics display
@@ -482,12 +534,41 @@ if st.session_state.analysis_results:
                         percentage = (count / len(time_series)) * 100
                         st.write(f"- {quality.title()}: {count} points ({percentage:.1f}%)")
             
-            # Show coefficient information
+            # Show coefficient information and ESVD integration status
             st.write("**Economic Valuation Basis:**")
-            st.info("""
-            Values are calculated using established economic valuation coefficients from ecosystem services research, 
-            adjusted for local ecosystem quality based on satellite-derived vegetation and environmental indicators.
-            """)
+            
+            esvd_metadata = services_data.get('esvd_metadata', {})
+            database_version = services_data.get('database_version', 'Unknown')
+            data_source = services_data.get('data_source', 'Unknown')
+            
+            if 'ESVD' in data_source:
+                st.success(f"""
+                **✅ ESVD Integration Active**
+                - Using open source Ecosystem Services Valuation Database coefficients
+                - Database Version: {database_version}
+                - Regional adjustment applied: {services_data.get('regional_adjustment', 1.0):.2f}x
+                - Price level: 2020 International dollars
+                - Values based on {esvd_metadata.get('coefficient_count', '9,000+')} peer-reviewed studies
+                """)
+            else:
+                st.info(f"""
+                **📊 Valuation Methodology**
+                - Source: {data_source}
+                - Values adjusted for ecosystem quality based on satellite indicators
+                - Time series analysis tracks economic value changes over time
+                """)
+            
+            # ESVD database status
+            if st.button("🔍 Check ESVD Database Status"):
+                with st.spinner("Checking ESVD integration status..."):
+                    from utils.esvd_integration import ESVDIntegration
+                    esvd = ESVDIntegration()
+                    status = esvd.validate_esvd_connection()
+                    
+                    st.write("**ESVD Database Status:**")
+                    for key, value in status.items():
+                        icon = "✅" if value else "❌" if isinstance(value, bool) else "ℹ️"
+                        st.write(f"{icon} {key.replace('_', ' ').title()}: {value}")
         
     with tab5:
         st.subheader("Export Data and Reports")

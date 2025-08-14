@@ -1,13 +1,15 @@
 """
 Ecosystem Services Valuation Module
 Calculates monetary values for provisioning, regulating, cultural and supporting ecosystem services
+Now integrated with ESVD (Ecosystem Services Valuation Database) for authentic coefficients
 """
 
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 import math
+from .esvd_integration import ESVDIntegration
 
 class EcosystemServicesCalculator:
     """
@@ -15,7 +17,11 @@ class EcosystemServicesCalculator:
     """
     
     def __init__(self):
-        # Economic valuation coefficients (USD per hectare per year)
+        # Initialize ESVD integration for authentic coefficients
+        self.esvd = ESVDIntegration()
+        
+        # Legacy economic valuation coefficients (now replaced by ESVD data)
+        # Kept for fallback purposes only
         self.service_values = {
             'provisioning': {
                 'food_production': {
@@ -158,7 +164,7 @@ class EcosystemServicesCalculator:
     def calculate_ecosystem_services_value(self, satellite_data: Dict, area_bounds: Dict, 
                                          ecosystem_type: str = 'forest') -> Dict[str, Any]:
         """
-        Calculate total ecosystem services value and track changes over time
+        Calculate total ecosystem services value using ESVD coefficients and track changes over time
         
         Args:
             satellite_data: Satellite data dictionary
@@ -166,7 +172,7 @@ class EcosystemServicesCalculator:
             ecosystem_type: Type of ecosystem (forest, grassland, wetland, agricultural, coastal)
             
         Returns:
-            Dictionary containing ecosystem services valuation results
+            Dictionary containing ecosystem services valuation results with ESVD data
         """
         try:
             if not satellite_data.get('time_series'):
@@ -175,7 +181,19 @@ class EcosystemServicesCalculator:
             time_series = satellite_data['time_series']
             area_ha = self._calculate_area_hectares(area_bounds)
             
-            # Calculate services values for each time point
+            # Get coordinates for regional adjustment
+            coordinates = self._extract_coordinates(area_bounds)
+            
+            # Get ESVD baseline values
+            esvd_results = self.esvd.calculate_esvd_values(
+                ecosystem_type, area_ha, coordinates
+            )
+            
+            if 'error' in esvd_results:
+                # Fallback to legacy calculations
+                return self._calculate_legacy_values(satellite_data, area_bounds, ecosystem_type)
+            
+            # Calculate services values for each time point using ESVD as baseline
             services_time_series = []
             total_values = []
             
@@ -184,21 +202,21 @@ class EcosystemServicesCalculator:
                 quality = self._assess_ecosystem_quality(data_point)
                 quality_multiplier = self.quality_multipliers[quality]
                 
-                # Calculate values for each service category
-                provisioning_value = self._calculate_provisioning_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
+                # Apply ESVD values with quality adjustments
+                provisioning_value = self._apply_esvd_values(
+                    esvd_results.get('provisioning', {}), quality_multiplier, data_point
                 )
                 
-                regulating_value = self._calculate_regulating_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
+                regulating_value = self._apply_esvd_values(
+                    esvd_results.get('regulating', {}), quality_multiplier, data_point
                 )
                 
-                cultural_value = self._calculate_cultural_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
+                cultural_value = self._apply_esvd_values(
+                    esvd_results.get('cultural', {}), quality_multiplier, data_point
                 )
                 
-                supporting_value = self._calculate_supporting_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
+                supporting_value = self._apply_esvd_values(
+                    esvd_results.get('supporting', {}), quality_multiplier, data_point
                 )
                 
                 total_value = (provisioning_value['total'] + regulating_value['total'] + 
@@ -214,7 +232,8 @@ class EcosystemServicesCalculator:
                     'cultural': cultural_value,
                     'supporting': supporting_value,
                     'ecosystem_quality': quality,
-                    'area_hectares': area_ha
+                    'area_hectares': area_ha,
+                    'esvd_metadata': esvd_results.get('metadata', {})
                 })
             
             # Calculate statistics
@@ -228,6 +247,9 @@ class EcosystemServicesCalculator:
             
             # Calculate service category contributions
             latest_services = services_time_series[-1] if services_time_series else {}
+            
+            # Get ESVD metadata
+            esvd_metadata = esvd_results.get('metadata', {})
             
             return {
                 'current_value': float(current_value),
@@ -245,11 +267,15 @@ class EcosystemServicesCalculator:
                     'cultural_percent': float(latest_services.get('cultural', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
                     'supporting_percent': float(latest_services.get('supporting', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0
                 },
-                'valuation_summary': self._generate_valuation_summary(current_value, trend, ecosystem_type)
+                'valuation_summary': self._generate_valuation_summary(current_value, trend, ecosystem_type),
+                'data_source': 'ESVD (Ecosystem Services Valuation Database)',
+                'esvd_metadata': esvd_metadata,
+                'regional_adjustment': esvd_metadata.get('regional_adjustment', 1.0),
+                'database_version': esvd_metadata.get('database_version', 'ESVD APR2024V1.1')
             }
             
         except Exception as e:
-            return {'error': f'Error calculating ecosystem services value: {str(e)}'}
+            return {'error': f'Error calculating ESVD ecosystem services value: {str(e)}'}
     
     def _calculate_provisioning_services(self, ecosystem_type: str, area_ha: float, 
                                        quality_multiplier: float, data_point: Dict) -> Dict[str, float]:
@@ -449,3 +475,145 @@ class EcosystemServicesCalculator:
                 }
         
         return trends
+    
+    def _extract_coordinates(self, area_bounds: Dict) -> Optional[Tuple[float, float]]:
+        """
+        Extract center coordinates from area bounds for regional adjustment
+        """
+        try:
+            if not area_bounds or 'coordinates' not in area_bounds:
+                return None
+            
+            coords = area_bounds['coordinates']
+            if len(coords) < 3:
+                return None
+            
+            # Calculate centroid
+            lats = [coord[1] for coord in coords]
+            lons = [coord[0] for coord in coords]
+            
+            center_lat = sum(lats) / len(lats)
+            center_lon = sum(lons) / len(lons)
+            
+            return (center_lat, center_lon)
+        except Exception:
+            return None
+    
+    def _apply_esvd_values(self, esvd_category: Dict, quality_multiplier: float, data_point: Dict) -> Dict[str, float]:
+        """
+        Apply ESVD values with ecosystem quality adjustments
+        """
+        result = {}
+        
+        for service, value in esvd_category.items():
+            if service == 'total':
+                continue
+                
+            # Apply quality and satellite-based adjustments
+            if isinstance(value, (int, float)):
+                # Apply base quality multiplier
+                adjusted_value = value * quality_multiplier
+                
+                # Apply additional satellite-based adjustments
+                if 'provisioning' in str(service).lower():
+                    # Adjust provisioning based on vegetation health
+                    red = data_point.get('red_mean', 0)
+                    nir = data_point.get('nir_mean', 0)
+                    ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
+                    vegetation_factor = max(0.5, min(1.5, ndvi * 2))
+                    adjusted_value *= vegetation_factor
+                
+                elif 'regulating' in str(service).lower():
+                    # Adjust regulating based on vegetation cover
+                    red = data_point.get('red_mean', 0)
+                    nir = data_point.get('nir_mean', 0)
+                    ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
+                    regulation_factor = max(0.6, min(1.4, (ndvi + 0.5) * 1.2))
+                    adjusted_value *= regulation_factor
+                
+                result[service] = float(adjusted_value)
+            else:
+                result[service] = 0.0
+        
+        result['total'] = sum(result.values())
+        return result
+    
+    def _calculate_legacy_values(self, satellite_data: Dict, area_bounds: Dict, ecosystem_type: str) -> Dict[str, Any]:
+        """
+        Fallback calculation using legacy coefficients when ESVD fails
+        """
+        try:
+            time_series = satellite_data['time_series']
+            area_ha = self._calculate_area_hectares(area_bounds)
+            
+            # Use legacy calculation method
+            services_time_series = []
+            total_values = []
+            
+            for data_point in time_series:
+                quality = self._assess_ecosystem_quality(data_point)
+                quality_multiplier = self.quality_multipliers[quality]
+                
+                provisioning_value = self._calculate_provisioning_services(
+                    ecosystem_type, area_ha, quality_multiplier, data_point
+                )
+                regulating_value = self._calculate_regulating_services(
+                    ecosystem_type, area_ha, quality_multiplier, data_point
+                )
+                cultural_value = self._calculate_cultural_services(
+                    ecosystem_type, area_ha, quality_multiplier, data_point
+                )
+                supporting_value = self._calculate_supporting_services(
+                    ecosystem_type, area_ha, quality_multiplier, data_point
+                )
+                
+                total_value = (provisioning_value['total'] + regulating_value['total'] + 
+                              cultural_value['total'] + supporting_value['total'])
+                
+                total_values.append(total_value)
+                
+                services_time_series.append({
+                    'date': data_point['date'],
+                    'total_value': total_value,
+                    'provisioning': provisioning_value,
+                    'regulating': regulating_value,
+                    'cultural': cultural_value,
+                    'supporting': supporting_value,
+                    'ecosystem_quality': quality,
+                    'area_hectares': area_ha
+                })
+            
+            # Calculate statistics
+            current_value = total_values[-1] if total_values else 0
+            previous_value = total_values[-2] if len(total_values) > 1 else current_value
+            mean_value = np.mean(total_values) if total_values else 0
+            trend = np.polyfit(range(len(total_values)), total_values, 1)[0] if len(total_values) > 1 else 0
+            annual_change = trend * 365 if trend != 0 else 0
+            
+            latest_services = services_time_series[-1] if services_time_series else {}
+            
+            return {
+                'current_value': float(current_value),
+                'previous_value': float(previous_value),
+                'mean_value': float(mean_value),
+                'trend_slope': float(trend),
+                'annual_change_usd': float(annual_change),
+                'value_per_hectare': float(current_value / area_ha) if area_ha > 0 else 0,
+                'ecosystem_type': ecosystem_type,
+                'area_hectares': float(area_ha),
+                'time_series': services_time_series,
+                'service_breakdown': {
+                    'provisioning_percent': float(latest_services.get('provisioning', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
+                    'regulating_percent': float(latest_services.get('regulating', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
+                    'cultural_percent': float(latest_services.get('cultural', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
+                    'supporting_percent': float(latest_services.get('supporting', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0
+                },
+                'valuation_summary': self._generate_valuation_summary(current_value, trend, ecosystem_type),
+                'data_source': 'Legacy coefficients (fallback)',
+                'esvd_metadata': {'status': 'fallback_used'},
+                'regional_adjustment': 1.0,
+                'database_version': 'Legacy v1.0'
+            }
+            
+        except Exception as e:
+            return {'error': f'Legacy calculation also failed: {str(e)}'}

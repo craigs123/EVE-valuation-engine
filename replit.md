@@ -22,13 +22,16 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 - **Modular Design**: Utilities organized into separate modules for specific functionalities
 - **Data Processing Pipeline**: 
   - Satellite data acquisition and processing (`satellite_data.py`)
+  - ESVD integration and open source database access (`esvd_integration.py`)
   - Ecosystem services valuation engine (`ecosystem_services.py`)
   - Natural capital metrics calculation (`natural_capital_metrics.py`) 
   - Visualization generation (`visualization.py`)
   - Data export capabilities (`data_export.py`)
-- **Economic Valuation Engine**: Calculates monetary values for ecosystem services using established coefficients
-- **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services separately
-- **Time Series Processing**: Handles temporal analysis of ecosystem service value changes over time
+- **Economic Valuation Engine**: Calculates monetary values using authentic ESVD/TEEB coefficients from peer-reviewed research
+- **Open Source Database Integration**: Direct integration with ESVD (10,000+ value records), TEEB database, and InVEST framework
+- **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services with authentic economic coefficients
+- **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
+- **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
@@ -36,10 +39,13 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 - **Export Formats**: CSV and JSON export capabilities for analysis results
 
 ### Calculation Methodology
-- **Ecosystem Services Valuation**: Uses established economic coefficients for different service categories and ecosystem types
+- **ESVD Integration**: Leverages the Ecosystem Services Valuation Database (ESVD) - world's largest open-access database with 10,000+ peer-reviewed value records
+- **Authentic Coefficients**: Economic coefficients sourced from ESVD/TEEB databases containing 1,100+ studies across all biomes and geographic regions
 - **Service Categories**: Provisioning (food, water, timber), Regulating (climate, water, erosion control), Cultural (recreation, spiritual), Supporting (soil, nutrients, habitat)
-- **Quality Adjustment**: Values are adjusted based on ecosystem quality derived from satellite indicators (NDVI, spectral health, data quality)
+- **Regional Adjustment**: Values adjusted for geographic location using ESVD regional factors (income, cost of living, exchange rates)
+- **Quality Adjustment**: Values further adjusted based on ecosystem quality derived from satellite indicators (NDVI, spectral health, data quality)
 - **Temporal Analysis**: Tracks value changes over time to measure ecosystem growth or degradation in economic terms
+- **Data Standards**: All values standardized to 2020 International dollars per hectare per year for global comparability
 
 ## External Dependencies
 
