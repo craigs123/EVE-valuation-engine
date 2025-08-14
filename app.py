@@ -161,6 +161,7 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
+    st.caption("Zoom in and select area to analyse on the map. You can select a square or polygon by first clicking on the appropriate icon.")
     
     # Create interactive map with better default view
     if st.session_state.selected_area and st.session_state.area_coordinates:
