@@ -239,32 +239,10 @@ with col1:
     
 
     
-    # Add drawing tools
-    from folium.plugins import Draw
-    draw = Draw(
-        draw_options={
-            'polyline': False,
-            'polygon': True,
-            'circle': False,
-            'rectangle': True,
-            'marker': False,
-            'circlemarker': False,
-        },
-        edit_options={
-            'remove': True,
-            'edit': False
-        }
-    )
-    draw.add_to(m)
+
     
-    # Display map 
-    map_data = st_folium(
-        m, 
-        width=700, 
-        height=400,
-        returned_objects=["all_drawings"],
-        key="area_map"
-    )
+        # Display map for interactive mode (simplified)
+        st_folium(m, width=700, height=400, key="area_map")
     
     # Show helpful instructions and status
     if st.session_state.get('selected_area'):
