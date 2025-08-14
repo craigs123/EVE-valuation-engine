@@ -89,22 +89,8 @@ with st.sidebar:
         help="Override automatic ecosystem detection if needed"
     )
     
-    # Analysis detail level
-    analysis_detail = st.selectbox(
-        "Analysis Detail",
-        options=["Quick Overview", "Detailed Analysis"],
-        help="Quick overview shows main values. Detailed includes service categories and trends."
-    )
-    
     # Store settings
     st.session_state.ecosystem_override = ecosystem_override
-    st.session_state.analysis_detail = analysis_detail
-    
-    # Service categories (only for detailed analysis)
-    if analysis_detail == "Detailed Analysis":
-        selected_metrics = ['ecosystem_services_total', 'provisioning', 'regulating', 'cultural', 'supporting']
-    else:
-        selected_metrics = ['ecosystem_services_total']
     
     st.markdown("---")
     
@@ -255,6 +241,21 @@ with col1:
                 "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
             }
             start_date, end_date = preset_options[time_preset]
+        
+        # Analysis detail level (moved from sidebar)
+        analysis_detail = st.selectbox(
+            "Analysis Detail",
+            options=["Quick Overview", "Detailed Analysis"],
+            help="Quick overview shows main values. Detailed includes service categories and trends.",
+            key="analysis_detail_main"
+        )
+        
+        # Store setting and determine metrics
+        st.session_state.analysis_detail = analysis_detail
+        if analysis_detail == "Detailed Analysis":
+            selected_metrics = ['ecosystem_services_total', 'provisioning', 'regulating', 'cultural', 'supporting']
+        else:
+            selected_metrics = ['ecosystem_services_total']
     
     with col_button:
         st.write("") # spacing
