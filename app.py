@@ -51,6 +51,18 @@ st.markdown("""
     padding: 0.5rem;
     font-size: 0.75rem;
 }
+.coordinate-bounds {
+    font-size: 0.75rem;
+    margin: 0.5rem 0;
+}
+.coordinate-bounds .metric-label {
+    font-size: 0.7rem;
+    color: #666;
+}
+.coordinate-bounds .metric-value {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -195,13 +207,19 @@ with col1:
         lats = [coord[1] for coord in coords[:-1]]  # Exclude last duplicate point
         lons = [coord[0] for coord in coords[:-1]]
         
-        col_bounds1, col_bounds2 = st.columns(2)
-        with col_bounds1:
-            st.metric("Min Latitude", f"{min(lats):.6f}")
-            st.metric("Min Longitude", f"{min(lons):.6f}")
-        with col_bounds2:
-            st.metric("Max Latitude", f"{max(lats):.6f}")
-            st.metric("Max Longitude", f"{max(lons):.6f}")
+        # Display min values on one line, max on next
+        st.markdown(f"""
+        <div class="coordinate-bounds">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{min(lats):.6f}</span></span>
+                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{min(lons):.6f}</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{max(lats):.6f}</span></span>
+                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{max(lons):.6f}</span></span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):
