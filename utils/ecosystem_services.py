@@ -183,11 +183,18 @@ class EcosystemServicesCalculator:
             
             # Use automatic ecosystem type detection if not provided
             if ecosystem_type is None:
-                ecosystem_detection = satellite_data.get('ecosystem_detection', {})
-                ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
-                detection_confidence = ecosystem_detection.get('confidence', 0.5)
+                # Check for multi-ecosystem detection first
+                multi_detection = satellite_data.get('multi_ecosystem_detection', {})
+                if multi_detection.get('diversity_index', 1) > 1:
+                    # Multiple ecosystems detected - use multi-ecosystem calculation
+                    return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection)
+                else:
+                    # Single ecosystem - use primary detected type
+                    ecosystem_detection = satellite_data.get('ecosystem_detection', {})
+                    ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
+                    detection_confidence = ecosystem_detection.get('confidence', 0.5)
             else:
-                ecosystem_detection = None
+                ecosystem_detection = satellite_data.get('ecosystem_detection', {})
                 detection_confidence = 1.0
             
             # Get coordinates for regional adjustment
@@ -288,6 +295,187 @@ class EcosystemServicesCalculator:
             
         except Exception as e:
             return {'error': f'Error calculating ESVD ecosystem services value: {str(e)}'}
+    
+    def _calculate_multi_ecosystem_values(self, satellite_data: Dict, area_bounds: Dict, 
+                                        multi_detection: Dict) -> Dict[str, Any]:
+        """
+        Calculate ecosystem services values for areas with multiple ecosystem types
+        
+        Args:
+            satellite_data: Satellite data dictionary
+            area_bounds: Area boundary information
+            multi_detection: Multi-ecosystem detection results
+            
+        Returns:
+            Dictionary containing multi-ecosystem valuation results
+        """
+        try:
+            time_series = satellite_data['time_series']
+            total_area_ha = self._calculate_area_hectares(area_bounds)
+            coordinates = self._extract_coordinates(area_bounds)
+            
+            ecosystem_composition = multi_detection.get('ecosystem_composition', {})
+            primary_ecosystem = multi_detection.get('primary_ecosystem', 'forest')
+            
+            # Calculate values for each ecosystem type
+            ecosystem_results = {}
+            total_combined_value = 0
+            combined_time_series = []
+            
+            # Initialize time series structure
+            for data_point in time_series:
+                combined_time_series.append({
+                    'date': data_point['date'],
+                    'total_value': 0,
+                    'ecosystem_breakdown': {},
+                    'area_breakdown': {}
+                })
+            
+            # Calculate values for each ecosystem type
+            for ecosystem_type, percentage in ecosystem_composition.items():
+                if percentage < 1.0:  # Skip ecosystems with less than 1% coverage
+                    continue
+                
+                # Calculate area for this ecosystem type
+                ecosystem_area_ha = total_area_ha * (percentage / 100.0)
+                
+                # Get ESVD values for this ecosystem type
+                esvd_results = self.esvd.calculate_esvd_values(
+                    ecosystem_type, ecosystem_area_ha, coordinates
+                )
+                
+                if 'error' in esvd_results:
+                    continue
+                
+                # Calculate time series for this ecosystem
+                ecosystem_time_series = []
+                ecosystem_values = []
+                
+                for i, data_point in enumerate(time_series):
+                    quality = self._assess_ecosystem_quality(data_point)
+                    quality_multiplier = self.quality_multipliers[quality]
+                    
+                    # Apply ESVD values with quality adjustments
+                    provisioning_value = self._apply_esvd_values(
+                        esvd_results.get('provisioning', {}), quality_multiplier, data_point
+                    )
+                    regulating_value = self._apply_esvd_values(
+                        esvd_results.get('regulating', {}), quality_multiplier, data_point
+                    )
+                    cultural_value = self._apply_esvd_values(
+                        esvd_results.get('cultural', {}), quality_multiplier, data_point
+                    )
+                    supporting_value = self._apply_esvd_values(
+                        esvd_results.get('supporting', {}), quality_multiplier, data_point
+                    )
+                    
+                    ecosystem_total = (provisioning_value['total'] + regulating_value['total'] + 
+                                     cultural_value['total'] + supporting_value['total'])
+                    
+                    ecosystem_values.append(ecosystem_total)
+                    
+                    # Add to combined time series
+                    combined_time_series[i]['total_value'] += ecosystem_total
+                    combined_time_series[i]['ecosystem_breakdown'][ecosystem_type] = ecosystem_total
+                    combined_time_series[i]['area_breakdown'][ecosystem_type] = ecosystem_area_ha
+                
+                # Store ecosystem-specific results
+                current_value = ecosystem_values[-1] if ecosystem_values else 0
+                previous_value = ecosystem_values[-2] if len(ecosystem_values) > 1 else current_value
+                trend = np.polyfit(range(len(ecosystem_values)), ecosystem_values, 1)[0] if len(ecosystem_values) > 1 else 0
+                
+                ecosystem_results[ecosystem_type] = {
+                    'area_hectares': ecosystem_area_ha,
+                    'area_percentage': percentage,
+                    'current_value': float(current_value),
+                    'previous_value': float(previous_value),
+                    'value_per_hectare': float(current_value / ecosystem_area_ha) if ecosystem_area_ha > 0 else 0,
+                    'trend_slope': float(trend),
+                    'annual_change_usd': float(trend * 365) if trend != 0 else 0,
+                    'esvd_metadata': esvd_results.get('metadata', {}),
+                    'time_series': ecosystem_values
+                }
+                
+                total_combined_value += current_value
+            
+            # Calculate combined statistics
+            combined_values = [point['total_value'] for point in combined_time_series]
+            current_total = combined_values[-1] if combined_values else 0
+            previous_total = combined_values[-2] if len(combined_values) > 1 else current_total
+            combined_trend = np.polyfit(range(len(combined_values)), combined_values, 1)[0] if len(combined_values) > 1 else 0
+            
+            # Calculate ecosystem diversity metrics
+            diversity_metrics = {
+                'shannon_diversity': self._calculate_shannon_diversity(ecosystem_composition),
+                'simpson_diversity': self._calculate_simpson_diversity(ecosystem_composition),
+                'dominant_ecosystem': primary_ecosystem,
+                'ecosystem_count': len(ecosystem_composition),
+                'homogeneity_index': multi_detection.get('homogeneity', 0)
+            }
+            
+            return {
+                'current_value': float(current_total),
+                'previous_value': float(previous_total),
+                'value_change': float(current_total - previous_total),
+                'annual_change_usd': float(combined_trend * 365) if combined_trend != 0 else 0,
+                'value_per_hectare': float(current_total / total_area_ha) if total_area_ha > 0 else 0,
+                'area_hectares': float(total_area_ha),
+                'ecosystem_type': 'multi_ecosystem',
+                'primary_ecosystem': primary_ecosystem,
+                'ecosystem_composition': ecosystem_composition,
+                'ecosystem_results': ecosystem_results,
+                'diversity_metrics': diversity_metrics,
+                'multi_ecosystem_detection': multi_detection,
+                'time_series': combined_time_series,
+                'valuation_summary': self._generate_multi_ecosystem_summary(ecosystem_composition, current_total, combined_trend),
+                'data_source': 'ESVD (Ecosystem Services Valuation Database) - Multi-ecosystem Analysis',
+                'calculation_method': 'spatial_composition_weighted'
+            }
+            
+        except Exception as e:
+            return {'error': f'Error calculating multi-ecosystem values: {str(e)}'}
+    
+    def _calculate_shannon_diversity(self, composition: Dict[str, float]) -> float:
+        """Calculate Shannon diversity index for ecosystem composition"""
+        import math
+        total = sum(composition.values())
+        if total == 0:
+            return 0
+        
+        diversity = 0
+        for percentage in composition.values():
+            if percentage > 0:
+                proportion = percentage / total
+                diversity -= proportion * math.log(proportion)
+        
+        return diversity
+    
+    def _calculate_simpson_diversity(self, composition: Dict[str, float]) -> float:
+        """Calculate Simpson diversity index for ecosystem composition"""
+        total = sum(composition.values())
+        if total == 0:
+            return 0
+        
+        simpson = 0
+        for percentage in composition.values():
+            if percentage > 0:
+                proportion = percentage / total
+                simpson += proportion ** 2
+        
+        return 1 - simpson
+    
+    def _generate_multi_ecosystem_summary(self, composition: Dict[str, float], 
+                                        total_value: float, trend: float) -> str:
+        """Generate a summary for multi-ecosystem valuation"""
+        dominant = max(composition.items(), key=lambda x: x[1])
+        ecosystem_count = len(composition)
+        
+        trend_text = "increasing" if trend > 0 else "decreasing" if trend < 0 else "stable"
+        
+        return (f"Multi-ecosystem area with {ecosystem_count} ecosystem types. "
+                f"Dominated by {dominant[0]} ({dominant[1]:.1f}%). "
+                f"Total annual value: ${total_value:,.0f}. "
+                f"Trend: {trend_text}.")
     
     def _calculate_provisioning_services(self, ecosystem_type: str, area_ha: float, 
                                        quality_multiplier: float, data_point: Dict) -> Dict[str, float]:

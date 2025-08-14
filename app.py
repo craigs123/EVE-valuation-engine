@@ -340,21 +340,33 @@ if st.session_state.analysis_results:
                     f"${value_per_ha:,.0f}/ha/year"
                 )
                 
-                # Show detected ecosystem type
-                ecosystem_detection = services_data.get('ecosystem_detection', {})
-                if ecosystem_detection:
-                    detected_type = ecosystem_detection.get('detected_type', 'Unknown')
-                    confidence = ecosystem_detection.get('confidence', 0)
-                    method = ecosystem_detection.get('method', 'unknown')
+                # Show ecosystem composition
+                if services_data.get('ecosystem_type') == 'multi_ecosystem':
+                    # Multi-ecosystem display
+                    composition = services_data.get('ecosystem_composition', {})
+                    primary = services_data.get('primary_ecosystem', 'Unknown')
+                    diversity_metrics = services_data.get('diversity_metrics', {})
                     
-                    confidence_icon = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
                     st.metric(
-                        f"{confidence_icon} Detected Ecosystem",
-                        f"{detected_type.title()}",
-                        f"{confidence:.0%} confidence"
+                        "🌍 Multi-Ecosystem Area",
+                        f"Primary: {primary.title()}",
+                        f"{len(composition)} ecosystem types"
                     )
                 else:
-                    st.metric("Ecosystem Type", detected_ecosystem.title())
+                    # Single ecosystem display
+                    ecosystem_detection = services_data.get('ecosystem_detection', {})
+                    if ecosystem_detection:
+                        detected_type = ecosystem_detection.get('detected_type', 'Unknown')
+                        confidence = ecosystem_detection.get('confidence', 0)
+                        
+                        confidence_icon = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
+                        st.metric(
+                            f"{confidence_icon} Detected Ecosystem",
+                            f"{detected_type.title()}",
+                            f"{confidence:.0%} confidence"
+                        )
+                    else:
+                        st.metric("Ecosystem Type", detected_ecosystem.title())
             
             with col3:
                 annual_change = services_data.get('annual_change_usd', 0)
@@ -386,6 +398,45 @@ if st.session_state.analysis_results:
                     st.metric("Cultural", f"{breakdown.get('cultural_percent', 0):.1f}%")
                 with col4:
                     st.metric("Supporting", f"{breakdown.get('supporting_percent', 0):.1f}%")
+            
+            # Multi-ecosystem composition display
+            if services_data.get('ecosystem_type') == 'multi_ecosystem':
+                st.subheader("🌍 Ecosystem Composition Analysis")
+                
+                composition = services_data.get('ecosystem_composition', {})
+                ecosystem_results = services_data.get('ecosystem_results', {})
+                diversity_metrics = services_data.get('diversity_metrics', {})
+                
+                # Ecosystem composition breakdown
+                col_comp1, col_comp2 = st.columns(2)
+                
+                with col_comp1:
+                    st.write("**Ecosystem Type Distribution:**")
+                    for eco_type, percentage in sorted(composition.items(), key=lambda x: x[1], reverse=True):
+                        st.write(f"• {eco_type.title()}: {percentage:.1f}%")
+                
+                with col_comp2:
+                    st.write("**Diversity Metrics:**")
+                    st.write(f"• Shannon Diversity: {diversity_metrics.get('shannon_diversity', 0):.2f}")
+                    st.write(f"• Simpson Diversity: {diversity_metrics.get('simpson_diversity', 0):.2f}")
+                    st.write(f"• Homogeneity Index: {diversity_metrics.get('homogeneity_index', 0):.1f}%")
+                
+                # Individual ecosystem values
+                st.write("**Economic Value by Ecosystem Type:**")
+                
+                eco_cols = st.columns(min(len(ecosystem_results), 4))
+                for i, (eco_type, results) in enumerate(ecosystem_results.items()):
+                    with eco_cols[i % 4]:
+                        current_val = results.get('current_value', 0)
+                        area_pct = results.get('area_percentage', 0)
+                        value_per_ha = results.get('value_per_hectare', 0)
+                        
+                        st.metric(
+                            f"{eco_type.title()}",
+                            f"${current_val:,.0f}/year",
+                            f"{area_pct:.1f}% of area"
+                        )
+                        st.caption(f"${value_per_ha:,.0f}/ha/year")
             
             # Valuation summary and data source
             if 'valuation_summary' in services_data:
@@ -768,8 +819,23 @@ ESVD Integration [Computer software]. (2024).
                 # Show specific methodology for this analysis
                 st.markdown("### 📊 This Analysis Methodology")
                 ecosystem_type = results.get('ecosystem_type', 'Unknown')
-                st.write(f"""
-                **Ecosystem Type Analyzed**: {ecosystem_type.title()}
+                
+                if ecosystem_type == 'multi_ecosystem':
+                    services_data = results.get('services_data', {})
+                    composition = services_data.get('ecosystem_composition', {})
+                    primary = services_data.get('primary_ecosystem', 'Unknown')
+                    
+                    st.write(f"""
+                    **Multi-Ecosystem Analysis**
+                    - **Primary Ecosystem**: {primary.title()}
+                    - **Ecosystem Types Present**: {', '.join([eco.title() for eco in composition.keys()])}
+                    - **Analysis Method**: Spatial grid analysis with composition weighting
+                    - **Grid Resolution**: 4x4 sub-areas analyzed individually
+                    - **Value Calculation**: Separate ESVD coefficients applied to each ecosystem type based on area coverage
+                    """)
+                else:
+                    st.write(f"""
+                    **Ecosystem Type Analyzed**: {ecosystem_type.title()}
                 
                 **Service Categories & Data Sources**:
                 
