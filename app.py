@@ -636,10 +636,6 @@ if st.session_state.analysis_results:
                         )
                         st.caption(f"${value_per_ha:,.0f}/ha/year")
             
-            # Valuation summary and data source
-            if 'valuation_summary' in services_data:
-                st.info(f"📊 **Summary:** {services_data['valuation_summary']}")
-            
             # Show detailed data source information
             if 'data_source' in services_data:
                 data_source = services_data['data_source']
@@ -753,8 +749,8 @@ ESVD Integration [Computer software]. (2024).
             )
             st.plotly_chart(ts_fig, use_container_width=True)
             
-            # Service categories trends
-            st.subheader("Service Categories Over Time")
+            # Service categories trends - simplified view
+            st.subheader("Individual Service Categories")
             
             # Create comparison chart for service categories
             category_data = {}
@@ -768,43 +764,45 @@ ESVD Integration [Computer software]. (2024).
                         'value': point.get(category, {}).get('total', 0)
                     })
             
-            # Display individual category trends
-            selected_category = st.selectbox(
-                "Select service category for detailed trend:",
-                options=['provisioning', 'regulating', 'cultural', 'supporting'],
-                format_func=lambda x: service_categories[x]
-            )
+            # Create a cleaner 2x2 grid of category charts
+            col1, col2 = st.columns(2)
+            categories = ['provisioning', 'regulating', 'cultural', 'supporting']
             
-            if selected_category in category_data:
-                category_fig = create_time_series_chart(
-                    category_data[selected_category],
-                    selected_category,
-                    service_categories[selected_category]
-                )
-                st.plotly_chart(category_fig, use_container_width=True)
+            for i, category in enumerate(categories):
+                col = col1 if i % 2 == 0 else col2
                 
-                # Show trend analysis
-                values = [d['value'] for d in category_data[selected_category]]
-                if len(values) > 1:
-                    trend = np.polyfit(range(len(values)), values, 1)[0]
-                    annual_trend = trend * 365
-                    trend_direction = "📈 Increasing" if trend > 100 else "📉 Decreasing" if trend < -100 else "➡️ Stable"
-                    
-                    # Calculate per hectare rate
-                    area_ha = 0
-                    if st.session_state.analysis_results and 'area_bounds' in st.session_state.analysis_results:
-                        coords = st.session_state.area_coordinates
-                        if coords:
-                            coords_array = np.array(coords)
-                            area_km2 = abs(np.sum((coords_array[:-1, 0] * coords_array[1:, 1]) - (coords_array[1:, 0] * coords_array[:-1, 1]))) * 111.32 * 111.32 / 2
-                            area_ha = area_km2 * 100
-                    
-                    st.write(f"**{selected_category.title()} Services Trend:** {trend_direction}")
-                    if area_ha > 0:
-                        annual_trend_per_ha = annual_trend / area_ha
-                        st.write(f"**Annual Change Rate:** ${annual_trend:+,.0f}/year (${annual_trend_per_ha:+,.0f}/ha/year)")
-                    else:
-                        st.write(f"**Annual Change Rate:** ${annual_trend:+,.0f}/year")
+                with col:
+                    if category in category_data:
+                        # Create mini chart for each category
+                        category_fig = create_time_series_chart(
+                            category_data[category],
+                            category,
+                            service_categories[category]
+                        )
+                        # Make chart smaller for grid display
+                        category_fig.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=30))
+                        st.plotly_chart(category_fig, use_container_width=True)
+                        
+                        # Show trend analysis more compactly
+                        values = [d['value'] for d in category_data[category]]
+                        if len(values) > 1:
+                            trend = np.polyfit(range(len(values)), values, 1)[0]
+                            annual_trend = trend * 365
+                            trend_direction = "📈" if trend > 100 else "📉" if trend < -100 else "➡️"
+                            
+                            # Calculate per hectare rate
+                            area_ha = 0
+                            if st.session_state.analysis_results and st.session_state.area_coordinates:
+                                coords = st.session_state.area_coordinates
+                                coords_array = np.array(coords)
+                                area_km2 = abs(np.sum((coords_array[:-1, 0] * coords_array[1:, 1]) - (coords_array[1:, 0] * coords_array[:-1, 1]))) * 111.32 * 111.32 / 2
+                                area_ha = area_km2 * 100
+                            
+                            if area_ha > 0:
+                                annual_trend_per_ha = annual_trend / area_ha
+                                st.caption(f"{trend_direction} ${annual_trend:+,.0f}/year (${annual_trend_per_ha:+,.0f}/ha/year)")
+                            else:
+                                st.caption(f"{trend_direction} ${annual_trend:+,.0f}/year")
         
         elif metrics_data:
             # Fallback for individual metrics
