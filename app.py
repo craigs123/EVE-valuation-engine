@@ -67,22 +67,8 @@ with st.sidebar:
         help="Auto-detect analyzes location context using geographic data. Manual selection available for override."
     )
     
-    # Analysis detail level
-    analysis_detail = st.selectbox(
-        "Analysis Detail",
-        options=["Quick Overview", "Detailed Analysis"],
-        help="Quick overview shows main values. Detailed includes service categories and trends."
-    )
-    
     # Store settings
     st.session_state.ecosystem_override = ecosystem_override
-    st.session_state.analysis_detail = analysis_detail
-    
-    # Service categories (only for detailed analysis)
-    if analysis_detail == "Detailed Analysis":
-        selected_metrics = ['ecosystem_services_total', 'provisioning', 'regulating', 'cultural', 'supporting']
-    else:
-        selected_metrics = ['ecosystem_services_total']
     
     st.markdown("---")
     
@@ -196,6 +182,22 @@ with col1:
     
     # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
+    
+    # Analysis detail level
+    analysis_detail = st.selectbox(
+        "Analysis Detail",
+        options=["Quick Overview", "Detailed Analysis"],
+        help="Quick overview shows main values. Detailed includes service categories and trends."
+    )
+    
+    # Store analysis detail setting
+    st.session_state.analysis_detail = analysis_detail
+    
+    # Service categories (only for detailed analysis)
+    if analysis_detail == "Detailed Analysis":
+        selected_metrics = ['ecosystem_services_total', 'provisioning', 'regulating', 'cultural', 'supporting']
+    else:
+        selected_metrics = ['ecosystem_services_total']
     
     col_period, col_button = st.columns([2, 1])
     
