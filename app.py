@@ -100,7 +100,7 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Map starts in rectangle drawing mode - click and drag to select your area")
+    st.info("Click the rectangle or polygon tool in the map toolbar, then draw your area")
     
     # Create interactive map with panning disabled
     m = folium.Map(
@@ -146,29 +146,43 @@ with col1:
     )
     draw.add_to(m)
     
-    # Add custom JavaScript to auto-enable rectangle drawing mode
-    auto_draw_js = """
+    # Add JavaScript to enhance draw mode behavior
+    draw_mode_js = """
     <script>
-    function enableDrawMode() {
+    // Function to activate draw mode when buttons are clicked
+    function setupDrawModeListeners() {
         setTimeout(function() {
-            var drawControl = document.querySelector('.leaflet-draw-draw-rectangle');
-            if (drawControl && !document.querySelector('.leaflet-draw-toolbar-button-enabled')) {
-                drawControl.click();
+            // Get rectangle and polygon draw buttons
+            var rectButton = document.querySelector('.leaflet-draw-draw-rectangle');
+            var polyButton = document.querySelector('.leaflet-draw-draw-polygon');
+            
+            if (rectButton) {
+                rectButton.addEventListener('click', function() {
+                    console.log('Rectangle draw mode activated');
+                    // Additional draw mode setup can go here
+                });
             }
-        }, 1000);
+            
+            if (polyButton) {
+                polyButton.addEventListener('click', function() {
+                    console.log('Polygon draw mode activated');
+                    // Additional draw mode setup can go here
+                });
+            }
+        }, 500);
     }
     
-    // Try to enable draw mode when map loads
+    // Setup listeners when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', enableDrawMode);
+        document.addEventListener('DOMContentLoaded', setupDrawModeListeners);
     } else {
-        enableDrawMode();
+        setupDrawModeListeners();
     }
     </script>
     """
     
     # Add the JavaScript to the map
-    m.get_root().html.add_child(folium.Element(auto_draw_js))
+    m.get_root().html.add_child(folium.Element(draw_mode_js))
     
     # Display map with drawing capability
     map_data = st_folium(
