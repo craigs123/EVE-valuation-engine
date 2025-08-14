@@ -185,16 +185,16 @@ with col1:
         
         col_bounds1, col_bounds2 = st.columns(2)
         with col_bounds1:
-            st.metric("Min Latitude", f"{min(lats):.6f}")
-            st.metric("Min Longitude", f"{min(lons):.6f}")
+            st.markdown(f"<small>**Min Latitude:** {min(lats):.6f}</small>", unsafe_allow_html=True)
+            st.markdown(f"<small>**Min Longitude:** {min(lons):.6f}</small>", unsafe_allow_html=True)
         with col_bounds2:
-            st.metric("Max Latitude", f"{max(lats):.6f}")
-            st.metric("Max Longitude", f"{max(lons):.6f}")
+            st.markdown(f"<small>**Max Latitude:** {max(lats):.6f}</small>", unsafe_allow_html=True)
+            st.markdown(f"<small>**Max Longitude:** {max(lons):.6f}</small>", unsafe_allow_html=True)
         
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):
             for i, coord in enumerate(coords[:-1]):  # Exclude last duplicate
-                st.write(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
+                st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
     else:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
