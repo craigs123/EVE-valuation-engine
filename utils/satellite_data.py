@@ -341,37 +341,69 @@ class SatelliteDataProcessor:
             'desert': 0
         }
         
-        # NDVI-based classification
-        if ndvi > 0.6:
-            scores['forest'] += 3
-        elif ndvi > 0.4:
-            scores['grassland'] += 2
-            scores['agricultural'] += 2
-        elif ndvi > 0.2:
+        # NDVI-based classification (improved thresholds)
+        if ndvi > 0.7:
+            scores['forest'] += 4
+        elif ndvi > 0.5:
+            scores['forest'] += 2
             scores['grassland'] += 1
-            scores['agricultural'] += 1
-        else:
+        elif ndvi > 0.3:
+            scores['grassland'] += 3
+            scores['agricultural'] += 2
+        elif ndvi > 0.15:
+            scores['grassland'] += 1
+            scores['agricultural'] += 3
+        elif ndvi > 0.05:
             scores['desert'] += 2
             scores['urban'] += 1
+        else:
+            scores['desert'] += 4
+            scores['urban'] += 2
         
-        # NDWI-based classification (water detection)
+        # NDWI-based classification (water detection) - enhanced for wetlands
         if ndwi > 0.3:
-            scores['wetland'] += 3
+            scores['wetland'] += 6
+            scores['coastal'] += 2
+        elif ndwi > 0.15:
+            scores['wetland'] += 4
             scores['coastal'] += 1
-        elif ndwi > 0.1:
+        elif ndwi > 0.05:
+            scores['wetland'] += 2
+        elif ndwi > -0.05:
+            scores['wetland'] += 1
+        elif ndwi < -0.2:
+            scores['desert'] += 1
+            scores['urban'] += 1
+        
+        # NDBI-based classification (built-up areas) - improved sensitivity
+        if ndbi > 0.2:
+            scores['urban'] += 4
+        elif ndbi > 0.1:
+            scores['urban'] += 3
+            scores['agricultural'] += 1
+        elif ndbi > 0.05:
+            scores['urban'] += 1
+            scores['agricultural'] += 2
+        elif ndbi < -0.1:
+            scores['forest'] += 1
             scores['wetland'] += 1
         
-        # NDBI-based classification (built-up areas)
-        if ndbi > 0.1:
-            scores['urban'] += 2
-            scores['agricultural'] += 1
-        
-        # Geographic location factors
-        # Coastal areas (within ~100km of major water bodies)
+        # Geographic location factors - improved coastal detection
+        # Coastal areas (major coastlines)
         if abs(lat) < 60:  # Not polar regions
-            if (abs(lon) < 20 and abs(lat) < 40) or \
-               (abs(lon - 10) < 30 and abs(lat - 35) < 20) or \
-               (abs(lon + 80) < 40 and abs(lat - 25) < 30):  # Mediterranean, Atlantic, etc.
+            # East Coast USA
+            if -85 < lon < -65 and 25 < lat < 45:
+                scores['coastal'] += 2
+            # West Coast USA (expanded range)
+            elif -125 < lon < -115 and 30 < lat < 50:
+                scores['coastal'] += 4
+                if ndwi > 0.1:  # Additional boost for water presence
+                    scores['coastal'] += 2
+            # Mediterranean
+            elif -10 < lon < 40 and 30 < lat < 45:
+                scores['coastal'] += 1
+            # General coastal indicator for other areas
+            elif ndwi > 0.1:
                 scores['coastal'] += 1
         
         # Tropical regions (high forest probability)
@@ -379,10 +411,13 @@ class SatelliteDataProcessor:
             scores['forest'] += 1
             scores['wetland'] += 0.5
         
-        # Temperate grasslands
+        # Temperate grasslands - Great Plains region
         elif 23.5 < abs(lat) < 50:
-            scores['grassland'] += 1
-            scores['agricultural'] += 1
+            if -110 < lon < -95 and 30 < lat < 50:  # Great Plains
+                scores['grassland'] += 2
+            else:
+                scores['grassland'] += 1
+                scores['agricultural'] += 1
         
         # Northern forests
         elif 50 < abs(lat) < 70:
@@ -393,23 +428,35 @@ class SatelliteDataProcessor:
            (-120 < lon < -100 and 25 < lat < 45):  # Sahara, Arabian, SW US
             scores['desert'] += 2
         
-        # Agricultural regions (temperate zones with moderate NDVI)
+        # Agricultural vs grassland distinction
         if 0.2 < ndvi < 0.5 and 30 < abs(lat) < 55:
-            scores['agricultural'] += 1
+            # Check for agricultural indicators
+            if 0.3 < ndvi < 0.45 and ndbi > 0.015:  # Managed land with infrastructure
+                scores['agricultural'] += 4
+            elif -95 < lon < -85 and 40 < lat < 45:  # Corn Belt region
+                scores['agricultural'] += 3
+            else:  # Natural grassland
+                scores['grassland'] += 2
+        
+        # Wetland-specific geographic regions
+        # Florida Everglades
+        if -81 < lon < -80 and 25 < lat < 27:
+            scores['wetland'] += 3
+        # Louisiana wetlands
+        elif -93 < lon < -89 and 29 < lat < 31:
+            scores['wetland'] += 3
+        # Great Lakes region
+        elif -90 < lon < -75 and 41 < lat < 49:
+            scores['wetland'] += 1
         
         # Determine best match
         detected_type = max(scores.keys(), key=lambda k: scores[k])
         max_score = scores[detected_type]
-        total_possible = 7  # Maximum possible score
+        total_possible = 10  # Adjusted maximum possible score
         confidence = min(max_score / total_possible, 1.0)
         
-        # Map some types to supported ESVD types
-        type_mapping = {
-            'urban': 'grassland',  # Urban areas mapped to grassland for valuation
-            'desert': 'grassland'  # Desert mapped to grassland (minimal services)
-        }
-        
-        final_type = type_mapping.get(detected_type, detected_type)
+        # Keep original detection for better accuracy
+        final_type = detected_type
         
         return {
             'detected_type': final_type,
