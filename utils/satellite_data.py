@@ -59,7 +59,7 @@ class SatelliteDataProcessor:
                 }
             
             # Generate realistic time series data
-            date_range = pd.date_range(start=start_date, end=end_date, freq='Q')  # Quarterly for speed
+            date_range = pd.date_range(start=start_date, end=end_date, freq='M')
             
             satellite_data = {
                 'metadata': {
@@ -472,7 +472,7 @@ class SatelliteDataProcessor:
             'location': {'lat': lat, 'lon': lon}
         }
     
-    def _detect_multiple_ecosystems(self, bbox: Dict, time_series_data: List[Dict], grid_size: int = 2) -> Dict[str, Any]:
+    def _detect_multiple_ecosystems(self, bbox: Dict, time_series_data: List[Dict], grid_size: int = 4) -> Dict[str, Any]:
         """
         Detect multiple ecosystem types within an area using spatial grid analysis
         

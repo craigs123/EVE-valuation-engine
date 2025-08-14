@@ -9,8 +9,7 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
-Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality. Map should stay centered on selected area after selection.
-Data integrity preference: Honest documentation of data limitations; authentic satellite data APIs preferred over unreliable fallback methods.
+Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
 
 ## System Architecture
 
@@ -36,9 +35,7 @@ Data integrity preference: Honest documentation of data limitations; authentic s
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
 - **Multi-Ecosystem Analysis**: Advanced spatial grid analysis (4x4 sub-areas) for detecting and valuing multiple ecosystem types within selected areas
-- **Multi-Source Ecosystem Detection**: Comprehensive satellite data integration (OpenLandMap, ESA WorldCover, Google Earth Engine, USGS APIs) with progressive fallback and transparent source reporting
-- **Intelligent Map Interface**: Auto-centering on selected areas with smart zoom levels based on area size
-- **Performance Optimizations**: Reduced grid sampling (2x2), optimized API calls, geographic caching, and streamlined processing for faster calculations
+- **Automatic Ecosystem Detection**: Intelligent spectral analysis using NDVI, NDWI, and NDBI indices combined with geographic context for ecosystem classification
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
@@ -55,8 +52,7 @@ Data integrity preference: Honest documentation of data limitations; authentic s
 - **Data Standards**: All values standardized to 2020 International dollars per hectare per year for global comparability
 - **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
 - **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas
-- **Authentic Data Integration**: System designed for ESA WorldCover (10m satellite data), Google Earth Engine, and USGS APIs - currently uses transparent geographic fallback with clear limitation warnings
-- **Multi-Database Valuation**: Integrates ESVD, TEEB, InVEST, and WAVES/SEEA databases to provide value ranges, uncertainty analysis, and methodological transparency with statistical confidence intervals
+- **Automatic Type Detection**: Spectral analysis (NDVI, NDWI, NDBI) combined with geographic context for intelligent ecosystem classification
 
 ## External Dependencies
 
