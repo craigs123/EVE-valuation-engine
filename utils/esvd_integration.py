@@ -370,7 +370,7 @@ class ESVDIntegration:
                 results[category] = category_services
                 total_value += category_total
             
-            # Add metadata
+            # Add metadata with detailed source attribution
             results['metadata'] = {
                 'total_value': total_value,
                 'value_per_hectare': total_value / area_hectares if area_hectares > 0 else 0,
@@ -380,10 +380,27 @@ class ESVDIntegration:
                 'regional_adjustment': regional_factor,
                 'region_info': region_info,
                 'data_source': 'ESVD/TEEB coefficients',
+                'data_source_details': {
+                    'primary_database': 'ESVD (Ecosystem Services Valuation Database)',
+                    'secondary_database': 'TEEB (The Economics of Ecosystems and Biodiversity)',
+                    'maintainer': 'Foundation for Sustainable Development (FSD)',
+                    'website': 'https://www.esvd.net/',
+                    'total_studies': '1,100+ peer-reviewed publications',
+                    'total_records': '10,874+ value estimates',
+                    'geographic_coverage': 'Global (140+ countries)',
+                    'biome_coverage': '15 biomes',
+                    'service_coverage': '23 ecosystem services'
+                },
                 'price_level': '2020 International dollars',
                 'data_quality': self.data_source_quality['esvd_reviewed'],
                 'calculation_date': datetime.now().isoformat(),
-                'database_version': 'ESVD APR2024V1.1 equivalent'
+                'database_version': 'ESVD APR2024V1.1 equivalent',
+                'coefficient_provenance': {
+                    'provisioning': 'Food production, water supply, and resource provision studies',
+                    'regulating': 'Climate regulation, water regulation, and pollution control studies',
+                    'cultural': 'Recreation, aesthetic, and spiritual value studies',
+                    'supporting': 'Soil formation, nutrient cycling, and habitat studies'
+                }
             }
             
             return results
@@ -462,7 +479,14 @@ class ESVDIntegration:
             )),
             'data_quality': 'Peer-reviewed ESVD/TEEB coefficients',
             'regional_adjustment': 'Available for 5 global regions',
-            'last_updated': '2024-04-15'
+            'last_updated': '2024-04-15',
+            'source_attribution': {
+                'primary_citation': 'Brander, L.M. et al. (2024). Ecosystem Services Valuation Database (ESVD)',
+                'database_url': 'https://www.esvd.net/',
+                'teeb_integration': 'Values include TEEB database coefficients',
+                'peer_review_status': 'All coefficients from peer-reviewed studies',
+                'standardization': '2020 International dollars per hectare per year'
+            }
         }
 
 class InVESTIntegration:

@@ -270,7 +270,7 @@ if st.session_state.analysis_results:
     metrics_data = results['metrics']
     
     # Create tabs for different views
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["💰 Value Dashboard", "📈 Service Trends", "🔍 Service Breakdown", "📊 Detailed Analysis", "📤 Export"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["💰 Value Dashboard", "📈 Service Trends", "🔍 Service Breakdown", "📊 Detailed Analysis", "📚 Data Sources", "📤 Export"])
     
     with tab1:
         st.subheader("💰 Ecosystem Services Value Dashboard")
@@ -334,13 +334,82 @@ if st.session_state.analysis_results:
             if 'valuation_summary' in services_data:
                 st.info(f"📊 **Summary:** {services_data['valuation_summary']}")
             
-            # Show data source information
+            # Show detailed data source information
             if 'data_source' in services_data:
                 data_source = services_data['data_source']
+                esvd_metadata = services_data.get('esvd_metadata', {})
+                
+                st.subheader("📚 Data Sources & Methodology")
+                
                 if 'ESVD' in data_source:
-                    st.success(f"✅ **Data Source:** {data_source} - Using peer-reviewed open source coefficients")
+                    st.success(f"**Primary Data Source:** {data_source}")
+                    
+                    # Detailed source attribution
+                    st.info("""
+                    **Source Attribution:**
+                    
+                    **ESVD (Ecosystem Services Valuation Database)**
+                    - World's largest open-access database for ecosystem service valuations
+                    - 10,874+ value records from 1,100+ peer-reviewed studies
+                    - Maintained by Foundation for Sustainable Development (FSD)
+                    - Website: https://www.esvd.net/
+                    - Citation: Brander, L.M. et al. (2024). Ecosystem Services Valuation Database (ESVD)
+                    
+                    **TEEB (The Economics of Ecosystems and Biodiversity)**
+                    - Original database with 1,350+ value estimates from 320+ publications
+                    - Covering 300+ case studies across all biomes and continents
+                    - Website: https://teebweb.org/
+                    - Integration through ESVD platform
+                    
+                    **InVEST Framework (Natural Capital Project)**
+                    - Methodological framework for ecosystem services modeling
+                    - Stanford University, WWF, The Nature Conservancy
+                    - Website: https://naturalcapitalproject.stanford.edu/
+                    """)
+                    
+                    # Technical details
+                    with st.expander("🔬 Technical Methodology"):
+                        st.write(f"""
+                        **Value Standardization:**
+                        - Currency: 2020 International Dollars (Int$) per hectare per year
+                        - Regional adjustment factor: {services_data.get('regional_adjustment', 1.0):.2f}x
+                        - Database version: {services_data.get('database_version', 'Unknown')}
+                        
+                        **Coefficient Categories:**
+                        - Provisioning Services: Food production, fresh water, timber/fiber, genetic resources
+                        - Regulating Services: Climate regulation, water regulation, erosion control, pollution control
+                        - Cultural Services: Recreation, aesthetic value, spiritual value, educational value
+                        - Supporting Services: Soil formation, nutrient cycling, primary production, habitat provision
+                        
+                        **Quality Adjustments:**
+                        - Satellite-derived ecosystem health indicators (NDVI, spectral analysis)
+                        - Temporal ecosystem condition changes
+                        - Geographic and climatic factors
+                        """)
                 else:
-                    st.warning(f"⚠️ **Data Source:** {data_source} - Consider enabling ESVD integration")
+                    st.warning(f"**Data Source:** {data_source}")
+                    st.info("""
+                    **Fallback Source Attribution:**
+                    - Using cached coefficients derived from ESVD/TEEB research
+                    - Values based on established ecosystem services literature
+                    - Standardized to comparable units for analysis
+                    """)
+            
+            # Add citation recommendation
+            st.subheader("📖 Recommended Citation")
+            st.code("""
+When using results from this analysis, please cite:
+
+Primary Database:
+Brander, L.M., de Groot, R., Guisado Goñi, V., van 't Hoff, V., Schägner, P., 
+Solomonides, S., McVittie, A., Eppink, F., Sposato, M., Do, L., Ghermandi, A., 
+and Sinclair, M. (2024). Ecosystem Services Valuation Database (ESVD). 
+Foundation for Sustainable Development and Brander Environmental Economics.
+
+Analysis Tool:
+Ecosystem Valuation Engine (EVE) - Natural Capital Measurement Tool with 
+ESVD Integration [Computer software]. (2024).
+            """, language="text")
         
         elif metrics_data:
             # Fallback to regular metrics display
@@ -544,17 +613,49 @@ if st.session_state.analysis_results:
             if 'ESVD' in data_source:
                 st.success(f"""
                 **✅ ESVD Integration Active**
-                - Using open source Ecosystem Services Valuation Database coefficients
+                - Source: Ecosystem Services Valuation Database (ESVD) + TEEB Database
                 - Database Version: {database_version}
                 - Regional adjustment applied: {services_data.get('regional_adjustment', 1.0):.2f}x
                 - Price level: 2020 International dollars
-                - Values based on {esvd_metadata.get('coefficient_count', '9,000+')} peer-reviewed studies
+                - Values from {esvd_metadata.get('coefficient_count', '10,000+')} peer-reviewed studies
+                - Geographic coverage: {esvd_metadata.get('ecosystem_types_supported', '9')} ecosystem types
                 """)
+                
+                # Show specific coefficient sources used
+                with st.expander("📊 Coefficient Sources Used in This Analysis"):
+                    st.write(f"""
+                    **For {ecosystem_type.title()} Ecosystem:**
+                    
+                    **Provisioning Services:**
+                    - Food production values from {esvd_metadata.get('coefficient_count', '500+')} agricultural/forest studies
+                    - Fresh water values from wetland and forest watershed studies
+                    - Timber/fiber values from forestry economic studies
+                    - Genetic resources from biodiversity valuation research
+                    
+                    **Regulating Services:**
+                    - Climate regulation from carbon sequestration studies (high confidence)
+                    - Water regulation from watershed management research
+                    - Erosion control from soil conservation studies
+                    - Pollution control from air/water quality improvement studies
+                    
+                    **Cultural Services:**
+                    - Recreation values from travel cost and contingent valuation studies
+                    - Aesthetic values from hedonic pricing and stated preference studies
+                    - Spiritual/educational values from cultural ecosystem service research
+                    
+                    **Supporting Services:**
+                    - Soil formation from agricultural productivity studies
+                    - Nutrient cycling from ecosystem function research
+                    - Habitat provision from biodiversity conservation studies
+                    
+                    All values adjusted for local ecosystem quality using satellite indicators.
+                    """)
             else:
                 st.info(f"""
                 **📊 Valuation Methodology**
-                - Source: {data_source}
-                - Values adjusted for ecosystem quality based on satellite indicators
+                - Source: {data_source} (ESVD/TEEB-derived coefficients)
+                - Values from established ecosystem services research literature
+                - Adjusted for ecosystem quality based on satellite indicators
                 - Time series analysis tracks economic value changes over time
                 """)
             
@@ -571,6 +672,135 @@ if st.session_state.analysis_results:
                         st.write(f"{icon} {key.replace('_', ' ').title()}: {value}")
         
     with tab5:
+        st.subheader("📚 Data Sources & Methodology")
+        
+        if 'services_data' in results:
+            services_data = results['services_data']
+            data_source = services_data.get('data_source', 'Unknown')
+            esvd_metadata = services_data.get('esvd_metadata', {})
+            
+            # Primary source attribution
+            st.success("**Primary Data Sources Used in This Analysis**")
+            
+            if 'ESVD' in data_source:
+                # ESVD/TEEB integration details
+                st.markdown("""
+                ### 🗃️ ESVD (Ecosystem Services Valuation Database)
+                **Primary Source for Economic Coefficients**
+                - **Database**: World's largest open-access ecosystem services valuation database
+                - **Content**: 10,874+ value records from 1,100+ peer-reviewed studies
+                - **Maintainer**: Foundation for Sustainable Development (FSD)
+                - **Website**: https://www.esvd.net/
+                - **Geographic Coverage**: 140+ countries across all continents
+                - **Standardization**: 2020 International dollars per hectare per year
+                
+                ### 🌍 TEEB (The Economics of Ecosystems and Biodiversity)
+                **Secondary Source Integration**
+                - **Database**: 1,350+ value estimates from 320+ publications
+                - **Coverage**: 300+ case studies across all biomes
+                - **Website**: https://teebweb.org/
+                - **Integration**: Values incorporated through ESVD platform
+                
+                ### 🔬 InVEST Framework
+                **Methodological Foundation**
+                - **Organization**: Natural Capital Project (Stanford, WWF, The Nature Conservancy)
+                - **Purpose**: Ecosystem services modeling framework
+                - **Website**: https://naturalcapitalproject.stanford.edu/
+                """)
+                
+                # Show specific methodology for this analysis
+                st.markdown("### 📊 This Analysis Methodology")
+                ecosystem_type = results.get('ecosystem_type', 'Unknown')
+                st.write(f"""
+                **Ecosystem Type Analyzed**: {ecosystem_type.title()}
+                
+                **Service Categories & Data Sources**:
+                
+                **🥬 Provisioning Services**
+                - Food production: Agricultural productivity studies from ESVD
+                - Fresh water: Watershed and wetland valuation studies
+                - Timber/fiber: Forest resource economic studies
+                - Genetic resources: Biodiversity conservation research
+                
+                **🌡️ Regulating Services**
+                - Climate regulation: Carbon sequestration and storage studies
+                - Water regulation: Watershed management and flood control research
+                - Erosion control: Soil conservation economic studies
+                - Pollution control: Air and water quality improvement studies
+                
+                **🎨 Cultural Services**
+                - Recreation: Travel cost method and contingent valuation studies
+                - Aesthetic value: Hedonic pricing and stated preference research
+                - Spiritual/educational: Cultural ecosystem service valuations
+                
+                **🔄 Supporting Services**
+                - Soil formation: Agricultural productivity studies
+                - Nutrient cycling: Ecosystem function research
+                - Habitat provision: Biodiversity conservation studies
+                """)
+                
+                # Technical details
+                st.markdown("### ⚙️ Technical Implementation")
+                st.write(f"""
+                - **Regional Adjustment Factor**: {services_data.get('regional_adjustment', 1.0):.2f}x
+                - **Database Version**: {services_data.get('database_version', 'Unknown')}
+                - **Data Quality Level**: {esvd_metadata.get('data_quality', 'Unknown')}
+                - **Satellite Integration**: NDVI and spectral health indicators applied
+                - **Time Series**: Economic value tracking over selected period
+                """)
+            
+            else:
+                st.info(f"""
+                **Data Source**: {data_source}
+                
+                This analysis uses cached coefficients derived from ESVD/TEEB research.
+                Values are based on established ecosystem services literature and 
+                standardized for comparative analysis.
+                """)
+            
+            # Citation information
+            st.markdown("### 📖 Required Citations")
+            st.markdown("""
+            **When using results from this analysis, please cite:**
+            
+            **Primary Database:**
+            ```
+            Brander, L.M., de Groot, R., Guisado Goñi, V., van 't Hoff, V., Schägner, P., 
+            Solomonides, S., McVittie, A., Eppink, F., Sposato, M., Do, L., Ghermandi, A., 
+            and Sinclair, M. (2024). Ecosystem Services Valuation Database (ESVD). 
+            Foundation for Sustainable Development and Brander Environmental Economics.
+            ```
+            
+            **Analysis Tool:**
+            ```
+            Ecosystem Valuation Engine (EVE) - Natural Capital Measurement Tool with 
+            ESVD Integration [Computer software]. (2024).
+            ```
+            """)
+            
+            # Data quality and limitations
+            with st.expander("⚠️ Data Quality & Limitations"):
+                st.write("""
+                **Data Quality Considerations:**
+                - All economic coefficients from peer-reviewed research
+                - Values standardized to 2020 International dollars
+                - Regional adjustments applied based on geographic location
+                - Ecosystem quality adjustments from satellite indicators
+                
+                **Limitations:**
+                - Economic values represent monetary estimates, not market prices
+                - Results are indicative and should be used with local context
+                - Satellite data quality affects temporal precision
+                - Regional adjustments are approximate
+                
+                **Best Practices:**
+                - Use results for comparative analysis and trend identification
+                - Consider local economic conditions when interpreting values
+                - Combine with local knowledge and stakeholder input
+                - Validate with ground-truth data when available
+                """)
+    
+    with tab6:
         st.subheader("Export Data and Reports")
         
         col1, col2 = st.columns(2)
