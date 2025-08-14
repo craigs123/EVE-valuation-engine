@@ -142,6 +142,9 @@ class SatelliteDataProcessor:
                 satellite_data['spectral_bands']['swir2'].append(swir2_values.tolist())
                 satellite_data['quality_flags'].append(time_point_data['data_quality'])
             
+            # Add ecosystem type detection based on location and spectral data
+            satellite_data['ecosystem_detection'] = self._detect_ecosystem_type(bbox, satellite_data['time_series'])
+            
             return satellite_data
             
         except Exception as e:
@@ -285,3 +288,138 @@ class SatelliteDataProcessor:
             quality_report['overall_quality'] = 'unknown'
         
         return quality_report
+    
+    def _detect_ecosystem_type(self, bbox: Dict, time_series_data: List[Dict]) -> Dict[str, Any]:
+        """
+        Detect ecosystem type based on geographic location and spectral characteristics
+        
+        Args:
+            bbox: Bounding box coordinates
+            time_series_data: Satellite time series data
+            
+        Returns:
+            Dictionary containing detected ecosystem type and confidence
+        """
+        if not time_series_data:
+            return {
+                'detected_type': 'forest',
+                'confidence': 0.5,
+                'method': 'default_fallback'
+            }
+        
+        # Get latest data point
+        latest_data = time_series_data[-1]
+        
+        # Calculate spectral indices
+        red = latest_data.get('red_mean', 0.2)
+        nir = latest_data.get('nir_mean', 0.3)
+        green = latest_data.get('green_mean', 0.15)
+        swir1 = latest_data.get('swir1_mean', 0.25)
+        
+        # Calculate NDVI (Normalized Difference Vegetation Index)
+        ndvi = (nir - red) / (nir + red) if (nir + red) > 0 else 0
+        
+        # Calculate NDWI (Normalized Difference Water Index)
+        ndwi = (green - nir) / (green + nir) if (green + nir) > 0 else 0
+        
+        # Calculate NDBI (Normalized Difference Built-up Index)
+        ndbi = (swir1 - nir) / (swir1 + nir) if (swir1 + nir) > 0 else 0
+        
+        # Geographic-based ecosystem type detection
+        lat = (bbox['min_lat'] + bbox['max_lat']) / 2
+        lon = (bbox['min_lon'] + bbox['max_lon']) / 2
+        
+        # Initialize scores for different ecosystem types
+        scores = {
+            'forest': 0,
+            'grassland': 0,
+            'wetland': 0,
+            'agricultural': 0,
+            'coastal': 0,
+            'urban': 0,
+            'desert': 0
+        }
+        
+        # NDVI-based classification
+        if ndvi > 0.6:
+            scores['forest'] += 3
+        elif ndvi > 0.4:
+            scores['grassland'] += 2
+            scores['agricultural'] += 2
+        elif ndvi > 0.2:
+            scores['grassland'] += 1
+            scores['agricultural'] += 1
+        else:
+            scores['desert'] += 2
+            scores['urban'] += 1
+        
+        # NDWI-based classification (water detection)
+        if ndwi > 0.3:
+            scores['wetland'] += 3
+            scores['coastal'] += 1
+        elif ndwi > 0.1:
+            scores['wetland'] += 1
+        
+        # NDBI-based classification (built-up areas)
+        if ndbi > 0.1:
+            scores['urban'] += 2
+            scores['agricultural'] += 1
+        
+        # Geographic location factors
+        # Coastal areas (within ~100km of major water bodies)
+        if abs(lat) < 60:  # Not polar regions
+            if (abs(lon) < 20 and abs(lat) < 40) or \
+               (abs(lon - 10) < 30 and abs(lat - 35) < 20) or \
+               (abs(lon + 80) < 40 and abs(lat - 25) < 30):  # Mediterranean, Atlantic, etc.
+                scores['coastal'] += 1
+        
+        # Tropical regions (high forest probability)
+        if abs(lat) < 23.5:
+            scores['forest'] += 1
+            scores['wetland'] += 0.5
+        
+        # Temperate grasslands
+        elif 23.5 < abs(lat) < 50:
+            scores['grassland'] += 1
+            scores['agricultural'] += 1
+        
+        # Northern forests
+        elif 50 < abs(lat) < 70:
+            scores['forest'] += 1
+        
+        # Desert regions (arid zones)
+        if (15 < abs(lat) < 35 and (-20 < lon < 50)) or \
+           (-120 < lon < -100 and 25 < lat < 45):  # Sahara, Arabian, SW US
+            scores['desert'] += 2
+        
+        # Agricultural regions (temperate zones with moderate NDVI)
+        if 0.2 < ndvi < 0.5 and 30 < abs(lat) < 55:
+            scores['agricultural'] += 1
+        
+        # Determine best match
+        detected_type = max(scores.keys(), key=lambda k: scores[k])
+        max_score = scores[detected_type]
+        total_possible = 7  # Maximum possible score
+        confidence = min(max_score / total_possible, 1.0)
+        
+        # Map some types to supported ESVD types
+        type_mapping = {
+            'urban': 'grassland',  # Urban areas mapped to grassland for valuation
+            'desert': 'grassland'  # Desert mapped to grassland (minimal services)
+        }
+        
+        final_type = type_mapping.get(detected_type, detected_type)
+        
+        return {
+            'detected_type': final_type,
+            'raw_detection': detected_type,
+            'confidence': confidence,
+            'method': 'spectral_geographic',
+            'spectral_indices': {
+                'ndvi': ndvi,
+                'ndwi': ndwi,
+                'ndbi': ndbi
+            },
+            'scores': scores,
+            'location': {'lat': lat, 'lon': lon}
+        }

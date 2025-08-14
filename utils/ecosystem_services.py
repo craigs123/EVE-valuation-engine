@@ -162,7 +162,7 @@ class EcosystemServicesCalculator:
         }
     
     def calculate_ecosystem_services_value(self, satellite_data: Dict, area_bounds: Dict, 
-                                         ecosystem_type: str = 'forest') -> Dict[str, Any]:
+                                         ecosystem_type: str = None) -> Dict[str, Any]:
         """
         Calculate total ecosystem services value using ESVD coefficients and track changes over time
         
@@ -180,6 +180,15 @@ class EcosystemServicesCalculator:
             
             time_series = satellite_data['time_series']
             area_ha = self._calculate_area_hectares(area_bounds)
+            
+            # Use automatic ecosystem type detection if not provided
+            if ecosystem_type is None:
+                ecosystem_detection = satellite_data.get('ecosystem_detection', {})
+                ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
+                detection_confidence = ecosystem_detection.get('confidence', 0.5)
+            else:
+                ecosystem_detection = None
+                detection_confidence = 1.0
             
             # Get coordinates for regional adjustment
             coordinates = self._extract_coordinates(area_bounds)
@@ -259,7 +268,10 @@ class EcosystemServicesCalculator:
                 'annual_change_usd': float(annual_change),
                 'value_per_hectare': float(current_value / area_ha) if area_ha > 0 else 0,
                 'ecosystem_type': ecosystem_type,
+                'detected_ecosystem_type': ecosystem_type,
                 'area_hectares': float(area_ha),
+                'ecosystem_detection': ecosystem_detection,
+                'detection_confidence': detection_confidence,
                 'time_series': services_time_series,
                 'service_breakdown': {
                     'provisioning_percent': float(latest_services.get('provisioning', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,

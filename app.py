@@ -98,17 +98,28 @@ with st.sidebar:
         max_value=datetime.now()
     )
     
-    # Ecosystem type selection
-    st.subheader("Ecosystem Configuration")
-    ecosystem_type = st.selectbox(
-        "Select Ecosystem Type",
-        options=['forest', 'grassland', 'wetland', 'agricultural', 'coastal'],
+    # Ecosystem type detection info
+    st.subheader("Ecosystem Detection")
+    st.info("""
+    **Automatic Detection**: EVE automatically detects ecosystem types using:
+    - **Spectral Analysis**: NDVI, NDWI, and NDBI from satellite imagery
+    - **Geographic Context**: Climate zones, latitude, and regional characteristics
+    - **Land Cover Patterns**: Vegetation density and water presence
+    
+    Supported types: Forest, Grassland, Wetland, Agricultural, Coastal
+    """)
+    
+    # Optional manual override
+    ecosystem_override = st.selectbox(
+        "Manual Override (Optional)",
+        options=[None, 'forest', 'grassland', 'wetland', 'agricultural', 'coastal'],
         index=0,
-        help="This affects the baseline valuation coefficients for ecosystem services"
+        format_func=lambda x: "Use Automatic Detection" if x is None else x.title(),
+        help="Override automatic detection if you know the specific ecosystem type"
     )
     
-    # Store ecosystem type in session state for preview calculations
-    st.session_state.ecosystem_type = ecosystem_type
+    # Store ecosystem settings in session state
+    st.session_state.ecosystem_override = ecosystem_override
     
     # Service categories selection
     st.subheader("Ecosystem Services Categories")
@@ -141,12 +152,16 @@ with st.sidebar:
                     
                     # Process satellite data for the selected time range
                     satellite_data = satellite_processor.get_time_series_data(
-                        area_bounds, start_date, end_date
+                        area_bounds, datetime.combine(start_date, datetime.min.time()), 
+                        datetime.combine(end_date, datetime.min.time())
                     )
+                    
+                    # Use manual override if provided, otherwise use automatic detection
+                    override_type = st.session_state.get('ecosystem_override')
                     
                     # Calculate ecosystem services valuation
                     services_results = services_calculator.calculate_ecosystem_services_value(
-                        satellite_data, area_bounds, ecosystem_type
+                        satellite_data, area_bounds, ecosystem_type=override_type
                     )
                     
                     # Calculate service category trends
@@ -238,27 +253,52 @@ with col2:
             area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
             
-            # Quick valuation estimate based on ecosystem type
-            ecosystem_type = st.session_state.get('ecosystem_type', 'forest')
-            if True:  # Always show estimate
-                base_values = {
-                    'forest': 4726,  # USD/ha/year
-                    'grassland': 232,
-                    'wetland': 32423,
-                    'agricultural': 129,
-                    'coastal': 5726
+            # Quick valuation estimate using automatic ecosystem detection
+            from utils.satellite_data import SatelliteDataProcessor
+            
+            # Create a quick satellite processor to detect ecosystem type
+            sat_processor = SatelliteDataProcessor()
+            coords = st.session_state.area_coordinates
+            if len(coords) > 2:
+                # Create a simplified bbox for detection
+                bbox = {
+                    'min_lat': min(coord[1] for coord in coords),
+                    'max_lat': max(coord[1] for coord in coords),
+                    'min_lon': min(coord[0] for coord in coords),
+                    'max_lon': max(coord[0] for coord in coords)
                 }
-                estimated_value = base_values.get(ecosystem_type, 2000) * area_ha
                 
-                col2a, col2b = st.columns(2)
-                with col2a:
-                    st.metric("Area", f"{area_ha:.1f} ha")
-                    st.metric("Ecosystem Type", ecosystem_type.title())
-                with col2b:
-                    st.metric("Est. Annual Value", f"${estimated_value:,.0f}")
-                    st.metric("Value per Hectare", f"${estimated_value/area_ha:,.0f}")
+                # Create mock time series for detection
+                mock_time_series = [{
+                    'red_mean': 0.2, 'nir_mean': 0.3, 'green_mean': 0.15, 'swir1_mean': 0.25
+                }]
                 
-                st.info("💡 Run full analysis to get detailed breakdown by service categories and time trends")
+                detection_result = sat_processor._detect_ecosystem_type(bbox, mock_time_series)
+                ecosystem_type = detection_result.get('detected_type', 'forest')
+                confidence = detection_result.get('confidence', 0.5)
+            else:
+                ecosystem_type = 'forest'
+                confidence = 0.5
+            
+            base_values = {
+                'forest': 4726,  # USD/ha/year
+                'grassland': 232,
+                'wetland': 32423,
+                'agricultural': 129,
+                'coastal': 5726
+            }
+            estimated_value = base_values.get(ecosystem_type, 2000) * area_ha
+            
+            col2a, col2b = st.columns(2)
+            with col2a:
+                st.metric("Area", f"{area_ha:.1f} ha")
+                confidence_icon = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
+                st.metric(f"{confidence_icon} Detected Type", f"{ecosystem_type.title()}", f"{confidence:.0%} confidence")
+            with col2b:
+                st.metric("Est. Annual Value", f"${estimated_value:,.0f}")
+                st.metric("Value per Hectare", f"${estimated_value/area_ha:,.0f}")
+            
+            st.info("💡 Run full analysis to get detailed breakdown by service categories and time trends")
     else:
         st.info("👆 Select an area on the map to see economic value preview")
 
@@ -294,10 +334,27 @@ if st.session_state.analysis_results:
             
             with col2:
                 value_per_ha = services_data.get('value_per_hectare', 0)
+                detected_ecosystem = services_data.get('detected_ecosystem_type', 'Unknown')
                 st.metric(
                     "Value per Hectare",
                     f"${value_per_ha:,.0f}/ha/year"
                 )
+                
+                # Show detected ecosystem type
+                ecosystem_detection = services_data.get('ecosystem_detection', {})
+                if ecosystem_detection:
+                    detected_type = ecosystem_detection.get('detected_type', 'Unknown')
+                    confidence = ecosystem_detection.get('confidence', 0)
+                    method = ecosystem_detection.get('method', 'unknown')
+                    
+                    confidence_icon = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
+                    st.metric(
+                        f"{confidence_icon} Detected Ecosystem",
+                        f"{detected_type.title()}",
+                        f"{confidence:.0%} confidence"
+                    )
+                else:
+                    st.metric("Ecosystem Type", detected_ecosystem.title())
             
             with col3:
                 annual_change = services_data.get('annual_change_usd', 0)
