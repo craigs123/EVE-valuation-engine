@@ -100,19 +100,14 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("💡 Look for the green-highlighted rectangle/polygon buttons in the map toolbar - click one, then draw your area")
+    st.info("Use the drawing tools in the map toolbar - click rectangle or polygon, then draw your area")
     
-    # Create interactive map with panning disabled
+    # Create interactive map with minimal restrictions
     m = folium.Map(
         location=[40.0, -100.0], 
         zoom_start=4,
-        dragging=False,
-        zoom_control=True,
-        scrollWheelZoom=False,
-        doubleClickZoom=False,
-        boxZoom=False,
-        keyboard=False,
-        tap=False
+        dragging=False,  # Keep panning disabled as requested
+        zoom_control=True
     )
     
     # Add existing selection if available
@@ -127,99 +122,20 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add drawing tools with enhanced configuration
+    # Add simple drawing tools
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
             'polyline': False,
-            'polygon': {
-                'allowIntersection': False,
-                'drawError': {
-                    'color': '#b00b00',
-                    'timeout': 1000
-                },
-                'shapeOptions': {
-                    'color': '#2e8b57',
-                    'weight': 3,
-                    'fillOpacity': 0.3
-                }
-            },
+            'polygon': True,
             'circle': False,
-            'rectangle': {
-                'shapeOptions': {
-                    'color': '#2e8b57',
-                    'weight': 3,
-                    'fillOpacity': 0.3
-                }
-            },
+            'rectangle': True,
             'marker': False,
             'circlemarker': False,
         },
-        edit_options={
-            'remove': True,
-            'edit': False
-        },
-        position='topleft'
+        edit_options={'remove': True}
     )
     draw.add_to(m)
-    
-    # Add enhanced JavaScript for better draw mode activation
-    enhanced_draw_js = """
-    <script>
-    function enhanceDrawControls() {
-        setTimeout(function() {
-            // Find all draw control buttons
-            var drawControls = document.querySelectorAll('.leaflet-draw-toolbar .leaflet-draw-draw-rectangle, .leaflet-draw-toolbar .leaflet-draw-draw-polygon');
-            
-            drawControls.forEach(function(control) {
-                // Add enhanced click handler
-                control.addEventListener('click', function(e) {
-                    console.log('Draw control activated:', this.className);
-                    
-                    // Ensure the button activates properly
-                    setTimeout(function() {
-                        // Force the draw mode to activate
-                        if (!control.classList.contains('leaflet-draw-toolbar-button-enabled')) {
-                            control.click();
-                        }
-                    }, 100);
-                });
-                
-                // Make buttons more visible
-                control.style.border = '2px solid #2e8b57';
-                control.style.backgroundColor = '#f0fff0';
-            });
-            
-            // Auto-highlight the rectangle tool
-            var rectButton = document.querySelector('.leaflet-draw-draw-rectangle');
-            if (rectButton) {
-                rectButton.style.backgroundColor = '#e6ffe6';
-                rectButton.title = 'Click to draw rectangular area';
-            }
-            
-            var polyButton = document.querySelector('.leaflet-draw-draw-polygon');
-            if (polyButton) {
-                polyButton.style.backgroundColor = '#e6ffe6';
-                polyButton.title = 'Click to draw polygon area';
-            }
-            
-        }, 1000);
-    }
-    
-    // Run enhancement when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', enhanceDrawControls);
-    } else {
-        enhanceDrawControls();
-    }
-    
-    // Also run after a delay to ensure Folium is fully loaded
-    setTimeout(enhanceDrawControls, 2000);
-    </script>
-    """
-    
-    # Add the enhanced JavaScript to the map
-    m.get_root().html.add_child(folium.Element(enhanced_draw_js))
     
     # Display map with drawing capability
     map_data = st_folium(
