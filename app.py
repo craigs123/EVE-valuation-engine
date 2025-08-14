@@ -199,22 +199,7 @@ with col1:
     )
     draw.add_to(m)
     
-    # Add example markers for guidance
-    if not st.session_state.selected_area:
-        folium.Marker(
-            [-3, -60], popup="🌲 Amazon Rainforest", 
-            icon=folium.Icon(color='green')
-        ).add_to(m)
-        
-        folium.Marker(
-            [25.5, -80.5], popup="🦆 Florida Everglades", 
-            icon=folium.Icon(color='blue')
-        ).add_to(m)
-        
-        folium.Marker(
-            [40, -100], popup="🌾 Great Plains", 
-            icon=folium.Icon(color='orange')
-        ).add_to(m)
+
     
     # Display map and capture interactions
     map_data = st_folium(m, width=700, height=400, returned_objects=["all_drawings"], key="area_map")
