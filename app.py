@@ -100,14 +100,12 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Use the drawing tools in the map toolbar - click rectangle or polygon, then draw your area")
+    st.info("Click the rectangle or polygon button in the toolbar, then click and drag on the map to draw your area")
     
-    # Create interactive map with minimal restrictions
+    # Create interactive map with drawing capability
     m = folium.Map(
         location=[40.0, -100.0], 
-        zoom_start=4,
-        dragging=False,  # Keep panning disabled as requested
-        zoom_control=True
+        zoom_start=4
     )
     
     # Add existing selection if available
@@ -122,7 +120,7 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add simple drawing tools
+    # Add drawing tools that should work
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
@@ -136,6 +134,28 @@ with col1:
         edit_options={'remove': True}
     )
     draw.add_to(m)
+    
+    # Add JavaScript to disable panning but allow drawing
+    disable_pan_js = """
+    <script>
+    setTimeout(function() {
+        var map = window[Object.keys(window).find(key => key.startsWith('map_'))];
+        if (map) {
+            // Disable panning when not drawing
+            var originalOnMouseDown = map.dragging._onMouseDown;
+            map.dragging._onMouseDown = function(e) {
+                // Only allow dragging if we're in draw mode
+                var drawingActive = document.querySelector('.leaflet-draw-toolbar-button-enabled');
+                if (!drawingActive) {
+                    return; // Block panning
+                }
+                return originalOnMouseDown.call(this, e);
+            };
+        }
+    }, 2000);
+    </script>
+    """
+    m.get_root().html.add_child(folium.Element(disable_pan_js))
     
     # Display map with drawing capability
     map_data = st_folium(
