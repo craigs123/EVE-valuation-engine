@@ -401,51 +401,67 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 }
             }
             
+            # Multi-database valuation using ESVD, TEEB, InVEST, and WAVES/SEEA
+            from utils.multi_database_integration import MultiDatabaseValuation
+            
+            multi_db = MultiDatabaseValuation()
+            
             # Check if multi-ecosystem calculation is needed
             multi_eco_data = st.session_state.get('multi_ecosystem_data')
             use_multi_ecosystem = multi_eco_data and multi_eco_data.get('is_multi_ecosystem', False)
             
+            coordinates = (avg_lat, avg_lon) if 'avg_lat' in locals() else None
+            
             if use_multi_ecosystem:
-                # Multi-ecosystem weighted calculation
+                # Multi-ecosystem weighted calculation across all databases
                 composition = multi_eco_data['ecosystem_composition']
-                st.info(f"🔄 **Calculating weighted values for {len(composition)} ecosystem types**")
+                st.info(f"🔄 **Calculating values using 4 databases for {len(composition)} ecosystem types**")
                 
-                # Calculate weighted values
-                ecosystem_values = {}
-                for metric in selected_metrics:
-                    ecosystem_values[metric] = 0
+                # Calculate using all databases
+                multi_db_results = multi_db.calculate_multi_database_values(
+                    ecosystem_type=detected_ecosystem,
+                    area_ha=area_ha,
+                    ecosystem_composition=composition,
+                    coordinates=coordinates
+                )
                 
-                # Show breakdown calculation
-                with st.expander("📊 Multi-Ecosystem Calculation Details"):
-                    for ecosystem, percentage in composition.items():
-                        if ecosystem in base_esvd_coefficients:
-                            eco_coeffs = base_esvd_coefficients[ecosystem]
-                            st.write(f"**{ecosystem.title()}** ({percentage:.1f}% of area):")
-                            for metric in selected_metrics:
-                                if metric in eco_coeffs:
-                                    weighted_value = eco_coeffs[metric] * area_ha * (percentage / 100.0)
-                                    ecosystem_values[metric] += weighted_value
-                                    st.write(f"  • {metric.replace('_', ' ').title()}: ${weighted_value:,.0f}/year")
-                
-                calculation_method = f"Multi-ecosystem weighted calculation ({len(composition)} types)"
+                calculation_method = f"Multi-ecosystem calculation using ESVD, TEEB, InVEST, WAVES ({len(composition)} types)"
                 
             else:
-                # Single ecosystem calculation
-                coeffs = base_esvd_coefficients.get(detected_ecosystem, base_esvd_coefficients['grassland'])
+                # Single ecosystem calculation across all databases
+                st.info(f"🔄 **Calculating values using 4 databases for {detected_ecosystem} ecosystem**")
                 
-                ecosystem_values = {}
+                multi_db_results = multi_db.calculate_multi_database_values(
+                    ecosystem_type=detected_ecosystem,
+                    area_ha=area_ha,
+                    coordinates=coordinates
+                )
+                
+                calculation_method = f"Single ecosystem calculation using ESVD, TEEB, InVEST, WAVES ({detected_ecosystem})"
+            
+            # Extract values for display (using statistical mean as primary)
+            ecosystem_values = {}
+            if 'statistical_summary' in multi_db_results:
                 for metric in selected_metrics:
-                    if metric in coeffs:
-                        ecosystem_values[metric] = coeffs[metric] * area_ha
-                        
-                calculation_method = f"Single ecosystem calculation ({detected_ecosystem})"
+                    if metric in multi_db_results['statistical_summary']:
+                        stats = multi_db_results['statistical_summary'][metric]
+                        ecosystem_values[metric] = {
+                            'total': stats['mean'],
+                            'per_hectare': stats['mean'] / area_ha if area_ha > 0 else 0,
+                            'area_hectares': area_ha,
+                            'range': {
+                                'min': stats['min'],
+                                'max': stats['max'],
+                                'std': stats['std']
+                            }
+                        }
             
             # Note: Authentic ESVD database includes regional adjustments, but we don't have access
             # to their proprietary adjustment factors. Using global average coefficients.
             avg_lat = sum(lats) / len(lats)
             avg_lon = sum(lons) / len(lons)
             
-            # Create ecosystem analysis results
+            # Create comprehensive ecosystem analysis results
             if use_multi_ecosystem:
                 ecosystem_analysis = {
                     'dominant_ecosystem': detected_ecosystem,
@@ -454,7 +470,9 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                     'quality_metrics': {'overall_quality': 0.85},
                     'location': f"{avg_lat:.2f}°N, {avg_lon:.2f}°E",
                     'diversity_index': multi_eco_data.get('diversity_index', 1),
-                    'calculation_method': calculation_method
+                    'calculation_method': calculation_method,
+                    'databases_used': ['ESVD', 'TEEB', 'InVEST', 'WAVES/SEEA'],
+                    'multi_database_results': multi_db_results
                 }
             else:
                 ecosystem_analysis = {
@@ -463,13 +481,40 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                     'confidence': 0.85,
                     'quality_metrics': {'overall_quality': 0.85},
                     'location': f"{avg_lat:.2f}°N, {avg_lon:.2f}°E",
-                    'calculation_method': calculation_method
+                    'calculation_method': calculation_method,
+                    'databases_used': ['ESVD', 'TEEB', 'InVEST', 'WAVES/SEEA'],
+                    'multi_database_results': multi_db_results
                 }
+            
+            # Multi-database results display
+            from utils.multi_database_visualization import (
+                display_valuation_summary, 
+                create_database_comparison_chart,
+                display_database_details,
+                create_uncertainty_analysis
+            )
+            
+            # Main valuation summary
+            display_valuation_summary(multi_db_results)
+            
+            # Interactive database comparison
+            st.subheader("📊 Multi-Database Comparison")
+            comparison_chart = create_database_comparison_chart(multi_db_results)
+            st.plotly_chart(comparison_chart, use_container_width=True)
+            
+            # Detailed database information
+            display_database_details(multi_db_results)
+            
+            # Uncertainty analysis
+            st.subheader("🎯 Uncertainty Analysis")
+            uncertainty_chart = create_uncertainty_analysis(multi_db_results)
+            st.plotly_chart(uncertainty_chart, use_container_width=True)
             
             # Compile comprehensive results
             analysis_results = {
                 'ecosystem_analysis': ecosystem_analysis,
                 'ecosystem_values': ecosystem_values,
+                'multi_database_results': multi_db_results,
                 'esvd_coefficients': base_esvd_coefficients.get(detected_ecosystem, base_esvd_coefficients['grassland']),
                 'area_metrics': {
                     'area_ha': area_ha,

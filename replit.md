@@ -56,6 +56,7 @@ Data integrity preference: Honest documentation of data limitations; authentic s
 - **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
 - **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas
 - **Authentic Data Integration**: System designed for ESA WorldCover (10m satellite data), Google Earth Engine, and USGS APIs - currently uses transparent geographic fallback with clear limitation warnings
+- **Multi-Database Valuation**: Integrates ESVD, TEEB, InVEST, and WAVES/SEEA databases to provide value ranges, uncertainty analysis, and methodological transparency with statistical confidence intervals
 
 ## External Dependencies
 
