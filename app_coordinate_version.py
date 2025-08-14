@@ -1,5 +1,5 @@
 """
-Ecosystem Valuation Engine - Clean Working Version with Map Drawing
+Ecosystem Valuation Engine - Simplified Working Version
 """
 
 import streamlit as st
@@ -35,7 +35,7 @@ with st.sidebar:
     
     ecosystem_override = st.selectbox(
         "Ecosystem Type",
-        options=["Auto-detect from satellite data", "forest", "grassland", "wetland", "agricultural", "coastal"],
+        options=["Auto-detect from satellite data", "forest", "grassland", "wetland", "agricultural", "coastal", "urban", "desert"],
         index=0
     )
     
@@ -56,14 +56,69 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("Select Your Area")
-    st.info("Click the rectangle or polygon tool in the map toolbar, then draw your area")
     
-    # Create the map
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+    # Simple coordinate input method
+    st.info("Enter coordinates to define a rectangular area:")
     
-    # Add existing selection if available
+    col_coord1, col_coord2 = st.columns(2)
+    with col_coord1:
+        st.write("**Southwest Corner:**")
+        min_lat = st.number_input("Latitude", value=40.0, format="%.6f", key="min_lat")
+        min_lon = st.number_input("Longitude", value=-100.0, format="%.6f", key="min_lon")
+    with col_coord2:
+        st.write("**Northeast Corner:**")
+        max_lat = st.number_input("Latitude", value=41.0, format="%.6f", key="max_lat")
+        max_lon = st.number_input("Longitude", value=-99.0, format="%.6f", key="max_lon")
+    
+    if st.button("Set Area from Coordinates", type="primary"):
+        # Create rectangular coordinates
+        coordinates = [
+            [min_lon, min_lat],
+            [max_lon, min_lat], 
+            [max_lon, max_lat],
+            [min_lon, max_lat],
+            [min_lon, min_lat]
+        ]
+        
+        st.session_state.selected_area = {
+            'type': 'Polygon',
+            'coordinates': coordinates
+        }
+        st.session_state.area_coordinates = coordinates
+        st.session_state.analysis_results = None
+        
+        # Calculate and show area
+        area_coords = np.array(coordinates)
+        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        st.success(f"Area set: {area_ha:.1f} hectares")
+        st.rerun()
+    
+    # Display map with selected area
     if st.session_state.selected_area and st.session_state.area_coordinates:
         coords = st.session_state.area_coordinates
+        lats = [coord[1] for coord in coords[:-1]]
+        lons = [coord[0] for coord in coords[:-1]]
+        center_lat = sum(lats) / len(lats)
+        center_lon = sum(lons) / len(lons)
+        
+        # Calculate zoom level based on area size
+        lat_range = max(lats) - min(lats)
+        lon_range = max(lons) - min(lons)
+        max_range = max(lat_range, lon_range)
+        
+        if max_range < 0.01:
+            zoom_level = 12
+        elif max_range < 0.1:
+            zoom_level = 10
+        elif max_range < 1.0:
+            zoom_level = 8
+        else:
+            zoom_level = 6
+            
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
+        
+        # Add selected area
         folium.Polygon(
             locations=[(coord[1], coord[0]) for coord in coords],
             color='green',
@@ -72,66 +127,53 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
-    
-    # Display map with drawing capability
-    map_data = st_folium(
-        m, 
-        width=700, 
-        height=400,
-        returned_objects=["all_drawings"],
-        key="area_map"
-    )
-    
-    # Process map interactions
-    if map_data and map_data.get('all_drawings') and len(map_data['all_drawings']) > 0:
-        # Get the latest drawing
-        latest_drawing = map_data['all_drawings'][-1]
-        
-        if latest_drawing and 'geometry' in latest_drawing:
-            geometry = latest_drawing['geometry']
-            
-            if geometry['type'] in ['Polygon']:
-                coordinates = geometry['coordinates'][0]
-                
-                # Check if this is a new selection (coordinates have changed)
-                current_coords = st.session_state.get('area_coordinates', [])
-                if coordinates != current_coords:
-                    # Save the new selection
-                    st.session_state.selected_area = {
-                        'type': geometry['type'],
-                        'coordinates': coordinates
-                    }
-                    st.session_state.area_coordinates = coordinates
-                    st.session_state.analysis_results = None
-                    
-                    # Calculate and show area
-                    if len(coordinates) > 2:
-                        area_coords = np.array(coordinates)
-                        # Simple area calculation (approximate)
-                        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                        area_ha = area_km2 * 100
-                        st.success(f"Area selected: {area_ha:.1f} hectares")
-                    st.rerun()
-    
-    # Show status
-    if st.session_state.get('selected_area'):
-        st.success("✅ Area selected! You can now run analysis.")
-        coords = st.session_state.area_coordinates
-        lats = [coord[1] for coord in coords[:-1]]
-        lons = [coord[0] for coord in coords[:-1]]
-        st.info(f"Bounds: {min(lats):.3f}° to {max(lats):.3f}° lat, {min(lons):.3f}° to {max(lons):.3f}° lon")
     else:
-        st.warning("⚠️ No area selected. Use the drawing tools in the map toolbar.")
+        # Default map view
+        m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+    
+    # Display map (no drawing tools for now)
+    st_folium(m, width=700, height=400, key="display_map")
+    
+    # Sample areas for quick testing
+    st.markdown("---")
+    st.markdown("**Quick Test Areas:**")
+    sample_areas = {
+        "Central Park, NYC": (40.764, -73.973, 40.800, -73.949),
+        "Golden Gate Park, SF": (37.769, -122.511, 37.775, -122.453),
+        "Hyde Park, London": (51.508, -0.175, 51.513, -0.159)
+    }
+    
+    selected_sample = st.selectbox("Or choose a sample area:", ["None"] + list(sample_areas.keys()))
+    
+    if selected_sample != "None" and st.button(f"Load {selected_sample}"):
+        min_lat, min_lon, max_lat, max_lon = sample_areas[selected_sample]
+        coordinates = [
+            [min_lon, min_lat],
+            [max_lon, min_lat], 
+            [max_lon, max_lat],
+            [min_lon, max_lat],
+            [min_lon, min_lat]
+        ]
+        
+        st.session_state.selected_area = {
+            'type': 'Polygon',
+            'coordinates': coordinates
+        }
+        st.session_state.area_coordinates = coordinates
+        st.session_state.analysis_results = None
+        st.success(f"Loaded {selected_sample}")
+        st.rerun()
 
 with col2:
     st.subheader("Analysis Preview")
     
     if st.session_state.get('selected_area'):
+        st.success("✅ Area Selected")
         coords = st.session_state.area_coordinates
         
         # Calculate area
-        if len(coords) > 2:
-            area_coords = np.array(coords)
+        area_coords = np.array(coords)
+        if len(area_coords) > 2:
             area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
             st.metric("Area", f"{area_ha:.1f} hectares")
@@ -144,6 +186,13 @@ with col2:
             options=["Past Year", "Past 6 Months", "Past 3 Months"],
             index=0
         )
+        
+        preset_options = {
+            "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
+            "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
+            "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
+        }
+        start_date, end_date = preset_options[time_preset]
         
         # Analysis button
         if st.button("🚀 Calculate Value", type="primary", use_container_width=True):
@@ -165,16 +214,12 @@ with col2:
                     'agricultural': {
                         'provisioning': 5567, 'regulating': 612, 'cultural': 32, 'supporting': 95,
                         'ecosystem_services_total': 6306
-                    },
-                    'coastal': {
-                        'provisioning': 1610, 'regulating': 6190, 'cultural': 722, 'supporting': 394,
-                        'ecosystem_services_total': 8916
                     }
                 }
                 
                 # Determine ecosystem type
                 if ecosystem_override == "Auto-detect from satellite data":
-                    detected_ecosystem = "grassland"  # Simplified detection
+                    detected_ecosystem = "grassland"  # Simplified for demo
                     st.info("⚠️ Using geographic fallback: Grassland (satellite APIs need authentication)")
                 else:
                     detected_ecosystem = ecosystem_override
@@ -208,7 +253,7 @@ with col2:
                 st.rerun()
     else:
         st.warning("⚠️ No area selected")
-        st.write("Draw an area on the map to begin analysis")
+        st.write("Select an area on the map to begin analysis")
 
 # Display results
 if st.session_state.get('analysis_results'):
