@@ -63,8 +63,8 @@ with st.sidebar:
     ecosystem_override = st.selectbox(
         "Ecosystem Type",
         options=["Auto-detect from satellite data", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"],
-        index=1,  # Default to "Forest" instead of auto-detect
-        help="Select ecosystem type for your area. Auto-detect requires satellite data not available in this demo."
+        index=0,  # Default to auto-detect using OpenLandMap
+        help="Auto-detect uses OpenLandMap global land cover data. Manual selection available for override."
     )
     
     # Analysis detail level
@@ -285,9 +285,17 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
             
             # Determine ecosystem type
             if st.session_state.ecosystem_override == "Auto-detect from satellite data":
-                # Since we don't have actual satellite data, show warning and default to most common type
-                st.warning("⚠️ Satellite data detection not available. Using ecosystem type override or defaulting to 'grassland'. Please select specific ecosystem type from sidebar for accurate analysis.")
-                detected_ecosystem = "grassland"
+                # Use OpenLandMap API for authentic land cover classification
+                from utils.openlandmap_integration import get_dominant_ecosystem
+                
+                with st.spinner("🛰️ Analyzing land cover using OpenLandMap data..."):
+                    try:
+                        detected_ecosystem = get_dominant_ecosystem(bbox)
+                        st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}** using OpenLandMap global land cover data")
+                    except Exception as e:
+                        st.error(f"❌ OpenLandMap API error: {e}")
+                        st.warning("Falling back to manual selection. Please choose ecosystem type from sidebar.")
+                        detected_ecosystem = "grassland"
             else:
                 detected_ecosystem = st.session_state.ecosystem_override.lower()
             
@@ -503,16 +511,18 @@ if st.session_state.analysis_results:
         **Data Sources:**
         - **ESVD (Ecosystem Services Valuation Database)**: 10,000+ peer-reviewed economic valuations
         - **TEEB Database**: The Economics of Ecosystems and Biodiversity coefficients
+        - **OpenLandMap**: Global land cover classification from satellite imagery analysis
         
         **Methodology:**
         - Economic values from published ESVD/TEEB literature (global averages)
-        - Manual ecosystem type selection recommended for accuracy
+        - Ecosystem detection using OpenLandMap global land cover API
         - All values standardized to 2020 International dollars
         
-        **Ecosystem Detection Limitations:**
-        - Automatic detection requires satellite imagery analysis not available in this demo
-        - For accurate analysis, manually select ecosystem type from sidebar dropdown
-        - Real implementation would use NDVI, NDWI, NDBI indices from satellite data
+        **Ecosystem Detection:**
+        - Automatic detection uses OpenLandMap REST API for authentic land cover data
+        - Based on ESA Climate Change Initiative and Copernicus satellite imagery
+        - Global coverage at 1km resolution with regular updates
+        - Manual override available in sidebar for specific requirements
         
         **Data Limitations:**
         - Values shown are global averages from peer-reviewed literature
