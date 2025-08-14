@@ -442,9 +442,11 @@ with col2:
             }
             
             # Use consistent ecosystem detection - check if analysis results exist first
-            if st.session_state.analysis_results and 'ecosystem_type' in st.session_state.analysis_results:
-                ecosystem_type = st.session_state.analysis_results['ecosystem_type']
-                confidence = 0.85  # High confidence from actual analysis
+            if st.session_state.analysis_results and 'services_data' in st.session_state.analysis_results:
+                services_data = st.session_state.analysis_results['services_data']
+                ecosystem_detection = services_data.get('ecosystem_detection', {})
+                ecosystem_type = ecosystem_detection.get('detected_type', st.session_state.analysis_results.get('ecosystem_type', 'forest'))
+                confidence = ecosystem_detection.get('confidence', 0.85)
             else:
                 # Preview detection using same method as analysis
                 mock_time_series = [{'red_mean': 0.2, 'nir_mean': 0.3, 'green_mean': 0.15, 'swir1_mean': 0.25}]
