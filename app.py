@@ -161,8 +161,22 @@ with st.sidebar:
                     
                     # Calculate ecosystem services valuation
                     services_results = services_calculator.calculate_ecosystem_services_value(
-                        satellite_data, area_bounds, ecosystem_type=override_type
+                        satellite_data, area_bounds, ecosystem_type=override_type if override_type != "auto_detect" else None
                     )
+                    
+                    # Check for errors
+                    if 'error' in services_results:
+                        st.error(f"⚠️ Analysis Error: {services_results['error']}")
+                        st.write("**Debug Information:**")
+                        st.write(f"- Ecosystem override: {override_type}")
+                        st.write(f"- Area bounds: {area_bounds}")
+                        st.write(f"- Satellite data keys: {list(satellite_data.keys()) if satellite_data else 'No data'}")
+                        if satellite_data:
+                            eco_detection = satellite_data.get('ecosystem_detection', {})
+                            multi_detection = satellite_data.get('multi_ecosystem_detection', {})
+                            st.write(f"- Single detection: {eco_detection.get('detected_type', 'Unknown')}")
+                            st.write(f"- Multi detection: {multi_detection.get('primary_ecosystem', 'Unknown')}")
+                        st.stop()
                     
                     # Calculate service category trends
                     category_trends = services_calculator.calculate_service_category_trends(services_results)
@@ -179,7 +193,7 @@ with st.sidebar:
                     st.session_state.analysis_results = {
                         'metrics': results,
                         'services_data': services_results,
-                        'ecosystem_type': ecosystem_type,
+                        'ecosystem_type': services_results.get('ecosystem_type', 'unknown'),
                         'time_range': (start_date, end_date),
                         'area_bounds': area_bounds,
                         'satellite_data': satellite_data

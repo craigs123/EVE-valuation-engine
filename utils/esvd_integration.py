@@ -301,7 +301,11 @@ class ESVDIntegration:
             'mangrove': 'mangrove'
         }
         
-        return ecosystem_mapping.get(user_ecosystem_type.lower(), 'temperate_forest')
+        mapped_type = ecosystem_mapping.get(user_ecosystem_type.lower())
+        if mapped_type is None:
+            # Return None for unsupported types so we can handle them properly
+            return None
+        return mapped_type
     
     def get_regional_factor(self, latitude: float, longitude: float) -> Dict[str, float]:
         """
@@ -337,6 +341,9 @@ class ESVDIntegration:
         try:
             # Map to ESVD ecosystem type
             esvd_ecosystem = self.map_ecosystem_type(ecosystem_type)
+            if esvd_ecosystem is None:
+                supported_types = ['forest', 'grassland', 'wetland', 'agricultural', 'coastal', 'urban', 'desert']
+                return {'error': f'Unsupported ecosystem type: "{ecosystem_type}". Supported types: {supported_types}'}
             
             # Get regional adjustment if coordinates provided
             regional_factor = 1.0
