@@ -294,8 +294,6 @@ with col2:
 if analyze_button and st.session_state.selected_area and selected_metrics:
     try:
         with st.spinner("🔍 Analyzing ecosystem and calculating values..."):
-            import time
-            time.sleep(2)  # Simulate processing
             
             # Get area coordinates and calculate metrics
             coords = st.session_state.area_coordinates
@@ -313,7 +311,7 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 # Use OpenLandMap API for authentic land cover classification
                 from utils.openlandmap_integration import get_dominant_ecosystem
                 
-                with st.spinner("🛰️ Analyzing with multiple satellite data sources..."):
+                with st.spinner("🛰️ Analyzing ecosystem type..."):
                     try:
                         detected_ecosystem = get_dominant_ecosystem(bbox)
                         

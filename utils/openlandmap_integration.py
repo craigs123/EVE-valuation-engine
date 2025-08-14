@@ -5,6 +5,10 @@ import requests
 import numpy as np
 import pandas as pd
 from typing import Tuple, Dict, Optional
+from functools import lru_cache
+
+# Simple cache for geographic classifications to avoid recalculation
+_geographic_cache = {}
 
 def try_openlandmap_fixed(lat: float, lon: float) -> Tuple[str, Dict]:
     """
@@ -31,8 +35,13 @@ def try_openlandmap_fixed(lat: float, lon: float) -> Tuple[str, Dict]:
         
         url = "http://api.openlandmap.org/query/point"
         
-        for collection in collections_to_try:
-            for pattern in patterns_to_try:
+        # Try most promising collections first for speed
+        priority_collections = ['layers250m', 'layers1km']
+        priority_patterns = ['lcv.*', 'sol.*']  # Focus on land cover and soil
+        
+        # First, try high-priority combinations
+        for collection in priority_collections:
+            for pattern in priority_patterns:
                 try:
                     params = {
                         'lat': lat,
@@ -41,16 +50,34 @@ def try_openlandmap_fixed(lat: float, lon: float) -> Tuple[str, Dict]:
                         'regex': pattern
                     }
                     
-                    response = requests.get(url, params=params, timeout=5)
+                    response = requests.get(url, params=params, timeout=3)  # Reduced timeout
                     if response.status_code == 200:
                         data = response.json()
                         if 'response' in data and data['response']:
-                            # Extract ecosystem type from response
                             ecosystem_type = classify_openlandmap_response(data['response'][0])
                             return ecosystem_type, data
                             
                 except requests.RequestException:
                     continue
+        
+        # If priority attempts fail, try one fallback quickly
+        try:
+            params = {
+                'lat': lat,
+                'lon': lon,
+                'coll': 'layers1km',
+                'regex': '.*'  # Catch any available data
+            }
+            
+            response = requests.get(url, params=params, timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                if 'response' in data and data['response']:
+                    ecosystem_type = classify_openlandmap_response(data['response'][0])
+                    return ecosystem_type, data
+                    
+        except requests.RequestException:
+            pass
         
         return "unknown", {"error": "No valid OpenLandMap data found for location"}
         
@@ -98,21 +125,8 @@ def get_land_cover_classification(lat: float, lon: float) -> Tuple[str, Dict]:
     if ecosystem_type != "unknown":
         return ecosystem_type, {**data, "source": "OpenLandMap"}
     
-    # 2. Try ESA WorldCover API (most accurate for land cover)
-    ecosystem_type, data = try_esa_worldcover(lat, lon)
-    if ecosystem_type != "unknown":
-        return ecosystem_type, {**data, "source": "ESA WorldCover"}
-    
-    # 3. Try Google Earth Engine (requires authentication)
-    ecosystem_type, data = try_google_earth_engine(lat, lon)
-    if ecosystem_type != "unknown":
-        return ecosystem_type, {**data, "source": "Google Earth Engine"}
-    
-    # 4. Try USGS/NASA Land Cover (for US locations)
-    if -180 <= lon <= -50 and 15 <= lat <= 75:  # North America
-        ecosystem_type, data = try_usgs_landcover(lat, lon)
-        if ecosystem_type != "unknown":
-            return ecosystem_type, {**data, "source": "USGS Land Cover"}
+    # Skip other APIs for speed - they currently return "unknown" anyway
+    # Can be re-enabled when actual API access is available
     
     # 5. Fallback to geographic analysis with clear limitations
     ecosystem_type = classify_basic_geographic(lat, lon)
@@ -219,32 +233,42 @@ def classify_from_geocoding(geocoding_data: Dict, lat: float, lon: float) -> str
 def classify_basic_geographic(lat: float, lon: float) -> str:
     """
     Basic ecosystem classification based on geographic coordinates.
+    Uses simple caching for performance.
     """
+    # Use simple rounding for cache key
+    cache_key = (round(lat, 2), round(lon, 2))
+    if cache_key in _geographic_cache:
+        return _geographic_cache[cache_key]
+    
     # Desert regions
     if ((20 <= lat <= 40 and -120 <= lon <= -100) or  # US Southwest
         (15 <= lat <= 35 and -15 <= lon <= 45) or     # Sahara/Middle East
         (-30 <= lat <= -15 and 110 <= lon <= 155)):   # Australian deserts
-        return "desert"
+        result = "desert"
     
     # Coastal regions (near major coastlines)
     elif (abs(lat) < 65 and (lon < -120 or lon > 120 or  # Pacific
           (25 <= lat <= 50 and -85 <= lon <= -70) or     # US East coast
           (50 <= lat and -10 <= lon <= 30))):            # European coasts
-        return "coastal"
+        result = "coastal"
     
     # Forest regions (northern latitudes)
     elif lat > 45:
-        return "forest"
+        result = "forest"
     
     # Agricultural regions (temperate)
     elif 30 <= lat <= 50:
-        return "agricultural"
+        result = "agricultural"
     
     # Default grassland
     else:
-        return "grassland"
+        result = "grassland"
+    
+    # Cache the result
+    _geographic_cache[cache_key] = result
+    return result
 
-def get_area_land_cover(bbox: list, grid_size: int = 3) -> Dict[str, float]:
+def get_area_land_cover(bbox: list, grid_size: int = 2) -> Dict[str, float]:
     """
     Get land cover classification for an area using a grid sampling approach.
     
