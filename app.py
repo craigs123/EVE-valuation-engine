@@ -74,153 +74,269 @@ if 'area_coordinates' not in st.session_state:
     st.session_state.area_coordinates = []
 
 # Main title and description
-st.title("🌱 Ecosystem Valuation Engine (EVE)")
+st.title("🌱 Ecosystem Valuation Engine")
 st.markdown("""
-EVE measures ecosystem growth through economic valuation of ecosystem services: **provisioning** (food, water, timber), 
-**regulating** (climate, water, erosion control), **cultural** (recreation, spiritual value), and **supporting** (soil formation, nutrient cycling).
-Select an area on the map below to begin valuation.
+**Measure the economic value of nature's benefits.** Select an area on the map to discover its annual ecosystem service value in dollars.
 """)
 
-# Sidebar for controls
+# User guidance section
+col_guide1, col_guide2, col_guide3 = st.columns(3)
+
+with col_guide1:
+    from utils.user_guidance import show_ecosystem_service_explanation
+    show_ecosystem_service_explanation()
+
+with col_guide2:
+    from utils.user_guidance import show_tips_and_best_practices
+    show_tips_and_best_practices()
+
+with col_guide3:
+    from utils.user_guidance import show_quick_help
+    show_quick_help()
+
+# Status indicator
+if st.session_state.selected_area:
+    st.success(f"✅ Area selected! Ready for analysis.")
+else:
+    st.info("👆 Draw an area on the map below to begin")
+
+# Simplified sidebar
 with st.sidebar:
-    st.header("Analysis Parameters")
+    st.header("🛠️ Settings")
     
-    # Time range selection
-    st.subheader("Time Range")
-    start_date = st.date_input(
-        "Start Date",
-        value=datetime.now() - timedelta(days=365),
-        max_value=datetime.now()
-    )
-    end_date = st.date_input(
-        "End Date",
-        value=datetime.now(),
-        max_value=datetime.now()
-    )
+    # Simple settings section
+    with st.expander("📅 Time Period", expanded=True):
+        preset_options = {
+            "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
+            "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
+            "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now()),
+            "Custom Range": None
+        }
+        
+        time_preset = st.selectbox(
+            "Select Time Period",
+            options=list(preset_options.keys()),
+            index=0
+        )
+        
+        if time_preset == "Custom Range":
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("From", value=datetime.now() - timedelta(days=365))
+            with col2:
+                end_date = st.date_input("To", value=datetime.now())
+        else:
+            start_date, end_date = preset_options[time_preset]
     
-    # Ecosystem type detection info
-    st.subheader("Ecosystem Detection")
-    st.info("""
-    **Automatic Detection**: EVE automatically detects ecosystem types using:
-    - **Spectral Analysis**: NDVI, NDWI, and NDBI from satellite imagery
-    - **Geographic Context**: Climate zones, latitude, and regional characteristics
-    - **Land Cover Patterns**: Vegetation density and water presence
+    # Ecosystem override (simplified)
+    with st.expander("🔬 Advanced Settings"):
+        st.write("**Ecosystem Type Detection**")
+        st.caption("EVE automatically detects ecosystem types. Override only if needed.")
+        
+        ecosystem_override = st.selectbox(
+            "Force Specific Type",
+            options=[None, 'forest', 'grassland', 'wetland', 'agricultural', 'coastal'],
+            index=0,
+            format_func=lambda x: "Auto-detect" if x is None else x.title()
+        )
+        
+        st.write("**Analysis Detail Level**")
+        analysis_detail = st.radio(
+            "Choose analysis depth",
+            options=["Quick Overview", "Detailed Analysis"],
+            index=1,
+            help="Quick overview shows main values. Detailed includes service categories and trends."
+        )
     
-    Supported types: Forest, Grassland, Wetland, Agricultural, Coastal
-    """)
-    
-    # Optional manual override
-    ecosystem_override = st.selectbox(
-        "Manual Override (Optional)",
-        options=[None, 'forest', 'grassland', 'wetland', 'agricultural', 'coastal'],
-        index=0,
-        format_func=lambda x: "Use Automatic Detection" if x is None else x.title(),
-        help="Override automatic detection if you know the specific ecosystem type"
-    )
-    
-    # Store ecosystem settings in session state
+    # Store settings
     st.session_state.ecosystem_override = ecosystem_override
+    st.session_state.analysis_detail = analysis_detail
     
-    # Service categories selection
-    st.subheader("Ecosystem Services Categories")
-    service_categories = {
-        'ecosystem_services_total': 'Total Ecosystem Services Value',
-        'provisioning': 'Provisioning Services (food, water, timber)',
-        'regulating': 'Regulating Services (climate, water regulation)',
-        'cultural': 'Cultural Services (recreation, aesthetic)',
-        'supporting': 'Supporting Services (soil, nutrients, habitat)'
-    }
+    # Service categories (only for detailed analysis)
+    if analysis_detail == "Detailed Analysis":
+        selected_metrics = ['ecosystem_services_total', 'provisioning', 'regulating', 'cultural', 'supporting']
+    else:
+        selected_metrics = ['ecosystem_services_total']
     
-    selected_metrics = st.multiselect(
-        "Select Service Categories to Analyze",
-        options=list(service_categories.keys()),
-        default=['ecosystem_services_total', 'provisioning', 'regulating'],
-        format_func=lambda x: service_categories[x]
-    )
+    st.markdown("---")
     
-    # Analysis button
-    if st.button("💰 Calculate Ecosystem Services Value", type="primary", disabled=not st.session_state.selected_area):
-        if st.session_state.selected_area and selected_metrics:
-            with st.spinner("Processing satellite data and calculating ecosystem services values..."):
-                try:
-                    # Initialize processors
-                    satellite_processor = SatelliteDataProcessor()
-                    services_calculator = EcosystemServicesCalculator()
-                    
-                    # Get area boundaries
-                    area_bounds = st.session_state.selected_area
-                    
-                    # Process satellite data for the selected time range
-                    satellite_data = satellite_processor.get_time_series_data(
-                        area_bounds, datetime.combine(start_date, datetime.min.time()), 
-                        datetime.combine(end_date, datetime.min.time())
-                    )
-                    
-                    # Use manual override if provided, otherwise use automatic detection
-                    override_type = st.session_state.get('ecosystem_override')
-                    
-                    # Calculate ecosystem services valuation
-                    services_results = services_calculator.calculate_ecosystem_services_value(
-                        satellite_data, area_bounds, ecosystem_type=override_type if override_type != "auto_detect" else None
-                    )
-                    
-                    # Check for errors
-                    if 'error' in services_results:
-                        st.error(f"⚠️ Analysis Error: {services_results['error']}")
-                        st.write("**Debug Information:**")
-                        st.write(f"- Ecosystem override: {override_type}")
-                        st.write(f"- Area bounds: {area_bounds}")
-                        st.write(f"- Satellite data keys: {list(satellite_data.keys()) if satellite_data else 'No data'}")
-                        if satellite_data:
-                            eco_detection = satellite_data.get('ecosystem_detection', {})
-                            multi_detection = satellite_data.get('multi_ecosystem_detection', {})
-                            st.write(f"- Single detection: {eco_detection.get('detected_type', 'Unknown')}")
-                            st.write(f"- Multi detection: {multi_detection.get('primary_ecosystem', 'Unknown')}")
-                        st.stop()
-                    
-                    # Calculate service category trends
-                    category_trends = services_calculator.calculate_service_category_trends(services_results)
-                    
-                    # Prepare results based on selected metrics
-                    results = {}
-                    if 'ecosystem_services_total' in selected_metrics:
-                        results['ecosystem_services_total'] = services_results
-                    
-                    for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
-                        if category in selected_metrics and category in category_trends:
-                            results[category] = category_trends[category]
-                    
-                    st.session_state.analysis_results = {
-                        'metrics': results,
-                        'services_data': services_results,
-                        'ecosystem_type': services_results.get('ecosystem_type', 'unknown'),
-                        'time_range': (start_date, end_date),
-                        'area_bounds': area_bounds,
-                        'satellite_data': satellite_data
-                    }
-                    
-                    current_value = services_results.get('current_value', 0)
-                    st.success(f"✅ Ecosystem services valuation completed! Total value: ${current_value:,.0f}/year")
-                    
-                except Exception as e:
-                    st.error(f"Valuation failed: {str(e)}")
-                    st.error("This might be due to satellite data availability or ecosystem type configuration.")
+    # Analysis button - moved to more prominent location
+    analysis_button_container = st.container()
     
-    # Clear analysis button
-    if st.button("🗑️ Clear Analysis"):
+    # Clear button
+    if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
         st.session_state.analysis_results = None
         st.session_state.selected_area = None
         st.session_state.area_coordinates = []
         st.rerun()
 
-# Main content area
-col1, col2 = st.columns([1, 1])
+# Main analysis button (outside sidebar for prominence)
+with analysis_button_container:
+    if st.session_state.selected_area:
+        analyze_button = st.button(
+            "🚀 Analyze Ecosystem Value", 
+            type="primary", 
+            use_container_width=True,
+            help="Calculate the economic value of ecosystem services for your selected area"
+        )
+    else:
+        analyze_button = st.button(
+            "📍 Select an area first", 
+            disabled=True, 
+            use_container_width=True
+        )
+    
+    if analyze_button and st.session_state.selected_area and selected_metrics:
+            # Show progress indicator
+            from utils.user_guidance import show_progress_indicator
+            
+            progress_container = st.empty()
+            status_container = st.empty()
+            
+            with progress_container.container():
+                show_progress_indicator(1, 3)
+            
+            try:
+                with status_container:
+                    with st.spinner("🔍 Processing satellite data and detecting ecosystems..."):
+                        # Initialize processors
+                        satellite_processor = SatelliteDataProcessor()
+                        services_calculator = EcosystemServicesCalculator()
+                        
+                        # Get area boundaries
+                        area_bounds = st.session_state.selected_area
+                        
+                        # Process satellite data for the selected time range
+                        satellite_data = satellite_processor.get_time_series_data(
+                            area_bounds, datetime.combine(start_date, datetime.min.time()), 
+                            datetime.combine(end_date, datetime.min.time())
+                        )
+                        
+                        # Update progress
+                        with progress_container.container():
+                            show_progress_indicator(2, 3)
+                        
+                        status_container.empty()
+                        with status_container:
+                            with st.spinner("💰 Calculating ecosystem service values..."):
+                                # Use manual override if provided, otherwise use automatic detection
+                                override_type = st.session_state.get('ecosystem_override')
+                                
+                                # Calculate ecosystem services valuation
+                                services_results = services_calculator.calculate_ecosystem_services_value(
+                                    satellite_data, area_bounds, ecosystem_type=override_type if override_type != "auto_detect" else None
+                                )
+                
+                # Check for errors
+                if 'error' in services_results:
+                    st.error(f"⚠️ Analysis Error: {services_results['error']}")
+                    st.write("**Debug Information:**")
+                    st.write(f"- Ecosystem override: {override_type}")
+                    st.write(f"- Area bounds: {area_bounds}")
+                    st.write(f"- Satellite data keys: {list(satellite_data.keys()) if satellite_data else 'No data'}")
+                    if satellite_data:
+                        eco_detection = satellite_data.get('ecosystem_detection', {})
+                        multi_detection = satellite_data.get('multi_ecosystem_detection', {})
+                        st.write(f"- Single detection: {eco_detection.get('detected_type', 'Unknown')}")
+                        st.write(f"- Multi detection: {multi_detection.get('primary_ecosystem', 'Unknown')}")
+                    st.stop()
+                
+                # Calculate service category trends
+                category_trends = services_calculator.calculate_service_category_trends(services_results)
+                
+                # Prepare results based on selected metrics
+                results = {}
+                if 'ecosystem_services_total' in selected_metrics:
+                    results['ecosystem_services_total'] = services_results
+                
+                for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
+                    if category in selected_metrics and category in category_trends:
+                        results[category] = category_trends[category]
+                
+                st.session_state.analysis_results = {
+                    'metrics': results,
+                    'services_data': services_results,
+                    'ecosystem_type': services_results.get('ecosystem_type', 'unknown'),
+                    'time_range': (start_date, end_date),
+                    'area_bounds': area_bounds,
+                    'satellite_data': satellite_data
+                }
+                
+                # Complete analysis
+                with progress_container.container():
+                    show_progress_indicator(3, 3)
+                
+                status_container.empty()
+                current_value = services_results.get('current_value', 0)
+                
+                # Show completion message with key insight
+                ecosystem_type = services_results.get('ecosystem_type', 'unknown')
+                if ecosystem_type == 'multi_ecosystem':
+                    composition = services_results.get('ecosystem_composition', {})
+                    primary = services_results.get('primary_ecosystem', 'mixed')
+                    st.success(f"✅ Analysis complete! Multi-ecosystem area (primary: {primary}) valued at ${current_value:,.0f}/year")
+                else:
+                    st.success(f"✅ Analysis complete! {ecosystem_type.title()} ecosystem valued at ${current_value:,.0f}/year")
+                    
+            except Exception as e:
+                progress_container.empty()
+                status_container.empty()
+                
+                st.error(f"Analysis failed: {str(e)}")
+                
+                # Provide helpful error guidance
+                if "ecosystem_type" in str(e).lower():
+                    st.info("💡 Try selecting a different area or using the manual ecosystem override in Advanced Settings.")
+                elif "satellite" in str(e).lower():
+                    st.info("💡 This might be a temporary satellite data issue. Try again in a moment.")
+                elif "area" in str(e).lower():
+                    st.info("💡 Try drawing a larger area (at least 10 hectares) for better results.")
+                
+                with st.expander("🔧 Technical Details"):
+                    st.write("This might be due to satellite data availability or ecosystem type configuration.")
+                    st.write(f"Error details: {str(e)}")
+
+# Main content area - improved layout
+if not st.session_state.selected_area:
+    # Show example areas when no selection
+    st.subheader("🗺️ Interactive Map")
+    st.info("**How to select an area:** Use the drawing tools on the map to draw a rectangle or polygon around your area of interest.")
+    
+    # Example areas
+    with st.expander("📍 Try These Example Areas"):
+        example_col1, example_col2 = st.columns(2)
+        with example_col1:
+            st.write("**🌲 Amazon Rainforest**")
+            st.write("High biodiversity forest ecosystem")
+            st.write("Expected value: ~$4,700/hectare/year")
+            
+            st.write("**🌾 Great Plains**")  
+            st.write("Agricultural grassland ecosystem")
+            st.write("Expected value: ~$230/hectare/year")
+            
+        with example_col2:
+            st.write("**🦆 Florida Everglades**")
+            st.write("Wetland ecosystem with high services")
+            st.write("Expected value: ~$32,000/hectare/year")
+            
+            st.write("**🏖️ Coastal Mangroves**")
+            st.write("Marine-coastal ecosystem")
+            st.write("Expected value: ~$5,700/hectare/year")
+
+# Map and preview in columns
+col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("📍 Area Selection")
     
-    # Create interactive map
-    m = folium.Map(location=[40.7128, -74.0060], zoom_start=10)
+    # Create interactive map with better default view
+    if st.session_state.selected_area and st.session_state.area_coordinates:
+        coords = st.session_state.area_coordinates
+        center_lat = sum(coord[1] for coord in coords) / len(coords)
+        center_lon = sum(coord[0] for coord in coords) / len(coords)
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=12)
+    else:
+        m = folium.Map(location=[20, 0], zoom_start=2)  # Global view
     
     # Add drawing tools
     from folium.plugins import Draw
@@ -233,12 +349,29 @@ with col1:
             'marker': False,
             'circlemarker': False,
         },
-        edit_options={'edit': True}
+        edit_options={'remove': True, 'edit': True}
     )
     draw.add_to(m)
     
+    # Add example markers for guidance
+    if not st.session_state.selected_area:
+        folium.Marker(
+            [-3, -60], popup="🌲 Amazon Rainforest", 
+            icon=folium.Icon(color='green')
+        ).add_to(m)
+        
+        folium.Marker(
+            [25.5, -80.5], popup="🦆 Florida Everglades", 
+            icon=folium.Icon(color='blue')
+        ).add_to(m)
+        
+        folium.Marker(
+            [40, -100], popup="🌾 Great Plains", 
+            icon=folium.Icon(color='orange')
+        ).add_to(m)
+    
     # Display map and capture interactions
-    map_data = st_folium(m, width=700, height=500, returned_objects=["all_drawings"])
+    map_data = st_folium(m, width=700, height=400, returned_objects=["all_drawings"])
     
     # Process map interactions
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
@@ -252,69 +385,79 @@ with col1:
             }
             st.session_state.area_coordinates = coordinates
             
-            # Display selected area info
-            st.success(f"✅ Area selected: {latest_drawing['geometry']['type']}")
-            st.write(f"Coordinates: {len(coordinates)} points")
+            # Show simplified success message
+            st.success(f"Area selected: {len(coordinates)} points")
 
 with col2:
-    st.subheader("💰 Economic Value Preview")
+    st.subheader("💰 Area Preview")
     
     if st.session_state.selected_area and st.session_state.area_coordinates:
-        # Calculate basic area metrics
         coords = np.array(st.session_state.area_coordinates)
         if len(coords) > 2:
-            # Simple area calculation (approximate)
+            # Calculate area
             area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
             
-            # Quick valuation estimate using automatic ecosystem detection
+            # Quick ecosystem detection
             from utils.satellite_data import SatelliteDataProcessor
-            
-            # Create a quick satellite processor to detect ecosystem type
             sat_processor = SatelliteDataProcessor()
-            coords = st.session_state.area_coordinates
-            if len(coords) > 2:
-                # Create a simplified bbox for detection
-                bbox = {
-                    'min_lat': min(coord[1] for coord in coords),
-                    'max_lat': max(coord[1] for coord in coords),
-                    'min_lon': min(coord[0] for coord in coords),
-                    'max_lon': max(coord[0] for coord in coords)
-                }
-                
-                # Create mock time series for detection
-                mock_time_series = [{
-                    'red_mean': 0.2, 'nir_mean': 0.3, 'green_mean': 0.15, 'swir1_mean': 0.25
-                }]
-                
-                detection_result = sat_processor._detect_ecosystem_type(bbox, mock_time_series)
-                ecosystem_type = detection_result.get('detected_type', 'forest')
-                confidence = detection_result.get('confidence', 0.5)
-            else:
-                ecosystem_type = 'forest'
-                confidence = 0.5
             
-            base_values = {
-                'forest': 4726,  # USD/ha/year
-                'grassland': 232,
-                'wetland': 32423,
-                'agricultural': 129,
-                'coastal': 5726
+            bbox = {
+                'min_lat': min(coord[1] for coord in coords),
+                'max_lat': max(coord[1] for coord in coords),
+                'min_lon': min(coord[0] for coord in coords),
+                'max_lon': max(coord[0] for coord in coords)
             }
+            
+            mock_time_series = [{'red_mean': 0.2, 'nir_mean': 0.3, 'green_mean': 0.15, 'swir1_mean': 0.25}]
+            detection_result = sat_processor._detect_ecosystem_type(bbox, mock_time_series)
+            ecosystem_type = detection_result.get('detected_type', 'forest')
+            confidence = detection_result.get('confidence', 0.5)
+            
+            # Estimate value
+            base_values = {'forest': 4726, 'grassland': 232, 'wetland': 32423, 'agricultural': 129, 'coastal': 5726}
             estimated_value = base_values.get(ecosystem_type, 2000) * area_ha
             
-            col2a, col2b = st.columns(2)
-            with col2a:
-                st.metric("Area", f"{area_ha:.1f} ha")
-                confidence_icon = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
-                st.metric(f"{confidence_icon} Detected Type", f"{ecosystem_type.title()}", f"{confidence:.0%} confidence")
-            with col2b:
-                st.metric("Est. Annual Value", f"${estimated_value:,.0f}")
-                st.metric("Value per Hectare", f"${estimated_value/area_ha:,.0f}")
+            # Display metrics in a cleaner way
+            st.metric("📏 Area Size", f"{area_ha:.1f} hectares")
             
-            st.info("💡 Run full analysis to get detailed breakdown by service categories and time trends")
+            confidence_emoji = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
+            st.metric(
+                "🌍 Ecosystem Type", 
+                ecosystem_type.title(),
+                f"{confidence_emoji} {confidence:.0%} confidence"
+            )
+            
+            st.metric(
+                "💰 Estimated Value", 
+                f"${estimated_value:,.0f}/year",
+                f"${estimated_value/area_ha:,.0f}/ha/year"
+            )
+            
+            # Show what this value represents
+            st.info("This includes all ecosystem services: food, water, climate regulation, recreation, and habitat.")
+            
+            # Quick comparison
+            if ecosystem_type == 'wetland':
+                st.success("💧 Wetlands provide exceptional water regulation and habitat services!")
+            elif ecosystem_type == 'forest':
+                st.success("🌲 Forests excel at carbon storage and biodiversity support!")
+            elif ecosystem_type == 'coastal':
+                st.success("🏖️ Coastal areas provide storm protection and recreation value!")
     else:
-        st.info("👆 Select an area on the map to see economic value preview")
+        st.info("👆 Draw an area on the map to see preview")
+        
+        # Show ecosystem value examples
+        st.write("**Ecosystem Value Examples:**")
+        examples = [
+            ("🦆 Wetlands", "$32,400/ha/year", "Water regulation, habitat"),
+            ("🌲 Forests", "$4,700/ha/year", "Carbon storage, biodiversity"),
+            ("🏖️ Coastal", "$5,700/ha/year", "Storm protection, recreation"),
+            ("🌾 Grasslands", "$230/ha/year", "Food production, soil health"),
+        ]
+        
+        for ecosystem, value, services in examples:
+            st.write(f"**{ecosystem}**: {value} - {services}")
 
 # Analysis Results Section
 if st.session_state.analysis_results:
