@@ -441,25 +441,39 @@ with col2:
                 'max_lon': max(coord[0] for coord in coords)
             }
             
-            # Always use preview detection for area preview (independent of analysis)
-            # This ensures the preview remains consistent and doesn't change after analysis
-            mock_time_series = [{'red_mean': 0.2, 'nir_mean': 0.3, 'green_mean': 0.15, 'swir1_mean': 0.25}]
-            detection_result = sat_processor._detect_ecosystem_type(bbox, mock_time_series)
-            ecosystem_type = detection_result.get('detected_type', 'forest')
-            confidence = detection_result.get('confidence', 0.5)
+            # Use analysis results if available (more accurate), otherwise use preview detection
+            if st.session_state.analysis_results and 'services_data' in st.session_state.analysis_results:
+                services_data = st.session_state.analysis_results['services_data']
+                ecosystem_detection = services_data.get('ecosystem_detection', {})
+                ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
+                confidence = ecosystem_detection.get('confidence', 0.85)
+                is_analysis_based = True
+            else:
+                # Fallback to preview detection with mock data
+                mock_time_series = [{'red_mean': 0.2, 'nir_mean': 0.3, 'green_mean': 0.15, 'swir1_mean': 0.25}]
+                detection_result = sat_processor._detect_ecosystem_type(bbox, mock_time_series)
+                ecosystem_type = detection_result.get('detected_type', 'forest')
+                confidence = detection_result.get('confidence', 0.5)
+                is_analysis_based = False
             
-            # Always use preview estimation for area preview (keeps it independent)
-            base_values = {'forest': 4726, 'grassland': 232, 'wetland': 32423, 'agricultural': 129, 'coastal': 5726, 'urban': 0, 'desert': 50}
-            estimated_value = base_values.get(ecosystem_type, 2000) * area_ha
+            # Use analysis results if available (more accurate), otherwise estimate
+            if st.session_state.analysis_results and 'services_data' in st.session_state.analysis_results:
+                services_data = st.session_state.analysis_results['services_data']
+                estimated_value = services_data.get('current_value', 0)
+            else:
+                # Fallback estimation using base values
+                base_values = {'forest': 4726, 'grassland': 232, 'wetland': 32423, 'agricultural': 129, 'coastal': 5726, 'urban': 0, 'desert': 50}
+                estimated_value = base_values.get(ecosystem_type, 2000) * area_ha
             
             # Display metrics in a cleaner way
             st.metric("📏 Area Size", f"{area_ha:.1f} hectares")
             
             confidence_emoji = "🎯" if confidence > 0.8 else "📍" if confidence > 0.6 else "❓"
+            analysis_indicator = " (from analysis)" if is_analysis_based else " (preview)"
             st.metric(
                 "🌍 Ecosystem Type", 
                 ecosystem_type.title(),
-                f"{confidence_emoji} {confidence:.0%} confidence"
+                f"{confidence_emoji} {confidence:.0%} confidence{analysis_indicator}"
             )
             
             st.metric(
@@ -469,7 +483,10 @@ with col2:
             )
             
             # Show what this value represents
-            st.info("This includes all ecosystem services: food, water, climate regulation, recreation, and habitat.")
+            if is_analysis_based:
+                st.info("💡 **Analysis complete:** This shows accurate values from satellite data analysis including all ecosystem services.")
+            else:
+                st.info("📊 **Preview estimate:** This includes all ecosystem services: food, water, climate regulation, recreation, and habitat.")
             
             # Quick comparison
             if ecosystem_type == 'wetland':
