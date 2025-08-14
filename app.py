@@ -96,7 +96,7 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Click on the map to start drawing, then click again to finish the polygon")
+    st.info("Use the drawing tools in the map toolbar: click polygon or rectangle tool, then draw on the map")
     
     # Create interactive map
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
@@ -112,67 +112,87 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
+
+    # Add drawing tools with proper configuration
+    from folium.plugins import Draw
+    draw = Draw(
+        draw_options={
+            'polyline': False,
+            'polygon': {
+                'allowIntersection': False,
+                'showArea': True,
+                'metric': True,
+                'shapeOptions': {
+                    'color': '#ff0000',
+                    'weight': 2,
+                    'fillOpacity': 0.2
+                }
+            },
+            'rectangle': {
+                'showArea': True,
+                'metric': True,
+                'shapeOptions': {
+                    'color': '#ff0000',
+                    'weight': 2,
+                    'fillOpacity': 0.2
+                }
+            },
+            'circle': False,
+            'marker': False,
+            'circlemarker': False,
+        },
+        edit_options={
+            'remove': True,
+            'edit': True
+        },
+        position='topleft'
+    )
+    draw.add_to(m)
     
-    # Display map - this version should capture click events
+    # Display map with drawing capability
     map_data = st_folium(
         m, 
         width=700, 
         height=400,
-        returned_objects=["last_clicked", "all_drawings"],
+        returned_objects=["all_drawings"],
         key="area_map"
     )
     
-    # Handle map clicks to create polygon
-    if map_data and map_data.get('last_clicked'):
-        if 'polygon_points' not in st.session_state:
-            st.session_state.polygon_points = []
-        
-        clicked_point = [map_data['last_clicked']['lng'], map_data['last_clicked']['lat']]
-        
-        # Add point if it's not the same as the last one
-        if not st.session_state.polygon_points or clicked_point != st.session_state.polygon_points[-1]:
-            st.session_state.polygon_points.append(clicked_point)
-            st.info(f"Added point {len(st.session_state.polygon_points)}: {clicked_point[1]:.6f}°N, {clicked_point[0]:.6f}°E")
-    
-    # Control buttons
-    col_btn1, col_btn2 = st.columns(2)
-    
-    with col_btn1:
-        if st.button("Finish Polygon") and st.session_state.get('polygon_points'):
-            if len(st.session_state.polygon_points) >= 3:
-                # Close the polygon
-                coordinates = st.session_state.polygon_points + [st.session_state.polygon_points[0]]
+    # Process drawing interactions from the toolbar
+    if map_data and map_data.get('all_drawings') and len(map_data['all_drawings']) > 0:
+        try:
+            latest_drawing = map_data['all_drawings'][-1]
+            
+            if latest_drawing.get('geometry') and latest_drawing['geometry'].get('type') in ['Polygon']:
+                coordinates = latest_drawing['geometry']['coordinates'][0]
                 
-                st.session_state.selected_area = {
-                    'type': 'Polygon',
-                    'coordinates': coordinates
-                }
-                st.session_state.area_coordinates = coordinates
-                st.session_state.analysis_results = None
+                # Check if this is a new selection
+                current_coords = st.session_state.get('area_coordinates', [])
+                is_new_selection = (not current_coords or coordinates != current_coords)
                 
-                # Calculate and show area
-                area_coords = np.array(coordinates)
-                if len(area_coords) > 2:
-                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_ha = area_km2 * 100
-                    st.success(f"Polygon completed: {area_ha:.1f} hectares")
-                
-                # Clear the points
-                st.session_state.polygon_points = []
-                st.rerun()
+                if is_new_selection:
+                    # Save the new selection
+                    st.session_state.selected_area = {
+                        'type': latest_drawing['geometry']['type'],
+                        'coordinates': coordinates
+                    }
+                    st.session_state.area_coordinates = coordinates
+                    st.session_state.analysis_results = None
+                    
+                    # Calculate and show area
+                    area_coords = np.array(coordinates)
+                    if len(area_coords) > 2:
+                        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+                        area_ha = area_km2 * 100
+                        st.success(f"Area selected: {area_ha:.1f} hectares")
+                    st.rerun()
             else:
-                st.warning("Need at least 3 points to create a polygon")
-    
-    with col_btn2:
-        if st.button("Clear Points"):
-            st.session_state.polygon_points = []
-            st.rerun()
-    
-    # Show current polygon points
-    if st.session_state.get('polygon_points'):
-        st.write(f"Current polygon: {len(st.session_state.polygon_points)} points")
-        for i, point in enumerate(st.session_state.polygon_points):
-            st.write(f"Point {i+1}: {point[1]:.6f}°N, {point[0]:.6f}°E")
+                # Show helpful message for drawing
+                if latest_drawing.get('geometry'):
+                    st.info("Use the polygon or rectangle tools in the map toolbar above")
+        except Exception as e:
+            st.error(f"Map interaction error: {str(e)}")
+            st.info("Please try drawing the area again using the toolbar tools")
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
