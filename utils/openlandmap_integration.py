@@ -59,60 +59,120 @@ class OpenLandMapIntegrator:
         Get land cover information for a specific point using OpenLandMap services
         """
         try:
-            # Try multiple OpenLandMap endpoints
+            # Try multiple OpenLandMap and related endpoints
             endpoints = [
+                f"http://api.openlandmap.org/query/point?lat={lat}&lon={lon}&coll=layers1km&regex=lcv_.*",
                 f"https://rest.isric.org/soilgrids/v2.0/classification?lon={lon}&lat={lat}&property=wrb&depth=0-5cm",
-                f"https://landcover.org/api/v1/point?lat={lat}&lon={lon}",
-                f"https://openlandmap.org/api/query?lat={lat}&lon={lon}&service=landcover"
+                f"http://api.openlandmap.org/query/point?lat={lat}&lon={lon}&coll=layers250m&regex=veg_.*"
             ]
             
-            for endpoint in endpoints:
+            for i, endpoint in enumerate(endpoints):
                 try:
-                    response = requests.get(endpoint, timeout=10)
+                    print(f"Trying endpoint {i+1}: {endpoint}")
+                    response = requests.get(endpoint, timeout=15)
+                    print(f"Response status: {response.status_code}")
+                    
                     if response.status_code == 200:
                         data = response.json()
-                        return self._parse_landcover_response(data)
-                except:
+                        print(f"Response data: {data}")
+                        result = self._parse_landcover_response(data, endpoint_type=i)
+                        if result:
+                            return result
+                except Exception as e:
+                    print(f"Error with endpoint {i+1}: {e}")
                     continue
                     
-            return None
+            # Fallback: Use simple geographic heuristics based on coordinates
+            return self._geographic_heuristic_detection(lat, lon)
             
         except Exception as e:
             print(f"Error fetching land cover data: {e}")
-            return None
+            return self._geographic_heuristic_detection(lat, lon)
     
-    def _parse_landcover_response(self, data: Dict) -> Dict:
+    def _geographic_heuristic_detection(self, lat: float, lon: float) -> Dict:
+        """
+        Use geographic heuristics when APIs are unavailable
+        """
+        # Simple geographic-based ecosystem detection
+        ecosystem_type = "Grassland"  # Default
+        confidence = 0.6
+        
+        # Northern latitudes - likely forest
+        if lat > 45:
+            ecosystem_type = "Forest"
+            confidence = 0.7
+        # Arid regions (southwestern US, etc.)
+        elif lat < 35 and lon < -100:
+            ecosystem_type = "Desert"
+            confidence = 0.65
+        # Coastal areas
+        elif abs(lat) < 30:
+            ecosystem_type = "Coastal"
+            confidence = 0.6
+        # Temperate regions
+        elif 35 <= lat <= 45:
+            ecosystem_type = "Grassland"
+            confidence = 0.65
+            
+        return {
+            'landcover_class': 0,
+            'ecosystem_type': ecosystem_type,
+            'confidence': confidence,
+            'source': 'Geographic Heuristic'
+        }
+    
+    def _parse_landcover_response(self, data: Dict, endpoint_type: int = 0) -> Dict:
         """
         Parse the response from OpenLandMap services
         """
         try:
-            # Handle different response formats
-            if 'properties' in data:
-                landcover_class = data['properties'].get('landcover', 0)
-            elif 'landcover' in data:
-                landcover_class = data['landcover']
-            elif 'classification' in data:
-                landcover_class = data['classification']
-            else:
-                landcover_class = 0
+            landcover_class = 0
+            confidence = 0.85
+            source = 'OpenLandMap'
             
+            # Handle OpenLandMap API response format
+            if endpoint_type == 0:  # OpenLandMap direct API
+                if 'response' in data and len(data['response']) > 0:
+                    response_data = data['response'][0]
+                    # Look for land cover layers
+                    for key, value in response_data.items():
+                        if 'lcv_' in key or 'landcover' in key.lower():
+                            if isinstance(value, (int, float)) and value > 0:
+                                landcover_class = int(value)
+                                break
+            
+            # Handle ISRIC SoilGrids response
+            elif endpoint_type == 1:
+                if 'properties' in data:
+                    landcover_class = data['properties'].get('wrb', 0)
+                    source = 'ISRIC SoilGrids'
+            
+            # Default handling for other formats
+            else:
+                if 'properties' in data:
+                    landcover_class = data['properties'].get('landcover', 0)
+                elif 'landcover' in data:
+                    landcover_class = data['landcover']
+                elif 'classification' in data:
+                    landcover_class = data['classification']
+            
+            # Map to ecosystem type
             ecosystem_type = self.landcover_to_ecosystem.get(landcover_class, "Grassland")
             
-            return {
-                'landcover_class': landcover_class,
-                'ecosystem_type': ecosystem_type,
-                'confidence': 0.85,  # Default confidence
-                'source': 'OpenLandMap'
-            }
+            # If we got a valid landcover class, return the result
+            if landcover_class > 0:
+                return {
+                    'landcover_class': landcover_class,
+                    'ecosystem_type': ecosystem_type,
+                    'confidence': confidence,
+                    'source': source
+                }
+            
+            return None  # No valid data found
             
         except Exception as e:
             print(f"Error parsing landcover response: {e}")
-            return {
-                'landcover_class': 0,
-                'ecosystem_type': "Grassland",
-                'confidence': 0.5,
-                'source': 'Default'
-            }
+            return None
     
     def analyze_area_ecosystem(self, coordinates: List[List[float]]) -> Dict:
         """
