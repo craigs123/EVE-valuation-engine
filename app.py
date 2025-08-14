@@ -205,6 +205,15 @@ with col1:
     # Display map and capture interactions
     map_data = st_folium(m, width=700, height=400, returned_objects=["all_drawings"], key="area_map")
     
+    # Debug: Show map data for troubleshooting
+    if st.checkbox("🔍 Debug Map Data", help="Show technical details for troubleshooting"):
+        st.write("**Map Data Debug:**")
+        st.write(f"All drawings count: {len(map_data.get('all_drawings', []))}")
+        if map_data.get('all_drawings'):
+            st.write("Latest drawing:", map_data['all_drawings'][-1])
+        st.write("Session state selected area:", bool(st.session_state.get('selected_area')))
+        st.write("Session state coordinates count:", len(st.session_state.get('area_coordinates', [])))
+    
     # Process map interactions - automatically save single area selection
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         # Get the latest drawing (most recent selection)
