@@ -94,43 +94,60 @@ with col_guide3:
     from utils.user_guidance import show_quick_help
     show_quick_help()
 
-# Status indicator
-if st.session_state.selected_area:
-    st.success(f"✅ Area selected! Ready for analysis.")
-else:
-    st.info("👆 Draw an area on the map below to begin")
+# Main controls on homepage
+col_status, col_date, col_analyze = st.columns([2, 2, 1])
 
-# Simplified sidebar
-with st.sidebar:
-    st.header("🛠️ Settings")
+with col_status:
+    if st.session_state.selected_area:
+        st.success("✅ Area selected! Ready for analysis.")
+    else:
+        st.info("👆 Draw an area on the map below to begin")
+
+with col_date:
+    st.write("**📅 Analysis Period:**")
+    time_preset = st.selectbox(
+        "Select time period",
+        options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
+        index=0,
+        key="main_time_preset"
+    )
     
-    # Simple settings section
-    with st.expander("📅 Time Period", expanded=True):
+    if time_preset == "Custom Range":
+        col_start, col_end = st.columns(2)
+        with col_start:
+            start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="main_start_date")
+        with col_end:
+            end_date = st.date_input("To", value=datetime.now(), key="main_end_date")
+    else:
         preset_options = {
             "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
             "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
-            "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now()),
-            "Custom Range": None
+            "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
         }
-        
-        time_preset = st.selectbox(
-            "Select Time Period",
-            options=list(preset_options.keys()),
-            index=0
+        start_date, end_date = preset_options[time_preset]
+
+with col_analyze:
+    st.write("**🚀 Analysis:**")
+    if st.session_state.selected_area:
+        analyze_button = st.button(
+            "Calculate Value", 
+            type="primary",
+            use_container_width=True,
+            help="Calculate ecosystem services value for selected area"
         )
-        
-        if time_preset == "Custom Range":
-            col1, col2 = st.columns(2)
-            with col1:
-                start_date = st.date_input("From", value=datetime.now() - timedelta(days=365))
-            with col2:
-                end_date = st.date_input("To", value=datetime.now())
-        else:
-            start_date, end_date = preset_options[time_preset]
+    else:
+        analyze_button = st.button(
+            "Select area first", 
+            disabled=True,
+            use_container_width=True
+        )
+
+# Simplified sidebar for advanced settings only
+with st.sidebar:
+    st.header("⚙️ Advanced Settings")
     
     # Ecosystem override (simplified)
-    with st.expander("🔬 Advanced Settings"):
-        st.write("**Ecosystem Type Detection**")
+    with st.expander("🔬 Ecosystem Detection"):
         st.caption("EVE automatically detects ecosystem types. Override only if needed.")
         
         ecosystem_override = st.selectbox(
@@ -139,8 +156,8 @@ with st.sidebar:
             index=0,
             format_func=lambda x: "Auto-detect" if x is None else x.title()
         )
-        
-        st.write("**Analysis Detail Level**")
+    
+    with st.expander("📊 Analysis Detail Level"):
         analysis_detail = st.radio(
             "Choose analysis depth",
             options=["Quick Overview", "Detailed Analysis"],
@@ -160,41 +177,23 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Analysis button - moved to more prominent location
-    analysis_button_container = st.container()
-    
     # Clear button
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
         st.session_state.analysis_results = None
         st.session_state.selected_area = None
         st.session_state.area_coordinates = []
         st.rerun()
-
-# Main analysis button (outside sidebar for prominence)
-with analysis_button_container:
-    if st.session_state.selected_area:
-        analyze_button = st.button(
-            "🚀 Analyze Ecosystem Value", 
-            type="primary", 
-            use_container_width=True,
-            help="Calculate the economic value of ecosystem services for your selected area"
-        )
-    else:
-        analyze_button = st.button(
-            "📍 Select an area first", 
-            disabled=True, 
-            use_container_width=True
-        )
     
+    # Check for analysis trigger from main interface
     if analyze_button and st.session_state.selected_area and selected_metrics:
-            # Show progress indicator
-            from utils.user_guidance import show_progress_indicator
-            
-            progress_container = st.empty()
-            status_container = st.empty()
-            
-            with progress_container.container():
-                show_progress_indicator(1, 3)
+        # Show progress indicator
+        from utils.user_guidance import show_progress_indicator
+        
+        progress_container = st.empty()
+        status_container = st.empty()
+        
+        with progress_container.container():
+            show_progress_indicator(1, 3)
             
             try:
                 with status_container:
@@ -206,10 +205,13 @@ with analysis_button_container:
                         # Get area boundaries
                         area_bounds = st.session_state.selected_area
                         
+                        # Use dates from main interface or sidebar
+                        analysis_start = start_date if isinstance(start_date, datetime) else datetime.combine(start_date, datetime.min.time())
+                        analysis_end = end_date if isinstance(end_date, datetime) else datetime.combine(end_date, datetime.min.time())
+                        
                         # Process satellite data for the selected time range
                         satellite_data = satellite_processor.get_time_series_data(
-                            area_bounds, datetime.combine(start_date, datetime.min.time()), 
-                            datetime.combine(end_date, datetime.min.time())
+                            area_bounds, analysis_start, analysis_end
                         )
                         
                         # Update progress
@@ -257,7 +259,8 @@ with analysis_button_container:
                     'metrics': results,
                     'services_data': services_results,
                     'ecosystem_type': services_results.get('ecosystem_type', 'unknown'),
-                    'time_range': (start_date, end_date),
+                    'time_range': (analysis_start.date() if hasattr(analysis_start, 'date') else analysis_start, 
+                                   analysis_end.date() if hasattr(analysis_end, 'date') else analysis_end),
                     'area_bounds': area_bounds,
                     'satellite_data': satellite_data
                 }
