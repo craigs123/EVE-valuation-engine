@@ -290,18 +290,32 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 # Use OpenLandMap API for authentic land cover classification
                 from utils.openlandmap_integration import get_dominant_ecosystem
                 
-                with st.spinner("🛰️ Attempting satellite data analysis..."):
+                with st.spinner("🛰️ Analyzing with multiple satellite data sources..."):
                     try:
                         detected_ecosystem = get_dominant_ecosystem(bbox)
-                        if detected_ecosystem == "grassland":  # Default fallback
-                            st.warning("⚠️ **Satellite Data Limitation**: Authentic ecosystem detection requires ESA WorldCover, Google Earth Engine, or USGS APIs which need authentication keys. Currently using geographic fallback.")
-                            st.info("For accurate ecosystem detection, the system would need:\n- ESA WorldCover API access\n- Google Earth Engine authentication\n- USGS/NASA land cover API keys")
-                            st.info(f"Geographic analysis suggests: **{detected_ecosystem.title()}** (not satellite-verified)")
+                        
+                        # Show which data source was used
+                        last_analysis = st.session_state.get('last_analysis_data', {})
+                        data_source = last_analysis.get('source', 'unknown')
+                        
+                        if data_source == "OpenLandMap":
+                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using OpenLandMap global data")
+                        elif data_source == "ESA WorldCover":
+                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using ESA WorldCover satellite data")
+                        elif data_source == "Google Earth Engine":
+                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using Google Earth Engine")
+                        elif data_source == "USGS Land Cover":
+                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using USGS land cover data")
+                        elif data_source == "geographic_fallback":
+                            st.warning("⚠️ **Fallback Analysis**: Using geographic rules as satellite APIs need authentication")
+                            st.info("For authentic detection, system tries:\n- OpenLandMap global data\n- ESA WorldCover (10m satellite)\n- Google Earth Engine\n- USGS land cover")
+                            st.info(f"Geographic estimate: **{detected_ecosystem.title()}** (not satellite-verified)")
                         else:
-                            st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}** using satellite analysis")
+                            st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}**")
+                            
                     except Exception as e:
-                        st.error(f"❌ Satellite analysis error: {e}")
-                        st.warning("Please select ecosystem type manually from sidebar for accurate analysis.")
+                        st.error(f"❌ Analysis error: {e}")
+                        st.warning("Please select ecosystem type manually from sidebar.")
                         detected_ecosystem = "grassland"
             else:
                 detected_ecosystem = st.session_state.ecosystem_override.lower()
@@ -518,20 +532,22 @@ if st.session_state.analysis_results:
         **Data Sources:**
         - **ESVD (Ecosystem Services Valuation Database)**: 10,000+ peer-reviewed economic valuations
         - **TEEB Database**: The Economics of Ecosystems and Biodiversity coefficients
-        - **OpenStreetMap Nominatim**: Geographic context analysis for ecosystem classification
+        - **OpenLandMap**: Global environmental data layers from satellite imagery
+        - **ESA WorldCover**: 10m resolution global land cover maps
+        - **Google Earth Engine**: Comprehensive satellite datasets (when authenticated)
         
         **Methodology:**
         - Economic values from published ESVD/TEEB literature (global averages)
         - Ecosystem detection using reverse geocoding and geographic analysis
         - All values standardized to 2020 International dollars
         
-        **Ecosystem Detection Limitations:**
-        - **Authentic Detection**: Requires ESA WorldCover, Google Earth Engine, or USGS API access
-        - **Current Implementation**: Uses basic geographic rules as fallback (not satellite data)
-        - **For Accurate Results**: Manual ecosystem type selection recommended
-        - **Future Enhancement**: Integration with authenticated satellite data APIs needed
-        - **ESA WorldCover**: 10m resolution global land cover (requires setup)
-        - **Google Earth Engine**: Comprehensive satellite datasets (requires authentication)
+        **Multi-Source Ecosystem Detection:**
+        - **Primary**: OpenLandMap global environmental layers (open access)
+        - **Secondary**: ESA WorldCover 10m satellite data (when available)
+        - **Tertiary**: Google Earth Engine datasets (requires authentication)
+        - **Regional**: USGS land cover for North America (when available)
+        - **Fallback**: Geographic analysis with transparent limitations
+        - **Grid Sampling**: Multiple points analyzed for area-wide classification
         
         **Data Limitations:**
         - Values shown are global averages from peer-reviewed literature
