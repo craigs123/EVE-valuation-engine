@@ -314,18 +314,32 @@ if analyze_button and st.session_state.selected_area:
             try:
                 from utils.openlandmap_integration import detect_ecosystem_type
                 
+                # Show detection progress
+                st.info("🔍 Detecting ecosystem type using OpenLandMap...")
+                
                 ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates)
                 st.session_state.detected_ecosystem = ecosystem_info
                 ecosystem_type = ecosystem_info['primary_ecosystem']
                 
-                # Show detection results
+                # Show detection results with details
                 if ecosystem_info['successful_queries'] > 0:
-                    st.success(f"Detected: {ecosystem_type} ({ecosystem_info['confidence']:.0%} confidence)")
+                    st.success(f"✅ **Detected: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']} sample points)")
+                    st.info(f"📊 Coverage: {ecosystem_info.get('coverage_percentage', 100):.0f}% | Source: {ecosystem_info.get('source', 'OpenLandMap')}")
                 else:
-                    st.info(f"Detected: {ecosystem_type} (Geographic analysis)")
+                    st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
                         
-            except:
+            except Exception as e:
+                st.warning(f"⚠️ OpenLandMap detection failed: {str(e)}")
+                st.info("🗺️ **Using fallback: Grassland** (Geographic analysis)")
                 ecosystem_type = "Grassland"
+                # Store fallback detection info
+                st.session_state.detected_ecosystem = {
+                    'primary_ecosystem': 'Grassland',
+                    'confidence': 0.5,
+                    'successful_queries': 0,
+                    'source': 'Geographic fallback',
+                    'coverage_percentage': 100
+                }
         
         # Calculate ecosystem values immediately
         
