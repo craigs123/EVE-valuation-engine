@@ -789,8 +789,22 @@ ESVD Integration [Computer software]. (2024).
                     trend = np.polyfit(range(len(values)), values, 1)[0]
                     annual_trend = trend * 365
                     trend_direction = "📈 Increasing" if trend > 100 else "📉 Decreasing" if trend < -100 else "➡️ Stable"
+                    
+                    # Calculate per hectare rate
+                    area_ha = 0
+                    if st.session_state.analysis_results and 'area_bounds' in st.session_state.analysis_results:
+                        coords = st.session_state.area_coordinates
+                        if coords:
+                            coords_array = np.array(coords)
+                            area_km2 = abs(np.sum((coords_array[:-1, 0] * coords_array[1:, 1]) - (coords_array[1:, 0] * coords_array[:-1, 1]))) * 111.32 * 111.32 / 2
+                            area_ha = area_km2 * 100
+                    
                     st.write(f"**{selected_category.title()} Services Trend:** {trend_direction}")
-                    st.write(f"**Annual Change Rate:** ${annual_trend:+,.0f}/year")
+                    if area_ha > 0:
+                        annual_trend_per_ha = annual_trend / area_ha
+                        st.write(f"**Annual Change Rate:** ${annual_trend:+,.0f}/year (${annual_trend_per_ha:+,.0f}/ha/year)")
+                    else:
+                        st.write(f"**Annual Change Rate:** ${annual_trend:+,.0f}/year")
         
         elif metrics_data:
             # Fallback for individual metrics

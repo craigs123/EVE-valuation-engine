@@ -96,7 +96,18 @@ def create_time_series_chart(time_series_data: List[Dict], metric_name: str, met
     
     for point in time_series_data:
         date = datetime.fromisoformat(point['date'].replace('Z', ''))
-        value = point['value']
+        # Handle different data structures
+        if isinstance(point, dict):
+            if 'value' in point:
+                value = point['value']
+            elif 'total' in point:
+                value = point['total']
+            elif 'total_value' in point:
+                value = point['total_value']
+            else:
+                value = 0
+        else:
+            value = point
         quality = point.get('quality', 'unknown')
         
         if quality == 'good':
