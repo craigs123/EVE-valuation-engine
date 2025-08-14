@@ -3,11 +3,11 @@ Ecosystem Valuation Engine - Clean Map Implementation
 """
 
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
 import numpy as np
 from datetime import datetime, timedelta
 import json
+import plotly.graph_objects as go
+import plotly.express as px
 
 # Page configuration
 st.set_page_config(
@@ -100,85 +100,124 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Draw a rectangle on the canvas below to select your analysis area")
+    st.info("Click and drag on the map to select a rectangular area")
     
-    # Use drawable canvas for area selection
-    from streamlit_drawable_canvas import st_canvas
+    import plotly.graph_objects as go
+    import plotly.express as px
     
-    # Create a drawing canvas overlaid on a simple map background
-    canvas_result = st_canvas(
-        fill_color="rgba(46, 139, 87, 0.3)",
-        stroke_width=3,
-        stroke_color="#2e8b57",
-        background_color="#e6f3ff",
-        update_streamlit=True,
+    # Create interactive Plotly map
+    fig = go.Figure()
+    
+    # Add base map
+    fig.add_trace(go.Scattermapbox(
+        lat=[40],
+        lon=[-100],
+        mode='markers',
+        marker=dict(size=0),
+        showlegend=False
+    ))
+    
+    # Add existing selection if available
+    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+        coords = st.session_state.area_coordinates
+        lats = [coord[1] for coord in coords]
+        lons = [coord[0] for coord in coords]
+        
+        fig.add_trace(go.Scattermapbox(
+            lat=lats,
+            lon=lons,
+            mode='lines',
+            line=dict(width=3, color='green'),
+            fill='toself',
+            fillcolor='rgba(46, 139, 87, 0.3)',
+            name='Selected Area',
+            showlegend=False
+        ))
+    
+    # Configure map layout
+    fig.update_layout(
+        mapbox=dict(
+            style="open-street-map",
+            center=dict(lat=40, lon=-100),
+            zoom=3
+        ),
         height=400,
-        width=700,
-        drawing_mode="rect",
-        point_display_radius=0,
-        key="area_canvas",
+        margin=dict(l=0, r=0, t=0, b=0),
+        dragmode='select'
     )
     
-    # Process canvas drawings
-    if canvas_result.json_data is not None:
-        objects = canvas_result.json_data["objects"]
-        if objects and len(objects) > 0:
-            # Get the latest rectangle
-            latest_rect = objects[-1]
-            if latest_rect["type"] == "rect":
-                # Convert canvas coordinates to geographic coordinates
-                # Canvas: 700x400, representing roughly US bounds
-                canvas_width = 700
-                canvas_height = 400
-                
-                # Geographic bounds (approximate US)
-                min_lon, max_lon = -125, -65
-                min_lat, max_lat = 25, 50
-                
-                # Extract rectangle coordinates
-                left = latest_rect["left"]
-                top = latest_rect["top"]
-                width = latest_rect["width"]
-                height = latest_rect["height"]
-                
-                # Convert to geographic coordinates
-                rect_min_lon = min_lon + (left / canvas_width) * (max_lon - min_lon)
-                rect_max_lon = min_lon + ((left + width) / canvas_width) * (max_lon - min_lon)
-                rect_max_lat = max_lat - (top / canvas_height) * (max_lat - min_lat)
-                rect_min_lat = max_lat - ((top + height) / canvas_height) * (max_lat - min_lat)
-                
-                # Create coordinates array
-                coordinates = [
-                    [rect_min_lon, rect_min_lat],
-                    [rect_max_lon, rect_min_lat],
-                    [rect_max_lon, rect_max_lat],
-                    [rect_min_lon, rect_max_lat],
-                    [rect_min_lon, rect_min_lat]
-                ]
-                
-                # Check if this is a new selection
-                current_coords = st.session_state.get('area_coordinates', [])
-                is_new_selection = (not current_coords or coordinates != current_coords)
-                
-                if is_new_selection:
-                    # Save the new selection
-                    st.session_state.selected_area = {
-                        'type': 'Polygon',
-                        'coordinates': coordinates
-                    }
-                    st.session_state.area_coordinates = coordinates
-                    st.session_state.analysis_results = None
-                    
-                    # Calculate and show area
-                    area_coords = np.array(coordinates)
-                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_ha = area_km2 * 100
-                    st.success(f"Area selected: {area_ha:.1f} hectares")
-                    st.rerun()
+    # Display the map and capture selection
+    selected_data = st.plotly_chart(
+        fig, 
+        use_container_width=True, 
+        selection_mode='box',
+        key="plotly_map"
+    )
+    
+    # Process box selection
+    if selected_data and 'selection' in selected_data and selected_data['selection']['box']:
+        box = selected_data['selection']['box'][0]
+        
+        # Extract coordinates from selection box
+        min_lat = box['y'][0]
+        max_lat = box['y'][1]
+        min_lon = box['x'][0]
+        max_lon = box['x'][1]
+        
+        # Create coordinates array
+        coordinates = [
+            [min_lon, min_lat],
+            [max_lon, min_lat],
+            [max_lon, max_lat],
+            [min_lon, max_lat],
+            [min_lon, min_lat]
+        ]
+        
+        # Check if this is a new selection
+        current_coords = st.session_state.get('area_coordinates', [])
+        is_new_selection = (not current_coords or coordinates != current_coords)
+        
+        if is_new_selection:
+            # Save the new selection
+            st.session_state.selected_area = {
+                'type': 'Polygon',
+                'coordinates': coordinates
+            }
+            st.session_state.area_coordinates = coordinates
+            st.session_state.analysis_results = None
+            
+            # Calculate and show area
+            area_coords = np.array(coordinates)
+            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
+            st.success(f"Area selected: {area_ha:.1f} hectares")
+            st.rerun()
+    
+    # Alternative simple selection method
+    st.markdown("### Alternative: Quick Area Selection")
+    col_quick1, col_quick2 = st.columns(2)
+    
+    with col_quick1:
+        if st.button("Select California Central Valley", key="ca_valley"):
+            coordinates = [[-121.0, 36.0], [-119.0, 36.0], [-119.0, 38.0], [-121.0, 38.0], [-121.0, 36.0]]
+            st.session_state.selected_area = {'type': 'Polygon', 'coordinates': coordinates}
+            st.session_state.area_coordinates = coordinates
+            st.session_state.analysis_results = None
+            st.success("California Central Valley selected")
+            st.rerun()
+    
+    with col_quick2:
+        if st.button("Select Colorado Rockies", key="co_rockies"):
+            coordinates = [[-106.0, 39.0], [-104.0, 39.0], [-104.0, 41.0], [-106.0, 41.0], [-106.0, 39.0]]
+            st.session_state.selected_area = {'type': 'Polygon', 'coordinates': coordinates}
+            st.session_state.area_coordinates = coordinates
+            st.session_state.analysis_results = None
+            st.success("Colorado Rockies selected")
+            st.rerun()
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        st.markdown("### 📍 Selected Area Coordinates")
+        st.markdown("### 📍 Selected Area Details")
         coords = st.session_state.area_coordinates
         
         # Calculate bounding box
@@ -199,7 +238,7 @@ with col1:
         area_ha = area_km2 * 100
         st.metric("Area Size", f"{area_ha:.1f} hectares")
     else:
-        st.warning("No area selected yet. Draw a rectangle on the canvas above.")
+        st.warning("No area selected yet. Use the map selection or quick selection buttons above.")
     
     # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
