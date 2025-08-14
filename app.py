@@ -379,7 +379,9 @@ if st.session_state.analysis_results:
         with col1:
             st.metric("Total Annual Value", f"${results['total_value']:,}")
         with col2:
-            st.metric("Value per Hectare", f"${results.get('value_per_ha', results['total_value']/results['area_ha']):.0f}/ha")
+            per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
+            st.metric("Value per Hectare", f"${per_ha:.0f}/ha")
+            st.caption(f"${per_ha:.0f} per hectare annually")
         with col3:
             st.metric("Area Analyzed", f"{results['area_ha']:,.0f} ha")
         
@@ -407,7 +409,9 @@ if st.session_state.analysis_results:
         with col_metrics[1]:
             col_val, col_help2 = st.columns([4, 1])
             with col_val:
-                st.metric("Value per Hectare", f"${results.get('value_per_ha', results['total_value']/results['area_ha']):.0f}/ha/year")
+                per_ha_detailed = results.get('value_per_ha', results['total_value']/results['area_ha'])
+                st.metric("Value per Hectare", f"${per_ha_detailed:.0f}/ha")
+                st.caption(f"${per_ha_detailed:.0f} per hectare annually")
             with col_help2:
                 if st.button("❓", key="help_per_ha", help="Show per hectare calculation"):
                     st.session_state['show_per_ha_calc'] = True
@@ -563,11 +567,12 @@ if st.session_state.analysis_results:
                     with cols[i]:
                         col_header, col_help = st.columns([3, 1])
                         with col_header:
+                            per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
                             st.metric(
                                 f"{category.title()} Services",
-                                f"${total:,.0f}/year",
-                                f"{(total/results['total_value']*100):.0f}%" if results['total_value'] > 0 else "0%"
+                                f"${total:,.0f}/year"
                             )
+                            st.caption(f"${per_ha_category:.0f}/ha • {(total/results['total_value']*100):.0f}% of total" if results['total_value'] > 0 else f"${per_ha_category:.0f}/ha")
                         with col_help:
                             if st.button("❓", key=f"help_{category}", help=f"Show calculation details for {category} services"):
                                 st.session_state[f'show_{category}_details'] = True
