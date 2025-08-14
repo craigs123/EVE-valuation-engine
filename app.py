@@ -464,11 +464,13 @@ if st.session_state.analysis_results:
             with service_cols[i]:
                 value = ecosystem_values.get(key, 0)
                 percentage = (value / total_annual_value * 100) if total_annual_value > 0 else 0
+                value_per_ha = value / area_metrics['area_ha'] if area_metrics['area_ha'] > 0 else 0
                 
                 st.markdown(f"""
                 <div class="metric-container">
                     <h4>{icon} {name}</h4>
                     <h3>${value:,.0f}/year</h3>
+                    <small>${value_per_ha:,.0f}/ha/year</small>
                     <p>{percentage:.1f}% of total</p>
                     <small>{description}</small>
                 </div>
