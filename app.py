@@ -96,7 +96,10 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Use the drawing tools in the map toolbar: click polygon or rectangle tool, then draw on the map")
+    st.info("Click the polygon or rectangle icons in the toolbar, then click and drag on the map to draw")
+    
+    # Alternative method toggle
+    use_alternative = st.checkbox("Use alternative method if drawing tools don't work", key="alt_method")
     
     # Create interactive map
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
@@ -113,41 +116,58 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add drawing tools with proper configuration
+    # Add enhanced drawing tools with JavaScript forcing
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
             'polyline': False,
-            'polygon': {
-                'allowIntersection': False,
-                'showArea': True,
-                'metric': True,
-                'shapeOptions': {
-                    'color': '#ff0000',
-                    'weight': 2,
-                    'fillOpacity': 0.2
-                }
-            },
-            'rectangle': {
-                'showArea': True,
-                'metric': True,
-                'shapeOptions': {
-                    'color': '#ff0000',
-                    'weight': 2,
-                    'fillOpacity': 0.2
-                }
-            },
+            'polygon': True,
+            'rectangle': True,
             'circle': False,
             'marker': False,
             'circlemarker': False,
         },
         edit_options={
             'remove': True,
-            'edit': True
-        },
-        position='topleft'
+            'edit': False
+        }
     )
     draw.add_to(m)
+    
+    # Add custom JavaScript to ensure drawing mode activation
+    custom_js = """
+    <script>
+    function activateDrawMode() {
+        setTimeout(function() {
+            // Find the map container
+            var mapContainer = document.querySelector('.folium-map');
+            if (mapContainer) {
+                // Add click handler to drawing buttons to force activation
+                var drawButtons = mapContainer.querySelectorAll('.leaflet-draw a');
+                drawButtons.forEach(function(button) {
+                    button.addEventListener('click', function(e) {
+                        console.log('Drawing tool activated');
+                        // Force the button to stay active
+                        setTimeout(function() {
+                            button.classList.add('leaflet-draw-draw-polygon');
+                        }, 100);
+                    });
+                });
+            }
+        }, 1000);
+    }
+    
+    // Run when page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', activateDrawMode);
+    } else {
+        activateDrawMode();
+    }
+    </script>
+    """
+    
+    # Add the JavaScript to the map
+    m.get_root().html.add_child(folium.Element(custom_js))
     
     # Display map with drawing capability
     map_data = st_folium(
@@ -256,4 +276,34 @@ with col2:
             st.info("Ready for analysis - click 'Calculate Value' button")
     else:
         st.warning("⚠️ No area selected")
-        st.write("Click on the map to start drawing a polygon for analysis")
+        if use_alternative:
+            st.write("Enter coordinates below:")
+            
+            min_lat = st.number_input("Min Latitude", value=40.0, format="%.6f", step=0.1, key="alt_min_lat")
+            max_lat = st.number_input("Max Latitude", value=41.0, format="%.6f", step=0.1, key="alt_max_lat")
+            min_lon = st.number_input("Min Longitude", value=-100.0, format="%.6f", step=0.1, key="alt_min_lon")
+            max_lon = st.number_input("Max Longitude", value=-99.0, format="%.6f", step=0.1, key="alt_max_lon")
+            
+            if st.button("Set Area from Coordinates", key="set_alt_area"):
+                coordinates = [
+                    [min_lon, min_lat],
+                    [max_lon, min_lat],
+                    [max_lon, max_lat],
+                    [min_lon, max_lat],
+                    [min_lon, min_lat]
+                ]
+                
+                st.session_state.selected_area = {
+                    'type': 'Polygon',
+                    'coordinates': coordinates
+                }
+                st.session_state.area_coordinates = coordinates
+                st.session_state.analysis_results = None
+                
+                area_coords = np.array(coordinates)
+                area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+                area_ha = area_km2 * 100
+                st.success(f"Area set: {area_ha:.1f} hectares")
+                st.rerun()
+        else:
+            st.write("Use the drawing tools in the map toolbar")
