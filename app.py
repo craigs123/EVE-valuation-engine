@@ -284,27 +284,31 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
             
             # Determine ecosystem type
             if st.session_state.ecosystem_override == "Auto-detect from satellite data":
-                # Enhanced ecosystem detection based on geographic location and known areas
+                # Geographic-based ecosystem detection using location rules
                 avg_lat = sum(lats) / len(lats)
                 avg_lon = sum(lons) / len(lons)
                 
                 # Major urban area detection
                 urban_areas = [
-                    # NYC area
-                    (40.7128, -74.0060, 0.5),  # Manhattan
-                    (40.6892, -74.0445, 0.3),  # Brooklyn/Jersey
-                    # Los Angeles area
-                    (34.0522, -118.2437, 0.5),
-                    # Chicago area
-                    (41.8781, -87.6298, 0.3),
-                    # San Francisco Bay Area
-                    (37.7749, -122.4194, 0.5),
-                    # London area
-                    (51.5074, -0.1278, 0.3),
-                    # Paris area
-                    (48.8566, 2.3522, 0.3),
-                    # Tokyo area
-                    (35.6762, 139.6503, 0.5),
+                    # US Major Cities
+                    (40.7128, -74.0060, 0.5),  # NYC Manhattan
+                    (40.6892, -74.0445, 0.3),  # NYC Brooklyn/Jersey
+                    (34.0522, -118.2437, 0.5), # Los Angeles
+                    (41.8781, -87.6298, 0.3),  # Chicago
+                    (37.7749, -122.4194, 0.5), # San Francisco
+                    (38.9072, -77.0369, 0.2),  # Washington DC
+                    (29.7604, -95.3698, 0.3),  # Houston
+                    (33.4484, -112.0740, 0.3), # Phoenix
+                    (39.7392, -104.9903, 0.3), # Denver
+                    (47.6062, -122.3321, 0.3), # Seattle
+                    (42.3601, -71.0589, 0.3),  # Boston
+                    (25.7617, -80.1918, 0.3),  # Miami
+                    # International Cities
+                    (51.5074, -0.1278, 0.3),   # London
+                    (48.8566, 2.3522, 0.3),   # Paris
+                    (35.6762, 139.6503, 0.5), # Tokyo
+                    (52.5200, 13.4050, 0.3),  # Berlin
+                    (55.7558, 37.6176, 0.3),  # Moscow
                 ]
                 
                 # Check if area overlaps with major urban centers
@@ -558,12 +562,12 @@ if st.session_state.analysis_results:
         st.markdown("""
         **Data Sources:**
         - **ESVD (Ecosystem Services Valuation Database)**: 10,000+ peer-reviewed economic valuations
-        - **Satellite Data**: Multi-spectral analysis for ecosystem detection
+        - **Geographic Rules**: Simple location-based ecosystem classification
         - **TEEB Database**: The Economics of Ecosystems and Biodiversity coefficients
         
         **Methodology:**
         - Economic values from published ESVD/TEEB literature (global averages)
-        - Ecosystem detection using spectral analysis principles
+        - Ecosystem detection using geographic location rules (not satellite data)
         - All values standardized to 2020 International dollars
         
         **Data Limitations:**
