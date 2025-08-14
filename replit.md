@@ -10,6 +10,7 @@ Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
+Drawing preference: Does not want coordinate input methods - prefers simple sample area selection for testing the ecosystem analysis functionality.
 
 ## System Architecture
 

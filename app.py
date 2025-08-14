@@ -96,104 +96,37 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Enter the coordinates of your study area below")
+    st.info("Choose a sample ecosystem area to test the analysis")
     
-    # Primary coordinate input method
-    st.subheader("📍 Area Coordinates")
+    # Simple sample area selection
+    sample_areas = {
+        "Amazon Rainforest (Brazil)": [[-60.0, -3.0], [-59.0, -3.0], [-59.0, -2.0], [-60.0, -2.0], [-60.0, -3.0]],
+        "Great Plains (USA)": [[-100.0, 40.0], [-99.0, 40.0], [-99.0, 41.0], [-100.0, 41.0], [-100.0, 40.0]],
+        "Mediterranean Coast (Spain)": [[2.0, 41.0], [3.0, 41.0], [3.0, 42.0], [2.0, 42.0], [2.0, 41.0]],
+        "Sahel Region (Africa)": [[0.0, 12.0], [1.0, 12.0], [1.0, 13.0], [0.0, 13.0], [0.0, 12.0]],
+        "Boreal Forest (Canada)": [[-106.0, 53.0], [-105.0, 53.0], [-105.0, 54.0], [-106.0, 54.0], [-106.0, 53.0]]
+    }
     
-    col_input1, col_input2, col_input3 = st.columns(3)
+    selected_sample = st.selectbox("Choose ecosystem area:", list(sample_areas.keys()), key="sample_selection")
+    st.write("Each area is approximately 100 km² (10,000 hectares)")
     
-    with col_input1:
-        st.write("**Method 1: Corner Coordinates**")
-        min_lat = st.number_input("Southwest Latitude", value=40.0, format="%.6f", step=0.1, key="coord_min_lat", help="Bottom-left corner latitude")
-        min_lon = st.number_input("Southwest Longitude", value=-100.0, format="%.6f", step=0.1, key="coord_min_lon", help="Bottom-left corner longitude")
-        max_lat = st.number_input("Northeast Latitude", value=41.0, format="%.6f", step=0.1, key="coord_max_lat", help="Top-right corner latitude")
-        max_lon = st.number_input("Northeast Longitude", value=-99.0, format="%.6f", step=0.1, key="coord_max_lon", help="Top-right corner longitude")
+    if st.button("Select This Area", key="use_sample", type="primary"):
+        coordinates = sample_areas[selected_sample]
         
-        if st.button("Create Rectangular Area", key="create_rect", type="primary"):
-            coordinates = [
-                [min_lon, min_lat],
-                [max_lon, min_lat],
-                [max_lon, max_lat],
-                [min_lon, max_lat],
-                [min_lon, min_lat]
-            ]
-            
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            area_coords = np.array(coordinates)
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.success(f"Area created: {area_ha:.1f} hectares")
-            st.rerun()
-    
-    with col_input2:
-        st.write("**Method 2: Sample Areas**")
-        sample_areas = {
-            "Amazon Rainforest (Brazil)": [[-60.0, -3.0], [-59.0, -3.0], [-59.0, -2.0], [-60.0, -2.0], [-60.0, -3.0]],
-            "Great Plains (USA)": [[-100.0, 40.0], [-99.0, 40.0], [-99.0, 41.0], [-100.0, 41.0], [-100.0, 40.0]],
-            "Mediterranean Coast (Spain)": [[2.0, 41.0], [3.0, 41.0], [3.0, 42.0], [2.0, 42.0], [2.0, 41.0]],
-            "Sahel Region (Africa)": [[0.0, 12.0], [1.0, 12.0], [1.0, 13.0], [0.0, 13.0], [0.0, 12.0]],
-            "Boreal Forest (Canada)": [[-106.0, 53.0], [-105.0, 53.0], [-105.0, 54.0], [-106.0, 54.0], [-106.0, 53.0]]
+        st.session_state.selected_area = {
+            'type': 'Polygon',
+            'coordinates': coordinates
         }
+        st.session_state.area_coordinates = coordinates
+        st.session_state.analysis_results = None
         
-        selected_sample = st.selectbox("Choose sample area:", list(sample_areas.keys()), key="sample_selection")
-        st.write(f"Size: ~100 km² ecosystem area")
-        
-        if st.button("Use Sample Area", key="use_sample"):
-            coordinates = sample_areas[selected_sample]
-            
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            area_coords = np.array(coordinates)
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.success(f"Sample area selected: {area_ha:.1f} hectares")
-            st.rerun()
+        area_coords = np.array(coordinates)
+        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        st.success(f"{selected_sample} selected: {area_ha:.1f} hectares")
+        st.rerun()
     
-    with col_input3:
-        st.write("**Method 3: Center + Size**")
-        center_lat = st.number_input("Center Latitude", value=40.5, format="%.6f", step=0.1, key="center_lat")
-        center_lon = st.number_input("Center Longitude", value=-99.5, format="%.6f", step=0.1, key="center_lon") 
-        size_km = st.number_input("Size (km each side)", value=10.0, min_value=0.1, step=1.0, key="size_km")
-        
-        if st.button("Create Square Area", key="create_square"):
-            # Convert km to degrees (approximate)
-            deg_offset = size_km / 111.32 / 2  # Half the size on each side
-            
-            coordinates = [
-                [center_lon - deg_offset, center_lat - deg_offset],
-                [center_lon + deg_offset, center_lat - deg_offset],
-                [center_lon + deg_offset, center_lat + deg_offset],
-                [center_lon - deg_offset, center_lat + deg_offset],
-                [center_lon - deg_offset, center_lat - deg_offset]
-            ]
-            
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            area_ha = size_km * size_km * 100  # Convert km² to hectares
-            st.success(f"Square area created: {area_ha:.0f} hectares")
-            st.rerun()
-    
-    # Display reference map
-    st.subheader("📍 Reference Map")
-    
-    # Create map showing selection
+    # Display map showing selection
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
     
     # Add existing selection if available  
@@ -224,51 +157,8 @@ with col1:
                 popup="Selected Area"
             ).add_to(m)
     
-    # Display the map (read-only for reference)
+    # Display the map
     st_folium(m, width=700, height=300, key="reference_map")
-    
-    # Coordinate input help
-    with st.expander("💡 Coordinate Input Help"):
-        st.write("**Finding Coordinates:**")
-        st.write("• Use Google Maps: right-click → 'What's here?' to get lat/lon")
-        st.write("• Latitude: North is positive (+), South is negative (-)")
-        st.write("• Longitude: East is positive (+), West is negative (-)")
-        st.write("• Example: New York City is approximately 40.7128°N, -74.0060°W")
-        
-        st.write("**Coordinate Ranges:**")
-        st.write("• Latitude: -90 to +90 degrees")
-        st.write("• Longitude: -180 to +180 degrees")
-        st.write("• Make sure Southwest corner has smaller lat/lon values than Northeast")
-        col_coord1, col_coord2 = st.columns(2)
-        with col_coord1:
-            min_lat = st.number_input("Min Latitude", value=40.0, format="%.6f", step=0.1, key="coord_min_lat")
-            min_lon = st.number_input("Min Longitude", value=-100.0, format="%.6f", step=0.1, key="coord_min_lon")
-        
-        with col_coord2:
-            max_lat = st.number_input("Max Latitude", value=41.0, format="%.6f", step=0.1, key="coord_max_lat")
-            max_lon = st.number_input("Max Longitude", value=-99.0, format="%.6f", step=0.1, key="coord_max_lon")
-        
-        if st.button("Create Area from Coordinates", key="create_from_coords"):
-            coordinates = [
-                [min_lon, min_lat],
-                [max_lon, min_lat],
-                [max_lon, max_lat],
-                [min_lon, max_lat],
-                [min_lon, min_lat]
-            ]
-            
-            st.session_state.selected_area = {
-                'type': 'Polygon',
-                'coordinates': coordinates
-            }
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            
-            area_coords = np.array(coordinates)
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.success(f"Area created: {area_ha:.1f} hectares")
-            st.rerun()
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
