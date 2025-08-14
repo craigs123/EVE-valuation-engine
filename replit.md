@@ -10,15 +10,12 @@ Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
-Map panning preference: Disabled to prevent accidental map movement during area selection.
-Drawing preference: Reliable drawing tools over complex interactive map solutions.
 
 ## System Architecture
 
 ### Frontend Architecture
 - **Framework**: Streamlit web application with interactive components
-- **Mapping Component**: Plotly maps for reliable area selection and visualization (replaced Folium due to drawing tool issues)
-- **Area Selection**: Quick selection buttons for predefined regions plus coordinate display system
+- **Mapping Component**: Folium maps integrated via streamlit-folium for area selection and visualization
 - **Visualization**: Plotly for interactive charts and dashboards showing time series data and metrics
 - **Layout**: Wide layout with expandable sidebar for analysis parameters and controls
 - **State Management**: Streamlit session state for maintaining selected areas and analysis results

@@ -3,11 +3,11 @@ Ecosystem Valuation Engine - Clean Map Implementation
 """
 
 import streamlit as st
+import folium
+from streamlit_folium import st_folium
 import numpy as np
 from datetime import datetime, timedelta
 import json
-import plotly.graph_objects as go
-import plotly.express as px
 
 # Page configuration
 st.set_page_config(
@@ -100,83 +100,87 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Click and drag on the map to select a rectangular area")
+    st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    import plotly.graph_objects as go
-    import plotly.express as px
-    
-    # Create interactive Plotly map
-    fig = go.Figure()
-    
-    # Add base map
-    fig.add_trace(go.Scattermap(
-        lat=[40],
-        lon=[-100],
-        mode='markers',
-        marker=dict(size=0),
-        showlegend=False
-    ))
+    # Create interactive map
+    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
     
     # Add existing selection if available
-    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+    if st.session_state.selected_area and st.session_state.area_coordinates:
         coords = st.session_state.area_coordinates
-        lats = [coord[1] for coord in coords]
-        lons = [coord[0] for coord in coords]
-        
-        fig.add_trace(go.Scattermap(
-            lat=lats,
-            lon=lons,
-            mode='lines',
-            line=dict(width=3, color='green'),
-            fill='toself',
-            fillcolor='rgba(46, 139, 87, 0.3)',
-            name='Selected Area',
-            showlegend=False
-        ))
+        folium.Polygon(
+            locations=[(coord[1], coord[0]) for coord in coords],
+            color='green',
+            weight=3,
+            fillColor='green',
+            fillOpacity=0.2,
+            popup="Selected Area"
+        ).add_to(m)
+
+    # Add drawing tools
+    from folium.plugins import Draw
+    draw = Draw(
+        draw_options={
+            'polyline': False,
+            'polygon': True,
+            'circle': False,
+            'rectangle': True,
+            'marker': False,
+            'circlemarker': False,
+        },
+        edit_options={
+            'remove': True,
+            'edit': False
+        }
+    )
+    draw.add_to(m)
     
-    # Configure map layout
-    fig.update_layout(
-        map=dict(
-            style="open-street-map",
-            center=dict(lat=40, lon=-100),
-            zoom=3
-        ),
+    # Display map with drawing capability
+    map_data = st_folium(
+        m, 
+        width=700, 
         height=400,
-        margin=dict(l=0, r=0, t=0, b=0)
+        returned_objects=["all_drawings"],
+        key="area_map"
     )
     
-    # Display the map 
-    st.plotly_chart(fig, use_container_width=True, key="plotly_map")
-    
-    # Alternative simple selection method
-    st.markdown("### Alternative: Quick Area Selection")
-    col_quick1, col_quick2 = st.columns(2)
-    
-    with col_quick1:
-        if st.button("Select California Central Valley", key="ca_valley"):
-            coordinates = [[-121.0, 36.0], [-119.0, 36.0], [-119.0, 38.0], [-121.0, 38.0], [-121.0, 36.0]]
-            st.session_state.selected_area = {'type': 'Polygon', 'coordinates': coordinates}
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            st.success("California Central Valley selected")
-            st.rerun()
-    
-    with col_quick2:
-        if st.button("Select Colorado Rockies", key="co_rockies"):
-            coordinates = [[-106.0, 39.0], [-104.0, 39.0], [-104.0, 41.0], [-106.0, 41.0], [-106.0, 39.0]]
-            st.session_state.selected_area = {'type': 'Polygon', 'coordinates': coordinates}
-            st.session_state.area_coordinates = coordinates
-            st.session_state.analysis_results = None
-            st.success("Colorado Rockies selected")
-            st.rerun()
+    # Process map interactions
+    if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
+        latest_drawing = map_data['all_drawings'][-1]
+        
+        if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
+            coordinates = latest_drawing['geometry']['coordinates'][0]
+            
+            # Check if this is a new selection
+            current_coords = st.session_state.get('area_coordinates', [])
+            is_new_selection = (not current_coords or coordinates != current_coords)
+            
+            if is_new_selection:
+                # Save the new selection
+                st.session_state.selected_area = {
+                    'type': latest_drawing['geometry']['type'],
+                    'coordinates': coordinates
+                }
+                st.session_state.area_coordinates = coordinates
+                st.session_state.analysis_results = None
+                
+                # Calculate and show area
+                area_coords = np.array(coordinates)
+                if len(area_coords) > 2:
+                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+                    area_ha = area_km2 * 100
+                    st.success(f"Area selected: {area_ha:.1f} hectares")
+                st.rerun()
+        else:
+            st.warning("Please draw a polygon or rectangle area")
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        st.markdown("### 📍 Selected Area Details")
+        st.markdown("### 📍 Selected Area Coordinates")
         coords = st.session_state.area_coordinates
         
         # Calculate bounding box
-        lats = [coord[1] for coord in coords[:-1]]
+        lats = [coord[1] for coord in coords[:-1]]  # Exclude last duplicate point
         lons = [coord[0] for coord in coords[:-1]]
         
         col_bounds1, col_bounds2 = st.columns(2)
@@ -187,13 +191,12 @@ with col1:
             st.metric("Max Latitude", f"{max(lats):.6f}")
             st.metric("Max Longitude", f"{max(lons):.6f}")
         
-        # Calculate area
-        area_coords = np.array(coords)
-        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-        area_ha = area_km2 * 100
-        st.metric("Area Size", f"{area_ha:.1f} hectares")
+        # Show all coordinates in expandable section
+        with st.expander("All Coordinates"):
+            for i, coord in enumerate(coords[:-1]):  # Exclude last duplicate
+                st.write(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
     else:
-        st.warning("No area selected yet. Use the map selection or quick selection buttons above.")
+        st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
     # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
@@ -273,19 +276,10 @@ if analyze_button and st.session_state.selected_area:
         import time
         time.sleep(2)
         
-        # Calculate area for results
-        coords = st.session_state.area_coordinates
-        area_coords = np.array(coords)
-        if len(area_coords) > 2:
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-        else:
-            area_ha = 100
-        
         # Store simple results
         st.session_state.analysis_results = {
             'total_value': 12500,
-            'area_ha': area_ha,
+            'area_ha': area_ha if 'area_ha' in locals() else 100,
             'ecosystem_type': 'Forest' if st.session_state.ecosystem_override == "Auto-detect from satellite data" else st.session_state.ecosystem_override
         }
         st.success("Analysis complete!")
