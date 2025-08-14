@@ -459,6 +459,23 @@ class ESVDIntegration:
                 }
         
         return comparison
+
+
+def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
+                                     coordinates: Optional[Tuple[float, float]] = None) -> Dict[str, Any]:
+    """
+    Main function to calculate ecosystem services value using ESVD database
+    
+    Args:
+        ecosystem_type: Type of ecosystem (e.g., 'Forest', 'Grassland', 'Wetland')
+        area_hectares: Area in hectares
+        coordinates: Optional (latitude, longitude) tuple for regional adjustment
+        
+    Returns:
+        Dictionary with comprehensive ESVD-based valuation results
+    """
+    esvd = ESVDIntegration()
+    return esvd.calculate_esvd_values(ecosystem_type, area_hectares, coordinates)
     
     def validate_esvd_connection(self) -> Dict[str, Any]:
         """

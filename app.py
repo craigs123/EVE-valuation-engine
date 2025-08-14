@@ -339,11 +339,30 @@ if analyze_button and st.session_state.selected_area:
             area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
         
-        # Store analysis results
+        # Calculate authentic ecosystem values using ESVD database
+        from utils.esvd_integration import calculate_ecosystem_services_value
+        
+        # Get center coordinates for regional adjustment
+        coords = np.array(st.session_state.area_coordinates)
+        center_lat = np.mean([coord[1] for coord in coords[:-1]])
+        center_lon = np.mean([coord[0] for coord in coords[:-1]])
+        
+        # Calculate using ESVD coefficients
+        esvd_results = calculate_ecosystem_services_value(
+            ecosystem_type=ecosystem_type,
+            area_hectares=area_ha,
+            coordinates=(center_lat, center_lon)
+        )
+        
+        # Store comprehensive analysis results
         st.session_state.analysis_results = {
-            'total_value': int(area_ha * 125),  # $125/ha base value
+            'total_value': int(esvd_results['metadata']['total_value']),
             'area_ha': area_ha,
-            'ecosystem_type': ecosystem_type
+            'ecosystem_type': ecosystem_type,
+            'esvd_results': esvd_results,
+            'value_per_ha': esvd_results['metadata']['value_per_hectare'],
+            'data_source': 'ESVD/TEEB Database',
+            'regional_factor': esvd_results['metadata']['regional_adjustment']
         }
         st.success("Analysis complete!")
         st.rerun()
@@ -359,6 +378,28 @@ if st.session_state.analysis_results:
     with col_metrics[0]:
         st.metric("Total Ecosystem Value", f"${results['total_value']:,}/year")
     with col_metrics[1]:
-        st.metric("Value per Hectare", f"${results['total_value']/results['area_ha']:.0f}/ha/year")
+        st.metric("Value per Hectare", f"${results.get('value_per_ha', results['total_value']/results['area_ha']):.0f}/ha/year")
     with col_metrics[2]:
         st.metric("Ecosystem Type", results['ecosystem_type'])
+    
+    # Show data source and methodology
+    st.info(f"📊 **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')} | **Regional Factor**: {results.get('regional_factor', 1.0):.2f}")
+    
+    # Show ecosystem services breakdown if available
+    if 'esvd_results' in results:
+        st.markdown("### 🌿 Ecosystem Services Breakdown")
+        esvd_data = results['esvd_results']
+        
+        if 'provisioning' in esvd_data:
+            categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+            cols = st.columns(4)
+            
+            for i, category in enumerate(categories):
+                if category in esvd_data:
+                    total = esvd_data[category].get('total', 0)
+                    with cols[i]:
+                        st.metric(
+                            f"{category.title()} Services",
+                            f"${total:,.0f}/year",
+                            f"{(total/results['total_value']*100):.0f}%" if results['total_value'] > 0 else "0%"
+                        )
