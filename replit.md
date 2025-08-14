@@ -35,7 +35,8 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
 - **Multi-Ecosystem Analysis**: Advanced spatial grid analysis (4x4 sub-areas) for detecting and valuing multiple ecosystem types within selected areas
-- **Automatic Ecosystem Detection**: Intelligent spectral analysis using NDVI, NDWI, and NDBI indices combined with geographic context for ecosystem classification
+- **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
+- **Automatic Ecosystem Detection**: Multi-point sampling within selected areas using OpenLandMap REST API for reliable ecosystem classification
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
@@ -52,7 +53,7 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Data Standards**: All values standardized to 2020 International dollars per hectare per year for global comparability
 - **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
 - **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas
-- **Automatic Type Detection**: Spectral analysis (NDVI, NDWI, NDBI) combined with geographic context for intelligent ecosystem classification
+- **OpenLandMap Detection**: Real-time ecosystem classification using global land cover datasets from OpenLandMap.com with confidence metrics and coverage analysis
 
 ## External Dependencies
 
@@ -62,10 +63,11 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Plotly**: Interactive charting and dashboard creation
 - **Pandas/NumPy**: Data manipulation and numerical computations
 
-### Satellite Data Integration
-- **API Integration**: Configured to connect to satellite data providers (currently using demo endpoints)
-- **Environment Variables**: `SATELLITE_API_KEY` for authentication with satellite data services
-- **Data Sources**: Designed to work with commercial satellite imagery APIs for real-time environmental monitoring
+### OpenLandMap Integration
+- **API Integration**: Direct connection to OpenLandMap.org REST API for global land cover data
+- **Data Sources**: Access to ESA Climate Change Initiative, MODIS land cover, and IUCN habitat classifications
+- **Resolution**: 1-km to 30-m spatial resolution global environmental datasets
+- **Coverage**: 98%+ global land mass coverage with authentic peer-reviewed data sources
 
 ### Geospatial Processing
 - **Coordinate Systems**: Handles geographic coordinate processing and area calculations

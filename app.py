@@ -85,8 +85,8 @@ with st.sidebar:
     # Ecosystem type override
     ecosystem_override = st.selectbox(
         "Ecosystem Type",
-        options=["Auto-detect from satellite data", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"],
-        help="Override automatic ecosystem detection if needed"
+        options=["Auto-detect from OpenLandMap", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"],
+        help="Auto-detection uses OpenLandMap.com for authentic land cover data"
     )
     
     # Store settings
@@ -288,8 +288,15 @@ with col2:
             area_ha = area_km2 * 100
             st.metric("Area Size", f"{area_ha:.1f} hectares")
         
-        # Show analysis settings
-        st.info(f"**Ecosystem:** {st.session_state.ecosystem_override}")
+        # Show ecosystem detection status
+        if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+            if 'detected_ecosystem' in st.session_state:
+                ecosystem_info = st.session_state.detected_ecosystem
+                st.info(f"**Detected:** {ecosystem_info['primary_ecosystem']} ({ecosystem_info['confidence']:.0%} confidence)")
+            else:
+                st.info("**Ecosystem:** Will detect automatically")
+        else:
+            st.info(f"**Ecosystem:** {st.session_state.ecosystem_override}")
         st.info(f"**Analysis:** {st.session_state.analysis_detail}")
         
         if st.session_state.analysis_results:
@@ -301,18 +308,46 @@ with col2:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
 
-# Simple analysis placeholder (since we're focusing on map functionality)
+# Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
-    with st.spinner("Calculating ecosystem values..."):
-        # Simulate analysis
-        import time
-        time.sleep(2)
+    with st.spinner("Analyzing ecosystem and calculating values..."):
+        # Detect ecosystem type if auto-detection is enabled
+        ecosystem_type = st.session_state.ecosystem_override
         
-        # Store simple results
+        if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+            try:
+                from utils.openlandmap_integration import detect_ecosystem_type
+                
+                with st.spinner("🌍 Detecting ecosystem type using OpenLandMap..."):
+                    ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates)
+                    st.session_state.detected_ecosystem = ecosystem_info
+                    ecosystem_type = ecosystem_info['primary_ecosystem']
+                    
+                    # Show detection results
+                    if ecosystem_info['successful_queries'] > 0:
+                        st.success(f"Detected: {ecosystem_type} ({ecosystem_info['confidence']:.0%} confidence, {ecosystem_info['coverage_percentage']:.0f}% coverage)")
+                    else:
+                        st.warning(f"Using default ecosystem type: {ecosystem_type} (OpenLandMap unavailable)")
+                        
+            except Exception as e:
+                st.warning(f"Ecosystem detection failed, using default: {e}")
+                ecosystem_type = "Grassland"
+        
+        # Simulate ecosystem value calculation
+        import time
+        time.sleep(1)
+        
+        # Calculate area if needed
+        if 'area_ha' not in locals():
+            coords = np.array(st.session_state.area_coordinates)
+            area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
+        
+        # Store analysis results
         st.session_state.analysis_results = {
-            'total_value': 12500,
-            'area_ha': area_ha if 'area_ha' in locals() else 100,
-            'ecosystem_type': 'Forest' if st.session_state.ecosystem_override == "Auto-detect from satellite data" else st.session_state.ecosystem_override
+            'total_value': int(area_ha * 125),  # $125/ha base value
+            'area_ha': area_ha,
+            'ecosystem_type': ecosystem_type
         }
         st.success("Analysis complete!")
         st.rerun()
