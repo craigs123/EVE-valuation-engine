@@ -99,7 +99,7 @@
     }
   ],
   "metadata": {
-    "description": "Sample ecosystem areas for testing the Natural Capital Measurement Tool",
+    "description": "Sample ecosystem areas for testing the Ecosystem Valuation Engine (EVE)",
     "coordinate_system": "WGS84 (EPSG:4326)",
     "last_updated": "2025-08-14",
     "usage_notes": [

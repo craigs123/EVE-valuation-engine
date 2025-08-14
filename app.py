@@ -14,7 +14,7 @@ from utils.data_export import export_to_csv, export_report
 
 # Page configuration
 st.set_page_config(
-    page_title="Natural Capital Measurement Tool",
+    page_title="Ecosystem Valuation Engine (EVE)",
     page_icon="🌱",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -29,9 +29,9 @@ if 'area_coordinates' not in st.session_state:
     st.session_state.area_coordinates = []
 
 # Main title and description
-st.title("🌱 Natural Capital Measurement Tool")
+st.title("🌱 Ecosystem Valuation Engine (EVE)")
 st.markdown("""
-This tool helps environmental researchers track ecosystem growth and natural capital using satellite data and geospatial analysis.
+EVE helps environmental researchers track ecosystem growth and natural capital using satellite data and geospatial analysis.
 Select an area on the map below to begin analysis.
 """)
 
@@ -318,6 +318,6 @@ if st.session_state.analysis_results:
 # Footer
 st.markdown("---")
 st.markdown("""
-**Natural Capital Measurement Tool** - Built with Streamlit for environmental research and ecosystem monitoring.  
+**Ecosystem Valuation Engine (EVE)** - Built with Streamlit for environmental research and ecosystem monitoring.  
 For questions or support, please refer to the documentation or contact your system administrator.
 """)

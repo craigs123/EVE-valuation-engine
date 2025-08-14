@@ -1,12 +1,13 @@
-# Natural Capital Measurement Tool
+# Ecosystem Valuation Engine (EVE)
 
 ## Overview
 
-This is a Streamlit-based geospatial analysis application designed for environmental researchers to track ecosystem growth and natural capital using satellite data. The tool provides an interactive mapping interface where users can select geographic areas and analyze various environmental metrics including NDVI (Normalized Difference Vegetation Index), forest cover, carbon storage, and biodiversity indices. The application combines satellite imagery processing with natural capital calculations to provide comprehensive ecosystem health assessments over time.
+This is a Streamlit-based geospatial analysis application called the Ecosystem Valuation Engine (EVE), designed for environmental researchers to track ecosystem growth and natural capital using satellite data. EVE provides an interactive mapping interface where users can select geographic areas and analyze various environmental metrics including NDVI (Normalized Difference Vegetation Index), forest cover, carbon storage, and biodiversity indices. The application combines satellite imagery processing with natural capital calculations to provide comprehensive ecosystem health assessments over time.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 
 ## System Architecture
 
