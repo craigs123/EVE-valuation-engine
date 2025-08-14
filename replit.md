@@ -8,6 +8,7 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 
 Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
+Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 
 ## System Architecture
 
