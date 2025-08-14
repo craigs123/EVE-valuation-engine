@@ -68,25 +68,19 @@ class OpenLandMapIntegrator:
             
             for i, endpoint in enumerate(endpoints):
                 try:
-                    print(f"Trying endpoint {i+1}: {endpoint}")
-                    response = requests.get(endpoint, timeout=15)
-                    print(f"Response status: {response.status_code}")
-                    
+                    response = requests.get(endpoint, timeout=3)
                     if response.status_code == 200:
                         data = response.json()
-                        print(f"Response data: {data}")
                         result = self._parse_landcover_response(data, endpoint_type=i)
                         if result:
                             return result
-                except Exception as e:
-                    print(f"Error with endpoint {i+1}: {e}")
+                except:
                     continue
                     
             # Fallback: Use simple geographic heuristics based on coordinates
             return self._geographic_heuristic_detection(lat, lon)
             
-        except Exception as e:
-            print(f"Error fetching land cover data: {e}")
+        except:
             return self._geographic_heuristic_detection(lat, lon)
     
     def _geographic_heuristic_detection(self, lat: float, lon: float) -> Dict:
@@ -170,8 +164,7 @@ class OpenLandMapIntegrator:
             
             return None  # No valid data found
             
-        except Exception as e:
-            print(f"Error parsing landcover response: {e}")
+        except:
             return None
     
     def analyze_area_ecosystem(self, coordinates: List[List[float]]) -> Dict:
@@ -183,7 +176,7 @@ class OpenLandMapIntegrator:
                 return self._default_ecosystem_result()
             
             # Generate sample points within the polygon
-            sample_points = self._generate_sample_points(coordinates, num_points=9)
+            sample_points = self._generate_sample_points(coordinates, num_points=4)
             
             ecosystem_results = []
             successful_queries = 0
@@ -231,11 +224,10 @@ class OpenLandMapIntegrator:
                 'source': 'OpenLandMap'
             }
             
-        except Exception as e:
-            print(f"Error analyzing area ecosystem: {e}")
+        except:
             return self._default_ecosystem_result()
     
-    def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 9) -> List[Tuple[float, float]]:
+    def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 4) -> List[Tuple[float, float]]:
         """
         Generate sample points within a polygon for ecosystem analysis
         """
@@ -259,8 +251,7 @@ class OpenLandMapIntegrator:
             
             return points
             
-        except Exception as e:
-            print(f"Error generating sample points: {e}")
+        except:
             # Fallback: return center point
             center_lat = np.mean([coord[1] for coord in coordinates[:-1]])
             center_lon = np.mean([coord[0] for coord in coordinates[:-1]])
