@@ -310,7 +310,8 @@ def get_area_land_cover(bbox: list, grid_size: int = 2) -> Dict[str, float]:
         st.session_state.last_analysis_data = {
             'source': max(data_sources.keys(), key=lambda k: data_sources[k]) if data_sources else 'unknown',
             'sources_used': data_sources,
-            'total_points': total_points
+            'total_points': total_points,
+            'ecosystem_composition': ecosystem_percentages  # Store composition for multi-ecosystem analysis
         }
     
     return ecosystem_percentages
@@ -335,3 +336,50 @@ def get_dominant_ecosystem(bbox: list) -> str:
         return max(ecosystem_percentages.keys(), key=lambda k: ecosystem_percentages[k])
     else:
         return "grassland"
+
+def get_multi_ecosystem_analysis(bbox: list) -> Dict[str, Any]:
+    """
+    Get comprehensive multi-ecosystem analysis for an area.
+    
+    Args:
+        bbox: Bounding box [min_lon, min_lat, max_lon, max_lat]
+    
+    Returns:
+        Dictionary with ecosystem composition and diversity metrics
+    """
+    ecosystem_percentages = get_area_land_cover(bbox)
+    
+    if not ecosystem_percentages:
+        return {
+            'primary_ecosystem': 'grassland',
+            'ecosystem_composition': {'grassland': 100.0},
+            'diversity_index': 1,
+            'is_multi_ecosystem': False
+        }
+    
+    # Convert to percentages (0-100)
+    composition = {eco: pct * 100 for eco, pct in ecosystem_percentages.items()}
+    
+    # Determine primary ecosystem
+    primary_ecosystem = max(composition.keys(), key=lambda k: composition[k])
+    
+    # Calculate diversity metrics
+    diversity_index = len(composition)  # Number of ecosystem types
+    is_multi_ecosystem = diversity_index > 1 and any(pct >= 10.0 for pct in composition.values() if pct != max(composition.values()))
+    
+    # Calculate Shannon diversity index
+    import numpy as np
+    shannon_diversity = 0
+    for pct in composition.values():
+        if pct > 0:
+            p = pct / 100.0
+            shannon_diversity += -p * np.log(p)
+    
+    return {
+        'primary_ecosystem': primary_ecosystem,
+        'ecosystem_composition': composition,
+        'diversity_index': diversity_index,
+        'shannon_diversity': shannon_diversity,
+        'is_multi_ecosystem': is_multi_ecosystem,
+        'homogeneity': max(composition.values())  # Percentage of dominant ecosystem
+    }

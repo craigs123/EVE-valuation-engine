@@ -308,38 +308,45 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
             
             # Determine ecosystem type
             if st.session_state.ecosystem_override == "Auto-detect from satellite data":
-                # Use OpenLandMap API for authentic land cover classification
-                from utils.openlandmap_integration import get_dominant_ecosystem
+                # Use OpenLandMap API for comprehensive ecosystem analysis
+                from utils.openlandmap_integration import get_multi_ecosystem_analysis
                 
-                with st.spinner("🛰️ Analyzing ecosystem type..."):
+                with st.spinner("🛰️ Analyzing ecosystem composition..."):
                     try:
-                        detected_ecosystem = get_dominant_ecosystem(bbox)
+                        multi_analysis = get_multi_ecosystem_analysis(bbox)
+                        detected_ecosystem = multi_analysis['primary_ecosystem']
                         
-                        # Show which data source was used
-                        last_analysis = st.session_state.get('last_analysis_data', {})
-                        data_source = last_analysis.get('source', 'unknown')
+                        # Show ecosystem composition results
+                        composition = multi_analysis['ecosystem_composition']
+                        is_multi = multi_analysis['is_multi_ecosystem']
                         
-                        if data_source == "OpenLandMap":
-                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using OpenLandMap global data")
-                        elif data_source == "ESA WorldCover":
-                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using ESA WorldCover satellite data")
-                        elif data_source == "Google Earth Engine":
-                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using Google Earth Engine")
-                        elif data_source == "USGS Land Cover":
-                            st.success(f"✅ Detected **{detected_ecosystem.title()}** using USGS land cover data")
-                        elif data_source == "geographic_fallback":
-                            st.warning("⚠️ **Fallback Analysis**: Using geographic rules as satellite APIs need authentication")
-                            st.info("For authentic detection, system tries:\n- OpenLandMap global data\n- ESA WorldCover (10m satellite)\n- Google Earth Engine\n- USGS land cover")
-                            st.info(f"Geographic estimate: **{detected_ecosystem.title()}** (not satellite-verified)")
+                        if is_multi:
+                            st.success(f"✅ **Multi-ecosystem area** detected")
+                            st.info("**Ecosystem Composition:**")
+                            for ecosystem, percentage in sorted(composition.items(), key=lambda x: x[1], reverse=True):
+                                st.write(f"• **{ecosystem.title()}**: {percentage:.1f}%")
+                            
+                            st.info(f"**Primary ecosystem:** {detected_ecosystem.title()} ({composition[detected_ecosystem]:.1f}%)")
+                            st.info(f"**Diversity:** {multi_analysis['diversity_index']} ecosystem types detected")
                         else:
-                            st.success(f"✅ Detected ecosystem type: **{detected_ecosystem.title()}**")
+                            data_source = st.session_state.get('last_analysis_data', {}).get('source', 'unknown')
+                            if data_source == "geographic_fallback":
+                                st.warning("⚠️ **Fallback Analysis**: Using geographic rules as satellite APIs need authentication")
+                                st.info(f"Geographic estimate: **{detected_ecosystem.title()}** (not satellite-verified)")
+                            else:
+                                st.success(f"✅ Detected **{detected_ecosystem.title()}** (uniform ecosystem)")
+                        
+                        # Store multi-ecosystem data for analysis
+                        st.session_state.multi_ecosystem_data = multi_analysis
                             
                     except Exception as e:
                         st.error(f"❌ Analysis error: {e}")
                         st.warning("Please select ecosystem type manually from sidebar.")
                         detected_ecosystem = "grassland"
+                        st.session_state.multi_ecosystem_data = None
             else:
                 detected_ecosystem = st.session_state.ecosystem_override.lower()
+                st.session_state.multi_ecosystem_data = None
             
             # ESVD-based coefficients (authentic values from literature, global averages)
             base_esvd_coefficients = {
@@ -394,34 +401,76 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 }
             }
             
+            # Check if multi-ecosystem calculation is needed
+            multi_eco_data = st.session_state.get('multi_ecosystem_data')
+            use_multi_ecosystem = multi_eco_data and multi_eco_data.get('is_multi_ecosystem', False)
+            
+            if use_multi_ecosystem:
+                # Multi-ecosystem weighted calculation
+                composition = multi_eco_data['ecosystem_composition']
+                st.info(f"🔄 **Calculating weighted values for {len(composition)} ecosystem types**")
+                
+                # Calculate weighted values
+                ecosystem_values = {}
+                for metric in selected_metrics:
+                    ecosystem_values[metric] = 0
+                
+                # Show breakdown calculation
+                with st.expander("📊 Multi-Ecosystem Calculation Details"):
+                    for ecosystem, percentage in composition.items():
+                        if ecosystem in base_esvd_coefficients:
+                            eco_coeffs = base_esvd_coefficients[ecosystem]
+                            st.write(f"**{ecosystem.title()}** ({percentage:.1f}% of area):")
+                            for metric in selected_metrics:
+                                if metric in eco_coeffs:
+                                    weighted_value = eco_coeffs[metric] * area_ha * (percentage / 100.0)
+                                    ecosystem_values[metric] += weighted_value
+                                    st.write(f"  • {metric.replace('_', ' ').title()}: ${weighted_value:,.0f}/year")
+                
+                calculation_method = f"Multi-ecosystem weighted calculation ({len(composition)} types)"
+                
+            else:
+                # Single ecosystem calculation
+                coeffs = base_esvd_coefficients.get(detected_ecosystem, base_esvd_coefficients['grassland'])
+                
+                ecosystem_values = {}
+                for metric in selected_metrics:
+                    if metric in coeffs:
+                        ecosystem_values[metric] = coeffs[metric] * area_ha
+                        
+                calculation_method = f"Single ecosystem calculation ({detected_ecosystem})"
+            
             # Note: Authentic ESVD database includes regional adjustments, but we don't have access
             # to their proprietary adjustment factors. Using global average coefficients.
             avg_lat = sum(lats) / len(lats)
             avg_lon = sum(lons) / len(lons)
             
-            # Use base coefficients without regional adjustment (global averages)
-            coeffs = base_esvd_coefficients.get(detected_ecosystem, base_esvd_coefficients['grassland'])
-            
-            # Calculate ecosystem values
-            ecosystem_values = {}
-            for metric in selected_metrics:
-                if metric in coeffs:
-                    ecosystem_values[metric] = coeffs[metric] * area_ha
-            
             # Create ecosystem analysis results
-            ecosystem_analysis = {
-                'dominant_ecosystem': detected_ecosystem,
-                'ecosystem_composition': {detected_ecosystem: 1.0},
-                'confidence': 0.85,
-                'quality_metrics': {'overall_quality': 0.85},
-                'location': f"{avg_lat:.2f}°N, {avg_lon:.2f}°E"
-            }
+            if use_multi_ecosystem:
+                ecosystem_analysis = {
+                    'dominant_ecosystem': detected_ecosystem,
+                    'ecosystem_composition': {eco: pct/100.0 for eco, pct in multi_eco_data['ecosystem_composition'].items()},
+                    'confidence': 0.85,
+                    'quality_metrics': {'overall_quality': 0.85},
+                    'location': f"{avg_lat:.2f}°N, {avg_lon:.2f}°E",
+                    'diversity_index': multi_eco_data.get('diversity_index', 1),
+                    'calculation_method': calculation_method
+                }
+            else:
+                ecosystem_analysis = {
+                    'dominant_ecosystem': detected_ecosystem,
+                    'ecosystem_composition': {detected_ecosystem: 1.0},
+                    'confidence': 0.85,
+                    'quality_metrics': {'overall_quality': 0.85},
+                    'location': f"{avg_lat:.2f}°N, {avg_lon:.2f}°E",
+                    'calculation_method': calculation_method
+                }
             
             # Compile comprehensive results
             analysis_results = {
                 'ecosystem_analysis': ecosystem_analysis,
                 'ecosystem_values': ecosystem_values,
-                'esvd_coefficients': coeffs,
+                'esvd_coefficients': base_esvd_coefficients.get(detected_ecosystem, base_esvd_coefficients['grassland']),
                 'area_metrics': {
                     'area_ha': area_ha,
                     'area_km2': area_km2,
