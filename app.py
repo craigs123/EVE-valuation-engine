@@ -100,16 +100,51 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Click the rectangle or polygon button in the toolbar, then click and drag on the map to draw your area")
     
-    # Create interactive map with drawing capability
-    m = folium.Map(
-        location=[40.0, -100.0], 
-        zoom_start=4
-    )
+    # Simple coordinate input method
+    st.info("Enter coordinates to define a rectangular area for analysis")
+    
+    col_coord1, col_coord2 = st.columns(2)
+    with col_coord1:
+        min_lat = st.number_input("Min Latitude", value=40.0, format="%.6f", key="min_lat")
+        min_lon = st.number_input("Min Longitude", value=-100.0, format="%.6f", key="min_lon")
+    with col_coord2:
+        max_lat = st.number_input("Max Latitude", value=41.0, format="%.6f", key="max_lat")
+        max_lon = st.number_input("Max Longitude", value=-99.0, format="%.6f", key="max_lon")
+    
+    if st.button("📍 Set Area from Coordinates", type="primary"):
+        # Validate coordinates
+        if min_lat >= max_lat or min_lon >= max_lon:
+            st.error("Invalid coordinates: Min values must be less than Max values")
+        else:
+            # Create rectangular coordinates
+            coordinates = [
+                [min_lon, min_lat],
+                [max_lon, min_lat], 
+                [max_lon, max_lat],
+                [min_lon, max_lat],
+                [min_lon, min_lat]
+            ]
+            
+            st.session_state.selected_area = {
+                'type': 'Polygon',
+                'coordinates': coordinates
+            }
+            st.session_state.area_coordinates = coordinates
+            st.session_state.analysis_results = None
+            
+            # Calculate and show area
+            area_coords = np.array(coordinates)
+            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
+            st.success(f"Area set: {area_ha:.1f} hectares")
+            st.rerun()
+    
+    # Display map with selection
+    m = folium.Map(location=[40.5, -99.5], zoom_start=4, dragging=False)
     
     # Add existing selection if available
-    if st.session_state.selected_area and st.session_state.area_coordinates:
+    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
         folium.Polygon(
             locations=[(coord[1], coord[0]) for coord in coords],
@@ -119,106 +154,32 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
-
-    # Add drawing tools that should work
-    from folium.plugins import Draw
-    draw = Draw(
-        draw_options={
-            'polyline': False,
-            'polygon': True,
-            'circle': False,
-            'rectangle': True,
-            'marker': False,
-            'circlemarker': False,
-        },
-        edit_options={'remove': True}
-    )
-    draw.add_to(m)
-    
-    # Add JavaScript to disable panning but allow drawing
-    disable_pan_js = """
-    <script>
-    setTimeout(function() {
-        var map = window[Object.keys(window).find(key => key.startsWith('map_'))];
-        if (map) {
-            // Disable panning when not drawing
-            var originalOnMouseDown = map.dragging._onMouseDown;
-            map.dragging._onMouseDown = function(e) {
-                // Only allow dragging if we're in draw mode
-                var drawingActive = document.querySelector('.leaflet-draw-toolbar-button-enabled');
-                if (!drawingActive) {
-                    return; // Block panning
-                }
-                return originalOnMouseDown.call(this, e);
-            };
-        }
-    }, 2000);
-    </script>
-    """
-    m.get_root().html.add_child(folium.Element(disable_pan_js))
-    
-    # Display map with drawing capability
-    map_data = st_folium(
-        m, 
-        width=700, 
-        height=400,
-        returned_objects=["all_drawings"],
-        key="area_map"
-    )
-    
-    # Process map interactions
-    if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
-        latest_drawing = map_data['all_drawings'][-1]
         
-        if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
-            coordinates = latest_drawing['geometry']['coordinates'][0]
-            
-            # Check if this is a new selection
-            current_coords = st.session_state.get('area_coordinates', [])
-            is_new_selection = (not current_coords or coordinates != current_coords)
-            
-            if is_new_selection:
-                # Save the new selection
-                st.session_state.selected_area = {
-                    'type': latest_drawing['geometry']['type'],
-                    'coordinates': coordinates
-                }
-                st.session_state.area_coordinates = coordinates
-                st.session_state.analysis_results = None
-                
-                # Calculate and show area
-                area_coords = np.array(coordinates)
-                if len(area_coords) > 2:
-                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_ha = area_km2 * 100
-                    st.success(f"Area selected: {area_ha:.1f} hectares")
-                st.rerun()
-        else:
-            st.warning("Please draw a polygon or rectangle area")
-    
-    # Display coordinates of selected area
-    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        st.markdown("### 📍 Selected Area Coordinates")
-        coords = st.session_state.area_coordinates
-        
-        # Calculate bounding box
-        lats = [coord[1] for coord in coords[:-1]]  # Exclude last duplicate point
+        # Center map on selection
+        lats = [coord[1] for coord in coords[:-1]]
         lons = [coord[0] for coord in coords[:-1]]
+        center_lat = (min(lats) + max(lats)) / 2
+        center_lon = (min(lons) + max(lons)) / 2
+        m.location = [center_lat, center_lon]
         
-        col_bounds1, col_bounds2 = st.columns(2)
-        with col_bounds1:
+        # Display coordinates
+        st.markdown("### 📍 Selected Area Details")
+        col_area1, col_area2 = st.columns(2)
+        with col_area1:
             st.metric("Min Latitude", f"{min(lats):.6f}")
             st.metric("Min Longitude", f"{min(lons):.6f}")
-        with col_bounds2:
+        with col_area2:
             st.metric("Max Latitude", f"{max(lats):.6f}")
             st.metric("Max Longitude", f"{max(lons):.6f}")
         
-        # Show all coordinates in expandable section
-        with st.expander("All Coordinates"):
-            for i, coord in enumerate(coords[:-1]):  # Exclude last duplicate
-                st.write(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
-    else:
-        st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
+        # Calculate area
+        area_coords = np.array(coords)
+        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        st.metric("Area Size", f"{area_ha:.1f} hectares")
+    
+    # Display map
+    st_folium(m, width=700, height=300, key="display_map")
     
     # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
