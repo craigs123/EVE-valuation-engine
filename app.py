@@ -40,6 +40,17 @@ st.markdown("""
     border-left: 4px solid #2e8b57;
     margin: 0.5rem 0;
 }
+.small-coordinates {
+    font-size: 0.8rem;
+}
+.small-coordinates h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+.small-coordinates .metric-container {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -176,6 +187,7 @@ with col1:
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+        st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         st.markdown("### 📍 Selected Area Coordinates")
         coords = st.session_state.area_coordinates
         
@@ -194,7 +206,8 @@ with col1:
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):
             for i, coord in enumerate(coords[:-1]):  # Exclude last duplicate
-                st.write(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
+                st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
