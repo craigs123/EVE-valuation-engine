@@ -32,6 +32,8 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 - **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services with authentic economic coefficients
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
+- **Multi-Ecosystem Analysis**: Advanced spatial grid analysis (4x4 sub-areas) for detecting and valuing multiple ecosystem types within selected areas
+- **Automatic Ecosystem Detection**: Intelligent spectral analysis using NDVI, NDWI, and NDBI indices combined with geographic context for ecosystem classification
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
@@ -46,6 +48,9 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 - **Quality Adjustment**: Values further adjusted based on ecosystem quality derived from satellite indicators (NDVI, spectral health, data quality)
 - **Temporal Analysis**: Tracks value changes over time to measure ecosystem growth or degradation in economic terms
 - **Data Standards**: All values standardized to 2020 International dollars per hectare per year for global comparability
+- **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
+- **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas
+- **Automatic Type Detection**: Spectral analysis (NDVI, NDWI, NDBI) combined with geographic context for intelligent ecosystem classification
 
 ## External Dependencies
 
