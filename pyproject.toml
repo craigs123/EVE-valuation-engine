@@ -14,4 +14,5 @@ dependencies = [
     "requests>=2.32.4",
     "beautifulsoup4>=4.13.4",
     "lxml>=5.4.0",
+    "streamlit-drawable-canvas>=0.9.3",
 ]

@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import json
 import numpy as np
+from streamlit_drawable_canvas import st_canvas
 from utils.satellite_data import SatelliteDataProcessor
 from utils.natural_capital_metrics import NaturalCapitalCalculator
 from utils.ecosystem_services import EcosystemServicesCalculator
@@ -161,10 +162,68 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("**How to select an area:**\n1. Look for the drawing toolbar in the top-left corner of the map\n2. Click the rectangle (▢) or polygon (⬟) tool\n3. Click and drag on the map to draw your area\n4. Complete the shape and it will be automatically saved")
     
-    # Create interactive map
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)  # Focus on US for better starting view
+    # Option to choose between simple coordinate input or map drawing
+    selection_method = st.radio(
+        "Choose selection method:",
+        ["Coordinate Input", "Interactive Map"],
+        horizontal=True
+    )
+    
+    if selection_method == "Coordinate Input":
+        st.info("Enter latitude and longitude coordinates to define a rectangular area")
+        
+        col_coord1, col_coord2 = st.columns(2)
+        with col_coord1:
+            min_lat = st.number_input("Min Latitude", value=40.0, format="%.6f")
+            min_lon = st.number_input("Min Longitude", value=-100.0, format="%.6f")
+        with col_coord2:
+            max_lat = st.number_input("Max Latitude", value=41.0, format="%.6f")
+            max_lon = st.number_input("Max Longitude", value=-99.0, format="%.6f")
+        
+        if st.button("Set Area from Coordinates"):
+            # Create rectangular coordinates
+            coordinates = [
+                [min_lon, min_lat],
+                [max_lon, min_lat], 
+                [max_lon, max_lat],
+                [min_lon, max_lat],
+                [min_lon, min_lat]
+            ]
+            
+            st.session_state.selected_area = {
+                'type': 'Polygon',
+                'coordinates': coordinates
+            }
+            st.session_state.area_coordinates = coordinates
+            st.session_state.analysis_results = None
+            
+            # Calculate and show area
+            area_coords = np.array(coordinates)
+            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
+            st.success(f"Area set: {area_ha:.1f} hectares")
+            st.rerun()
+        
+        # Show current selection
+        if st.session_state.get('selected_area'):
+            coords = st.session_state.area_coordinates
+            m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+            folium.Polygon(
+                locations=[(coord[1], coord[0]) for coord in coords],
+                color='green',
+                weight=3,
+                fillColor='green',
+                fillOpacity=0.2,
+                popup="Selected Area"
+            ).add_to(m)
+            st_folium(m, width=700, height=300, key="coord_map")
+    
+    else:
+        st.info("Click on drawing tools in the map toolbar, then draw your area")
+        
+        # Create interactive map
+        m = folium.Map(location=[40.0, -100.0], zoom_start=4)
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
@@ -209,75 +268,13 @@ with col1:
     
     # Show helpful instructions and status
     if st.session_state.get('selected_area'):
-        st.success("✅ Area selected! You can now run analysis or select a different area.")
+        st.success("Area selected! You can now run analysis or select a different area.")
     else:
-        st.warning("📍 No area selected yet. Use the drawing tools (▢ rectangle or ⬟ polygon) on the map above.")
-    
-    # Debug: Show map data for troubleshooting
-    if st.checkbox("🔍 Debug Map Data", help="Show technical details for troubleshooting"):
-        st.write("**Map Data Debug:**")
-        st.write(f"All drawings count: {len(map_data.get('all_drawings', []))}")
-        if map_data.get('all_drawings'):
-            st.write("Latest drawing:", map_data['all_drawings'][-1])
-        st.write("Session state selected area:", bool(st.session_state.get('selected_area')))
-        st.write("Session state coordinates count:", len(st.session_state.get('area_coordinates', [])))
-    
-    # Process map interactions - automatically save single area selection
-    if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
-        # Get the latest drawing (most recent selection)
-        latest_drawing = map_data['all_drawings'][-1]
-        
-        if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
-            coordinates = latest_drawing['geometry']['coordinates'][0]
-            
-            # Check if this is a new selection (different from stored one)
-            current_coords = st.session_state.get('area_coordinates', [])
-            is_new_selection = (not current_coords or 
-                              len(coordinates) != len(current_coords) or 
-                              coordinates != current_coords)
-            
-            if is_new_selection:
-                # Automatically save the new selection
-                st.session_state.selected_area = {
-                    'type': latest_drawing['geometry']['type'],
-                    'coordinates': coordinates
-                }
-                st.session_state.area_coordinates = coordinates
-                
-                # Clear any previous analysis results since area changed
-                st.session_state.analysis_results = None
-                
-                # Show confirmation with area size
-                area_coords = np.array(coordinates)
-                if len(area_coords) > 2:
-                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_ha = area_km2 * 100
-                    st.success(f"✅ Area selected: {area_ha:.1f} hectares")
-                else:
-                    st.success(f"✅ Area selected: {len(coordinates)} points")
-                    
-                # Auto-refresh to show updated preview
-                st.rerun()
+        if selection_method == "Interactive Map":
+            st.warning("No area selected yet. Try the Coordinate Input method instead.")
         else:
-            st.warning("Please draw a polygon or rectangle area")
-    elif st.session_state.selected_area:
-        # Show existing selection status
-        if st.session_state.area_coordinates:
-            area_coords = np.array(st.session_state.area_coordinates)
-            if len(area_coords) > 2:
-                area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                area_ha = area_km2 * 100
-                st.info(f"📍 Current area: {area_ha:.1f} hectares (draw new area to replace)")
-            else:
-                st.info("📍 Area selected (draw new area to replace)")
-    
-    # Add clear area button for easy reset
-    if st.session_state.selected_area:
-        if st.button("🗑️ Clear Area", help="Remove current selection and start over"):
-            st.session_state.selected_area = None
-            st.session_state.area_coordinates = []
-            st.session_state.analysis_results = None
-            st.rerun()
+            st.warning("No area selected yet. Enter coordinates and click 'Set Area'.")
+
     
     # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
