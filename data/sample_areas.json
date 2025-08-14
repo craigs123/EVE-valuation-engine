@@ -1,0 +1,149 @@
+{
+  "sample_areas": [
+    {
+      "name": "Sample Forest Area - Pacific Northwest",
+      "description": "Temperate rainforest ecosystem in the Pacific Northwest",
+      "type": "Polygon",
+      "coordinates": [
+        [-123.1207, 49.2827],
+        [-123.1000, 49.2827],
+        [-123.1000, 49.2650],
+        [-123.1207, 49.2650],
+        [-123.1207, 49.2827]
+      ],
+      "ecosystem_type": "temperate_forest",
+      "expected_metrics": {
+        "NDVI": 0.75,
+        "forest_cover": 85,
+        "carbon_storage": 180,
+        "biodiversity_index": 75
+      }
+    },
+    {
+      "name": "Sample Wetland Area - Florida Everglades",
+      "description": "Wetland ecosystem in the Florida Everglades",
+      "type": "Polygon",
+      "coordinates": [
+        [-80.7000, 25.7500],
+        [-80.6800, 25.7500],
+        [-80.6800, 25.7300],
+        [-80.7000, 25.7300],
+        [-80.7000, 25.7500]
+      ],
+      "ecosystem_type": "wetland",
+      "expected_metrics": {
+        "NDVI": 0.65,
+        "forest_cover": 30,
+        "carbon_storage": 220,
+        "water_quality": 70,
+        "biodiversity_index": 80
+      }
+    },
+    {
+      "name": "Sample Grassland Area - Great Plains",
+      "description": "Prairie grassland ecosystem in the Great Plains",
+      "type": "Polygon",
+      "coordinates": [
+        [-100.5000, 39.0000],
+        [-100.4800, 39.0000],
+        [-100.4800, 38.9800],
+        [-100.5000, 38.9800],
+        [-100.5000, 39.0000]
+      ],
+      "ecosystem_type": "grassland",
+      "expected_metrics": {
+        "NDVI": 0.45,
+        "forest_cover": 5,
+        "carbon_storage": 45,
+        "biodiversity_index": 55
+      }
+    },
+    {
+      "name": "Sample Agricultural Area - Midwest",
+      "description": "Agricultural landscape in the Midwest",
+      "type": "Polygon",
+      "coordinates": [
+        [-90.0000, 41.5000],
+        [-89.9800, 41.5000],
+        [-89.9800, 41.4800],
+        [-90.0000, 41.4800],
+        [-90.0000, 41.5000]
+      ],
+      "ecosystem_type": "agricultural",
+      "expected_metrics": {
+        "NDVI": 0.55,
+        "forest_cover": 10,
+        "carbon_storage": 35,
+        "biodiversity_index": 35
+      }
+    },
+    {
+      "name": "Sample Coastal Area - California",
+      "description": "Coastal ecosystem in California",
+      "type": "Polygon",
+      "coordinates": [
+        [-121.9000, 36.6000],
+        [-121.8800, 36.6000],
+        [-121.8800, 36.5800],
+        [-121.9000, 36.5800],
+        [-121.9000, 36.6000]
+      ],
+      "ecosystem_type": "coastal",
+      "expected_metrics": {
+        "NDVI": 0.40,
+        "forest_cover": 25,
+        "carbon_storage": 60,
+        "water_quality": 75,
+        "biodiversity_index": 65
+      }
+    }
+  ],
+  "metadata": {
+    "description": "Sample ecosystem areas for testing the Natural Capital Measurement Tool",
+    "coordinate_system": "WGS84 (EPSG:4326)",
+    "last_updated": "2025-08-14",
+    "usage_notes": [
+      "These are representative sample areas for different ecosystem types",
+      "Expected metrics are typical values for each ecosystem type",
+      "Coordinates define rectangular areas for simplicity",
+      "Real-world analysis may vary based on local conditions"
+    ]
+  },
+  "ecosystem_characteristics": {
+    "temperate_forest": {
+      "description": "Dense forest ecosystems with high canopy cover",
+      "typical_ndvi_range": [0.6, 0.9],
+      "typical_carbon_storage": [120, 200],
+      "key_species": ["Douglas fir", "Western hemlock", "Red cedar"],
+      "conservation_priority": "high"
+    },
+    "wetland": {
+      "description": "Water-saturated ecosystems with specialized vegetation",
+      "typical_ndvi_range": [0.4, 0.8],
+      "typical_carbon_storage": [150, 300],
+      "key_species": ["Sawgrass", "Cypress", "Mangrove"],
+      "conservation_priority": "very_high"
+    },
+    "grassland": {
+      "description": "Grass-dominated ecosystems with few trees",
+      "typical_ndvi_range": [0.3, 0.6],
+      "typical_carbon_storage": [30, 60],
+      "key_species": ["Prairie grass", "Buffalo grass", "Wildflowers"],
+      "conservation_priority": "medium"
+    },
+    "agricultural": {
+      "description": "Human-managed crop and livestock areas",
+      "typical_ndvi_range": [0.2, 0.7],
+      "typical_carbon_storage": [20, 50],
+      "key_species": ["Corn", "Soybean", "Wheat"],
+      "conservation_priority": "low"
+    },
+    "coastal": {
+      "description": "Interface between land and marine ecosystems",
+      "typical_ndvi_range": [0.2, 0.6],
+      "typical_carbon_storage": [40, 80],
+      "key_species": ["Salt marsh grass", "Dune vegetation", "Kelp"],
+      "conservation_priority": "high"
+    }
+  }
+}
