@@ -493,6 +493,15 @@ with col2:
     else:
         st.info("Draw an area on the map to see preview")
 
+# Define service category names for display
+service_categories = {
+    'ecosystem_services_total': '💰 Total Ecosystem Value',
+    'provisioning': '🌾 Provisioning Services', 
+    'regulating': '🌡️ Regulating Services',
+    'cultural': '🎨 Cultural Services',
+    'supporting': '🌱 Supporting Services'
+}
+
 # Analysis Results Section
 if st.session_state.analysis_results:
     st.header("📈 Analysis Results")
