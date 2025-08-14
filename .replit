@@ -18,10 +18,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Streamlit Natural Capital Tool"
+args = "🌱 Ecosystem Valuation Engine"
 
 [[workflows.workflow]]
-name = "Streamlit Natural Capital Tool"
+name = "🌱 Ecosystem Valuation Engine"
 author = "agent"
 
 [[workflows.workflow.tasks]]
