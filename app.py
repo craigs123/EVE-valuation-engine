@@ -410,7 +410,12 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
             multi_eco_data = st.session_state.get('multi_ecosystem_data')
             use_multi_ecosystem = multi_eco_data and multi_eco_data.get('is_multi_ecosystem', False)
             
-            coordinates = (avg_lat, avg_lon) if 'avg_lat' in locals() else None
+            # Note: Authentic ESVD database includes regional adjustments, but we don't have access
+            # to their proprietary adjustment factors. Using global average coefficients.
+            avg_lat = sum(lats) / len(lats)
+            avg_lon = sum(lons) / len(lons)
+            
+            coordinates = (avg_lat, avg_lon)
             
             if use_multi_ecosystem:
                 # Multi-ecosystem weighted calculation across all databases
@@ -487,28 +492,47 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
                 }
             
             # Multi-database results display
-            from utils.multi_database_visualization import (
-                display_valuation_summary, 
-                create_database_comparison_chart,
-                display_database_details,
-                create_uncertainty_analysis
-            )
-            
-            # Main valuation summary
-            display_valuation_summary(multi_db_results)
-            
-            # Interactive database comparison
-            st.subheader("📊 Multi-Database Comparison")
-            comparison_chart = create_database_comparison_chart(multi_db_results)
-            st.plotly_chart(comparison_chart, use_container_width=True)
-            
-            # Detailed database information
-            display_database_details(multi_db_results)
-            
-            # Uncertainty analysis
-            st.subheader("🎯 Uncertainty Analysis")
-            uncertainty_chart = create_uncertainty_analysis(multi_db_results)
-            st.plotly_chart(uncertainty_chart, use_container_width=True)
+            try:
+                from utils.multi_database_visualization import (
+                    display_valuation_summary, 
+                    create_database_comparison_chart,
+                    display_database_details,
+                    create_uncertainty_analysis
+                )
+                
+                # Main valuation summary
+                display_valuation_summary(multi_db_results)
+                
+                # Interactive database comparison
+                st.subheader("📊 Multi-Database Comparison")
+                comparison_chart = create_database_comparison_chart(multi_db_results)
+                st.plotly_chart(comparison_chart, use_container_width=True)
+                
+                # Detailed database information
+                display_database_details(multi_db_results)
+                
+                # Uncertainty analysis
+                st.subheader("🎯 Uncertainty Analysis")
+                uncertainty_chart = create_uncertainty_analysis(multi_db_results)
+                st.plotly_chart(uncertainty_chart, use_container_width=True)
+                
+            except Exception as viz_error:
+                st.error(f"Visualization error: {viz_error}")
+                
+                # Fallback display
+                if 'valuation_range' in multi_db_results:
+                    vr = multi_db_results['valuation_range']
+                    st.write("**Total Annual Value Range:**")
+                    st.write(f"• **Low Estimate**: ${vr['low_estimate']:,.0f}/year")
+                    st.write(f"• **Best Estimate**: ${vr['best_estimate']:,.0f}/year")
+                    st.write(f"• **High Estimate**: ${vr['high_estimate']:,.0f}/year")
+                
+                if 'database_results' in multi_db_results:
+                    st.write("**Database-Specific Results:**")
+                    for db_name, db_data in multi_db_results['database_results'].items():
+                        if 'values' in db_data and 'ecosystem_services_total' in db_data['values']:
+                            total = db_data['values']['ecosystem_services_total']['total']
+                            st.write(f"• **{db_data['metadata']['name']}**: ${total:,.0f}/year")
             
             # Compile comprehensive results
             analysis_results = {
