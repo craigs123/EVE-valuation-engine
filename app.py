@@ -96,10 +96,21 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Click the polygon or rectangle icons in the toolbar, then click and drag on the map to draw")
+    st.info("Click on the map to create polygon points. Click 'Finish Drawing' when done.")
     
-    # Alternative method toggle
-    use_alternative = st.checkbox("Use alternative method if drawing tools don't work", key="alt_method")
+    # Drawing controls
+    col_draw1, col_draw2, col_draw3 = st.columns(3)
+    with col_draw1:
+        if st.button("Clear Drawing", key="clear_draw"):
+            if 'polygon_points' in st.session_state:
+                del st.session_state.polygon_points
+            st.rerun()
+    
+    with col_draw2:
+        finish_drawing = st.button("Finish Drawing", key="finish_draw")
+    
+    with col_draw3:
+        use_coords = st.checkbox("Enter coordinates manually", key="manual_coords")
     
     # Create interactive map
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
@@ -116,103 +127,76 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add enhanced drawing tools with JavaScript forcing
-    from folium.plugins import Draw
-    draw = Draw(
-        draw_options={
-            'polyline': False,
-            'polygon': True,
-            'rectangle': True,
-            'circle': False,
-            'marker': False,
-            'circlemarker': False,
-        },
-        edit_options={
-            'remove': True,
-            'edit': False
-        }
-    )
-    draw.add_to(m)
+    # Initialize polygon points if not exists
+    if 'polygon_points' not in st.session_state:
+        st.session_state.polygon_points = []
     
-    # Add custom JavaScript to ensure drawing mode activation
-    custom_js = """
-    <script>
-    function activateDrawMode() {
-        setTimeout(function() {
-            // Find the map container
-            var mapContainer = document.querySelector('.folium-map');
-            if (mapContainer) {
-                // Add click handler to drawing buttons to force activation
-                var drawButtons = mapContainer.querySelectorAll('.leaflet-draw a');
-                drawButtons.forEach(function(button) {
-                    button.addEventListener('click', function(e) {
-                        console.log('Drawing tool activated');
-                        // Force the button to stay active
-                        setTimeout(function() {
-                            button.classList.add('leaflet-draw-draw-polygon');
-                        }, 100);
-                    });
-                });
-            }
-        }, 1000);
-    }
+    # Add current polygon points to map
+    if st.session_state.polygon_points:
+        # Show current points as markers
+        for i, point in enumerate(st.session_state.polygon_points):
+            folium.Marker(
+                location=[point[1], point[0]],
+                popup=f"Point {i+1}",
+                icon=folium.Icon(color='red', icon='info-sign')
+            ).add_to(m)
+        
+        # Draw lines connecting points
+        if len(st.session_state.polygon_points) > 1:
+            folium.PolyLine(
+                locations=[[p[1], p[0]] for p in st.session_state.polygon_points],
+                color='red',
+                weight=2,
+                opacity=0.8
+            ).add_to(m)
     
-    // Run when page loads
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', activateDrawMode);
-    } else {
-        activateDrawMode();
-    }
-    </script>
-    """
-    
-    # Add the JavaScript to the map
-    m.get_root().html.add_child(folium.Element(custom_js))
-    
-    # Display map with drawing capability
+    # Display map with click capability
     map_data = st_folium(
         m, 
         width=700, 
         height=400,
-        returned_objects=["all_drawings"],
+        returned_objects=["last_clicked"],
         key="area_map"
     )
     
-    # Process drawing interactions from the toolbar
-    if map_data and map_data.get('all_drawings') and len(map_data['all_drawings']) > 0:
-        try:
-            latest_drawing = map_data['all_drawings'][-1]
+    # Handle map clicks for polygon creation
+    if map_data and map_data.get('last_clicked'):
+        clicked_point = [map_data['last_clicked']['lng'], map_data['last_clicked']['lat']]
+        
+        # Avoid duplicate clicks
+        if not st.session_state.polygon_points or clicked_point != st.session_state.polygon_points[-1]:
+            st.session_state.polygon_points.append(clicked_point)
+            st.success(f"Added point {len(st.session_state.polygon_points)}: {clicked_point[1]:.6f}°N, {clicked_point[0]:.6f}°E")
+            st.rerun()
+    
+    # Handle finish drawing
+    if finish_drawing and st.session_state.polygon_points:
+        if len(st.session_state.polygon_points) >= 3:
+            # Close the polygon
+            coordinates = st.session_state.polygon_points + [st.session_state.polygon_points[0]]
             
-            if latest_drawing.get('geometry') and latest_drawing['geometry'].get('type') in ['Polygon']:
-                coordinates = latest_drawing['geometry']['coordinates'][0]
-                
-                # Check if this is a new selection
-                current_coords = st.session_state.get('area_coordinates', [])
-                is_new_selection = (not current_coords or coordinates != current_coords)
-                
-                if is_new_selection:
-                    # Save the new selection
-                    st.session_state.selected_area = {
-                        'type': latest_drawing['geometry']['type'],
-                        'coordinates': coordinates
-                    }
-                    st.session_state.area_coordinates = coordinates
-                    st.session_state.analysis_results = None
-                    
-                    # Calculate and show area
-                    area_coords = np.array(coordinates)
-                    if len(area_coords) > 2:
-                        area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                        area_ha = area_km2 * 100
-                        st.success(f"Area selected: {area_ha:.1f} hectares")
-                    st.rerun()
-            else:
-                # Show helpful message for drawing
-                if latest_drawing.get('geometry'):
-                    st.info("Use the polygon or rectangle tools in the map toolbar above")
-        except Exception as e:
-            st.error(f"Map interaction error: {str(e)}")
-            st.info("Please try drawing the area again using the toolbar tools")
+            st.session_state.selected_area = {
+                'type': 'Polygon',
+                'coordinates': coordinates
+            }
+            st.session_state.area_coordinates = coordinates
+            st.session_state.analysis_results = None
+            
+            # Calculate area
+            area_coords = np.array(coordinates)
+            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
+            st.success(f"Polygon completed: {area_ha:.1f} hectares")
+            
+            # Clear points
+            st.session_state.polygon_points = []
+            st.rerun()
+        else:
+            st.warning("Need at least 3 points to create a polygon")
+    
+    # Show current drawing status
+    if st.session_state.polygon_points:
+        st.info(f"Drawing polygon: {len(st.session_state.polygon_points)} points added")
     
     # Display coordinates of selected area
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
@@ -243,6 +227,7 @@ with col2:
         
         # Calculate area in hectares
         area_coords = np.array(coords)
+        area_ha = 0
         if len(area_coords) > 2:
             area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
@@ -276,7 +261,7 @@ with col2:
             st.info("Ready for analysis - click 'Calculate Value' button")
     else:
         st.warning("⚠️ No area selected")
-        if use_alternative:
+        if use_coords:
             st.write("Enter coordinates below:")
             
             min_lat = st.number_input("Min Latitude", value=40.0, format="%.6f", step=0.1, key="alt_min_lat")
