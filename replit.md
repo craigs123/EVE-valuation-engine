@@ -38,6 +38,7 @@ Data integrity preference: Honest documentation of data limitations; authentic s
 - **Multi-Ecosystem Analysis**: Advanced spatial grid analysis (4x4 sub-areas) for detecting and valuing multiple ecosystem types within selected areas
 - **Multi-Source Ecosystem Detection**: Comprehensive satellite data integration (OpenLandMap, ESA WorldCover, Google Earth Engine, USGS APIs) with progressive fallback and transparent source reporting
 - **Intelligent Map Interface**: Auto-centering on selected areas with smart zoom levels based on area size
+- **Performance Optimizations**: Reduced grid sampling (2x2), optimized API calls, geographic caching, and streamlined processing for faster calculations
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
