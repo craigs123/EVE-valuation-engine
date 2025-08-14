@@ -284,14 +284,66 @@ if analyze_button and st.session_state.selected_area and selected_metrics:
             
             # Determine ecosystem type
             if st.session_state.ecosystem_override == "Auto-detect from satellite data":
-                # Simple ecosystem detection based on geographic location
+                # Enhanced ecosystem detection based on geographic location and known areas
                 avg_lat = sum(lats) / len(lats)
-                if avg_lat > 45:
-                    detected_ecosystem = "forest"
-                elif avg_lat > 35:
-                    detected_ecosystem = "grassland"
-                else:
+                avg_lon = sum(lons) / len(lons)
+                
+                # Major urban area detection
+                urban_areas = [
+                    # NYC area
+                    (40.7128, -74.0060, 0.5),  # Manhattan
+                    (40.6892, -74.0445, 0.3),  # Brooklyn/Jersey
+                    # Los Angeles area
+                    (34.0522, -118.2437, 0.5),
+                    # Chicago area
+                    (41.8781, -87.6298, 0.3),
+                    # San Francisco Bay Area
+                    (37.7749, -122.4194, 0.5),
+                    # London area
+                    (51.5074, -0.1278, 0.3),
+                    # Paris area
+                    (48.8566, 2.3522, 0.3),
+                    # Tokyo area
+                    (35.6762, 139.6503, 0.5),
+                ]
+                
+                # Check if area overlaps with major urban centers
+                is_urban = False
+                for urban_lat, urban_lon, radius in urban_areas:
+                    if (abs(avg_lat - urban_lat) < radius and abs(avg_lon - urban_lon) < radius):
+                        is_urban = True
+                        break
+                
+                if is_urban:
+                    detected_ecosystem = "urban"
+                # Coastal detection - near major coastlines
+                elif ((abs(avg_lat) < 45 and (avg_lon < -120 or avg_lon > 120)) or  # Pacific coasts
+                      (avg_lat > 25 and avg_lat < 50 and avg_lon > -85 and avg_lon < -70) or  # US East coast
+                      (avg_lat > 50 and avg_lon > -10 and avg_lon < 30) or  # European coasts
+                      (avg_lat > -35 and avg_lat < 35 and avg_lon > 100 and avg_lon < 155)):  # SE Asian coasts
+                    detected_ecosystem = "coastal"
+                # Desert regions
+                elif ((avg_lat > 20 and avg_lat < 40 and avg_lon > -120 and avg_lon < -100) or  # US Southwest
+                      (avg_lat > 15 and avg_lat < 35 and avg_lon > -15 and avg_lon < 45) or  # Sahara/Middle East
+                      (avg_lat > -30 and avg_lat < -15 and avg_lon > 110 and avg_lon < 155)):  # Australian deserts
+                    detected_ecosystem = "desert"
+                # Wetland regions (Florida Everglades, Louisiana, etc.)
+                elif ((avg_lat > 25 and avg_lat < 30 and avg_lon > -85 and avg_lon < -80) or  # Florida
+                      (avg_lat > 29 and avg_lat < 32 and avg_lon > -93 and avg_lon < -89)):  # Louisiana
+                    detected_ecosystem = "wetland"
+                # Agricultural regions (Great Plains, Central Valley, etc.)
+                elif ((avg_lat > 35 and avg_lat < 45 and avg_lon > -105 and avg_lon < -95) or  # Great Plains
+                      (avg_lat > 36 and avg_lat < 40 and avg_lon > -122 and avg_lon < -119) or  # Central Valley
+                      (avg_lat > 40 and avg_lat < 55 and avg_lon > -5 and avg_lon < 30)):  # European farmland
                     detected_ecosystem = "agricultural"
+                # Forest regions (Pacific Northwest, Northeast, etc.)
+                elif ((avg_lat > 45 and avg_lon > -125 and avg_lon < -115) or  # Pacific Northwest
+                      (avg_lat > 40 and avg_lat < 50 and avg_lon > -80 and avg_lon < -65) or  # Northeast US
+                      (avg_lat > 45 and avg_lat < 65 and avg_lon > -10 and avg_lon < 40)):  # Northern Europe
+                    detected_ecosystem = "forest"
+                # Default to grassland for temperate regions
+                else:
+                    detected_ecosystem = "grassland"
             else:
                 detected_ecosystem = st.session_state.ecosystem_override.lower()
             
