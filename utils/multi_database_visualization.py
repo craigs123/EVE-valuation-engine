@@ -9,6 +9,7 @@ from plotly.subplots import make_subplots
 import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
+import numpy as np
 
 def create_database_comparison_chart(multi_db_results: Dict[str, Any]) -> go.Figure:
     """
