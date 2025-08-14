@@ -100,7 +100,7 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Click the rectangle or polygon tool in the map toolbar, then draw your area")
+    st.info("💡 Look for the green-highlighted rectangle/polygon buttons in the map toolbar - click one, then draw your area")
     
     # Create interactive map with panning disabled
     m = folium.Map(
@@ -127,14 +127,31 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add drawing tools with auto-start rectangle mode
+    # Add drawing tools with enhanced configuration
     from folium.plugins import Draw
     draw = Draw(
         draw_options={
             'polyline': False,
-            'polygon': True,
+            'polygon': {
+                'allowIntersection': False,
+                'drawError': {
+                    'color': '#b00b00',
+                    'timeout': 1000
+                },
+                'shapeOptions': {
+                    'color': '#2e8b57',
+                    'weight': 3,
+                    'fillOpacity': 0.3
+                }
+            },
             'circle': False,
-            'rectangle': True,
+            'rectangle': {
+                'shapeOptions': {
+                    'color': '#2e8b57',
+                    'weight': 3,
+                    'fillOpacity': 0.3
+                }
+            },
             'marker': False,
             'circlemarker': False,
         },
@@ -146,43 +163,63 @@ with col1:
     )
     draw.add_to(m)
     
-    # Add JavaScript to enhance draw mode behavior
-    draw_mode_js = """
+    # Add enhanced JavaScript for better draw mode activation
+    enhanced_draw_js = """
     <script>
-    // Function to activate draw mode when buttons are clicked
-    function setupDrawModeListeners() {
+    function enhanceDrawControls() {
         setTimeout(function() {
-            // Get rectangle and polygon draw buttons
+            // Find all draw control buttons
+            var drawControls = document.querySelectorAll('.leaflet-draw-toolbar .leaflet-draw-draw-rectangle, .leaflet-draw-toolbar .leaflet-draw-draw-polygon');
+            
+            drawControls.forEach(function(control) {
+                // Add enhanced click handler
+                control.addEventListener('click', function(e) {
+                    console.log('Draw control activated:', this.className);
+                    
+                    // Ensure the button activates properly
+                    setTimeout(function() {
+                        // Force the draw mode to activate
+                        if (!control.classList.contains('leaflet-draw-toolbar-button-enabled')) {
+                            control.click();
+                        }
+                    }, 100);
+                });
+                
+                // Make buttons more visible
+                control.style.border = '2px solid #2e8b57';
+                control.style.backgroundColor = '#f0fff0';
+            });
+            
+            // Auto-highlight the rectangle tool
             var rectButton = document.querySelector('.leaflet-draw-draw-rectangle');
-            var polyButton = document.querySelector('.leaflet-draw-draw-polygon');
-            
             if (rectButton) {
-                rectButton.addEventListener('click', function() {
-                    console.log('Rectangle draw mode activated');
-                    // Additional draw mode setup can go here
-                });
+                rectButton.style.backgroundColor = '#e6ffe6';
+                rectButton.title = 'Click to draw rectangular area';
             }
             
+            var polyButton = document.querySelector('.leaflet-draw-draw-polygon');
             if (polyButton) {
-                polyButton.addEventListener('click', function() {
-                    console.log('Polygon draw mode activated');
-                    // Additional draw mode setup can go here
-                });
+                polyButton.style.backgroundColor = '#e6ffe6';
+                polyButton.title = 'Click to draw polygon area';
             }
-        }, 500);
+            
+        }, 1000);
     }
     
-    // Setup listeners when DOM is ready
+    // Run enhancement when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupDrawModeListeners);
+        document.addEventListener('DOMContentLoaded', enhanceDrawControls);
     } else {
-        setupDrawModeListeners();
+        enhanceDrawControls();
     }
+    
+    // Also run after a delay to ensure Folium is fully loaded
+    setTimeout(enhanceDrawControls, 2000);
     </script>
     """
     
-    # Add the JavaScript to the map
-    m.get_root().html.add_child(folium.Element(draw_mode_js))
+    # Add the enhanced JavaScript to the map
+    m.get_root().html.add_child(folium.Element(enhanced_draw_js))
     
     # Display map with drawing capability
     map_data = st_folium(
