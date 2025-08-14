@@ -37,7 +37,20 @@ def create_time_series_chart(time_series_data: List[Dict], metric_name: str, met
     
     # Extract dates and values
     dates = [datetime.fromisoformat(point['date'].replace('Z', '')) for point in time_series_data]
-    values = [point['value'] for point in time_series_data]
+    # Handle different data structures for time series
+    values = []
+    for point in time_series_data:
+        if isinstance(point, dict):
+            if 'value' in point:
+                values.append(point['value'])
+            elif 'total' in point:
+                values.append(point['total'])
+            elif 'total_value' in point:
+                values.append(point['total_value'])
+            else:
+                values.append(0)
+        else:
+            values.append(point)
     
     # Create the main time series plot
     fig = go.Figure()
