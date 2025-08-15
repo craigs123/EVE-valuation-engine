@@ -372,11 +372,25 @@ with col2:
             area_ha = area_km2 * 100
             st.metric("Area Size", f"{area_ha:.1f} hectares")
         
-        # Show ecosystem detection status
+        # Show ecosystem detection status with composition
         if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
             if 'detected_ecosystem' in st.session_state:
                 ecosystem_info = st.session_state.detected_ecosystem
-                st.info(f"**Detected:** {ecosystem_info['primary_ecosystem']} ({ecosystem_info['confidence']:.0%} confidence)")
+                primary_ecosystem = ecosystem_info['primary_ecosystem']
+                
+                # Show primary ecosystem
+                st.info(f"**Primary:** {primary_ecosystem} ({ecosystem_info['confidence']:.0%} confidence)")
+                
+                # Show composition if multiple ecosystems detected
+                if 'ecosystem_distribution' in ecosystem_info and len(ecosystem_info['ecosystem_distribution']) > 1:
+                    st.info("**Composition:**")
+                    ecosystem_distribution = ecosystem_info['ecosystem_distribution']
+                    total_samples = ecosystem_info['successful_queries']
+                    
+                    for eco_type, data in ecosystem_distribution.items():
+                        percentage = (data['count'] / total_samples) * 100
+                        st.write(f"   • {eco_type}: {percentage:.1f}%")
+                        
             else:
                 st.info("**Ecosystem:** Will detect automatically")
         else:
@@ -421,8 +435,38 @@ if analyze_button and st.session_state.selected_area:
                         
                         # Show detection results with details
                         if ecosystem_info['successful_queries'] > 0:
-                            st.success(f"✅ **Detected: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points)")
-                            st.info(f"📊 Coverage: {ecosystem_info.get('coverage_percentage', 100):.0f}% | Source: {ecosystem_info.get('source', 'OpenLandMap')}")
+                            st.success(f"✅ **Primary: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points)")
+                            
+                            # Show ecosystem composition breakdown
+                            if 'ecosystem_distribution' in ecosystem_info:
+                                ecosystem_distribution = ecosystem_info['ecosystem_distribution']
+                                total_samples = ecosystem_info['successful_queries']
+                                
+                                if len(ecosystem_distribution) > 1:
+                                    st.info("🌍 **Ecosystem Composition Breakdown:**")
+                                    
+                                    # Create a more detailed breakdown with percentages
+                                    composition_data = []
+                                    for eco_type, data in ecosystem_distribution.items():
+                                        percentage = (data['count'] / total_samples) * 100
+                                        confidence_avg = data['confidence'] / data['count']
+                                        composition_data.append({
+                                            'Ecosystem': eco_type,
+                                            'Percentage': f"{percentage:.1f}%",
+                                            'Sample Points': f"{data['count']}/{total_samples}",
+                                            'Confidence': f"{confidence_avg:.0%}"
+                                        })
+                                    
+                                    # Display as a formatted table
+                                    for item in composition_data:
+                                        st.write(f"   • **{item['Ecosystem']}**: {item['Percentage']} ({item['Sample Points']} points, {item['Confidence']} confidence)")
+                                        
+                                    st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: OpenLandMap.org")
+                                else:
+                                    # Single ecosystem type
+                                    percentage = (ecosystem_distribution[ecosystem_type]['count'] / total_samples) * 100
+                                    st.info(f"📊 **Homogeneous Area**: {percentage:.1f}% {ecosystem_type} | Source: OpenLandMap")
+                            
                         else:
                             st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
                             
@@ -455,10 +499,14 @@ if analyze_button and st.session_state.selected_area:
                     ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
                     st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
                     
-                    # Show composition breakdown
+                    # Show detailed composition breakdown for analysis
+                    st.write("**📋 Detailed Composition for Valuation:**")
+                    total_samples = st.session_state.detected_ecosystem['successful_queries']
                     for eco_type, data in ecosystem_distribution.items():
-                        proportion = data['count'] / st.session_state.detected_ecosystem['successful_queries'] * 100
-                        st.write(f"   • {eco_type}: {proportion:.0f}% ({data['count']} sample points)")
+                        proportion = data['count'] / total_samples * 100
+                        area_proportion = area_ha * (proportion / 100)
+                        st.write(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
+                    st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                     
                     esvd_results = calculate_mixed_ecosystem_services_value(
                         ecosystem_distribution=ecosystem_distribution,
@@ -516,10 +564,23 @@ if st.session_state.analysis_results:
         with col3:
             st.metric("Area Analyzed", f"{results['area_ha']:,.0f} ha")
         
-        # Basic info with ecosystem composition
-        if 'ecosystem_composition' in results.get('metadata', {}):
-            composition_text = ", ".join([f"{eco}: {prop*100:.0f}%" for eco, prop in results['metadata']['ecosystem_composition'].items()])
-            st.info(f"**Mixed Ecosystem**: {composition_text} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+        # Enhanced ecosystem composition display
+        if 'esvd_results' in results and 'metadata' in results['esvd_results']:
+            metadata = results['esvd_results']['metadata']
+            
+            # Check if it's a mixed ecosystem
+            if 'ecosystem_composition' in metadata:
+                st.info("**🌍 Mixed Ecosystem Composition**")
+                composition = metadata['ecosystem_composition']
+                for eco_type, proportion in composition.items():
+                    percentage = proportion * 100
+                    area_for_type = results['area_ha'] * proportion
+                    st.write(f"   • **{eco_type}**: {percentage:.1f}% ({area_for_type:.1f} hectares)")
+                st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+            else:
+                # Single ecosystem
+                st.info(f"**🌱 Ecosystem Type**: {results['ecosystem_type']} (100% coverage)")
+                st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         else:
             st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         
