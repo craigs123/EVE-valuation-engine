@@ -162,10 +162,11 @@ class OpenLandMapIntegrator:
                     'source': source
                 }
             
-            return None  # No valid data found
+            # Return default ecosystem result if no valid data found
+            return self._default_ecosystem_result()
             
         except:
-            return None
+            return self._default_ecosystem_result()
     
     def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0) -> Dict:
         """
@@ -259,7 +260,7 @@ class OpenLandMapIntegrator:
             # Fallback: return center point
             center_lat = np.mean([coord[1] for coord in coordinates[:-1]])
             center_lon = np.mean([coord[0] for coord in coordinates[:-1]])
-            return [(center_lat, center_lon)]
+            return [(float(center_lat), float(center_lon))]
     
     def _calculate_area_km2(self, coordinates: List[List[float]]) -> float:
         """
