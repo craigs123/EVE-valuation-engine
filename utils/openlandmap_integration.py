@@ -167,7 +167,7 @@ class OpenLandMapIntegrator:
         except:
             return None
     
-    def analyze_area_ecosystem(self, coordinates: List[List[float]]) -> Dict:
+    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0) -> Dict:
         """
         Analyze ecosystem type for a polygon area using multiple sample points
         """
@@ -177,7 +177,7 @@ class OpenLandMapIntegrator:
             
             # Calculate area and determine appropriate sample density
             area_km2 = self._calculate_area_km2(coordinates)
-            num_points = self._calculate_sample_points(area_km2)
+            num_points = self._calculate_sample_points(area_km2, sampling_frequency=sampling_frequency)
             
             # Generate sample points within the polygon
             sample_points = self._generate_sample_points(coordinates, num_points=num_points)
@@ -276,7 +276,7 @@ class OpenLandMapIntegrator:
         except:
             return 1.0  # Default 1 km2 if calculation fails
     
-    def _calculate_sample_points(self, area_km2: float) -> int:
+    def _calculate_sample_points(self, area_km2: float, sampling_frequency: float = 1.0) -> int:
         """
         Calculate number of sample points based on area size
         Target: 1 sample point per 100 hectares (1 km2)
@@ -291,8 +291,8 @@ class OpenLandMapIntegrator:
         if area_hectares > max_area_hectares:
             raise ValueError(f"Selected area ({area_hectares:,.0f} ha) exceeds maximum limit of {max_area_hectares:,.0f} hectares. Please select a smaller area.")
         
-        # Calculate sample points: 1 point per 100 hectares, minimum 4, maximum 100
-        target_points = max(4, min(100, int(area_hectares / 100)))
+        # Calculate sample points based on user-defined frequency, minimum 4, maximum 100
+        target_points = max(4, min(100, int(area_hectares * sampling_frequency / 100)))
         
         # Round to nearest perfect square for grid generation
         grid_size = int(np.sqrt(target_points))
@@ -314,9 +314,9 @@ class OpenLandMapIntegrator:
             'source': 'Default (OpenLandMap unavailable)'
         }
 
-def detect_ecosystem_type(coordinates: List[List[float]]) -> Dict:
+def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
     """
     integrator = OpenLandMapIntegrator()
-    return integrator.analyze_area_ecosystem(coordinates)
+    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency)

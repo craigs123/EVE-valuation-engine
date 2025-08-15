@@ -10,6 +10,7 @@ Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
+Sampling preference: User-customizable sampling density (0.25-4.0 points per 100 hectares) with visual guidance on speed vs. accuracy trade-offs.
 
 ## System Architecture
 
@@ -34,10 +35,10 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services with authentic economic coefficients
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
-- **Area-Based Sampling**: Dynamic sampling density scaling with area size (1 sample point per 100 hectares, maximum 10,000 hectares)
+- **User-Configurable Sampling**: Customizable sampling density (0.25-4.0 points per 100 hectares) with real-time estimation and speed/accuracy guidance
 - **Multi-Ecosystem Analysis**: Grid-based spatial analysis for detecting and valuing multiple ecosystem types with area-proportional weighting
 - **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
-- **Automatic Ecosystem Detection**: Area-scaled sampling (1 point per 100 hectares) using OpenLandMap REST API with maximum area limit of 10,000 hectares for optimal performance
+- **Flexible Ecosystem Detection**: User-configurable sampling density with live preview of sample point count and performance trade-offs
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics

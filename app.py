@@ -93,6 +93,46 @@ with st.sidebar:
     st.session_state.ecosystem_override = ecosystem_override
     
     st.markdown("---")
+    st.subheader("🎯 Sampling Settings")
+    
+    # Sampling frequency setting
+    sampling_frequency = st.number_input(
+        "Sample Points per 100 Hectares",
+        min_value=0.25,
+        max_value=4.0,
+        value=st.session_state.get('sampling_frequency', 1.0),
+        step=0.25,
+        help="Controls sampling density: higher values = more sample points = more accurate but slower analysis"
+    )
+    st.session_state.sampling_frequency = sampling_frequency
+    
+    # Sampling frequency guide
+    if sampling_frequency <= 0.5:
+        st.info("🔹 **Low Density**: Faster analysis, suitable for uniform areas")
+    elif sampling_frequency <= 1.0:
+        st.info("🔸 **Standard Density**: Good balance of speed and accuracy")
+    elif sampling_frequency <= 2.0:
+        st.info("🔸 **High Density**: More accurate for mixed ecosystems")
+    else:
+        st.warning("🔴 **Maximum Density**: Highest accuracy, slower processing")
+    
+    # Display sampling info
+    if st.session_state.get('area_coordinates'):
+        coords = np.array(st.session_state.area_coordinates)
+        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        
+        if area_ha <= 10000:
+            estimated_points = max(4, int(area_ha * sampling_frequency / 100))
+            grid_size = int(np.sqrt(estimated_points))
+            actual_points = grid_size ** 2
+            st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_points} sample points")
+        else:
+            st.caption("⚠️ Selected area exceeds 10,000 ha limit")
+    else:
+        st.caption("Select an area to see sampling estimation")
+    
+    st.markdown("---")
     
     # Clear button
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
@@ -327,13 +367,13 @@ if analyze_button and st.session_state.selected_area:
                         # Show detection progress
                         st.info("🔍 Detecting ecosystem type using OpenLandMap...")
                         
-                        ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates)
+                        ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates, st.session_state.sampling_frequency)
                         st.session_state.detected_ecosystem = ecosystem_info
                         ecosystem_type = ecosystem_info['primary_ecosystem']
                         
                         # Show detection results with details
                         if ecosystem_info['successful_queries'] > 0:
-                            st.success(f"✅ **Detected: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']} sample points)")
+                            st.success(f"✅ **Detected: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points)")
                             st.info(f"📊 Coverage: {ecosystem_info.get('coverage_percentage', 100):.0f}% | Source: {ecosystem_info.get('source', 'OpenLandMap')}")
                         else:
                             st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
@@ -540,7 +580,8 @@ if st.session_state.analysis_results:
                 3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
                 4. **Confidence Assessment**: Based on successful detections and data source quality
                 
-                **Area Limits**: Maximum 10,000 hectares (100 sample points) for optimal performance
+                **Area Limits**: Maximum 10,000 hectares for optimal performance
+                **Sampling Density**: Currently {st.session_state.get('sampling_frequency', 1.0)} points per 100 hectares
                 
                 **Mixed Ecosystem Handling**:
                 When multiple ecosystem types are detected, the system calculates values for each type separately 
