@@ -161,17 +161,16 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Sampling limits and information
+    # Sampling strategy information
     st.markdown("""
     **📏 Sampling Strategy:**
-    - **No area size limit**: Analyze areas of any size
-    - **Small areas (≤10,000 ha)**: Use your custom sampling density setting
-    - **Large areas (>10,000 ha)**: Automatically use 100 sample points for even coverage
-    - **Maximum sample points**: 100 points for optimal API performance
-    - **Even distribution**: Sample points spread evenly across your selected area
+    - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
+    - **Smart sampling**: System automatically balances sampling density with area size for optimal performance
+    - **Maximum sample points**: 100 points distributed evenly across your selected area
+    - **User control**: Adjust sampling density in sidebar for areas under 10,000 hectares
     """)
     
-    # Show current sampling setting
+    # Show current sampling setting with area context
     current_frequency = st.session_state.get('sampling_frequency', 1.0)
     if current_frequency <= 0.5:
         density_desc = "Low density - fast analysis"
@@ -182,7 +181,17 @@ with col1:
     else:
         density_desc = "Maximum density - highest accuracy"
     
-    st.caption(f"Current sampling: {current_frequency} points/100ha ({density_desc})")
+    if st.session_state.get('area_coordinates'):
+        coords = np.array(st.session_state.area_coordinates)
+        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        
+        if area_ha > 10000:
+            st.caption(f"Large area detected: Custom sampling settings apply to areas under 10,000 ha")
+        else:
+            st.caption(f"Current sampling: {current_frequency} points/100ha ({density_desc})")
+    else:
+        st.caption(f"Current sampling: {current_frequency} points/100ha ({density_desc})")
     
     # Create interactive map
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
