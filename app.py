@@ -151,6 +151,28 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
+    # Area limits and sampling information
+    st.markdown("""
+    **📏 Area Limits:**
+    - **Maximum area**: 10,000 hectares for optimal performance
+    - **Sampling density**: Configurable in sidebar (0.25-4.0 points per 100 hectares)
+    - **Sample points**: Automatically calculated based on area size and density setting
+    - **Processing time**: Higher sampling density = more accurate results but slower analysis
+    """)
+    
+    # Show current sampling setting
+    current_frequency = st.session_state.get('sampling_frequency', 1.0)
+    if current_frequency <= 0.5:
+        density_desc = "Low density - fast analysis"
+    elif current_frequency <= 1.0:
+        density_desc = "Standard density - balanced"
+    elif current_frequency <= 2.0:
+        density_desc = "High density - more accurate"
+    else:
+        density_desc = "Maximum density - highest accuracy"
+    
+    st.caption(f"Current sampling: {current_frequency} points/100ha ({density_desc})")
+    
     # Create interactive map
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
     
