@@ -124,18 +124,18 @@ with st.sidebar:
         
         if area_ha > 10000:
             # Large areas use maximum sample points
-            final_points = 400
+            final_points = 100
             grid_size = int(np.sqrt(final_points))
             actual_final = grid_size ** 2
             st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points (large area - auto max)")
         else:
             # Small areas use user-defined sampling frequency
             desired_points = max(4, int(area_ha * sampling_frequency / 100))
-            actual_points = min(desired_points, 400)  # Cap at 400 points
+            actual_points = min(desired_points, 100)  # Cap at 100 points
             grid_size = int(np.sqrt(actual_points))
             final_points = grid_size ** 2
             
-            if desired_points > 400:
+            if desired_points > 100:
                 st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points (capped at max)")
             else:
                 st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points")
@@ -166,8 +166,8 @@ with col1:
     **📏 Sampling Strategy:**
     - **No area size limit**: Analyze areas of any size
     - **Small areas (≤10,000 ha)**: Use your custom sampling density setting
-    - **Large areas (>10,000 ha)**: Automatically use 400 sample points for even coverage
-    - **Maximum sample points**: 400 points for comprehensive analysis
+    - **Large areas (>10,000 ha)**: Automatically use 100 sample points for even coverage
+    - **Maximum sample points**: 100 points for optimal API performance
     - **Even distribution**: Sample points spread evenly across your selected area
     """)
     
@@ -613,7 +613,7 @@ if st.session_state.analysis_results:
                 3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
                 4. **Confidence Assessment**: Based on successful detections and data source quality
                 
-                **Sample Limit**: Maximum 400 sample points for comprehensive analysis
+                **Sample Limit**: Maximum 100 sample points for optimal performance
                 **Sampling Density**: Currently {st.session_state.get('sampling_frequency', 1.0)} points per 100 hectares
                 
                 **Mixed Ecosystem Handling**:
