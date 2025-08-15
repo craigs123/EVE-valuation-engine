@@ -7,6 +7,11 @@ import requests
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 import json
+try:
+    import ee
+    EE_AVAILABLE = True
+except ImportError:
+    EE_AVAILABLE = False
 
 class OpenLandMapIntegrator:
     """
@@ -56,19 +61,23 @@ class OpenLandMapIntegrator:
     
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
         """
-        Get land cover information for a specific point using multiple working APIs
+        Get land cover information for a specific point using ESA WorldCover and fallback APIs
         """
         try:
-            # Start with enhanced geographic detection which has proper prioritization
-            enhanced_result = self._enhanced_geographic_detection(lat, lon)
+            # Priority 1: Try ESA WorldCover through Google Earth Engine (most accurate)
+            if EE_AVAILABLE:
+                esa_result = self._try_esa_worldcover(lat, lon)
+                if esa_result and esa_result.get('confidence', 0) >= 0.95:
+                    return esa_result
             
-            # If we get a high-confidence or urban result, use it
+            # Priority 2: Enhanced geographic detection for high-confidence cases
+            enhanced_result = self._enhanced_geographic_detection(lat, lon)
             if enhanced_result:
                 if (enhanced_result.get('ecosystem_type') == 'Urban' or 
-                    enhanced_result.get('confidence', 0) >= 0.8):
+                    enhanced_result.get('confidence', 0) >= 0.85):
                     return enhanced_result
             
-            # Otherwise, try external APIs for additional validation
+            # Priority 3: Other external APIs for validation
             apis_to_try = [
                 self._try_usgs_nlcd_api,
                 self._try_copernicus_land_service,
@@ -78,16 +87,89 @@ class OpenLandMapIntegrator:
             for api_method in apis_to_try:
                 try:
                     result = api_method(lat, lon)
-                    if result and result.get('confidence', 0) > 0.85:
+                    if result and result.get('confidence', 0) > 0.80:
                         return result
                 except Exception:
                     continue
             
-            # Return the enhanced result as final answer
+            # Return the best available result
             return enhanced_result or self._default_ecosystem_result()
             
         except:
             return self._enhanced_geographic_detection(lat, lon)
+    
+    def _try_esa_worldcover(self, lat: float, lon: float) -> Optional[Dict]:
+        """
+        Query ESA WorldCover dataset through Google Earth Engine
+        """
+        try:
+            if not EE_AVAILABLE:
+                return None
+                
+            # Initialize Earth Engine (requires authentication)
+            try:
+                ee.Initialize()
+            except Exception:
+                # Try service account authentication or skip if not available
+                return None
+            
+            # Load WorldCover 2021 dataset (latest version)
+            worldcover = ee.Image('ESA/WorldCover/v200')
+            
+            # Create point geometry
+            point = ee.Geometry.Point([lon, lat])
+            
+            # Sample the image at the point
+            sample = worldcover.sample(
+                region=point,
+                scale=10,  # 10m resolution
+                numPixels=1
+            ).first()
+            
+            # Get the land cover value
+            lc_value = sample.get('Map').getInfo()
+            
+            # ESA WorldCover class mapping to ecosystem types
+            esa_to_ecosystem = {
+                10: "Forest",           # Tree cover
+                20: "Forest",           # Shrubland  
+                30: "Grassland",        # Grassland
+                40: "Agricultural",     # Cropland
+                50: "Urban",           # Built-up
+                60: "Desert",          # Bare/sparse vegetation
+                70: "Desert",          # Snow and ice
+                80: "Wetland",         # Permanent water bodies
+                90: "Wetland",         # Herbaceous wetland
+                95: "Coastal",         # Mangroves
+                100: "Grassland"       # Moss and lichen
+            }
+            
+            ecosystem_type = esa_to_ecosystem.get(lc_value, "Grassland")
+            
+            return {
+                'landcover_class': lc_value,
+                'ecosystem_type': ecosystem_type,
+                'confidence': 0.95,  # High confidence for satellite data
+                'source': 'ESA WorldCover 2021'
+            }
+            
+        except Exception as e:
+            # Earth Engine authentication failed - try alternative ESA WorldCover access
+            return self._try_esa_worldcover_alternative(lat, lon)
+    
+    def _try_esa_worldcover_alternative(self, lat: float, lon: float) -> Optional[Dict]:
+        """
+        Alternative ESA WorldCover access without Earth Engine authentication
+        Uses geographic patterns enhanced with ESA class knowledge
+        """
+        try:
+            # This would ideally use ESA's public WMS service or other access methods
+            # For now, return None to fall back to enhanced geographic detection
+            # which already incorporates ESA WorldCover class understanding
+            return None
+            
+        except Exception:
+            return None
     
     def _default_ecosystem_result(self) -> Dict:
         """Return default ecosystem result"""
