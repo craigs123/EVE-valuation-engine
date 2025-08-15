@@ -350,19 +350,39 @@ if analyze_button and st.session_state.selected_area:
             area_ha = area_km2 * 100
         
         # Calculate authentic ecosystem values using ESVD database
-        from utils.esvd_integration import calculate_ecosystem_services_value
+        from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
         
         # Get center coordinates for regional adjustment
         coords = np.array(st.session_state.area_coordinates)
         center_lat = np.mean([coord[1] for coord in coords[:-1]])
         center_lon = np.mean([coord[0] for coord in coords[:-1]])
         
-        # Calculate using ESVD coefficients
-        esvd_results = calculate_ecosystem_services_value(
-            ecosystem_type=ecosystem_type,
-            area_hectares=area_ha,
-            coordinates=(center_lat, center_lon)
-        )
+        # Check if we have mixed ecosystem data for weighted calculation
+        if (st.session_state.get('detected_ecosystem') and 
+            'ecosystem_distribution' in st.session_state.detected_ecosystem and
+            len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
+            
+            # Use mixed ecosystem calculation with proper weighting
+            ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
+            st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
+            
+            # Show composition breakdown
+            for eco_type, data in ecosystem_distribution.items():
+                proportion = data['count'] / st.session_state.detected_ecosystem['successful_queries'] * 100
+                st.write(f"   • {eco_type}: {proportion:.0f}% ({data['count']} sample points)")
+            
+            esvd_results = calculate_mixed_ecosystem_services_value(
+                ecosystem_distribution=ecosystem_distribution,
+                area_hectares=area_ha,
+                coordinates=(center_lat, center_lon)
+            )
+        else:
+            # Single ecosystem calculation
+            esvd_results = calculate_ecosystem_services_value(
+                ecosystem_type=ecosystem_type,
+                area_hectares=area_ha,
+                coordinates=(center_lat, center_lon)
+            )
         
         # Store comprehensive analysis results
         st.session_state.analysis_results = {
@@ -400,8 +420,12 @@ if st.session_state.analysis_results:
         with col3:
             st.metric("Area Analyzed", f"{results['area_ha']:,.0f} ha")
         
-        # Basic info
-        st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+        # Basic info with ecosystem composition
+        if 'ecosystem_composition' in results.get('metadata', {}):
+            composition_text = ", ".join([f"{eco}: {prop*100:.0f}%" for eco, prop in results['metadata']['ecosystem_composition'].items()])
+            st.info(f"**Mixed Ecosystem**: {composition_text} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+        else:
+            st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         
         # Option to upgrade to detailed view
         if st.button("🔍 View Detailed Analysis", type="secondary"):
@@ -459,14 +483,35 @@ if st.session_state.analysis_results:
                 """)
                 
         with col_metrics[2]:
-            st.metric("Ecosystem Type", results['ecosystem_type'])
+            # Show ecosystem composition for mixed areas
+            if 'ecosystem_composition' in results.get('metadata', {}):
+                composition = results['metadata']['ecosystem_composition']
+                dominant_type = max(composition.keys(), key=lambda k: composition[k])
+                st.metric("Primary Ecosystem", f"{dominant_type}")
+                st.caption(f"Mixed area: {len(composition)} ecosystem types")
+            else:
+                st.metric("Ecosystem Type", results['ecosystem_type'])
             with st.expander("💡 Ecosystem detection method"):
-                st.markdown(f"""
-                **Detected Ecosystem Type**: {results['ecosystem_type']}
+                # Handle both single and mixed ecosystem displays
+                if 'ecosystem_composition' in results.get('metadata', {}):
+                    st.markdown("**Mixed Ecosystem Area Detected**")
+                    composition = results['metadata']['ecosystem_composition']
+                    
+                    st.markdown("**Ecosystem Composition**:")
+                    for ecosystem, proportion in composition.items():
+                        st.markdown(f"- **{ecosystem}**: {proportion*100:.0f}% of area")
+                    
+                    st.markdown(f"**Calculation Method**: Weighted by area proportion")
+                    if 'individual_ecosystem_results' in results:
+                        st.markdown("**Individual Ecosystem Values**:")
+                        for ecosystem, data in results['individual_ecosystem_results'].items():
+                            st.markdown(f"- {ecosystem}: ${data['total_value']:,.0f}/year ({data['area_hectares']:.0f} ha)")
+                else:
+                    st.markdown(f"""
+                    **Detected Ecosystem Type**: {results['ecosystem_type']}
+                    """)
                 
-                **Detection Method**:
-                """)
-                
+                st.markdown("**Detection Method**:")
                 if 'detected_ecosystem' in st.session_state:
                     ecosystem_info = st.session_state.detected_ecosystem
                     st.markdown(f"""
@@ -477,7 +522,7 @@ if st.session_state.analysis_results:
                     """)
                     
                     if 'ecosystem_distribution' in ecosystem_info:
-                        st.markdown("**Ecosystem Distribution in Selected Area**:")
+                        st.markdown("**Sample Point Distribution**:")
                         for ecosystem, data in ecosystem_info['ecosystem_distribution'].items():
                             confidence = data['confidence'] / data['count'] if data['count'] > 0 else 0
                             st.markdown(f"- {ecosystem}: {data['count']} sample points, {confidence:.0%} avg confidence")
@@ -489,9 +534,10 @@ if st.session_state.analysis_results:
                 3. **Geographic Analysis**: Falls back to latitude/longitude-based ecosystem classification
                 4. **Confidence Assessment**: Based on data source quality and geographic consistency
                 
-                **Why This Matters**:
-                Different ecosystems provide different types and values of services. Accurate ecosystem 
-                identification ensures the most appropriate ESVD coefficients are applied to your area.
+                **Mixed Ecosystem Handling**:
+                When multiple ecosystem types are detected, the system calculates values for each type separately 
+                and combines them using area-weighted proportions. This ensures accurate economic valuation 
+                that reflects the actual ecosystem composition of your selected area.
                 """)
         # Show data source and methodology
         st.info(f"📊 **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')} | **Regional Factor**: {results.get('regional_factor', 1.0):.2f}")

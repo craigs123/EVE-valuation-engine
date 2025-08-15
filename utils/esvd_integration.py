@@ -460,6 +460,97 @@ class ESVDIntegration:
         
         return comparison
 
+def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_hectares: float, 
+                                           coordinates: Optional[Tuple[float, float]] = None) -> Dict:
+    """
+    Calculate ecosystem services values for mixed ecosystem areas with proper weighting
+    
+    Args:
+        ecosystem_distribution: Dict with ecosystem types and their sample counts
+                               e.g., {'Forest': {'count': 2, 'confidence': 130}, 'Grassland': {'count': 1, 'confidence': 65}}
+        area_hectares: Total area in hectares
+        coordinates: Optional lat/lon for regional adjustment
+    
+    Returns:
+        Dict with weighted ecosystem services values
+    """
+    # Convert sample counts to proportions
+    total_samples = sum(data['count'] for data in ecosystem_distribution.values())
+    if total_samples == 0:
+        return calculate_ecosystem_services_value('Grassland', area_hectares, coordinates)
+    
+    ecosystem_proportions = {}
+    for ecosystem, data in ecosystem_distribution.items():
+        ecosystem_proportions[ecosystem] = data['count'] / total_samples
+    
+    # Initialize result structure
+    weighted_results = {
+        'provisioning': {},
+        'regulating': {},
+        'cultural': {},
+        'supporting': {},
+        'metadata': {
+            'total_value': 0,
+            'value_per_hectare': 0,
+            'ecosystem_composition': ecosystem_proportions,
+            'area_hectares': area_hectares,
+            'regional_adjustment': 1.0,
+            'calculation_method': 'weighted_mixed_ecosystem',
+            'composition_details': ecosystem_distribution
+        },
+        'individual_ecosystem_results': {}
+    }
+    
+    # Calculate values for each ecosystem type
+    total_weighted_value = 0
+    
+    for ecosystem_type, proportion in ecosystem_proportions.items():
+        if proportion <= 0:
+            continue
+            
+        # Calculate area for this ecosystem
+        ecosystem_area = area_hectares * proportion
+        
+        # Get individual ecosystem calculation
+        individual_result = calculate_ecosystem_services_value(ecosystem_type, ecosystem_area, coordinates)
+        weighted_results['individual_ecosystem_results'][ecosystem_type] = {
+            'proportion': proportion,
+            'area_hectares': ecosystem_area,
+            'total_value': individual_result['metadata']['total_value'],
+            'services': individual_result
+        }
+        
+        # Add weighted contribution to totals
+        ecosystem_total = individual_result['metadata']['total_value']
+        total_weighted_value += ecosystem_total
+        
+        # Aggregate service categories with weighting
+        for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
+            if category in individual_result:
+                for service, value in individual_result[category].items():
+                    if service != 'total':
+                        if service not in weighted_results[category]:
+                            weighted_results[category][service] = 0
+                        weighted_results[category][service] += value  # Already weighted by area
+    
+    # Calculate category totals
+    for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
+        weighted_results[category]['total'] = sum(
+            v for k, v in weighted_results[category].items() if k != 'total'
+        )
+    
+    # Set final metadata
+    weighted_results['metadata']['total_value'] = total_weighted_value
+    weighted_results['metadata']['value_per_hectare'] = total_weighted_value / area_hectares if area_hectares > 0 else 0
+    
+    # Regional adjustment (already applied in individual calculations)
+    if coordinates and weighted_results['individual_ecosystem_results']:
+        # Get regional factor from first ecosystem calculation
+        first_ecosystem = list(weighted_results['individual_ecosystem_results'].values())[0]
+        regional_factor = first_ecosystem['services']['metadata'].get('regional_adjustment', 1.0)
+        weighted_results['metadata']['regional_adjustment'] = regional_factor
+    
+    return weighted_results
 
 def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
                                      coordinates: Optional[Tuple[float, float]] = None) -> Dict[str, Any]:
