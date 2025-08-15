@@ -35,10 +35,10 @@ Sampling preference: User-customizable sampling density (0.25-4.0 points per 100
 - **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services with authentic economic coefficients
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
-- **User-Configurable Sampling**: Customizable sampling density (0.25-4.0 points per 100 hectares) with real-time estimation and speed/accuracy guidance
+- **User-Configurable Sampling**: Customizable sampling density (0.25-4.0 points per 100 hectares) with maximum 100 sample points and real-time estimation
 - **Multi-Ecosystem Analysis**: Grid-based spatial analysis for detecting and valuing multiple ecosystem types with area-proportional weighting
 - **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
-- **Flexible Ecosystem Detection**: User-configurable sampling density with live preview of sample point count and performance trade-offs
+- **Flexible Ecosystem Detection**: User-configurable sampling density with maximum 100 sample points, allowing analysis of areas of any size
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics

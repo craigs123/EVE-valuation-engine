@@ -122,13 +122,15 @@ with st.sidebar:
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
         area_ha = area_km2 * 100
         
-        if area_ha <= 10000:
-            estimated_points = max(4, int(area_ha * sampling_frequency / 100))
-            grid_size = int(np.sqrt(estimated_points))
-            actual_points = grid_size ** 2
-            st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_points} sample points")
+        desired_points = max(4, int(area_ha * sampling_frequency / 100))
+        actual_points = min(desired_points, 100)  # Cap at 100 points
+        grid_size = int(np.sqrt(actual_points))
+        final_points = grid_size ** 2
+        
+        if desired_points > 100:
+            st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points (capped at max)")
         else:
-            st.caption("⚠️ Selected area exceeds 10,000 ha limit")
+            st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points")
     else:
         st.caption("Select an area to see sampling estimation")
     
@@ -151,13 +153,14 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Area limits and sampling information
+    # Sampling limits and information
     st.markdown("""
-    **📏 Area Limits:**
-    - **Maximum area**: 10,000 hectares for optimal performance
+    **📏 Sampling Limits:**
+    - **No area size limit**: Analyze areas of any size
+    - **Maximum sample points**: 100 points for optimal processing speed
     - **Sampling density**: Configurable in sidebar (0.25-4.0 points per 100 hectares)
-    - **Sample points**: Automatically calculated based on area size and density setting
-    - **Processing time**: Higher sampling density = more accurate results but slower analysis
+    - **Even distribution**: Sample points spread evenly across your selected area
+    - **Performance**: Analysis time depends on sample count, not area size
     """)
     
     # Show current sampling setting
@@ -602,7 +605,7 @@ if st.session_state.analysis_results:
                 3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
                 4. **Confidence Assessment**: Based on successful detections and data source quality
                 
-                **Area Limits**: Maximum 10,000 hectares for optimal performance
+                **Sample Limit**: Maximum 100 sample points for optimal performance
                 **Sampling Density**: Currently {st.session_state.get('sampling_frequency', 1.0)} points per 100 hectares
                 
                 **Mixed Ecosystem Handling**:
