@@ -414,128 +414,124 @@ if analyze_button and st.session_state.selected_area:
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
         area_ha = area_km2 * 100
         
-        if area_ha > 10000:
-            st.error(f"⚠️ Selected area ({area_ha:,.0f} hectares) exceeds the maximum limit of 10,000 hectares. Please select a smaller area for accurate and timely analysis.")
-            st.info("💡 **Why the limit?** Larger areas require more sample points for accurate ecosystem detection, which increases processing time. The 10,000 hectare limit ensures fast, reliable results.")
-        else:
-            with st.spinner("Analyzing ecosystem and calculating values..."):
-                # Detect ecosystem type if auto-detection is enabled
-                ecosystem_type = st.session_state.ecosystem_override
-                
-                if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
-                    try:
-                        from utils.openlandmap_integration import detect_ecosystem_type
+        with st.spinner("Analyzing ecosystem and calculating values..."):
+            # Detect ecosystem type if auto-detection is enabled
+            ecosystem_type = st.session_state.ecosystem_override
+            
+            if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+                try:
+                    from utils.openlandmap_integration import detect_ecosystem_type
                         
-                        # Show detection progress
-                        st.info("🔍 Detecting ecosystem type using OpenLandMap...")
+                    # Show detection progress
+                    st.info("🔍 Detecting ecosystem type using OpenLandMap...")
+                    
+                    ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates, st.session_state.sampling_frequency)
+                    st.session_state.detected_ecosystem = ecosystem_info
+                    ecosystem_type = ecosystem_info['primary_ecosystem']
+                    
+                    # Show detection results with details
+                    if ecosystem_info['successful_queries'] > 0:
+                        st.success(f"✅ **Primary: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points)")
                         
-                        ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates, st.session_state.sampling_frequency)
-                        st.session_state.detected_ecosystem = ecosystem_info
-                        ecosystem_type = ecosystem_info['primary_ecosystem']
-                        
-                        # Show detection results with details
-                        if ecosystem_info['successful_queries'] > 0:
-                            st.success(f"✅ **Primary: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points)")
+                        # Show ecosystem composition breakdown
+                        if 'ecosystem_distribution' in ecosystem_info:
+                            ecosystem_distribution = ecosystem_info['ecosystem_distribution']
+                            total_samples = ecosystem_info['successful_queries']
                             
-                            # Show ecosystem composition breakdown
-                            if 'ecosystem_distribution' in ecosystem_info:
-                                ecosystem_distribution = ecosystem_info['ecosystem_distribution']
-                                total_samples = ecosystem_info['successful_queries']
+                            if len(ecosystem_distribution) > 1:
+                                st.info("🌍 **Ecosystem Composition Breakdown:**")
                                 
-                                if len(ecosystem_distribution) > 1:
-                                    st.info("🌍 **Ecosystem Composition Breakdown:**")
+                                # Create a more detailed breakdown with percentages
+                                composition_data = []
+                                for eco_type, data in ecosystem_distribution.items():
+                                    percentage = (data['count'] / total_samples) * 100
+                                    confidence_avg = data['confidence'] / data['count']
+                                    composition_data.append({
+                                        'Ecosystem': eco_type,
+                                        'Percentage': f"{percentage:.1f}%",
+                                        'Sample Points': f"{data['count']}/{total_samples}",
+                                        'Confidence': f"{confidence_avg:.0%}"
+                                    })
+                                
+                                # Display as a formatted table
+                                for item in composition_data:
+                                    st.write(f"   • **{item['Ecosystem']}**: {item['Percentage']} ({item['Sample Points']} points, {item['Confidence']} confidence)")
                                     
-                                    # Create a more detailed breakdown with percentages
-                                    composition_data = []
-                                    for eco_type, data in ecosystem_distribution.items():
-                                        percentage = (data['count'] / total_samples) * 100
-                                        confidence_avg = data['confidence'] / data['count']
-                                        composition_data.append({
-                                            'Ecosystem': eco_type,
-                                            'Percentage': f"{percentage:.1f}%",
-                                            'Sample Points': f"{data['count']}/{total_samples}",
-                                            'Confidence': f"{confidence_avg:.0%}"
-                                        })
-                                    
-                                    # Display as a formatted table
-                                    for item in composition_data:
-                                        st.write(f"   • **{item['Ecosystem']}**: {item['Percentage']} ({item['Sample Points']} points, {item['Confidence']} confidence)")
-                                        
-                                    st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: OpenLandMap.org")
-                                else:
-                                    # Single ecosystem type
-                                    percentage = (ecosystem_distribution[ecosystem_type]['count'] / total_samples) * 100
-                                    st.info(f"📊 **Homogeneous Area**: {percentage:.1f}% {ecosystem_type} | Source: OpenLandMap")
+                                st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: OpenLandMap.org")
+                            else:
+                                # Single ecosystem type
+                                percentage = (ecosystem_distribution[ecosystem_type]['count'] / total_samples) * 100
+                                st.info(f"📊 **Homogeneous Area**: {percentage:.1f}% {ecosystem_type} | Source: OpenLandMap")
                             
-                        else:
-                            st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
-                            
-                    except Exception as e:
-                        st.warning(f"⚠️ OpenLandMap detection failed: {str(e)}")
-                        st.info("🗺️ **Using fallback: Grassland** (Geographic analysis)")
-                        ecosystem_type = "Grassland"
-                        # Store fallback detection info
-                        st.session_state.detected_ecosystem = {
-                            'primary_ecosystem': 'Grassland',
-                            'confidence': 0.5,
-                            'successful_queries': 0,
-                            'source': 'Geographic fallback',
-                            'coverage_percentage': 100
-                        }
+                    else:
+                        st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
+                        
+                except Exception as e:
+                    st.warning(f"⚠️ OpenLandMap detection failed: {str(e)}")
+                    st.info("🗺️ **Using fallback: Grassland** (Geographic analysis)")
+                    ecosystem_type = "Grassland"
+                    # Store fallback detection info
+                    st.session_state.detected_ecosystem = {
+                        'primary_ecosystem': 'Grassland',
+                        'confidence': 0.5,
+                        'successful_queries': 0,
+                        'source': 'Geographic fallback',
+                        'coverage_percentage': 100
+                    }
+            
+            # Calculate authentic ecosystem values using ESVD database
+            from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
+            
+            # Get center coordinates for regional adjustment
+            center_lat = float(np.mean([coord[1] for coord in coords[:-1]]))
+            center_lon = float(np.mean([coord[0] for coord in coords[:-1]]))
+            
+            # Check if we have mixed ecosystem data for weighted calculation
+            if (st.session_state.get('detected_ecosystem') and 
+                'ecosystem_distribution' in st.session_state.detected_ecosystem and
+                len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
                 
-                # Calculate authentic ecosystem values using ESVD database
-                from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
+                # Use mixed ecosystem calculation with proper weighting
+                ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
+                st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
                 
-                # Get center coordinates for regional adjustment
-                center_lat = float(np.mean([coord[1] for coord in coords[:-1]]))
-                center_lon = float(np.mean([coord[0] for coord in coords[:-1]]))
+                # Show detailed composition breakdown for analysis
+                st.write("**📋 Detailed Composition for Valuation:**")
+                total_samples = st.session_state.detected_ecosystem['successful_queries']
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_samples * 100
+                    area_proportion = area_ha * (proportion / 100)
+                    st.write(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
+                st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                 
-                # Check if we have mixed ecosystem data for weighted calculation
-                if (st.session_state.get('detected_ecosystem') and 
-                    'ecosystem_distribution' in st.session_state.detected_ecosystem and
-                    len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
-                    
-                    # Use mixed ecosystem calculation with proper weighting
-                    ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
-                    st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
-                    
-                    # Show detailed composition breakdown for analysis
-                    st.write("**📋 Detailed Composition for Valuation:**")
-                    total_samples = st.session_state.detected_ecosystem['successful_queries']
-                    for eco_type, data in ecosystem_distribution.items():
-                        proportion = data['count'] / total_samples * 100
-                        area_proportion = area_ha * (proportion / 100)
-                        st.write(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
-                    st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
-                    
-                    esvd_results = calculate_mixed_ecosystem_services_value(
-                        ecosystem_distribution=ecosystem_distribution,
-                        area_hectares=area_ha,
-                        coordinates=(center_lat, center_lon),
-                        income_elasticity=st.session_state.get('income_elasticity', 0.6)
-                    )
-                else:
-                    # Single ecosystem calculation
-                    esvd_results = calculate_ecosystem_services_value(
-                        ecosystem_type=ecosystem_type,
-                        area_hectares=area_ha,
-                        coordinates=(center_lat, center_lon),
-                        income_elasticity=st.session_state.get('income_elasticity', 0.6)
-                    )
+                esvd_results = calculate_mixed_ecosystem_services_value(
+                    ecosystem_distribution=ecosystem_distribution,
+                    area_hectares=area_ha,
+                    coordinates=(center_lat, center_lon),
+                    income_elasticity=st.session_state.get('income_elasticity', 0.6)
+                )
+            else:
+                # Single ecosystem calculation
+                esvd_results = calculate_ecosystem_services_value(
+                    ecosystem_type=ecosystem_type,
+                    area_hectares=area_ha,
+                    coordinates=(center_lat, center_lon),
+                    income_elasticity=st.session_state.get('income_elasticity', 0.6)
+                )
+            
+            # Store comprehensive analysis results
+            st.session_state.analysis_results = {
+                'total_value': int(esvd_results['metadata']['total_value']),
+                'area_ha': area_ha,
+                'ecosystem_type': ecosystem_type,
+                'esvd_results': esvd_results,
+                'value_per_ha': esvd_results['metadata']['value_per_hectare'],
+                'data_source': 'ESVD/TEEB Database',
+                'regional_factor': esvd_results['metadata']['regional_adjustment']
+            }
                 
-                # Store comprehensive analysis results
-                st.session_state.analysis_results = {
-                    'total_value': int(esvd_results['metadata']['total_value']),
-                    'area_ha': area_ha,
-                    'ecosystem_type': ecosystem_type,
-                    'esvd_results': esvd_results,
-                    'value_per_ha': esvd_results['metadata']['value_per_hectare'],
-                    'data_source': 'ESVD/TEEB Database',
-                    'regional_factor': esvd_results['metadata']['regional_adjustment']
-                }
-                
-                st.success("Analysis complete!")
-                st.rerun()
+        st.success("Analysis complete!")
+        st.rerun()
                 
     except Exception as e:
         st.error(f"Error processing area: {e}")
