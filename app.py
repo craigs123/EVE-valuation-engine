@@ -106,6 +106,15 @@ with st.sidebar:
     )
     st.session_state.sampling_frequency = sampling_frequency
     
+    # Sampling strategy information
+    st.markdown("""
+    **📏 Sampling Strategy:**
+    - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
+    - **Smart sampling**: System automatically balances sampling density with area size for optimal performance
+    - **Maximum sample points**: 100 points distributed evenly across your selected area
+    - **User control**: Adjust sampling density above for areas under 10,000 hectares
+    """)
+    
     # Sampling frequency guide
     if sampling_frequency <= 0.5:
         st.info("🔹 **Low Density**: Faster analysis, suitable for uniform areas")
@@ -142,6 +151,8 @@ with st.sidebar:
     else:
         st.caption("Select an area to see sampling estimation")
     
+    st.markdown('<p style="font-size: 0.8em; color: #666;">Current sampling: {} points/100ha (maximum of 10,000 hectares)</p>'.format(sampling_frequency), unsafe_allow_html=True)
+    
     st.markdown("---")
     
     # Clear button
@@ -161,37 +172,7 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Sampling strategy information
-    st.markdown("""
-    **📏 Sampling Strategy:**
-    - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
-    - **Smart sampling**: System automatically balances sampling density with area size for optimal performance
-    - **Maximum sample points**: 100 points distributed evenly across your selected area
-    - **User control**: Adjust sampling density in sidebar for areas under 10,000 hectares
-    """)
-    
-    # Show current sampling setting with area context
-    current_frequency = st.session_state.get('sampling_frequency', 1.0)
-    if current_frequency <= 0.5:
-        density_desc = "Low density - fast analysis"
-    elif current_frequency <= 1.0:
-        density_desc = "Standard density - balanced"
-    elif current_frequency <= 2.0:
-        density_desc = "High density - more accurate"
-    else:
-        density_desc = "Maximum density - highest accuracy"
-    
-    if st.session_state.get('area_coordinates'):
-        coords = np.array(st.session_state.area_coordinates)
-        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-        area_ha = area_km2 * 100
-        
-        if area_ha > 10000:
-            st.caption(f"Large area detected: Custom sampling settings apply to areas under 10,000 ha")
-        else:
-            st.caption(f"Current sampling: {current_frequency} points/100ha ({density_desc})")
-    else:
-        st.caption(f"Current sampling: {current_frequency} points/100ha ({density_desc})")
+
     
     # Create interactive map
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
