@@ -151,7 +151,7 @@ with st.sidebar:
     else:
         st.caption("Select an area to see sampling estimation")
     
-    st.markdown('<p style="font-size: 0.8em; color: #666;">Current sampling: {} points/100ha (maximum of 10,000 hectares)</p>'.format(sampling_frequency), unsafe_allow_html=True)
+    st.markdown('<p style="font-size: 0.8em; color: #666;">Current sampling: {} points/100ha (maximum of 100 sample points)</p>'.format(sampling_frequency), unsafe_allow_html=True)
     
     st.markdown("---")
     
