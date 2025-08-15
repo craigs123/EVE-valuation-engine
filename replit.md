@@ -39,6 +39,7 @@ Sampling preference: User-customizable sampling density (0.25-4.0 points per 100
 - **Multi-Ecosystem Analysis**: Grid-based spatial analysis for detecting and valuing multiple ecosystem types with area-proportional weighting
 - **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
 - **Adaptive Ecosystem Detection**: User-configurable sampling for smaller areas (up to 100 sample points), automatic optimal sampling for large areas, supporting analysis of any area size
+- **Real-time Progress Tracking**: Interactive progress bars showing sampling progress with point-by-point updates during ecosystem detection
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics

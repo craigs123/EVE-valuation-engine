@@ -168,9 +168,14 @@ class OpenLandMapIntegrator:
         except:
             return self._default_ecosystem_result()
     
-    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0) -> Dict:
+    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, progress_callback=None) -> Dict:
         """
         Analyze ecosystem type for a polygon area using multiple sample points
+        
+        Args:
+            coordinates: List of coordinate pairs defining the polygon
+            sampling_frequency: Sampling density multiplier
+            progress_callback: Optional callback function for progress updates (current_point, total_points)
         """
         try:
             if not coordinates or len(coordinates) < 3:
@@ -186,11 +191,20 @@ class OpenLandMapIntegrator:
             ecosystem_results = []
             successful_queries = 0
             
-            for lat, lon in sample_points:
+            for i, (lat, lon) in enumerate(sample_points):
+                # Update progress if callback provided
+                if progress_callback:
+                    progress_callback(i + 1, len(sample_points))
+                
                 result = self.get_land_cover_point(lat, lon)
                 if result:
                     ecosystem_results.append(result)
                     successful_queries += 1
+                
+                # Small delay to show progress for better user experience
+                if progress_callback and len(sample_points) > 4:
+                    import time
+                    time.sleep(0.1)  # 100ms delay between samples
             
             if not ecosystem_results:
                 return self._default_ecosystem_result()
@@ -314,9 +328,14 @@ class OpenLandMapIntegrator:
             'source': 'Default (OpenLandMap unavailable)'
         }
 
-def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0) -> Dict:
+def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, progress_callback=None) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
+    
+    Args:
+        coordinates: List of coordinate pairs defining the polygon
+        sampling_frequency: Sampling density multiplier
+        progress_callback: Optional callback function for progress updates (current_point, total_points)
     """
     integrator = OpenLandMapIntegrator()
-    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency)
+    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency, progress_callback)

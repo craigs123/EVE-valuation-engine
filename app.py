@@ -421,11 +421,50 @@ if analyze_button and st.session_state.selected_area:
             if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
-                        
-                    # Show detection progress
-                    st.info("🔍 Detecting ecosystem type using OpenLandMap...")
                     
-                    ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates, st.session_state.sampling_frequency)
+                    # Calculate expected sample points for progress tracking
+                    coords = np.array(st.session_state.area_coordinates)
+                    area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+                    area_hectares = area_km2 * 100
+                    
+                    # Calculate expected number of sample points
+                    if area_hectares > 10000:
+                        expected_points = 100
+                    else:
+                        desired_points = max(4, int(area_hectares * st.session_state.sampling_frequency / 100))
+                        expected_points = min(desired_points, 100)
+                    
+                    # Round to nearest perfect square for grid generation
+                    grid_size = int(np.sqrt(expected_points))
+                    actual_expected_points = max(4, grid_size ** 2)
+                    
+                    # Show detection progress with progress bar
+                    st.info("🔍 Detecting ecosystem type using OpenLandMap...")
+                    progress_text = st.empty()
+                    progress_bar = st.progress(0)
+                    
+                    # Progress callback function
+                    def update_progress(current_point, total_points):
+                        progress = current_point / total_points
+                        progress_bar.progress(progress)
+                        progress_text.text(f"🌍 Sampling point {current_point}/{total_points} ({progress:.0%}) - Analyzing ecosystem data...")
+                    
+                    ecosystem_info = detect_ecosystem_type(
+                        st.session_state.area_coordinates, 
+                        st.session_state.sampling_frequency,
+                        progress_callback=update_progress
+                    )
+                    
+                    # Show completion and clear progress indicators
+                    progress_bar.progress(1.0)
+                    progress_text.text(f"✅ Analysis complete! Processed {ecosystem_info['total_samples']} sample points")
+                    
+                    # Brief pause to show completion, then clear
+                    import time
+                    time.sleep(0.5)
+                    progress_bar.empty()
+                    progress_text.empty()
+                    
                     st.session_state.detected_ecosystem = ecosystem_info
                     ecosystem_type = ecosystem_info['primary_ecosystem']
                     
