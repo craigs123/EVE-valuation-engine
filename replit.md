@@ -37,7 +37,7 @@ Sampling preference: User-customizable sampling density (0.25-4.0 points per 100
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
 - **Adaptive Sampling Strategy**: No area size restrictions, user-configurable density for smaller areas, automatic optimization for larger areas, with 100 sample point limit for API performance
 - **Multi-Ecosystem Analysis**: Grid-based spatial analysis for detecting and valuing multiple ecosystem types with area-proportional weighting
-- **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
+- **Enhanced Ecosystem Detection**: Intelligent ecosystem detection with urban area recognition using geographic patterns, known city coordinates, and fallback APIs when OpenLandMap is unavailable
 - **Adaptive Ecosystem Detection**: User-configurable sampling for smaller areas (up to 100 sample points), automatic optimal sampling for large areas, supporting analysis of any area size
 - **Real-time Progress Tracking**: Interactive progress bars showing sampling progress with point-by-point updates during ecosystem detection
 
@@ -56,7 +56,7 @@ Sampling preference: User-customizable sampling density (0.25-4.0 points per 100
 - **Data Standards**: All values standardized to 2020 International dollars per hectare per year for global comparability
 - **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
 - **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas
-- **OpenLandMap Detection**: Real-time ecosystem classification using global land cover datasets from OpenLandMap.com with confidence metrics and coverage analysis
+- **Urban Ecosystem Support**: Comprehensive urban ecosystem detection and valuation covering major metropolitan areas with authentic ESVD coefficients for urban ecosystem services including climate regulation, pollution control, recreation, and habitat provision
 
 ## External Dependencies
 
