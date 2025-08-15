@@ -155,6 +155,27 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Regional Adjustment Settings
+    st.subheader("🌍 Regional Adjustments")
+    st.markdown("**Income Elasticity of Willingness to Pay**")
+    
+    income_elasticity = st.slider(
+        "Income elasticity factor",
+        min_value=0.1,
+        max_value=1.0,
+        value=0.6,
+        step=0.1,
+        help="Higher values increase regional income differences in valuation. Research suggests 0.5-0.6 for environmental services."
+    )
+    
+    st.caption("📚 **Methodological basis**: Income elasticity approach from benefit transfer literature")
+    st.caption("🔬 **Formula**: Value × (Regional_GDP / Global_Average_GDP)^elasticity")
+    
+    # Store in session state
+    st.session_state['income_elasticity'] = income_elasticity
+    
+    st.markdown("---")
+    
     # Clear button
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
         st.session_state.analysis_results = None
@@ -442,14 +463,16 @@ if analyze_button and st.session_state.selected_area:
                     esvd_results = calculate_mixed_ecosystem_services_value(
                         ecosystem_distribution=ecosystem_distribution,
                         area_hectares=area_ha,
-                        coordinates=(center_lat, center_lon)
+                        coordinates=(center_lat, center_lon),
+                        income_elasticity=st.session_state.get('income_elasticity', 0.6)
                     )
                 else:
                     # Single ecosystem calculation
                     esvd_results = calculate_ecosystem_services_value(
                         ecosystem_type=ecosystem_type,
                         area_hectares=area_ha,
-                        coordinates=(center_lat, center_lon)
+                        coordinates=(center_lat, center_lon),
+                        income_elasticity=st.session_state.get('income_elasticity', 0.6)
                     )
                 
                 # Store comprehensive analysis results

@@ -202,7 +202,7 @@ class EcosystemServicesCalculator:
             
             # Get ESVD baseline values
             esvd_results = self.esvd.calculate_esvd_values(
-                ecosystem_type, area_ha, coordinates
+                ecosystem_type, area_ha, coordinates, income_elasticity=0.6
             )
             
             if 'error' in esvd_results:

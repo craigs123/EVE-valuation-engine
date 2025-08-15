@@ -243,45 +243,17 @@ class ESVDIntegration:
     
     def initialize_regional_factors(self):
         """
-        Initialize regional adjustment factors based on ESVD global data
+        Initialize regional GDP per capita data for income elasticity adjustments
+        Based on World Bank PPP-adjusted GDP per capita data (International $)
         """
-        self.regional_factors = {
-            'north_america': {
-                'income_adjustment': 1.2,  # Higher income region
-                'cost_of_living': 1.15,
-                'exchange_rate': 1.0,  # USD baseline
-                'data_quality': 0.95
-            },
-            'europe': {
-                'income_adjustment': 1.1,
-                'cost_of_living': 1.1,
-                'exchange_rate': 1.05,  # EUR to USD
-                'data_quality': 0.98  # High data quality in Europe
-            },
-            'asia_pacific': {
-                'income_adjustment': 0.85,
-                'cost_of_living': 0.9,
-                'exchange_rate': 0.95,
-                'data_quality': 0.85
-            },
-            'latin_america': {
-                'income_adjustment': 0.7,
-                'cost_of_living': 0.75,
-                'exchange_rate': 0.9,
-                'data_quality': 0.75
-            },
-            'africa': {
-                'income_adjustment': 0.6,
-                'cost_of_living': 0.65,
-                'exchange_rate': 0.85,
-                'data_quality': 0.7
-            },
-            'global_average': {
-                'income_adjustment': 1.0,
-                'cost_of_living': 1.0,
-                'exchange_rate': 1.0,
-                'data_quality': 0.85
-            }
+        # GDP per capita in International dollars (PPP-adjusted, 2020 estimates)
+        self.regional_gdp_per_capita = {
+            'north_america': 63000,   # USA/Canada average
+            'europe': 47000,          # Western Europe average  
+            'asia_pacific': 25000,    # Developed Asia-Pacific average
+            'latin_america': 15000,   # Latin America average
+            'africa': 8000,           # Africa average
+            'global_average': 18000   # Global average baseline
         }
     
     def map_ecosystem_type(self, user_ecosystem_type: str) -> str:
@@ -307,33 +279,35 @@ class ESVDIntegration:
             return 'grassland'
         return mapped_type
     
-    def get_regional_factor(self, latitude: float, longitude: float) -> Dict[str, float]:
+    def get_regional_gdp(self, latitude: float, longitude: float) -> float:
         """
-        Determine regional adjustment factors based on coordinates
+        Get regional GDP per capita based on coordinates for income elasticity adjustment
         """
         # Simple regional classification based on coordinates
         if 25 <= latitude <= 70 and -180 <= longitude <= -50:  # North America
-            return self.regional_factors['north_america']
+            return self.regional_gdp_per_capita['north_america']
         elif 35 <= latitude <= 70 and -10 <= longitude <= 50:  # Europe
-            return self.regional_factors['europe']
+            return self.regional_gdp_per_capita['europe']
         elif -10 <= latitude <= 50 and 60 <= longitude <= 180:  # Asia Pacific
-            return self.regional_factors['asia_pacific']
+            return self.regional_gdp_per_capita['asia_pacific']
         elif -55 <= latitude <= 35 and -120 <= longitude <= -30:  # Latin America
-            return self.regional_factors['latin_america']
+            return self.regional_gdp_per_capita['latin_america']
         elif -35 <= latitude <= 40 and -20 <= longitude <= 60:  # Africa
-            return self.regional_factors['africa']
+            return self.regional_gdp_per_capita['africa']
         else:
-            return self.regional_factors['global_average']
+            return self.regional_gdp_per_capita['global_average']
     
     def calculate_esvd_values(self, ecosystem_type: str, area_hectares: float, 
-                             coordinates: Optional[Tuple[float, float]] = None) -> Dict[str, Any]:
+                             coordinates: Optional[Tuple[float, float]] = None,
+                             income_elasticity: float = 0.6) -> Dict[str, Any]:
         """
-        Calculate ecosystem services values using ESVD coefficients
+        Calculate ecosystem services values using ESVD coefficients with income elasticity adjustment
         
         Args:
             ecosystem_type: Type of ecosystem
             area_hectares: Area in hectares
             coordinates: (latitude, longitude) for regional adjustment
+            income_elasticity: Income elasticity of willingness to pay (default 0.6)
             
         Returns:
             Dictionary with ESVD-based valuation results
@@ -345,19 +319,18 @@ class ESVDIntegration:
                 supported_types = ['forest', 'grassland', 'wetland', 'agricultural', 'coastal', 'urban', 'desert']
                 return {'error': f'Unsupported ecosystem type: "{ecosystem_type}". Supported types: {supported_types}'}
             
-            # Get regional adjustment if coordinates provided
+            # Calculate income elasticity adjustment if coordinates provided
             regional_factor = 1.0
-            region_info = "global_average"
+            region_info = "No regional adjustment (global baseline)"
             
             if coordinates:
                 lat, lon = coordinates
-                region_factors = self.get_regional_factor(lat, lon)
-                regional_factor = (
-                    region_factors['income_adjustment'] * 
-                    region_factors['cost_of_living'] * 
-                    region_factors['data_quality']
-                )
-                region_info = f"Regional adjustment applied (factor: {regional_factor:.2f})"
+                regional_gdp = self.get_regional_gdp(lat, lon)
+                global_baseline_gdp = self.regional_gdp_per_capita['global_average']
+                
+                # Apply income elasticity formula: (GDP_target / GDP_baseline)^elasticity
+                regional_factor = (regional_gdp / global_baseline_gdp) ** income_elasticity
+                region_info = f"Income elasticity adjustment (GDP: ${regional_gdp:,}, elasticity: {income_elasticity}, factor: {regional_factor:.2f})"
             
             # Calculate values for each service category
             results = {}
@@ -386,6 +359,8 @@ class ESVDIntegration:
                 'esvd_ecosystem_type': esvd_ecosystem,
                 'regional_adjustment': regional_factor,
                 'region_info': region_info,
+                'regional_gdp_per_capita': self.get_regional_gdp(*coordinates) if coordinates else self.regional_gdp_per_capita['global_average'],
+                'income_elasticity': income_elasticity,
                 'data_source': 'ESVD/TEEB coefficients',
                 'data_source_details': {
                     'primary_database': 'ESVD (Ecosystem Services Valuation Database)',
@@ -461,7 +436,8 @@ class ESVDIntegration:
         return comparison
 
 def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_hectares: float, 
-                                           coordinates: Optional[Tuple[float, float]] = None) -> Dict:
+                                           coordinates: Optional[Tuple[float, float]] = None,
+                                           income_elasticity: float = 0.6) -> Dict:
     """
     Calculate ecosystem services values for mixed ecosystem areas with proper weighting
     
@@ -477,7 +453,7 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_
     # Convert sample counts to proportions
     total_samples = sum(data['count'] for data in ecosystem_distribution.values())
     if total_samples == 0:
-        return calculate_ecosystem_services_value('Grassland', area_hectares, coordinates)
+        return calculate_ecosystem_services_value('Grassland', area_hectares, coordinates, income_elasticity)
     
     ecosystem_proportions = {}
     for ecosystem, data in ecosystem_distribution.items():
@@ -512,7 +488,7 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_
         ecosystem_area = area_hectares * proportion
         
         # Get individual ecosystem calculation
-        individual_result = calculate_ecosystem_services_value(ecosystem_type, ecosystem_area, coordinates)
+        individual_result = calculate_ecosystem_services_value(ecosystem_type, ecosystem_area, coordinates, income_elasticity)
         weighted_results['individual_ecosystem_results'][ecosystem_type] = {
             'proportion': proportion,
             'area_hectares': ecosystem_area,
@@ -553,7 +529,8 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_
     return weighted_results
 
 def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
-                                     coordinates: Optional[Tuple[float, float]] = None) -> Dict[str, Any]:
+                                     coordinates: Optional[Tuple[float, float]] = None,
+                                     income_elasticity: float = 0.6) -> Dict[str, Any]:
     """
     Main function to calculate ecosystem services value using ESVD database
     
@@ -566,7 +543,7 @@ def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float
         Dictionary with comprehensive ESVD-based valuation results
     """
     esvd = ESVDIntegration()
-    return esvd.calculate_esvd_values(ecosystem_type, area_hectares, coordinates)
+    return esvd.calculate_esvd_values(ecosystem_type, area_hectares, coordinates, income_elasticity)
     
     def validate_esvd_connection(self) -> Dict[str, Any]:
         """
