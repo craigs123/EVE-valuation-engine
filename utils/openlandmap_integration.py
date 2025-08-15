@@ -278,19 +278,20 @@ class OpenLandMapIntegrator:
     
     def _calculate_sample_points(self, area_km2: float, sampling_frequency: float = 1.0) -> int:
         """
-        Calculate number of sample points with maximum limit instead of area limit
-        Ensures even distribution across areas of any size
-        Maximum sample points: 100 (no area size restriction)
+        Calculate number of sample points based on area size and sampling frequency
+        - Areas ≤ 10,000 hectares: Use user-defined sampling frequency
+        - Areas > 10,000 hectares: Use maximum 100 sample points for even distribution
         """
         # Convert km2 to hectares (1 km2 = 100 hectares)
         area_hectares = area_km2 * 100
         
-        # Calculate desired sample points based on user-defined frequency
-        desired_points = max(4, int(area_hectares * sampling_frequency / 100))
-        
-        # Apply maximum sample limit (100 points) instead of area limit
-        max_sample_points = 100
-        target_points = min(desired_points, max_sample_points)
+        # For areas larger than 10,000 hectares, use maximum sample points
+        if area_hectares > 10000:
+            target_points = 100  # Use maximum for large areas
+        else:
+            # For smaller areas, use user-defined sampling frequency
+            desired_points = max(4, int(area_hectares * sampling_frequency / 100))
+            target_points = min(desired_points, 100)  # Still cap at 100
         
         # Round to nearest perfect square for grid generation
         grid_size = int(np.sqrt(target_points))

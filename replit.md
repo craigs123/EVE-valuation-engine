@@ -10,7 +10,7 @@ Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
-Sampling preference: User-customizable sampling density (0.25-4.0 points per 100 hectares) with visual guidance on speed vs. accuracy trade-offs.
+Sampling preference: User-customizable sampling density (0.25-4.0 points per 100 hectares) for areas ≤10,000 hectares, with automatic maximum sampling for larger areas.
 
 ## System Architecture
 
@@ -35,10 +35,10 @@ Sampling preference: User-customizable sampling density (0.25-4.0 points per 100
 - **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services with authentic economic coefficients
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
-- **User-Configurable Sampling**: Customizable sampling density (0.25-4.0 points per 100 hectares) with maximum 100 sample points and real-time estimation
+- **Hybrid Sampling Strategy**: User-configurable density for areas ≤10,000 hectares, automatic maximum sampling for larger areas, with 100 sample point limit
 - **Multi-Ecosystem Analysis**: Grid-based spatial analysis for detecting and valuing multiple ecosystem types with area-proportional weighting
 - **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
-- **Flexible Ecosystem Detection**: User-configurable sampling density with maximum 100 sample points, allowing analysis of areas of any size
+- **Adaptive Ecosystem Detection**: User-configurable sampling for smaller areas, automatic optimal sampling for large areas, supporting analysis of any area size
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
