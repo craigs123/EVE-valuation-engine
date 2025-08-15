@@ -280,18 +280,18 @@ class OpenLandMapIntegrator:
         """
         Calculate number of sample points based on area size and sampling frequency
         - Areas ≤ 10,000 hectares: Use user-defined sampling frequency
-        - Areas > 10,000 hectares: Use maximum 100 sample points for even distribution
+        - Areas > 10,000 hectares: Use maximum 400 sample points for even distribution
         """
         # Convert km2 to hectares (1 km2 = 100 hectares)
         area_hectares = area_km2 * 100
         
         # For areas larger than 10,000 hectares, use maximum sample points
         if area_hectares > 10000:
-            target_points = 100  # Use maximum for large areas
+            target_points = 400  # Use maximum for large areas (consistent with max user setting)
         else:
             # For smaller areas, use user-defined sampling frequency
             desired_points = max(4, int(area_hectares * sampling_frequency / 100))
-            target_points = min(desired_points, 100)  # Still cap at 100
+            target_points = min(desired_points, 400)  # Cap at 400 for consistency
         
         # Round to nearest perfect square for grid generation
         grid_size = int(np.sqrt(target_points))
