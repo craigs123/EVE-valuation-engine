@@ -175,8 +175,12 @@ class OpenLandMapIntegrator:
             if not coordinates or len(coordinates) < 3:
                 return self._default_ecosystem_result()
             
+            # Calculate area and determine appropriate sample density
+            area_km2 = self._calculate_area_km2(coordinates)
+            num_points = self._calculate_sample_points(area_km2)
+            
             # Generate sample points within the polygon
-            sample_points = self._generate_sample_points(coordinates, num_points=4)
+            sample_points = self._generate_sample_points(coordinates, num_points=num_points)
             
             ecosystem_results = []
             successful_queries = 0
@@ -256,6 +260,45 @@ class OpenLandMapIntegrator:
             center_lat = np.mean([coord[1] for coord in coordinates[:-1]])
             center_lon = np.mean([coord[0] for coord in coordinates[:-1]])
             return [(center_lat, center_lon)]
+    
+    def _calculate_area_km2(self, coordinates: List[List[float]]) -> float:
+        """
+        Calculate approximate area of polygon in square kilometers
+        """
+        try:
+            coords = np.array(coordinates[:-1])  # Remove last duplicate point
+            # Simple polygon area calculation using shoelace formula
+            # Convert to approximate km using 111.32 km per degree
+            x = coords[:, 0] * 111.32  # longitude to km (approximate)
+            y = coords[:, 1] * 111.32  # latitude to km
+            area_km2 = 0.5 * abs(sum(x[i]*y[i+1] - x[i+1]*y[i] for i in range(-1, len(x)-1)))
+            return area_km2
+        except:
+            return 1.0  # Default 1 km2 if calculation fails
+    
+    def _calculate_sample_points(self, area_km2: float) -> int:
+        """
+        Calculate number of sample points based on area size
+        Target: 1 sample point per 100 hectares (1 km2)
+        Maximum area limit: 10,000 hectares (100 km2)
+        Maximum sample points: 100
+        """
+        # Convert km2 to hectares (1 km2 = 100 hectares)
+        area_hectares = area_km2 * 100
+        
+        # Check maximum area limit (10,000 hectares = 100 km2)
+        max_area_hectares = 10000
+        if area_hectares > max_area_hectares:
+            raise ValueError(f"Selected area ({area_hectares:,.0f} ha) exceeds maximum limit of {max_area_hectares:,.0f} hectares. Please select a smaller area.")
+        
+        # Calculate sample points: 1 point per 100 hectares, minimum 4, maximum 100
+        target_points = max(4, min(100, int(area_hectares / 100)))
+        
+        # Round to nearest perfect square for grid generation
+        grid_size = int(np.sqrt(target_points))
+        actual_points = grid_size ** 2
+        
+        return max(4, actual_points)  # Ensure minimum of 4 points
     
     def _default_ecosystem_result(self) -> Dict:
         """

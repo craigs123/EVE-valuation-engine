@@ -306,96 +306,102 @@ with col2:
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
-    with st.spinner("Analyzing ecosystem and calculating values..."):
-        # Detect ecosystem type if auto-detection is enabled
-        ecosystem_type = st.session_state.ecosystem_override
-        
-        if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
-            try:
-                from utils.openlandmap_integration import detect_ecosystem_type
-                
-                # Show detection progress
-                st.info("🔍 Detecting ecosystem type using OpenLandMap...")
-                
-                ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates)
-                st.session_state.detected_ecosystem = ecosystem_info
-                ecosystem_type = ecosystem_info['primary_ecosystem']
-                
-                # Show detection results with details
-                if ecosystem_info['successful_queries'] > 0:
-                    st.success(f"✅ **Detected: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']} sample points)")
-                    st.info(f"📊 Coverage: {ecosystem_info.get('coverage_percentage', 100):.0f}% | Source: {ecosystem_info.get('source', 'OpenLandMap')}")
-                else:
-                    st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
-                        
-            except Exception as e:
-                st.warning(f"⚠️ OpenLandMap detection failed: {str(e)}")
-                st.info("🗺️ **Using fallback: Grassland** (Geographic analysis)")
-                ecosystem_type = "Grassland"
-                # Store fallback detection info
-                st.session_state.detected_ecosystem = {
-                    'primary_ecosystem': 'Grassland',
-                    'confidence': 0.5,
-                    'successful_queries': 0,
-                    'source': 'Geographic fallback',
-                    'coverage_percentage': 100
-                }
-        
-        # Calculate ecosystem values immediately
-        
-        # Calculate area if needed
-        if 'area_ha' not in locals():
-            coords = np.array(st.session_state.area_coordinates)
-            area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-        
-        # Calculate authentic ecosystem values using ESVD database
-        from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
-        
-        # Get center coordinates for regional adjustment
+    # Check area size limits before proceeding
+    try:
         coords = np.array(st.session_state.area_coordinates)
-        center_lat = np.mean([coord[1] for coord in coords[:-1]])
-        center_lon = np.mean([coord[0] for coord in coords[:-1]])
+        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
         
-        # Check if we have mixed ecosystem data for weighted calculation
-        if (st.session_state.get('detected_ecosystem') and 
-            'ecosystem_distribution' in st.session_state.detected_ecosystem and
-            len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
-            
-            # Use mixed ecosystem calculation with proper weighting
-            ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
-            st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
-            
-            # Show composition breakdown
-            for eco_type, data in ecosystem_distribution.items():
-                proportion = data['count'] / st.session_state.detected_ecosystem['successful_queries'] * 100
-                st.write(f"   • {eco_type}: {proportion:.0f}% ({data['count']} sample points)")
-            
-            esvd_results = calculate_mixed_ecosystem_services_value(
-                ecosystem_distribution=ecosystem_distribution,
-                area_hectares=area_ha,
-                coordinates=(center_lat, center_lon)
-            )
+        if area_ha > 10000:
+            st.error(f"⚠️ Selected area ({area_ha:,.0f} hectares) exceeds the maximum limit of 10,000 hectares. Please select a smaller area for accurate and timely analysis.")
+            st.info("💡 **Why the limit?** Larger areas require more sample points for accurate ecosystem detection, which increases processing time. The 10,000 hectare limit ensures fast, reliable results.")
         else:
-            # Single ecosystem calculation
-            esvd_results = calculate_ecosystem_services_value(
-                ecosystem_type=ecosystem_type,
-                area_hectares=area_ha,
-                coordinates=(center_lat, center_lon)
-            )
-        
-        # Store comprehensive analysis results
-        st.session_state.analysis_results = {
-            'total_value': int(esvd_results['metadata']['total_value']),
-            'area_ha': area_ha,
-            'ecosystem_type': ecosystem_type,
-            'esvd_results': esvd_results,
-            'value_per_ha': esvd_results['metadata']['value_per_hectare'],
-            'data_source': 'ESVD/TEEB Database',
-            'regional_factor': esvd_results['metadata']['regional_adjustment']
-        }
-        st.success("Analysis complete!")
-        st.rerun()
+            with st.spinner("Analyzing ecosystem and calculating values..."):
+                # Detect ecosystem type if auto-detection is enabled
+                ecosystem_type = st.session_state.ecosystem_override
+                
+                if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+                    try:
+                        from utils.openlandmap_integration import detect_ecosystem_type
+                        
+                        # Show detection progress
+                        st.info("🔍 Detecting ecosystem type using OpenLandMap...")
+                        
+                        ecosystem_info = detect_ecosystem_type(st.session_state.area_coordinates)
+                        st.session_state.detected_ecosystem = ecosystem_info
+                        ecosystem_type = ecosystem_info['primary_ecosystem']
+                        
+                        # Show detection results with details
+                        if ecosystem_info['successful_queries'] > 0:
+                            st.success(f"✅ **Detected: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']} sample points)")
+                            st.info(f"📊 Coverage: {ecosystem_info.get('coverage_percentage', 100):.0f}% | Source: {ecosystem_info.get('source', 'OpenLandMap')}")
+                        else:
+                            st.info(f"🗺️ **Detected: {ecosystem_type}** (Geographic analysis - OpenLandMap unavailable)")
+                            
+                    except Exception as e:
+                        st.warning(f"⚠️ OpenLandMap detection failed: {str(e)}")
+                        st.info("🗺️ **Using fallback: Grassland** (Geographic analysis)")
+                        ecosystem_type = "Grassland"
+                        # Store fallback detection info
+                        st.session_state.detected_ecosystem = {
+                            'primary_ecosystem': 'Grassland',
+                            'confidence': 0.5,
+                            'successful_queries': 0,
+                            'source': 'Geographic fallback',
+                            'coverage_percentage': 100
+                        }
+                
+                # Calculate authentic ecosystem values using ESVD database
+                from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
+                
+                # Get center coordinates for regional adjustment
+                center_lat = float(np.mean([coord[1] for coord in coords[:-1]]))
+                center_lon = float(np.mean([coord[0] for coord in coords[:-1]]))
+                
+                # Check if we have mixed ecosystem data for weighted calculation
+                if (st.session_state.get('detected_ecosystem') and 
+                    'ecosystem_distribution' in st.session_state.detected_ecosystem and
+                    len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
+                    
+                    # Use mixed ecosystem calculation with proper weighting
+                    ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
+                    st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
+                    
+                    # Show composition breakdown
+                    for eco_type, data in ecosystem_distribution.items():
+                        proportion = data['count'] / st.session_state.detected_ecosystem['successful_queries'] * 100
+                        st.write(f"   • {eco_type}: {proportion:.0f}% ({data['count']} sample points)")
+                    
+                    esvd_results = calculate_mixed_ecosystem_services_value(
+                        ecosystem_distribution=ecosystem_distribution,
+                        area_hectares=area_ha,
+                        coordinates=(center_lat, center_lon)
+                    )
+                else:
+                    # Single ecosystem calculation
+                    esvd_results = calculate_ecosystem_services_value(
+                        ecosystem_type=ecosystem_type,
+                        area_hectares=area_ha,
+                        coordinates=(center_lat, center_lon)
+                    )
+                
+                # Store comprehensive analysis results
+                st.session_state.analysis_results = {
+                    'total_value': int(esvd_results['metadata']['total_value']),
+                    'area_ha': area_ha,
+                    'ecosystem_type': ecosystem_type,
+                    'esvd_results': esvd_results,
+                    'value_per_ha': esvd_results['metadata']['value_per_hectare'],
+                    'data_source': 'ESVD/TEEB Database',
+                    'regional_factor': esvd_results['metadata']['regional_adjustment']
+                }
+                
+                st.success("Analysis complete!")
+                st.rerun()
+                
+    except Exception as e:
+        st.error(f"Error processing area: {e}")
+        st.info("Please try selecting the area again.")
 
 # Display results if available
 if st.session_state.analysis_results:
@@ -517,7 +523,7 @@ if st.session_state.analysis_results:
                     st.markdown(f"""
                     - **Confidence**: {ecosystem_info.get('confidence', 0):.0%}
                     - **Coverage**: {ecosystem_info.get('coverage_percentage', 0):.0f}% of selected area
-                    - **Sample Points**: {ecosystem_info.get('successful_queries', 0)} analyzed
+                    - **Sample Points**: {ecosystem_info.get('successful_queries', 0)} of {ecosystem_info.get('total_samples', 4)} analyzed
                     - **Source**: {ecosystem_info.get('source', 'Geographic analysis')}
                     """)
                     
@@ -529,15 +535,16 @@ if st.session_state.analysis_results:
                 
                 st.markdown(f"""
                 **How Detection Works**:
-                1. **Coordinate Sampling**: Multiple points analyzed within your selected area
-                2. **OpenLandMap Integration**: Attempts to query global land cover databases
-                3. **Geographic Analysis**: Falls back to latitude/longitude-based ecosystem classification
-                4. **Confidence Assessment**: Based on data source quality and geographic consistency
+                1. **Area-Based Sampling**: Sample density scales with area size (1 point per 100 hectares)
+                2. **Grid Distribution**: Points arranged in grid pattern across your selected area  
+                3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
+                4. **Confidence Assessment**: Based on successful detections and data source quality
+                
+                **Area Limits**: Maximum 10,000 hectares (100 sample points) for optimal performance
                 
                 **Mixed Ecosystem Handling**:
                 When multiple ecosystem types are detected, the system calculates values for each type separately 
-                and combines them using area-weighted proportions. This ensures accurate economic valuation 
-                that reflects the actual ecosystem composition of your selected area.
+                and combines them using area-weighted proportions based on sample point distribution.
                 """)
         # Show data source and methodology
         st.info(f"📊 **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')} | **Regional Factor**: {results.get('regional_factor', 1.0):.2f}")

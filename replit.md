@@ -34,9 +34,10 @@ Map interaction preference: Single area selection that automatically saves, with
 - **Service Categories Analysis**: Tracks provisioning, regulating, cultural, and supporting services with authentic economic coefficients
 - **Regional Adjustment**: Applies geographic-specific adjustment factors for income, cost of living, and local economic conditions
 - **Time Series Processing**: Handles temporal analysis of ecosystem service value changes with quality-adjusted satellite data
-- **Multi-Ecosystem Analysis**: Advanced spatial grid analysis (4x4 sub-areas) for detecting and valuing multiple ecosystem types within selected areas
+- **Area-Based Sampling**: Dynamic sampling density scaling with area size (1 sample point per 100 hectares, maximum 10,000 hectares)
+- **Multi-Ecosystem Analysis**: Grid-based spatial analysis for detecting and valuing multiple ecosystem types with area-proportional weighting
 - **OpenLandMap Integration**: Authentic ecosystem detection using OpenLandMap.com global land cover data with 1-km resolution
-- **Automatic Ecosystem Detection**: Multi-point sampling within selected areas using OpenLandMap REST API for reliable ecosystem classification
+- **Automatic Ecosystem Detection**: Area-scaled sampling (1 point per 100 hectares) using OpenLandMap REST API with maximum area limit of 10,000 hectares for optimal performance
 
 ### Data Storage Solutions
 - **Sample Data**: JSON files containing predefined sample areas with expected metrics
