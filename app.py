@@ -151,7 +151,7 @@ with st.sidebar:
     else:
         st.caption("Select an area to see sampling estimation")
     
-    st.markdown('<p style="font-size: 0.8em; color: #666;">Current sampling: {} points/100ha (maximum of 100 sample points)</p>'.format(sampling_frequency), unsafe_allow_html=True)
+
     
     st.markdown("---")
     
@@ -171,6 +171,10 @@ col1, col2 = st.columns([3, 2])
 with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
+    
+    # Show current sampling setting above the map
+    current_sampling = st.session_state.get('sampling_frequency', 1.0)
+    st.markdown('<p style="font-size: 0.8em; color: #666;">Current sampling: {} points/100ha (maximum of 100 sample points)</p>'.format(current_sampling), unsafe_allow_html=True)
     
 
     
