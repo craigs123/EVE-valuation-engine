@@ -408,11 +408,21 @@ with col2:
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
-    # Check area size limits before proceeding
     try:
         coords = np.array(st.session_state.area_coordinates)
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
         area_ha = area_km2 * 100
+        
+        # Show progress bar container under the button
+        st.markdown("### 🔄 Analysis Progress")
+        
+        # Create progress elements that will be used throughout analysis
+        progress_container = st.empty()
+        
+        with progress_container.container():
+            progress_text = st.empty()
+            progress_bar = st.progress(0)
+            st.info("🔍 Starting ecosystem analysis...")
         
         with st.spinner("Analyzing ecosystem and calculating values..."):
             # Detect ecosystem type if auto-detection is enabled
@@ -438,16 +448,17 @@ if analyze_button and st.session_state.selected_area:
                     grid_size = int(np.sqrt(expected_points))
                     actual_expected_points = max(4, grid_size ** 2)
                     
-                    # Show detection progress with progress bar
-                    st.info("🔍 Detecting ecosystem type using OpenLandMap...")
-                    progress_text = st.empty()
-                    progress_bar = st.progress(0)
+                    # Update progress container for detection phase
+                    with progress_container.container():
+                        progress_text.info("🔍 Detecting ecosystem type using OpenLandMap...")
+                        progress_bar.progress(0)
                     
                     # Progress callback function
                     def update_progress(current_point, total_points):
                         progress = current_point / total_points
-                        progress_bar.progress(progress)
-                        progress_text.text(f"🌍 Sampling point {current_point}/{total_points} ({progress:.0%}) - Analyzing ecosystem data...")
+                        with progress_container.container():
+                            progress_bar.progress(progress)
+                            progress_text.text(f"🌍 Sampling point {current_point}/{total_points} ({progress:.0%}) - Analyzing ecosystem data...")
                     
                     ecosystem_info = detect_ecosystem_type(
                         st.session_state.area_coordinates, 
@@ -455,15 +466,14 @@ if analyze_button and st.session_state.selected_area:
                         progress_callback=update_progress
                     )
                     
-                    # Show completion and clear progress indicators
-                    progress_bar.progress(1.0)
-                    progress_text.text(f"✅ Analysis complete! Processed {ecosystem_info['total_samples']} sample points")
+                    # Show completion in progress container
+                    with progress_container.container():
+                        progress_bar.progress(1.0)
+                        progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']} sample points")
                     
-                    # Brief pause to show completion, then clear
+                    # Brief pause to show completion
                     import time
-                    time.sleep(0.5)
-                    progress_bar.empty()
-                    progress_text.empty()
+                    time.sleep(0.8)
                     
                     st.session_state.detected_ecosystem = ecosystem_info
                     ecosystem_type = ecosystem_info['primary_ecosystem']
@@ -518,6 +528,11 @@ if analyze_button and st.session_state.selected_area:
                         'coverage_percentage': 100
                     }
             
+            # Update progress for valuation phase
+            with progress_container.container():
+                progress_text.info("💰 Calculating ecosystem service values using ESVD database...")
+                progress_bar.progress(0.9)
+            
             # Calculate authentic ecosystem values using ESVD database
             from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
             
@@ -568,6 +583,16 @@ if analyze_button and st.session_state.selected_area:
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results['metadata']['regional_adjustment']
             }
+            
+            # Show final completion
+            with progress_container.container():
+                progress_bar.progress(1.0)
+                progress_text.success("🎉 Analysis complete! Economic valuation calculated successfully.")
+            
+            # Brief pause to show completion, then clear
+            import time
+            time.sleep(1.0)
+            progress_container.empty()
                 
         st.success("Analysis complete!")
         st.rerun()
