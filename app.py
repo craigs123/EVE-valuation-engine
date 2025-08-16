@@ -562,6 +562,7 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Create pie chart showing ecosystem composition
                 import plotly.express as px
+                import plotly.graph_objects as go
                 
                 # Prepare data for pie chart
                 ecosystems = []
@@ -574,27 +575,27 @@ if analyze_button and st.session_state.selected_area:
                     percentages.append(proportion)
                     sample_counts.append(data['count'])
                 
-                # Create interactive pie chart
-                fig = px.pie(
+                # Create interactive pie chart with fixed hover data
+                fig = go.Figure(data=[go.Pie(
+                    labels=ecosystems, 
                     values=percentages,
-                    names=ecosystems,
-                    title=f"Ecosystem Composition from {total_samples} Sample Points",
-                    hover_data={'Sample Points': sample_counts}
-                )
-                
-                fig.update_traces(
-                    textposition='inside', 
-                    textinfo='percent+label',
                     hovertemplate='<b>%{label}</b><br>' +
                                   'Percentage: %{percent}<br>' +
-                                  'Sample Points: %{customdata[0]}<br>' +
-                                  '<extra></extra>'
-                )
+                                  'Sample Points: %{customdata}<br>' +
+                                  '<extra></extra>',
+                    customdata=sample_counts,
+                    textposition='inside', 
+                    textinfo='percent+label'
+                )])
                 
                 fig.update_layout(
+                    title={
+                        'text': f"Ecosystem Composition from {total_samples} Sample Points",
+                        'x': 0.5,
+                        'xanchor': 'center'
+                    },
                     showlegend=True,
-                    height=400,
-                    title_x=0.5
+                    height=400
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
