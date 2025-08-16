@@ -289,7 +289,7 @@ with col1:
             new_hash = str(hash(str(coordinates)))
             
             if new_hash != current_hash:
-                # Minimal state update - defer all calculations
+                # Immediate state update without rerun to prevent delay
                 st.session_state.update({
                     'selected_area': latest_drawing,
                     'area_coordinates': coordinates,
@@ -297,7 +297,6 @@ with col1:
                     'analysis_results': None
                 })
                 st.success("Area selected - ready for analysis")
-                st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
@@ -435,7 +434,6 @@ if analyze_button and st.session_state.selected_area:
         with progress_container.container():
             progress_text = st.empty()
             progress_bar = st.progress(0)
-            st.info("🔍 Starting ecosystem analysis - this may take a few moments...")
         
         with st.spinner("Please wait - Analyzing ecosystem and calculating values..."):
             # Detect ecosystem type if auto-detection is enabled
@@ -451,12 +449,12 @@ if analyze_button and st.session_state.selected_area:
                     area_hectares = area_km2 * 100
                     
                     # Use user-defined sample limit for all areas
-                    max_limit = st.session_state.get('max_sampling_limit', 50)
+                    max_limit = st.session_state.get('max_sampling_limit', 10)
                     expected_points = max_limit
                     
                     # Round to nearest perfect square for grid generation
                     grid_size = int(np.sqrt(expected_points))
-                    actual_expected_points = max(4, grid_size ** 2)
+                    actual_expected_points = max(9, grid_size ** 2)  # Ensure minimum 9 points (3x3 grid)
                     
                     # Update progress container for detection phase
                     with progress_container.container():
