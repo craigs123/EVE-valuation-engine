@@ -142,7 +142,7 @@ with st.sidebar:
         "Sample Points",
         min_value=10,
         max_value=100,
-        value=st.session_state.get('max_sampling_limit', 50),
+        value=st.session_state.get('max_sampling_limit', 10),
         step=10,
         help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
     )
