@@ -7,6 +7,8 @@ import requests
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 import json
+import time  # Move import to top for performance
+from collections import Counter  # For efficient counting
 try:
     import ee
     EE_AVAILABLE = True
@@ -643,26 +645,32 @@ class OpenLandMapIntegrator:
                     ecosystem_results.append(result)
                     successful_queries += 1
                 
-                # Small delay to show progress for better user experience
-                if progress_callback and len(sample_points) > 4:
-                    import time
-                    time.sleep(0.1)  # 100ms delay between samples
+                # Reduced delay for better performance while maintaining UX
+                if progress_callback and len(sample_points) > 10:
+                    time.sleep(0.02)  # 20ms delay only for larger sample sets
             
             if not ecosystem_results:
                 return self._default_ecosystem_result()
             
-            # Determine dominant ecosystem type
+            # Determine dominant ecosystem type (optimized)
             ecosystem_counts = {}
             total_confidence = 0
+            
+            # Use collections.Counter for better performance
+            from collections import Counter
+            ecosystem_types = [result['ecosystem_type'] for result in ecosystem_results]
+            type_counts = Counter(ecosystem_types)
             
             for result in ecosystem_results:
                 ecosystem_type = result['ecosystem_type']
                 confidence = result['confidence']
                 
                 if ecosystem_type not in ecosystem_counts:
-                    ecosystem_counts[ecosystem_type] = {'count': 0, 'confidence': 0}
+                    ecosystem_counts[ecosystem_type] = {
+                        'count': type_counts[ecosystem_type], 
+                        'confidence': 0
+                    }
                 
-                ecosystem_counts[ecosystem_type]['count'] += 1
                 ecosystem_counts[ecosystem_type]['confidence'] += confidence
                 total_confidence += confidence
             
@@ -690,25 +698,34 @@ class OpenLandMapIntegrator:
     
     def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 4) -> List[Tuple[float, float]]:
         """
-        Generate sample points within a polygon for ecosystem analysis
+        Generate sample points within a polygon for ecosystem analysis (optimized)
         """
         try:
-            # Convert to numpy array
-            coords = np.array(coordinates[:-1])  # Remove last duplicate point
+            # Convert to numpy array efficiently
+            coords = np.array(coordinates[:-1], dtype=np.float32)  # Use float32 for performance
             
-            # Calculate bounding box
-            min_lon, min_lat = coords.min(axis=0)
-            max_lon, max_lat = coords.max(axis=0)
+            # Calculate bounding box efficiently
+            min_coords = coords.min(axis=0)
+            max_coords = coords.max(axis=0)
+            min_lon, min_lat = min_coords[0], min_coords[1]
+            max_lon, max_lat = max_coords[0], max_coords[1]
             
-            # Generate grid of points
-            points = []
+            # Generate grid of points using vectorized operations
             grid_size = int(np.sqrt(num_points))
+            if grid_size == 0:
+                grid_size = 1
             
-            for i in range(grid_size):
-                for j in range(grid_size):
-                    lat = min_lat + (max_lat - min_lat) * (i + 0.5) / grid_size
-                    lon = min_lon + (max_lon - min_lon) * (j + 0.5) / grid_size
-                    points.append((lat, lon))
+            # Create coordinate grids
+            i_vals = np.arange(grid_size)
+            j_vals = np.arange(grid_size)
+            
+            # Vectorized point generation
+            lats = min_lat + (max_lat - min_lat) * (i_vals + 0.5) / grid_size
+            lons = min_lon + (max_lon - min_lon) * (j_vals + 0.5) / grid_size
+            
+            # Create all combinations efficiently
+            lat_grid, lon_grid = np.meshgrid(lats, lons, indexing='ij')
+            points = list(zip(lat_grid.flatten(), lon_grid.flatten()))
             
             return points
             

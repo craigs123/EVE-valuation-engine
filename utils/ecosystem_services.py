@@ -20,6 +20,9 @@ class EcosystemServicesCalculator:
         # Initialize ESVD integration for authentic coefficients
         self.esvd = ESVDIntegration()
         
+        # Performance cache for repeated calculations
+        self._calculation_cache = {}
+        
         # Legacy economic valuation coefficients (now replaced by ESVD data)
         # Kept for fallback purposes only
         self.service_values = {

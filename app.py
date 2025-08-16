@@ -164,11 +164,15 @@ with st.sidebar:
     else:
         st.warning("🔴 **Maximum Sampling**: Highest accuracy, slower processing")
     
-    # Display sampling info
+    # Display sampling info (optimized with cached area calculation)
     if st.session_state.get('area_coordinates'):
-        coords = np.array(st.session_state.area_coordinates)
-        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-        area_ha = area_km2 * 100
+        # Use cached area if available, otherwise calculate once
+        if 'cached_area_ha' in st.session_state:
+            area_ha = st.session_state.cached_area_ha
+        else:
+            coords = np.array(st.session_state.area_coordinates)
+            area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
         
         # All areas use the user-defined sample limit
         grid_size = int(np.sqrt(max_sampling_limit))
@@ -208,7 +212,7 @@ with st.sidebar:
         keys_to_clear = [
             'analysis_results', 'selected_area', 'area_coordinates',
             'cached_bbox', 'cached_area_ha', 'detected_ecosystem',
-            'bbox_coords', 'area_coords_cache'
+            'bbox_coords', 'area_coords_cache', 'cached_ecosystem_results'
         ]
         for key in keys_to_clear:
             if key in st.session_state:
@@ -225,9 +229,9 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Show current sampling setting above the map
-    current_sampling = st.session_state.get('sampling_frequency', 1.0)
-    st.markdown('<p style="font-size: 0.8em; color: #666;">Current sampling: {} points/100ha (maximum of 100 sample points)</p>'.format(current_sampling), unsafe_allow_html=True)
+    # Show current sampling setting above the map (optimized)
+    current_limit = st.session_state.get('max_sampling_limit', 10)
+    st.markdown(f'<p style="font-size: 0.8em; color: #666;">Current sampling: {current_limit} sample points</p>', unsafe_allow_html=True)
     
 
     
@@ -298,7 +302,8 @@ with col1:
                     'analysis_results': None,
                     # Clear caches to force recalculation
                     'cached_bbox': None,
-                    'cached_area_ha': None
+                    'cached_area_ha': None,
+                    'cached_ecosystem_results': None
                 })
                 
                 # Quick area display (will be properly calculated in preview section)
@@ -465,9 +470,13 @@ with col2:
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
     try:
-        coords = np.array(st.session_state.area_coordinates)
-        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-        area_ha = area_km2 * 100
+        # Use cached area calculation if available
+        if 'cached_area_ha' in st.session_state:
+            area_ha = st.session_state.cached_area_ha
+        else:
+            coords = np.array(st.session_state.area_coordinates)
+            area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+            area_ha = area_km2 * 100
         
         # Show progress bar container under the button
         st.markdown("### 🔄 Analysis Progress")
@@ -489,10 +498,8 @@ if analyze_button and st.session_state.selected_area:
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
                     
-                    # Calculate expected sample points for progress tracking
-                    coords = np.array(st.session_state.area_coordinates)
-                    area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_hectares = area_km2 * 100
+                    # Use cached area calculation for performance
+                    area_hectares = area_ha
                     
                     # Use user-defined sample limit for all areas
                     max_limit = st.session_state.get('max_sampling_limit', 10)
@@ -526,9 +533,9 @@ if analyze_button and st.session_state.selected_area:
                         progress_bar.progress(1.0)
                         progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']} sample points")
                     
-                    # Brief pause to show completion
+                    # Brief pause to show completion (reduced for performance)
                     import time
-                    time.sleep(0.8)
+                    time.sleep(0.3)
                     
                     st.session_state.detected_ecosystem = ecosystem_info
                     ecosystem_type = ecosystem_info['primary_ecosystem']
