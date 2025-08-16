@@ -13,8 +13,12 @@ def setup_earth_engine():
     try:
         print("Step 1: Attempting to authenticate with Earth Engine...")
         
-        # This will trigger the authentication flow
-        ee.Authenticate()
+        # Try notebook authentication mode
+        try:
+            ee.Authenticate(auth_mode='notebook')
+        except Exception:
+            # Fallback to standard authentication
+            ee.Authenticate()
         
         print("Step 2: Initializing Earth Engine...")
         ee.Initialize()

@@ -82,11 +82,26 @@ try:
         st.info("Currently using enhanced geographic detection (90% accuracy)")
         with st.expander("🛠️ Enable ESA WorldCover Satellite Data"):
             st.write("**To unlock authentic 10m resolution satellite land cover data:**")
-            st.code("earthengine authenticate", language="bash")
-            st.write("1. Run the command above in your terminal")
-            st.write("2. Complete the browser authentication flow")
-            st.write("3. Refresh this page to activate satellite data")
-            st.write("**Benefits:** True satellite-derived ecosystem classification with 95% confidence")
+            
+            tab1, tab2 = st.tabs(["Notebook Authentication", "Terminal Authentication"])
+            
+            with tab1:
+                st.write("**Recommended for this environment:**")
+                st.code("earthengine authenticate --auth_mode=notebook", language="bash")
+                st.write("1. Run the command above")
+                st.write("2. Open the provided URL in your browser")
+                st.write("3. Copy the verification code")
+                st.write("4. Paste it when prompted")
+                st.write("5. Refresh this page to activate satellite data")
+            
+            with tab2:
+                st.write("**Standard authentication:**")
+                st.code("earthengine authenticate", language="bash")
+                st.write("1. Run the command above in your terminal")
+                st.write("2. Complete the browser authentication flow")
+                st.write("3. Refresh this page to activate satellite data")
+            
+            st.success("**Benefits:** True satellite-derived ecosystem classification with 95% confidence")
         esa_available = False
 except ImportError:
     st.info("📍 Using enhanced geographic detection (90% accuracy)")
