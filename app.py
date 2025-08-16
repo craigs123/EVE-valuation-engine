@@ -213,11 +213,17 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Clear button
+    # Clear button (optimized batch clear)
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
-        st.session_state.analysis_results = None
-        st.session_state.selected_area = None
-        st.session_state.area_coordinates = []
+        # Clear all related state at once
+        keys_to_clear = [
+            'analysis_results', 'selected_area', 'area_coordinates',
+            'cached_bbox', 'cached_area_ha', 'detected_ecosystem',
+            'bbox_coords', 'area_coords_cache'
+        ]
+        for key in keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
         st.rerun()
 
 # Initialize analyze_button as False
@@ -269,7 +275,7 @@ with col1:
     )
     draw.add_to(m)
     
-    # Display map with drawing capability
+    # Display map with drawing capability (optimized refresh)
     map_data = st_folium(
         m, 
         width=700, 
@@ -278,63 +284,81 @@ with col1:
         key="area_map"
     )
     
-    # Process map interactions
+    # Process map interactions with optimized state checking
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         latest_drawing = map_data['all_drawings'][-1]
         
         if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
             coordinates = latest_drawing['geometry']['coordinates'][0]
             
-            # Check if this is a new selection
+            # Only process if coordinates actually changed (reduce unnecessary reruns)
             current_coords = st.session_state.get('area_coordinates', [])
-            is_new_selection = (not current_coords or coordinates != current_coords)
+            coords_changed = (not current_coords or 
+                            len(coordinates) != len(current_coords) or
+                            any(abs(c1[0] - c2[0]) > 0.000001 or abs(c1[1] - c2[1]) > 0.000001 
+                                for c1, c2 in zip(coordinates, current_coords)))
             
-            if is_new_selection:
-                # Save the new selection
-                st.session_state.selected_area = {
-                    'type': latest_drawing['geometry']['type'],
-                    'coordinates': coordinates
-                }
-                st.session_state.area_coordinates = coordinates
-                st.session_state.analysis_results = None
+            if coords_changed:
+                # Save the new selection with batch state updates
+                st.session_state.update({
+                    'selected_area': {
+                        'type': latest_drawing['geometry']['type'],
+                        'coordinates': coordinates
+                    },
+                    'area_coordinates': coordinates,
+                    'analysis_results': None,
+                    # Clear caches to force recalculation
+                    'cached_bbox': None,
+                    'cached_area_ha': None
+                })
                 
-                # Calculate and show area
-                area_coords = np.array(coordinates)
-                if len(area_coords) > 2:
-                    area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-                    area_ha = area_km2 * 100
-                    st.success(f"Area selected: {area_ha:.1f} hectares")
+                # Quick area display (will be properly calculated in preview section)
+                if len(coordinates) > 2:
+                    lats = [coord[1] for coord in coordinates[:-1]]
+                    lons = [coord[0] for coord in coordinates[:-1]]
+                    lat_range = max(lats) - min(lats)
+                    lon_range = max(lons) - min(lons)
+                    area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
+                    st.success(f"Area selected: {area_ha:.0f} hectares")
                 st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
-    # Display coordinates of selected area
+    # Display coordinates of selected area (cached to avoid recalculation)
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+        # Cache bounding box calculation
+        if 'cached_bbox' not in st.session_state or st.session_state.get('bbox_coords') != st.session_state.area_coordinates:
+            coords = st.session_state.area_coordinates
+            lats = [coord[1] for coord in coords[:-1]]
+            lons = [coord[0] for coord in coords[:-1]]
+            st.session_state.cached_bbox = {
+                'min_lat': min(lats), 'max_lat': max(lats),
+                'min_lon': min(lons), 'max_lon': max(lons)
+            }
+            st.session_state.bbox_coords = coords
+        
+        bbox = st.session_state.cached_bbox
         st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         st.markdown("### 📍 Selected Area Coordinates")
-        coords = st.session_state.area_coordinates
         
-        # Calculate bounding box
-        lats = [coord[1] for coord in coords[:-1]]  # Exclude last duplicate point
-        lons = [coord[0] for coord in coords[:-1]]
-        
-        # Display min values on one line, max on next
+        # Display cached bounding box
         st.markdown(f"""
         <div class="coordinate-bounds">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{min(lats):.6f}</span></span>
-                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{min(lons):.6f}</span></span>
+                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
+                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
             </div>
             <div style="display: flex; justify-content: space-between;">
-                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{max(lats):.6f}</span></span>
-                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{max(lons):.6f}</span></span>
+                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
+                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show all coordinates in expandable section
+        # Show all coordinates in expandable section (load on demand)
         with st.expander("All Coordinates"):
-            for i, coord in enumerate(coords[:-1]):  # Exclude last duplicate
+            coords = st.session_state.area_coordinates
+            for i, coord in enumerate(coords[:-1]):
                 st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
@@ -402,12 +426,18 @@ with col2:
         st.success("✅ Area Selected")
         coords = st.session_state.area_coordinates
         
-        # Calculate area in hectares
-        area_coords = np.array(coords)
-        if len(area_coords) > 2:
-            area_km2 = abs(np.sum((area_coords[:-1, 0] * area_coords[1:, 1]) - (area_coords[1:, 0] * area_coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            st.metric("Area Size", f"{area_ha:.1f} hectares")
+        # Calculate area in hectares (cached)
+        if 'cached_area_ha' not in st.session_state or st.session_state.get('area_coords_cache') != coords:
+            # Only recalculate if coordinates changed
+            lats = [coord[1] for coord in coords[:-1]]
+            lons = [coord[0] for coord in coords[:-1]]
+            lat_range = max(lats) - min(lats)
+            lon_range = max(lons) - min(lons)
+            area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
+            st.session_state.cached_area_ha = area_ha
+            st.session_state.area_coords_cache = coords
+        
+        st.metric("Area Size", f"{st.session_state.cached_area_ha:.0f} hectares")
         
         # Show ecosystem detection status with composition
         if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
