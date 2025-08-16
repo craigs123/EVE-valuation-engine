@@ -105,12 +105,12 @@ class OpenLandMapIntegrator:
         try:
             if not EE_AVAILABLE:
                 return None
-                
-            # Initialize Earth Engine (requires authentication)
+            
+            # Initialize Earth Engine with error handling
             try:
                 ee.Initialize()
-            except Exception:
-                # Try service account authentication or skip if not available
+            except Exception as init_error:
+                # Authentication not complete, return None to use fallback
                 return None
             
             # Load WorldCover 2021 dataset (latest version)
@@ -126,8 +126,12 @@ class OpenLandMapIntegrator:
                 numPixels=1
             ).first()
             
-            # Get the land cover value
-            lc_value = sample.get('Map').getInfo()
+            # Get the land cover value safely
+            map_property = sample.get('Map')
+            if map_property is None:
+                return None
+                
+            lc_value = map_property.getInfo()
             
             # ESA WorldCover class mapping to ecosystem types
             esa_to_ecosystem = {
@@ -154,8 +158,8 @@ class OpenLandMapIntegrator:
             }
             
         except Exception as e:
-            # Earth Engine authentication failed - try alternative ESA WorldCover access
-            return self._try_esa_worldcover_alternative(lat, lon)
+            # Earth Engine error - use fallback
+            return None
     
     def _try_esa_worldcover_alternative(self, lat: float, lon: float) -> Optional[Dict]:
         """
@@ -170,15 +174,6 @@ class OpenLandMapIntegrator:
             
         except Exception:
             return None
-    
-    def _default_ecosystem_result(self) -> Dict:
-        """Return default ecosystem result"""
-        return {
-            'landcover_class': 10,
-            'ecosystem_type': "Grassland",
-            'confidence': 0.6,
-            'source': 'Default Fallback'
-        }
     
     def _try_usgs_nlcd_api(self, lat: float, lon: float) -> Optional[Dict]:
         """
