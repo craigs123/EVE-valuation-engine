@@ -210,6 +210,10 @@ with st.sidebar:
             'analysis_results', 'selected_area', 'area_coordinates', 'coord_hash',
             'cached_area', 'cached_coord_hash', 'detected_ecosystem'
         ]
+        # Also clear any cached breakdown data
+        for key in list(st.session_state.keys()):
+            if key.startswith('cached_breakdown_'):
+                keys_to_clear.append(key)
         for key in keys_to_clear:
             if key in st.session_state:
                 del st.session_state[key]
@@ -751,52 +755,35 @@ if st.session_state.analysis_results:
                             confidence = data['confidence'] / data['count'] if data['count'] > 0 else 0
                             st.markdown(f"- {ecosystem}: {data['count']} sample points, {confidence:.0%} avg confidence")
                 
-                st.markdown(f"""
+                st.markdown("""
                 **How Detection Works**:
-                1. **Area-Based Sampling**: Sample density scales with area size (1 point per 100 hectares)
-                2. **Grid Distribution**: Points arranged in grid pattern across your selected area  
-                3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
-                4. **Confidence Assessment**: Based on successful detections and data source quality
-                
-                **Sample Limit**: Maximum 100 sample points for optimal performance
-                **Sampling Density**: Currently {st.session_state.get('sampling_frequency', 1.0)} points per 100 hectares
+                1. **Grid Sampling**: Even distribution across selected area
+                2. **OpenLandMap Integration**: Global land cover database queries
+                3. **Confidence Assessment**: Based on successful detections
                 
                 **Mixed Ecosystem Handling**:
-                When multiple ecosystem types are detected, the system calculates values for each type separately 
-                and combines them using area-weighted proportions based on sample point distribution.
+                Multiple ecosystem types are calculated separately and combined by area proportion.
                 """)
         # Show data source and methodology
         st.info(f"📊 **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')} | **Regional Factor**: {results.get('regional_factor', 1.0):.2f}")
         
         with st.expander("💡 Data sources and methodology"):
-            st.markdown(f"""
-            **Primary Data Sources**:
+            # Cache methodology text to avoid repeated formatting
+            if 'cached_methodology' not in st.session_state:
+                st.session_state.cached_methodology = f"""
+                **Primary Data Sources**:
+                
+                **ESVD (Ecosystem Services Valuation Database)**:
+                - 10,874+ peer-reviewed value estimates from 1,100+ studies
+                - Global coverage: 140+ countries, 15 biomes, 23 services
+                
+                **Regional Adjustment Factor: {results.get('regional_factor', 1.0):.2f}**:
+                Adjusts values for local income, cost of living, and data quality.
+                
+                **Calculation**: Base ESVD Coefficient × Area × Regional Factor
+                """
             
-            **ESVD (Ecosystem Services Valuation Database)**:
-            - World's largest open-access ecosystem services database
-            - 10,874+ peer-reviewed value estimates from 1,100+ scientific studies
-            - Global coverage: 140+ countries, 15 biomes, 23 ecosystem services
-            - Maintained by: Environmental Economics research community
-            
-            **TEEB (The Economics of Ecosystems and Biodiversity)**:
-            - Integrated within ESVD coefficients
-            - Focus on policy-relevant ecosystem service values
-            - Emphasis on biodiversity and natural capital accounting
-            
-            **Regional Adjustment Factor: {results.get('regional_factor', 1.0):.2f}**:
-            This factor adjusts base ESVD values for local conditions:
-            - Income adjustment: Regional purchasing power differences
-            - Cost of living: Local economic conditions and price levels
-            - Data quality: Availability and reliability of regional studies
-            
-            **Standardization**:
-            - All values converted to 2020 International dollars
-            - Per hectare per year basis for global comparability
-            - Quality assurance: Only peer-reviewed studies included
-            
-            **Calculation Formula**:
-            Final Value = (Base ESVD Coefficient) × (Area in hectares) × (Regional Factor)
-            """)
+            st.markdown(st.session_state.cached_methodology)
     
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
@@ -819,44 +806,28 @@ if st.session_state.analysis_results:
                         st.caption(f"${per_ha_category:.0f}/ha • {(total/results['total_value']*100):.0f}% of total" if results['total_value'] > 0 else f"${per_ha_category:.0f}/ha")
                         
                         with st.expander(f"💡 {category.title()} services breakdown"):
-                            st.markdown(f"**{category.title()} Services Calculation**")
+                            st.markdown(f"**{category.title()} Services**: ${total:,.0f}/year")
                             
-                            # Show individual service calculations
-                            for service, value in esvd_data[category].items():
-                                if service != 'total' and value > 0:
-                                    service_name = service.replace('_', ' ').title()
-                                    
-                                    # Get the base coefficient from ESVD
-                                    from utils.esvd_integration import ESVDIntegration
-                                    esvd_inst = ESVDIntegration()
-                                    ecosystem_mapped = esvd_inst.map_ecosystem_type(results['ecosystem_type'])
-                                    
-                                    if ecosystem_mapped and category in esvd_inst.esvd_coefficients:
-                                        base_coeff = esvd_inst.esvd_coefficients[category].get(service, {}).get(ecosystem_mapped, 0)
-                                        regional_factor = results.get('regional_factor', 1.0)
-                                        area_ha = results['area_ha']
-                                        
-                                        st.markdown(f"""
-                                        **{service_name}**: ${value:,.0f}/year
-                                        - Base ESVD coefficient: ${base_coeff}/ha/year
-                                        - Area: {area_ha:,.0f} hectares
-                                        - Regional adjustment factor: {regional_factor:.2f}
-                                        - Calculation: ${base_coeff} × {area_ha:,.0f} ha × {regional_factor:.2f} = ${value:,.0f}/year
-                                        """)
+                            # Show individual services (cached to avoid ESVD lookups on every render)
+                            if f'cached_breakdown_{category}' not in st.session_state:
+                                # Only do heavy ESVD lookups once and cache results
+                                from utils.esvd_integration import ESVDIntegration
+                                esvd_inst = ESVDIntegration()
+                                ecosystem_mapped = esvd_inst.map_ecosystem_type(results['ecosystem_type'])
+                                
+                                breakdown = {}
+                                for service, value in esvd_data[category].items():
+                                    if service != 'total' and value > 0:
+                                        service_name = service.replace('_', ' ').title()
+                                        breakdown[service_name] = value
+                                
+                                st.session_state[f'cached_breakdown_{category}'] = breakdown
                             
-                            # Add methodology explanation
-                            st.markdown(f"""
-                            **Methodology for {category.title()} Services:**
+                            # Display cached breakdown
+                            for service_name, value in st.session_state[f'cached_breakdown_{category}'].items():
+                                st.markdown(f"• **{service_name}**: ${value:,.0f}/year")
                             
-                            These values are derived from the ESVD (Ecosystem Services Valuation Database), which contains 
-                            10,874+ peer-reviewed value estimates from 1,100+ scientific studies. Each coefficient represents 
-                            the economic value of ecosystem services based on:
-                            
-                            - **Base Coefficients**: From peer-reviewed literature in ESVD/TEEB databases
-                            - **Regional Adjustment**: Accounts for local income levels, cost of living, and data quality
-                            - **Standardization**: All values in 2020 International dollars per hectare per year
-                            - **Quality Assurance**: Only peer-reviewed studies included in calculations
-                            """)
+                            st.caption("Values from ESVD/TEEB peer-reviewed database")
         # Option to switch to summary view
         st.markdown("---")
         if st.button("📊 Switch to Summary View", type="secondary"):
