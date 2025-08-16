@@ -208,7 +208,7 @@ with st.sidebar:
         # Clear all cached state efficiently
         keys_to_clear = [
             'analysis_results', 'selected_area', 'area_coordinates', 'coord_hash',
-            'cached_area', 'cached_coord_hash', 'detected_ecosystem', 'trigger_analysis'
+            'cached_area', 'cached_coord_hash', 'detected_ecosystem', 'force_analysis', 'analysis_triggered'
         ]
         # Also clear any cached breakdown data
         for key in list(st.session_state.keys()):
@@ -360,14 +360,14 @@ with col1:
         
         with col_button:
             st.write("") # spacing
-            st.write("") # additional spacing
             
-            # Simple button test - remove all extra parameters that might cause issues
-            if st.button("🚀 Calculate Value"):
-                st.session_state['trigger_analysis'] = True
-                st.rerun()
+            # Direct button implementation with immediate action
+            analyze_button = st.button("🚀 Calculate Value", key="calc_btn", type="primary")
             
-            analyze_button = st.session_state.get('trigger_analysis', False)
+            if analyze_button:
+                # Force immediate processing by setting flags
+                st.session_state.force_analysis = True
+                st.session_state.analysis_triggered = True
     else:
         # Show instruction when no area selected
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar to select an area.")
@@ -415,22 +415,19 @@ with col2:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
 
-# Debug button state and immediate action trigger
+# Direct analysis trigger - check both button click and forced analysis flag
+should_analyze = (analyze_button or st.session_state.get('force_analysis', False)) and st.session_state.get('selected_area')
+
 if st.session_state.get('selected_area'):
-    st.write(f"Debug: analyze_button = {analyze_button}, selected_area = {bool(st.session_state.selected_area)}")
-    
-    # Show button status immediately
-    if analyze_button:
-        st.success("Button clicked! Starting analysis...")
+    if should_analyze:
+        st.success("🚀 ANALYSIS STARTING - Button clicked successfully!")
+        # Clear the force flag to prevent repeated analysis
+        st.session_state.force_analysis = False
     else:
         st.info("Ready to analyze - click Calculate Value button above")
 
-# Clear the trigger after processing to prevent re-runs
-if analyze_button:
-    st.session_state['trigger_analysis'] = False
-
 # Analysis with OpenLandMap ecosystem detection
-if analyze_button and st.session_state.selected_area:
+if should_analyze:
     try:
         coords = np.array(st.session_state.area_coordinates)
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
