@@ -611,7 +611,7 @@ class OpenLandMapIntegrator:
         except:
             return self._default_ecosystem_result()
     
-    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, progress_callback=None) -> Dict:
+    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 100, progress_callback=None) -> Dict:
         """
         Analyze ecosystem type for a polygon area using multiple sample points
         
@@ -626,7 +626,7 @@ class OpenLandMapIntegrator:
             
             # Calculate area and determine appropriate sample density
             area_km2 = self._calculate_area_km2(coordinates)
-            num_points = self._calculate_sample_points(area_km2, sampling_frequency=sampling_frequency)
+            num_points = self._calculate_sample_points(area_km2, sampling_frequency=sampling_frequency, max_limit=max_sampling_limit)
             
             # Generate sample points within the polygon
             sample_points = self._generate_sample_points(coordinates, num_points=num_points)
@@ -734,7 +734,7 @@ class OpenLandMapIntegrator:
         except:
             return 1.0  # Default 1 km2 if calculation fails
     
-    def _calculate_sample_points(self, area_km2: float, sampling_frequency: float = 1.0) -> int:
+    def _calculate_sample_points(self, area_km2: float, sampling_frequency: float = 1.0, max_limit: int = 100) -> int:
         """
         Calculate number of sample points based on area size and sampling frequency
         - Areas ≤ 10,000 hectares: Use user-defined sampling frequency
@@ -745,11 +745,11 @@ class OpenLandMapIntegrator:
         
         # For areas larger than 10,000 hectares, use maximum sample points
         if area_hectares > 10000:
-            target_points = 100  # Use maximum for large areas (API-friendly limit)
+            target_points = max_limit  # Use user-defined maximum for large areas
         else:
             # For smaller areas, use user-defined sampling frequency
             desired_points = max(4, int(area_hectares * sampling_frequency / 100))
-            target_points = min(desired_points, 100)  # Cap at 100 for API performance
+            target_points = min(desired_points, max_limit)  # Cap at user-defined limit
         
         # Round to nearest perfect square for grid generation
         grid_size = int(np.sqrt(target_points))
@@ -771,14 +771,15 @@ class OpenLandMapIntegrator:
             'source': 'Default (OpenLandMap unavailable)'
         }
 
-def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, progress_callback=None) -> Dict:
+def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 100, progress_callback=None) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
     
     Args:
         coordinates: List of coordinate pairs defining the polygon
         sampling_frequency: Sampling density multiplier
+        max_sampling_limit: Maximum number of sample points allowed
         progress_callback: Optional callback function for progress updates (current_point, total_points)
     """
     integrator = OpenLandMapIntegrator()
-    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency, progress_callback)
+    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency, max_sampling_limit, progress_callback)

@@ -132,6 +132,17 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🎯 Sampling Settings")
     
+    # Maximum sampling limit setting
+    max_sampling_limit = st.slider(
+        "Maximum Sample Points",
+        min_value=10,
+        max_value=100,
+        value=st.session_state.get('max_sampling_limit', 100),
+        step=10,
+        help="Upper limit for total sample points. Lower values speed up analysis but may reduce accuracy."
+    )
+    st.session_state.max_sampling_limit = max_sampling_limit
+    
     # Sampling frequency setting
     sampling_frequency = st.number_input(
         "Sample Points per 100 Hectares",
@@ -139,16 +150,16 @@ with st.sidebar:
         max_value=4.0,
         value=st.session_state.get('sampling_frequency', 1.0),
         step=0.25,
-        help="Controls sampling density for areas ≤10,000 hectares. Larger areas automatically use maximum sampling."
+        help=f"Controls sampling density for areas ≤10,000 hectares. Capped at {max_sampling_limit} total points."
     )
     st.session_state.sampling_frequency = sampling_frequency
     
     # Sampling strategy information
-    st.markdown("""
+    st.markdown(f"""
     **📏 Sampling Strategy:**
     - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
     - **Smart sampling**: System automatically balances sampling density with area size for optimal performance
-    - **Maximum sample points**: 100 points distributed evenly across your selected area
+    - **Maximum sample points**: {max_sampling_limit} points distributed evenly across your selected area
     - **User control**: Adjust sampling density above for areas under 10,000 hectares
     """)
     
@@ -170,19 +181,19 @@ with st.sidebar:
         
         if area_ha > 10000:
             # Large areas use maximum sample points
-            final_points = 100
+            final_points = max_sampling_limit
             grid_size = int(np.sqrt(final_points))
             actual_final = grid_size ** 2
             st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points (large area - auto max)")
         else:
             # Small areas use user-defined sampling frequency
             desired_points = max(4, int(area_ha * sampling_frequency / 100))
-            actual_points = min(desired_points, 100)  # Cap at 100 points
+            actual_points = min(desired_points, max_sampling_limit)  # Cap at user limit
             grid_size = int(np.sqrt(actual_points))
             final_points = grid_size ** 2
             
-            if desired_points > 100:
-                st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points (capped at max)")
+            if desired_points > max_sampling_limit:
+                st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points (capped at {max_sampling_limit})")
             else:
                 st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points")
     else:
@@ -505,12 +516,13 @@ if analyze_button and st.session_state.selected_area:
                     area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
                     area_hectares = area_km2 * 100
                     
-                    # Calculate expected number of sample points
+                    # Calculate expected number of sample points using user limit
+                    max_limit = st.session_state.get('max_sampling_limit', 100)
                     if area_hectares > 10000:
-                        expected_points = 100
+                        expected_points = max_limit
                     else:
                         desired_points = max(4, int(area_hectares * st.session_state.sampling_frequency / 100))
-                        expected_points = min(desired_points, 100)
+                        expected_points = min(desired_points, max_limit)
                     
                     # Round to nearest perfect square for grid generation
                     grid_size = int(np.sqrt(expected_points))
@@ -531,6 +543,7 @@ if analyze_button and st.session_state.selected_area:
                     ecosystem_info = detect_ecosystem_type(
                         st.session_state.area_coordinates, 
                         st.session_state.sampling_frequency,
+                        max_sampling_limit=max_limit,
                         progress_callback=update_progress
                     )
                     
