@@ -363,22 +363,16 @@ with col1:
     with col_button:
         st.write("") # spacing
         
-        # Browser connectivity test
-        if st.button("🔧 Browser Test"):
-            st.success("✅ Browser connection works!")
-            st.info("If you see this, the issue is not browser connectivity.")
-        
-        # Area selection test  
+        # Form-based workaround for WebSocket issues
         if st.session_state.get('selected_area'):
-            # Create unique key to avoid conflicts
-            calc_key = f"calc_btn_{hash(str(st.session_state.get('coord_hash', '')))}"
-            analyze_button = st.button("🚀 Calculate Value", key=calc_key)
-            
-            if analyze_button:
-                st.success("🎯 BUTTON CLICK DETECTED!")
-                st.info("Button functionality is working - proceeding to analysis...")
+            with st.form("analysis_form", clear_on_submit=False):
+                st.write("Click to start analysis:")
+                analyze_button = st.form_submit_button("🚀 Calculate Value", type="primary", use_container_width=True)
+                
+                if analyze_button:
+                    st.success("Analysis started via form submission!")
         else:
-            st.button("⚠️ Select area first", disabled=True)
+            st.write("⚠️ Select area first")
             analyze_button = False
 
 # Right column - Preview and results
