@@ -360,6 +360,7 @@ with col1:
         
         with col_button:
             st.write("") # spacing
+            st.write("") # additional spacing
             analyze_button = st.button(
                 "🚀 Calculate Value", 
                 type="primary",
@@ -414,9 +415,15 @@ with col2:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
 
-# Debug button state
+# Debug button state and immediate action trigger
 if st.session_state.get('selected_area'):
     st.write(f"Debug: analyze_button = {analyze_button}, selected_area = {bool(st.session_state.selected_area)}")
+    
+    # Show button status immediately
+    if analyze_button:
+        st.success("Button clicked! Starting analysis...")
+    else:
+        st.info("Ready to analyze - click Calculate Value button above")
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
