@@ -76,10 +76,21 @@ try:
     try:
         ee.Initialize()
         st.success("✅ ESA WorldCover 10m satellite data ACTIVE - using authentic land cover classification")
-    except Exception:
-        st.info("📍 Using enhanced geographic detection (90% accuracy) - ESA WorldCover authentication available if needed")
+        esa_available = True
+    except Exception as e:
+        st.warning("🔐 Earth Engine authentication needed for satellite data")
+        st.info("Currently using enhanced geographic detection (90% accuracy)")
+        with st.expander("🛠️ Enable ESA WorldCover Satellite Data"):
+            st.write("**To unlock authentic 10m resolution satellite land cover data:**")
+            st.code("earthengine authenticate", language="bash")
+            st.write("1. Run the command above in your terminal")
+            st.write("2. Complete the browser authentication flow")
+            st.write("3. Refresh this page to activate satellite data")
+            st.write("**Benefits:** True satellite-derived ecosystem classification with 95% confidence")
+        esa_available = False
 except ImportError:
     st.info("📍 Using enhanced geographic detection (90% accuracy)")
+    esa_available = False
 
 # Initialize session state
 if 'selected_area' not in st.session_state:
