@@ -35,20 +35,17 @@ def create_time_series_chart(time_series_data: List[Dict], metric_name: str, met
         fig.update_layout(title=f"{metric_title} - Time Series")
         return fig
     
-    # Extract dates and values
-    dates = [datetime.fromisoformat(point['date'].replace('Z', '')) for point in time_series_data]
-    # Handle different data structures for time series
+    # Extract dates and values (optimized)
+    dates = []
     values = []
+    
     for point in time_series_data:
+        # Parse date once
+        dates.append(datetime.fromisoformat(point['date'].replace('Z', '')))
+        
+        # Extract value efficiently
         if isinstance(point, dict):
-            if 'value' in point:
-                values.append(point['value'])
-            elif 'total' in point:
-                values.append(point['total'])
-            elif 'total_value' in point:
-                values.append(point['total_value'])
-            else:
-                values.append(0)
+            values.append(point.get('value') or point.get('total') or point.get('total_value', 0))
         else:
             values.append(point)
     

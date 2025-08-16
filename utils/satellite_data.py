@@ -21,6 +21,13 @@ class SatelliteDataProcessor:
         self.api_key = os.getenv("SATELLITE_API_KEY", "demo_key")
         self.base_url = "https://api.satellite-data.com/v1"  # Example API endpoint
         
+        # Performance cache for satellite data
+        self._data_cache = {}
+        self._bbox_cache = {}
+        
+        # Pre-compute common calculations
+        self._deg_to_m = 111320.0  # Approximate meters per degree at equator
+        
     def get_time_series_data(self, area_bounds: Dict, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
         """
         Retrieve time series satellite data for the specified area and time range
@@ -37,17 +44,19 @@ class SatelliteDataProcessor:
             # In a real implementation, this would call actual satellite APIs
             # For now, we'll simulate realistic satellite data
             
-            # Extract bounding box from area coordinates
+            # Extract bounding box from area coordinates (optimized)
             if area_bounds and 'coordinates' in area_bounds:
                 coords = area_bounds['coordinates']
-                lats = [coord[1] for coord in coords]
-                lons = [coord[0] for coord in coords]
+                # Use numpy for faster min/max operations
+                coords_array = np.array(coords, dtype=np.float32)
+                lats = coords_array[:, 1]
+                lons = coords_array[:, 0]
                 
                 bbox = {
-                    'min_lat': min(lats),
-                    'max_lat': max(lats),
-                    'min_lon': min(lons),
-                    'max_lon': max(lons)
+                    'min_lat': float(lats.min()),
+                    'max_lat': float(lats.max()),
+                    'min_lon': float(lons.min()),
+                    'max_lon': float(lons.max())
                 }
             else:
                 # Default bounding box
@@ -58,7 +67,12 @@ class SatelliteDataProcessor:
                     'max_lon': -74.0
                 }
             
-            # Generate realistic time series data
+            # Generate realistic time series data (optimized)
+            cache_key = f"{bbox['min_lat']:.3f}_{bbox['max_lat']:.3f}_{bbox['min_lon']:.3f}_{bbox['max_lon']:.3f}_{start_date}_{end_date}"
+            
+            if cache_key in self._data_cache:
+                return self._data_cache[cache_key]
+            
             date_range = pd.date_range(start=start_date, end=end_date, freq='M')
             
             satellite_data = {
@@ -145,6 +159,9 @@ class SatelliteDataProcessor:
             # Add both single and multiple ecosystem detection
             satellite_data['ecosystem_detection'] = self._detect_ecosystem_type(bbox, satellite_data['time_series'])
             satellite_data['multi_ecosystem_detection'] = self._detect_multiple_ecosystems(bbox, satellite_data['time_series'])
+            
+            # Cache the result for future use
+            self._data_cache[cache_key] = satellite_data
             
             return satellite_data
             

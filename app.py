@@ -310,26 +310,30 @@ with col1:
                 
                 # Quick area display (will be properly calculated in preview section)
                 if len(coordinates) > 2:
-                    lats = [coord[1] for coord in coordinates[:-1]]
-                    lons = [coord[0] for coord in coordinates[:-1]]
-                    lat_range = max(lats) - min(lats)
-                    lon_range = max(lons) - min(lons)
+                    coords_array = np.array(coordinates[:-1], dtype=np.float32)
+                    lats = coords_array[:, 1]
+                    lons = coords_array[:, 0]
+                    lat_range = lats.max() - lats.min()
+                    lon_range = lons.max() - lons.min()
                     area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
                     st.success(f"Area selected: {area_ha:.0f} hectares")
+                    # Cache for later use
+                    st.session_state.cached_area_ha = area_ha
                 st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
     # Display coordinates of selected area (cached to avoid recalculation)
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        # Cache bounding box calculation
+        # Cache bounding box calculation (optimized)
         if 'cached_bbox' not in st.session_state or st.session_state.get('bbox_coords') != st.session_state.area_coordinates:
             coords = st.session_state.area_coordinates
-            lats = [coord[1] for coord in coords[:-1]]
-            lons = [coord[0] for coord in coords[:-1]]
+            coords_array = np.array(coords[:-1], dtype=np.float32)
+            lats = coords_array[:, 1]
+            lons = coords_array[:, 0]
             st.session_state.cached_bbox = {
-                'min_lat': min(lats), 'max_lat': max(lats),
-                'min_lon': min(lons), 'max_lon': max(lons)
+                'min_lat': float(lats.min()), 'max_lat': float(lats.max()),
+                'min_lon': float(lons.min()), 'max_lon': float(lons.max())
             }
             st.session_state.bbox_coords = coords
         
@@ -556,21 +560,17 @@ if analyze_button and st.session_state.selected_area:
                             if len(ecosystem_distribution) > 1:
                                 st.info("🌍 **Ecosystem Composition Breakdown:**")
                                 
-                                # Create a more detailed breakdown with percentages
-                                composition_data = []
+                                # Create a more detailed breakdown with percentages (optimized)
+                                composition_lines = []
                                 for eco_type, data in ecosystem_distribution.items():
                                     percentage = (data['count'] / total_samples) * 100
                                     confidence_avg = data['confidence'] / data['count']
-                                    composition_data.append({
-                                        'Ecosystem': eco_type,
-                                        'Percentage': f"{percentage:.1f}%",
-                                        'Sample Points': f"{data['count']}/{total_samples}",
-                                        'Confidence': f"{confidence_avg:.0%}"
-                                    })
+                                    composition_lines.append(
+                                        f"   • **{eco_type}**: {percentage:.1f}% ({data['count']}/{total_samples} points, {confidence_avg:.0%} confidence)"
+                                    )
                                 
-                                # Display as a formatted table
-                                for item in composition_data:
-                                    st.write(f"   • **{item['Ecosystem']}**: {item['Percentage']} ({item['Sample Points']} points, {item['Confidence']} confidence)")
+                                # Display as pre-formatted text for better performance
+                                st.markdown('\n'.join(composition_lines))
                                     
                                 st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: OpenLandMap.org")
                             else:
@@ -602,9 +602,10 @@ if analyze_button and st.session_state.selected_area:
             # Calculate authentic ecosystem values using ESVD database
             from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
             
-            # Get center coordinates for regional adjustment
-            center_lat = float(np.mean([coord[1] for coord in coords[:-1]]))
-            center_lon = float(np.mean([coord[0] for coord in coords[:-1]]))
+            # Get center coordinates for regional adjustment (optimized)
+            coords_array = np.array(st.session_state.area_coordinates[:-1], dtype=np.float32)
+            center_lat = float(coords_array[:, 1].mean())
+            center_lon = float(coords_array[:, 0].mean())
             
             # Check if we have mixed ecosystem data for weighted calculation
             if (st.session_state.get('detected_ecosystem') and 
@@ -615,13 +616,16 @@ if analyze_button and st.session_state.selected_area:
                 ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
                 st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
                 
-                # Show detailed composition breakdown for analysis
+                # Show detailed composition breakdown for analysis (optimized)
                 st.write("**📋 Detailed Composition for Valuation:**")
                 total_samples = st.session_state.detected_ecosystem['successful_queries']
+                composition_lines = []
                 for eco_type, data in ecosystem_distribution.items():
                     proportion = data['count'] / total_samples * 100
                     area_proportion = area_ha * (proportion / 100)
-                    st.write(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
+                    composition_lines.append(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
+                
+                st.markdown('\n'.join(composition_lines))
                 st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                 
                 esvd_results = calculate_mixed_ecosystem_services_value(

@@ -645,9 +645,9 @@ class OpenLandMapIntegrator:
                     ecosystem_results.append(result)
                     successful_queries += 1
                 
-                # Reduced delay for better performance while maintaining UX
-                if progress_callback and len(sample_points) > 10:
-                    time.sleep(0.02)  # 20ms delay only for larger sample sets
+                # Further reduced delay - only for very large sample sets
+                if progress_callback and len(sample_points) > 50:
+                    time.sleep(0.01)  # 10ms delay only for very large sample sets
             
             if not ecosystem_results:
                 return self._default_ecosystem_result()
@@ -657,20 +657,20 @@ class OpenLandMapIntegrator:
             total_confidence = 0
             
             # Use collections.Counter for better performance
-            from collections import Counter
             ecosystem_types = [result['ecosystem_type'] for result in ecosystem_results]
             type_counts = Counter(ecosystem_types)
             
+            # Pre-initialize all ecosystem types
+            for ecosystem_type in type_counts:
+                ecosystem_counts[ecosystem_type] = {
+                    'count': type_counts[ecosystem_type], 
+                    'confidence': 0
+                }
+            
+            # Single pass to sum confidences
             for result in ecosystem_results:
                 ecosystem_type = result['ecosystem_type']
                 confidence = result['confidence']
-                
-                if ecosystem_type not in ecosystem_counts:
-                    ecosystem_counts[ecosystem_type] = {
-                        'count': type_counts[ecosystem_type], 
-                        'confidence': 0
-                    }
-                
                 ecosystem_counts[ecosystem_type]['confidence'] += confidence
                 total_confidence += confidence
             

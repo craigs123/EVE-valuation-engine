@@ -21,6 +21,10 @@ class ESVDIntegration:
         self.esvd_base_url = "https://www.esvd.net"
         self.esvd_info_url = "https://www.esvd.info"
         
+        # Performance cache for coefficient lookups
+        self._coefficient_cache = {}
+        self._regional_cache = {}
+        
         # Initialize with curated open source valuation coefficients from ESVD and TEEB research
         # These values are based on actual peer-reviewed studies from the databases
         self.initialize_esvd_coefficients()
