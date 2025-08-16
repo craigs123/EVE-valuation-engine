@@ -212,8 +212,8 @@ with st.sidebar:
         ]
         # Also clear any cached breakdown data
         for key in list(st.session_state.keys()):
-            if key.startswith('cached_breakdown_'):
-                keys_to_clear.append(key)
+            if str(key).startswith('cached_breakdown_'):
+                keys_to_clear.append(str(key))
         for key in keys_to_clear:
             if key in st.session_state:
                 del st.session_state[key]
@@ -413,6 +413,10 @@ with col2:
     else:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
+
+# Debug button state
+if st.session_state.get('selected_area'):
+    st.write(f"Debug: analyze_button = {analyze_button}, selected_area = {bool(st.session_state.selected_area)}")
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
