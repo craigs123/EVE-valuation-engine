@@ -107,18 +107,13 @@ except ImportError:
     st.info("📍 Using enhanced geographic detection (90% accuracy)")
     esa_available = False
 
-# Initialize session state with performance flags
+# Initialize session state
 if 'selected_area' not in st.session_state:
     st.session_state.selected_area = None
 if 'area_coordinates' not in st.session_state:
     st.session_state.area_coordinates = []
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
-if 'render_count' not in st.session_state:
-    st.session_state.render_count = 0
-
-# Track renders to prevent excessive processing
-st.session_state.render_count += 1
 
 # Sidebar configuration
 with st.sidebar:
@@ -142,7 +137,7 @@ with st.sidebar:
         "Sample Points",
         min_value=10,
         max_value=100,
-        value=st.session_state.get('max_sampling_limit', 10),
+        value=st.session_state.get('max_sampling_limit', 50),
         step=10,
         help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
     )
@@ -169,12 +164,16 @@ with st.sidebar:
     else:
         st.warning("🔴 **Maximum Sampling**: Highest accuracy, slower processing")
     
-    # Display sampling info (simplified)
+    # Display sampling info
     if st.session_state.get('area_coordinates'):
-        # Skip heavy area calculation, just show sample points
+        coords = np.array(st.session_state.area_coordinates)
+        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
+        area_ha = area_km2 * 100
+        
+        # All areas use the user-defined sample limit
         grid_size = int(np.sqrt(max_sampling_limit))
         actual_final = grid_size ** 2
-        st.caption(f"Will use {actual_final} sample points for analysis")
+        st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
     else:
         st.caption("Select an area to see sampling estimation")
     
@@ -203,23 +202,20 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Clear button (fast state clear)
+    # Clear button (optimized batch clear)
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
-        # Clear all cached state efficiently
+        # Clear all related state at once
         keys_to_clear = [
-            'analysis_results', 'selected_area', 'area_coordinates', 'coord_hash',
-            'cached_area', 'cached_coord_hash', 'detected_ecosystem'
+            'analysis_results', 'selected_area', 'area_coordinates',
+            'cached_bbox', 'cached_area_ha', 'detected_ecosystem',
+            'bbox_coords', 'area_coords_cache'
         ]
-        # Also clear any cached breakdown data
-        for key in list(st.session_state.keys()):
-            if str(key).startswith('cached_breakdown_'):
-                keys_to_clear.append(str(key))
         for key in keys_to_clear:
             if key in st.session_state:
                 del st.session_state[key]
         st.rerun()
 
-# Initialize analyze_button as False - ensure it's always defined
+# Initialize analyze_button as False
 analyze_button = False
 
 # Map and preview in columns
@@ -277,52 +273,87 @@ with col1:
         key="area_map"
     )
     
-    # Process map interactions with minimal processing
+    # Process map interactions with optimized state checking
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         latest_drawing = map_data['all_drawings'][-1]
         
         if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
             coordinates = latest_drawing['geometry']['coordinates'][0]
             
-            # Use simple hash comparison for faster coordinate change detection
-            current_hash = st.session_state.get('coord_hash', '')
-            new_hash = str(hash(str(coordinates)))
+            # Only process if coordinates actually changed (reduce unnecessary reruns)
+            current_coords = st.session_state.get('area_coordinates', [])
+            coords_changed = (not current_coords or 
+                            len(coordinates) != len(current_coords) or
+                            any(abs(c1[0] - c2[0]) > 0.000001 or abs(c1[1] - c2[1]) > 0.000001 
+                                for c1, c2 in zip(coordinates, current_coords)))
             
-            if new_hash != current_hash:
-                # Immediate state update without rerun to prevent delay
+            if coords_changed:
+                # Save the new selection with batch state updates
                 st.session_state.update({
-                    'selected_area': latest_drawing,
+                    'selected_area': {
+                        'type': latest_drawing['geometry']['type'],
+                        'coordinates': coordinates
+                    },
                     'area_coordinates': coordinates,
-                    'coord_hash': new_hash,
-                    'analysis_results': None
+                    'analysis_results': None,
+                    # Clear caches to force recalculation
+                    'cached_bbox': None,
+                    'cached_area_ha': None
                 })
-                st.success("Area selected - ready for analysis")
+                
+                # Quick area display (will be properly calculated in preview section)
+                if len(coordinates) > 2:
+                    lats = [coord[1] for coord in coordinates[:-1]]
+                    lons = [coord[0] for coord in coordinates[:-1]]
+                    lat_range = max(lats) - min(lats)
+                    lon_range = max(lons) - min(lons)
+                    area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
+                    st.success(f"Area selected: {area_ha:.0f} hectares")
+                st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
-    # Display coordinates only when area is selected (minimal processing)
-    if st.session_state.get('selected_area'):
-        coords = st.session_state.area_coordinates
+    # Display coordinates of selected area (cached to avoid recalculation)
+    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+        # Cache bounding box calculation
+        if 'cached_bbox' not in st.session_state or st.session_state.get('bbox_coords') != st.session_state.area_coordinates:
+            coords = st.session_state.area_coordinates
+            lats = [coord[1] for coord in coords[:-1]]
+            lons = [coord[0] for coord in coords[:-1]]
+            st.session_state.cached_bbox = {
+                'min_lat': min(lats), 'max_lat': max(lats),
+                'min_lon': min(lons), 'max_lon': max(lons)
+            }
+            st.session_state.bbox_coords = coords
         
-        # Quick bounding box calculation (only when needed)
-        lats = [coord[1] for coord in coords[:-1]]
-        lons = [coord[0] for coord in coords[:-1]]
+        bbox = st.session_state.cached_bbox
+        st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
+        st.markdown("### 📍 Selected Area Coordinates")
         
-        st.markdown("### 📍 Selected Area")
+        # Display cached bounding box
         st.markdown(f"""
-        <div style="font-size: 0.9em;">
-            <strong>Bounds:</strong> {min(lats):.4f}°N to {max(lats):.4f}°N, {min(lons):.4f}°E to {max(lons):.4f}°E
+        <div class="coordinate-bounds">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
+                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
+                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show coordinates only in expandable section (load on demand)
-        with st.expander("View All Coordinates"):
+        # Show all coordinates in expandable section (load on demand)
+        with st.expander("All Coordinates"):
+            coords = st.session_state.area_coordinates
             for i, coord in enumerate(coords[:-1]):
-                st.text(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
+                st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
-    # Analysis controls under the map (always visible)
+    # Analysis controls under the map
     st.markdown("### 📊 Analysis Controls")
     
     col_period, col_button = st.columns([2, 1])
@@ -362,39 +393,19 @@ with col1:
     
     with col_button:
         st.write("") # spacing
-        
-        # URL parameter workaround for WebSocket issues
-        if st.session_state.get('selected_area'):
-            # Check URL parameters for analysis trigger
-            query_params = st.query_params
-            if query_params.get('analyze') == 'true':
-                analyze_button = True
-                st.success("Analysis triggered via URL parameter!")
-                # Clear the parameter to prevent repeated analysis
-                st.query_params.clear()
-            else:
-                analyze_button = False
-                
-            # Create analysis trigger link
-            coords_hash = st.session_state.get('coord_hash', '')
-            analysis_url = f"?analyze=true&area={coords_hash}"
-            st.markdown(f"""
-                <a href="{analysis_url}" target="_self" style="
-                    display: inline-block;
-                    background: #1f77b4;
-                    color: white;
-                    padding: 0.5rem 1rem;
-                    text-decoration: none;
-                    border-radius: 0.25rem;
-                    font-weight: bold;
-                    text-align: center;
-                    width: 100%;
-                    box-sizing: border-box;
-                ">🚀 Calculate Value</a>
-            """, unsafe_allow_html=True)
+        if st.session_state.selected_area:
+            analyze_button = st.button(
+                "🚀 Calculate Value", 
+                type="primary",
+                use_container_width=True,
+                help="Calculate ecosystem services value for selected area"
+            )
         else:
-            st.write("⚠️ Select area first")
-            analyze_button = False
+            analyze_button = st.button(
+                "Select area first", 
+                disabled=True,
+                use_container_width=True
+            )
 
 # Right column - Preview and results
 with col2:
@@ -402,43 +413,57 @@ with col2:
     
     if st.session_state.get('selected_area'):
         st.success("✅ Area Selected")
+        coords = st.session_state.area_coordinates
         
-        # Cache area calculation to avoid repeated computation
-        coord_hash = st.session_state.get('coord_hash', '')
-        if 'cached_area' not in st.session_state or st.session_state.get('cached_coord_hash') != coord_hash:
-            coords = st.session_state.area_coordinates
+        # Calculate area in hectares (cached)
+        if 'cached_area_ha' not in st.session_state or st.session_state.get('area_coords_cache') != coords:
+            # Only recalculate if coordinates changed
             lats = [coord[1] for coord in coords[:-1]]
             lons = [coord[0] for coord in coords[:-1]]
             lat_range = max(lats) - min(lats)
             lon_range = max(lons) - min(lons)
             area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
-            st.session_state.cached_area = area_ha
-            st.session_state.cached_coord_hash = coord_hash
+            st.session_state.cached_area_ha = area_ha
+            st.session_state.area_coords_cache = coords
         
-        st.metric("Area Size", f"{st.session_state.cached_area:.0f} hectares")
+        st.metric("Area Size", f"{st.session_state.cached_area_ha:.0f} hectares")
         
-        # Show ecosystem status (simplified for performance)
-        ecosystem_type = st.session_state.ecosystem_override
-        if ecosystem_type == "Auto-detect from OpenLandMap":
+        # Show ecosystem detection status with composition
+        if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
             if 'detected_ecosystem' in st.session_state:
                 ecosystem_info = st.session_state.detected_ecosystem
-                st.info(f"**Ecosystem:** {ecosystem_info['primary_ecosystem']}")
+                primary_ecosystem = ecosystem_info['primary_ecosystem']
+                
+                # Show primary ecosystem
+                st.info(f"**Primary:** {primary_ecosystem} ({ecosystem_info['confidence']:.0%} confidence)")
+                
+                # Show composition if multiple ecosystems detected
+                if 'ecosystem_distribution' in ecosystem_info and len(ecosystem_info['ecosystem_distribution']) > 1:
+                    st.info("**Composition:**")
+                    ecosystem_distribution = ecosystem_info['ecosystem_distribution']
+                    total_samples = ecosystem_info['successful_queries']
+                    
+                    for eco_type, data in ecosystem_distribution.items():
+                        percentage = (data['count'] / total_samples) * 100
+                        st.write(f"   • {eco_type}: {percentage:.1f}%")
+                        
             else:
-                st.info("**Ecosystem:** Auto-detect during analysis")
+                st.info("**Ecosystem:** Will detect automatically")
         else:
-            st.info(f"**Ecosystem:** {ecosystem_type}")
+            st.info(f"**Ecosystem:** {st.session_state.ecosystem_override}")
+        st.info(f"**Analysis:** {st.session_state.analysis_detail}")
         
-        # Analysis status
         if st.session_state.analysis_results:
-            st.success("📈 Analysis Complete - Results ready")
+            st.success("📈 Analysis Complete")
+            st.write("Results are ready for viewing")
         else:
-            st.info("Ready for analysis")
+            st.info("Ready for analysis - click 'Calculate Value' button")
     else:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
 
 # Analysis with OpenLandMap ecosystem detection
-if analyze_button and st.session_state.get('selected_area'):
+if analyze_button and st.session_state.selected_area:
     try:
         coords = np.array(st.session_state.area_coordinates)
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
@@ -454,6 +479,7 @@ if analyze_button and st.session_state.get('selected_area'):
         with progress_container.container():
             progress_text = st.empty()
             progress_bar = st.progress(0)
+            st.info("🔍 Starting ecosystem analysis - this may take a few moments...")
         
         with st.spinner("Please wait - Analyzing ecosystem and calculating values..."):
             # Detect ecosystem type if auto-detection is enabled
@@ -469,12 +495,12 @@ if analyze_button and st.session_state.get('selected_area'):
                     area_hectares = area_km2 * 100
                     
                     # Use user-defined sample limit for all areas
-                    max_limit = st.session_state.get('max_sampling_limit', 10)
+                    max_limit = st.session_state.get('max_sampling_limit', 50)
                     expected_points = max_limit
                     
                     # Round to nearest perfect square for grid generation
                     grid_size = int(np.sqrt(expected_points))
-                    actual_expected_points = max(9, grid_size ** 2)  # Ensure minimum 9 points (3x3 grid)
+                    actual_expected_points = max(4, grid_size ** 2)
                     
                     # Update progress container for detection phase
                     with progress_container.container():
@@ -576,75 +602,15 @@ if analyze_button and st.session_state.get('selected_area'):
                 
                 # Use mixed ecosystem calculation with proper weighting
                 ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
-                total_samples = st.session_state.detected_ecosystem['successful_queries']
-                
-                st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found")
-                
-                # Create pie chart showing ecosystem composition
-                import plotly.express as px
-                import plotly.graph_objects as go
-                
-                # Prepare data for pie chart
-                ecosystems = []
-                percentages = []
-                sample_counts = []
-                
-                for eco_type, data in ecosystem_distribution.items():
-                    proportion = data['count'] / total_samples * 100
-                    ecosystems.append(eco_type)
-                    percentages.append(proportion)
-                    sample_counts.append(data['count'])
-                
-                # Create interactive pie chart with fixed hover data
-                fig = go.Figure(data=[go.Pie(
-                    labels=ecosystems, 
-                    values=percentages,
-                    hovertemplate='<b>%{label}</b><br>' +
-                                  'Percentage: %{percent}<br>' +
-                                  'Sample Points: %{customdata}<br>' +
-                                  '<extra></extra>',
-                    customdata=sample_counts,
-                    textposition='inside', 
-                    textinfo='percent+label'
-                )])
-                
-                fig.update_layout(
-                    title={
-                        'text': f"Ecosystem Composition from {total_samples} Sample Points",
-                        'x': 0.5,
-                        'xanchor': 'center'
-                    },
-                    showlegend=True,
-                    height=400
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
+                st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
                 
                 # Show detailed composition breakdown for analysis
-                st.markdown("**📊 Sampling Results & Area Breakdown:**")
-                
-                # Create columns for better layout
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown("**Ecosystem Distribution:**")
-                    for eco_type, data in ecosystem_distribution.items():
-                        proportion = data['count'] / total_samples * 100
-                        area_proportion = area_ha * (proportion / 100)
-                        st.write(f"• **{eco_type}**: {proportion:.1f}% ({data['count']} points)")
-                        st.write(f"  → Area: {area_proportion:.1f} hectares")
-                
-                with col2:
-                    st.markdown("**Sampling Quality:**")
-                    st.metric("Total Sample Points", total_samples)
-                    
-                    # Show confidence levels if available
-                    avg_confidence = sum(data.get('confidence', 0) for data in ecosystem_distribution.values()) / len(ecosystem_distribution)
-                    st.metric("Average Confidence", f"{avg_confidence:.0f}%")
-                    
-                    successful_rate = (total_samples / st.session_state.detected_ecosystem.get('total_samples', total_samples)) * 100
-                    st.metric("Success Rate", f"{successful_rate:.0f}%")
-                
+                st.write("**📋 Detailed Composition for Valuation:**")
+                total_samples = st.session_state.detected_ecosystem['successful_queries']
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_samples * 100
+                    area_proportion = area_ha * (proportion / 100)
+                    st.write(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
                 st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                 
                 esvd_results = calculate_mixed_ecosystem_services_value(
@@ -655,30 +621,6 @@ if analyze_button and st.session_state.get('selected_area'):
                 )
             else:
                 # Single ecosystem calculation
-                ecosystem_type = st.session_state.ecosystem_override
-                
-                if ecosystem_type == "Auto-detect from OpenLandMap":
-                    detected_info = st.session_state.get('detected_ecosystem', {})
-                    ecosystem_type = detected_info.get('primary_ecosystem', 'Grassland')
-                    
-                    st.info(f"🌱 **Single Ecosystem Detected**: {ecosystem_type}")
-                    
-                    # Show sampling results even for single ecosystems
-                    if 'total_samples' in detected_info:
-                        col1, col2, col3 = st.columns(3)
-                        
-                        with col1:
-                            st.metric("Sample Points", detected_info.get('successful_queries', 0))
-                        with col2:
-                            st.metric("Confidence", f"{detected_info.get('confidence', 0):.0%}")
-                        with col3:
-                            st.metric("Coverage", f"{detected_info.get('coverage_percentage', 100):.0f}%")
-                        
-                        st.caption(f"Detection based on {detected_info.get('successful_queries', 0)} sample points across your selected area")
-                else:
-                    st.info(f"🌱 **User-Selected Ecosystem**: {ecosystem_type}")
-                    st.caption("Ecosystem type manually selected - no sampling performed")
-                
                 esvd_results = calculate_ecosystem_services_value(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
@@ -857,35 +799,52 @@ if st.session_state.analysis_results:
                             confidence = data['confidence'] / data['count'] if data['count'] > 0 else 0
                             st.markdown(f"- {ecosystem}: {data['count']} sample points, {confidence:.0%} avg confidence")
                 
-                st.markdown("""
+                st.markdown(f"""
                 **How Detection Works**:
-                1. **Grid Sampling**: Even distribution across selected area
-                2. **OpenLandMap Integration**: Global land cover database queries
-                3. **Confidence Assessment**: Based on successful detections
+                1. **Area-Based Sampling**: Sample density scales with area size (1 point per 100 hectares)
+                2. **Grid Distribution**: Points arranged in grid pattern across your selected area  
+                3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
+                4. **Confidence Assessment**: Based on successful detections and data source quality
+                
+                **Sample Limit**: Maximum 100 sample points for optimal performance
+                **Sampling Density**: Currently {st.session_state.get('sampling_frequency', 1.0)} points per 100 hectares
                 
                 **Mixed Ecosystem Handling**:
-                Multiple ecosystem types are calculated separately and combined by area proportion.
+                When multiple ecosystem types are detected, the system calculates values for each type separately 
+                and combines them using area-weighted proportions based on sample point distribution.
                 """)
         # Show data source and methodology
         st.info(f"📊 **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')} | **Regional Factor**: {results.get('regional_factor', 1.0):.2f}")
         
         with st.expander("💡 Data sources and methodology"):
-            # Cache methodology text to avoid repeated formatting
-            if 'cached_methodology' not in st.session_state:
-                st.session_state.cached_methodology = f"""
-                **Primary Data Sources**:
-                
-                **ESVD (Ecosystem Services Valuation Database)**:
-                - 10,874+ peer-reviewed value estimates from 1,100+ studies
-                - Global coverage: 140+ countries, 15 biomes, 23 services
-                
-                **Regional Adjustment Factor: {results.get('regional_factor', 1.0):.2f}**:
-                Adjusts values for local income, cost of living, and data quality.
-                
-                **Calculation**: Base ESVD Coefficient × Area × Regional Factor
-                """
+            st.markdown(f"""
+            **Primary Data Sources**:
             
-            st.markdown(st.session_state.cached_methodology)
+            **ESVD (Ecosystem Services Valuation Database)**:
+            - World's largest open-access ecosystem services database
+            - 10,874+ peer-reviewed value estimates from 1,100+ scientific studies
+            - Global coverage: 140+ countries, 15 biomes, 23 ecosystem services
+            - Maintained by: Environmental Economics research community
+            
+            **TEEB (The Economics of Ecosystems and Biodiversity)**:
+            - Integrated within ESVD coefficients
+            - Focus on policy-relevant ecosystem service values
+            - Emphasis on biodiversity and natural capital accounting
+            
+            **Regional Adjustment Factor: {results.get('regional_factor', 1.0):.2f}**:
+            This factor adjusts base ESVD values for local conditions:
+            - Income adjustment: Regional purchasing power differences
+            - Cost of living: Local economic conditions and price levels
+            - Data quality: Availability and reliability of regional studies
+            
+            **Standardization**:
+            - All values converted to 2020 International dollars
+            - Per hectare per year basis for global comparability
+            - Quality assurance: Only peer-reviewed studies included
+            
+            **Calculation Formula**:
+            Final Value = (Base ESVD Coefficient) × (Area in hectares) × (Regional Factor)
+            """)
     
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
@@ -908,28 +867,44 @@ if st.session_state.analysis_results:
                         st.caption(f"${per_ha_category:.0f}/ha • {(total/results['total_value']*100):.0f}% of total" if results['total_value'] > 0 else f"${per_ha_category:.0f}/ha")
                         
                         with st.expander(f"💡 {category.title()} services breakdown"):
-                            st.markdown(f"**{category.title()} Services**: ${total:,.0f}/year")
+                            st.markdown(f"**{category.title()} Services Calculation**")
                             
-                            # Show individual services (cached to avoid ESVD lookups on every render)
-                            if f'cached_breakdown_{category}' not in st.session_state:
-                                # Only do heavy ESVD lookups once and cache results
-                                from utils.esvd_integration import ESVDIntegration
-                                esvd_inst = ESVDIntegration()
-                                ecosystem_mapped = esvd_inst.map_ecosystem_type(results['ecosystem_type'])
-                                
-                                breakdown = {}
-                                for service, value in esvd_data[category].items():
-                                    if service != 'total' and value > 0:
-                                        service_name = service.replace('_', ' ').title()
-                                        breakdown[service_name] = value
-                                
-                                st.session_state[f'cached_breakdown_{category}'] = breakdown
+                            # Show individual service calculations
+                            for service, value in esvd_data[category].items():
+                                if service != 'total' and value > 0:
+                                    service_name = service.replace('_', ' ').title()
+                                    
+                                    # Get the base coefficient from ESVD
+                                    from utils.esvd_integration import ESVDIntegration
+                                    esvd_inst = ESVDIntegration()
+                                    ecosystem_mapped = esvd_inst.map_ecosystem_type(results['ecosystem_type'])
+                                    
+                                    if ecosystem_mapped and category in esvd_inst.esvd_coefficients:
+                                        base_coeff = esvd_inst.esvd_coefficients[category].get(service, {}).get(ecosystem_mapped, 0)
+                                        regional_factor = results.get('regional_factor', 1.0)
+                                        area_ha = results['area_ha']
+                                        
+                                        st.markdown(f"""
+                                        **{service_name}**: ${value:,.0f}/year
+                                        - Base ESVD coefficient: ${base_coeff}/ha/year
+                                        - Area: {area_ha:,.0f} hectares
+                                        - Regional adjustment factor: {regional_factor:.2f}
+                                        - Calculation: ${base_coeff} × {area_ha:,.0f} ha × {regional_factor:.2f} = ${value:,.0f}/year
+                                        """)
                             
-                            # Display cached breakdown
-                            for service_name, value in st.session_state[f'cached_breakdown_{category}'].items():
-                                st.markdown(f"• **{service_name}**: ${value:,.0f}/year")
+                            # Add methodology explanation
+                            st.markdown(f"""
+                            **Methodology for {category.title()} Services:**
                             
-                            st.caption("Values from ESVD/TEEB peer-reviewed database")
+                            These values are derived from the ESVD (Ecosystem Services Valuation Database), which contains 
+                            10,874+ peer-reviewed value estimates from 1,100+ scientific studies. Each coefficient represents 
+                            the economic value of ecosystem services based on:
+                            
+                            - **Base Coefficients**: From peer-reviewed literature in ESVD/TEEB databases
+                            - **Regional Adjustment**: Accounts for local income levels, cost of living, and data quality
+                            - **Standardization**: All values in 2020 International dollars per hectare per year
+                            - **Quality Assurance**: Only peer-reviewed studies included in calculations
+                            """)
         # Option to switch to summary view
         st.markdown("---")
         if st.button("📊 Switch to Summary View", type="secondary"):

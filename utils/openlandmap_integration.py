@@ -400,36 +400,31 @@ class OpenLandMapIntegrator:
         if coastal_result:
             return coastal_result
             
-        # Priority 4: Forest areas (especially important for CA mountains)
-        forest_result = self._detect_forest_areas(lat, lon)
-        if forest_result:
-            return forest_result
-        
-        # Priority 5: US-specific ecosystem detection (higher confidence)
+        # Priority 4: US-specific ecosystem detection (higher confidence)
         if -180 <= lon <= -65 and 15 <= lat <= 75:  # US bounds
             us_result = self._enhanced_us_ecosystem_detection(lat, lon)
             if us_result:
                 return us_result
         
-        # Priority 6: Global ecosystem patterns
+        # Priority 5: Global ecosystem patterns
         return self._detect_global_ecosystems(lat, lon)
     
     def _detect_urban_areas(self, lat: float, lon: float) -> Optional[Dict]:
-        """Detect urban areas with high precision - reduced radii to avoid capturing nearby natural areas"""
+        """Detect urban areas with high precision"""
         urban_centers = [
-            {"lat": 34.05, "lon": -118.24, "radius": 0.15, "name": "Los Angeles Downtown"},
-            {"lat": 40.71, "lon": -74.01, "radius": 0.1, "name": "Manhattan"},
-            {"lat": 37.77, "lon": -122.42, "radius": 0.1, "name": "San Francisco"},
-            {"lat": 41.88, "lon": -87.63, "radius": 0.15, "name": "Chicago"},
-            {"lat": 29.76, "lon": -95.37, "radius": 0.15, "name": "Houston"},
-            {"lat": 33.74, "lon": -84.39, "radius": 0.15, "name": "Atlanta"},
-            {"lat": 39.95, "lon": -75.16, "radius": 0.1, "name": "Philadelphia"},
-            {"lat": 25.76, "lon": -80.19, "radius": 0.1, "name": "Miami"},
-            {"lat": 32.78, "lon": -96.80, "radius": 0.15, "name": "Dallas"},
-            {"lat": 47.61, "lon": -122.33, "radius": 0.1, "name": "Seattle"},
-            {"lat": 33.74, "lon": -117.87, "radius": 0.1, "name": "Orange County"},
-            {"lat": 33.68, "lon": -117.83, "radius": 0.08, "name": "Irvine"},
-            {"lat": 33.64, "lon": -117.84, "radius": 0.08, "name": "Newport Beach"}
+            {"lat": 34.05, "lon": -118.24, "radius": 0.5, "name": "Los Angeles"},
+            {"lat": 40.71, "lon": -74.01, "radius": 0.3, "name": "New York"},
+            {"lat": 37.77, "lon": -122.42, "radius": 0.2, "name": "San Francisco"},
+            {"lat": 41.88, "lon": -87.63, "radius": 0.3, "name": "Chicago"},
+            {"lat": 29.76, "lon": -95.37, "radius": 0.3, "name": "Houston"},
+            {"lat": 33.74, "lon": -84.39, "radius": 0.3, "name": "Atlanta"},
+            {"lat": 39.95, "lon": -75.16, "radius": 0.2, "name": "Philadelphia"},
+            {"lat": 25.76, "lon": -80.19, "radius": 0.2, "name": "Miami"},
+            {"lat": 32.78, "lon": -96.80, "radius": 0.3, "name": "Dallas"},
+            {"lat": 47.61, "lon": -122.33, "radius": 0.2, "name": "Seattle"},
+            {"lat": 33.74, "lon": -117.87, "radius": 0.15, "name": "Orange County"},
+            {"lat": 33.68, "lon": -117.83, "radius": 0.1, "name": "Irvine"},
+            {"lat": 33.64, "lon": -117.84, "radius": 0.1, "name": "Newport Beach"}
         ]
         
         for city in urban_centers:
@@ -449,35 +444,6 @@ class OpenLandMapIntegrator:
                 'confidence': 0.75,
                 'source': 'Urban Pattern Detection'
             }
-        
-        return None
-    
-    def _detect_forest_areas(self, lat: float, lon: float) -> Optional[Dict]:
-        """Detect forest areas with specific focus on California mountains"""
-        forest_regions = [
-            # Angeles National Forest
-            {"lat_min": 34.1, "lat_max": 34.5, "lon_min": -118.3, "lon_max": -117.6, "name": "Angeles National Forest", "confidence": 0.88},
-            # San Bernardino National Forest  
-            {"lat_min": 33.8, "lat_max": 34.4, "lon_min": -117.8, "lon_max": -116.4, "name": "San Bernardino National Forest", "confidence": 0.88},
-            # Los Padres National Forest
-            {"lat_min": 35.0, "lat_max": 36.5, "lon_min": -121.5, "lon_max": -119.0, "name": "Los Padres National Forest", "confidence": 0.85},
-            # Sierra Nevada Range
-            {"lat_min": 36.0, "lat_max": 39.0, "lon_min": -119.5, "lon_max": -118.0, "name": "Sierra Nevada", "confidence": 0.90},
-            # Olympic National Forest
-            {"lat_min": 47.3, "lat_max": 48.2, "lon_min": -124.8, "lon_max": -123.0, "name": "Olympic Forest", "confidence": 0.88},
-            # Cascade Range
-            {"lat_min": 45.0, "lat_max": 49.0, "lon_min": -122.5, "lon_max": -120.0, "name": "Cascade Range", "confidence": 0.87}
-        ]
-        
-        for forest in forest_regions:
-            if (forest["lat_min"] <= lat <= forest["lat_max"] and 
-                forest["lon_min"] <= lon <= forest["lon_max"]):
-                return {
-                    'landcover_class': 10,
-                    'ecosystem_type': "Forest",
-                    'confidence': forest["confidence"],
-                    'source': f'{forest["name"]}'
-                }
         
         return None
     
