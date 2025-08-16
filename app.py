@@ -556,15 +556,74 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Use mixed ecosystem calculation with proper weighting
                 ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
-                st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
-                
-                # Show detailed composition breakdown for analysis
-                st.write("**📋 Detailed Composition for Valuation:**")
                 total_samples = st.session_state.detected_ecosystem['successful_queries']
+                
+                st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found")
+                
+                # Create pie chart showing ecosystem composition
+                import plotly.express as px
+                
+                # Prepare data for pie chart
+                ecosystems = []
+                percentages = []
+                sample_counts = []
+                
                 for eco_type, data in ecosystem_distribution.items():
                     proportion = data['count'] / total_samples * 100
-                    area_proportion = area_ha * (proportion / 100)
-                    st.write(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
+                    ecosystems.append(eco_type)
+                    percentages.append(proportion)
+                    sample_counts.append(data['count'])
+                
+                # Create interactive pie chart
+                fig = px.pie(
+                    values=percentages,
+                    names=ecosystems,
+                    title=f"Ecosystem Composition from {total_samples} Sample Points",
+                    hover_data={'Sample Points': sample_counts}
+                )
+                
+                fig.update_traces(
+                    textposition='inside', 
+                    textinfo='percent+label',
+                    hovertemplate='<b>%{label}</b><br>' +
+                                  'Percentage: %{percent}<br>' +
+                                  'Sample Points: %{customdata[0]}<br>' +
+                                  '<extra></extra>'
+                )
+                
+                fig.update_layout(
+                    showlegend=True,
+                    height=400,
+                    title_x=0.5
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Show detailed composition breakdown for analysis
+                st.markdown("**📊 Sampling Results & Area Breakdown:**")
+                
+                # Create columns for better layout
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**Ecosystem Distribution:**")
+                    for eco_type, data in ecosystem_distribution.items():
+                        proportion = data['count'] / total_samples * 100
+                        area_proportion = area_ha * (proportion / 100)
+                        st.write(f"• **{eco_type}**: {proportion:.1f}% ({data['count']} points)")
+                        st.write(f"  → Area: {area_proportion:.1f} hectares")
+                
+                with col2:
+                    st.markdown("**Sampling Quality:**")
+                    st.metric("Total Sample Points", total_samples)
+                    
+                    # Show confidence levels if available
+                    avg_confidence = sum(data.get('confidence', 0) for data in ecosystem_distribution.values()) / len(ecosystem_distribution)
+                    st.metric("Average Confidence", f"{avg_confidence:.0f}%")
+                    
+                    successful_rate = (total_samples / st.session_state.detected_ecosystem.get('total_samples', total_samples)) * 100
+                    st.metric("Success Rate", f"{successful_rate:.0f}%")
+                
                 st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                 
                 esvd_results = calculate_mixed_ecosystem_services_value(
@@ -575,6 +634,30 @@ if analyze_button and st.session_state.selected_area:
                 )
             else:
                 # Single ecosystem calculation
+                ecosystem_type = st.session_state.ecosystem_override
+                
+                if ecosystem_type == "Auto-detect from OpenLandMap":
+                    detected_info = st.session_state.get('detected_ecosystem', {})
+                    ecosystem_type = detected_info.get('primary_ecosystem', 'Grassland')
+                    
+                    st.info(f"🌱 **Single Ecosystem Detected**: {ecosystem_type}")
+                    
+                    # Show sampling results even for single ecosystems
+                    if 'total_samples' in detected_info:
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric("Sample Points", detected_info.get('successful_queries', 0))
+                        with col2:
+                            st.metric("Confidence", f"{detected_info.get('confidence', 0):.0%}")
+                        with col3:
+                            st.metric("Coverage", f"{detected_info.get('coverage_percentage', 100):.0f}%")
+                        
+                        st.caption(f"Detection based on {detected_info.get('successful_queries', 0)} sample points across your selected area")
+                else:
+                    st.info(f"🌱 **User-Selected Ecosystem**: {ecosystem_type}")
+                    st.caption("Ecosystem type manually selected - no sampling performed")
+                
                 esvd_results = calculate_ecosystem_services_value(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
