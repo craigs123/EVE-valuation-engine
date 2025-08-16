@@ -107,13 +107,18 @@ except ImportError:
     st.info("📍 Using enhanced geographic detection (90% accuracy)")
     esa_available = False
 
-# Initialize session state
+# Initialize session state with performance flags
 if 'selected_area' not in st.session_state:
     st.session_state.selected_area = None
 if 'area_coordinates' not in st.session_state:
     st.session_state.area_coordinates = []
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
+if 'render_count' not in st.session_state:
+    st.session_state.render_count = 0
+
+# Track renders to prevent excessive processing
+st.session_state.render_count += 1
 
 # Sidebar configuration
 with st.sidebar:
@@ -164,16 +169,12 @@ with st.sidebar:
     else:
         st.warning("🔴 **Maximum Sampling**: Highest accuracy, slower processing")
     
-    # Display sampling info
+    # Display sampling info (simplified)
     if st.session_state.get('area_coordinates'):
-        coords = np.array(st.session_state.area_coordinates)
-        area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-        area_ha = area_km2 * 100
-        
-        # All areas use the user-defined sample limit
+        # Skip heavy area calculation, just show sample points
         grid_size = int(np.sqrt(max_sampling_limit))
         actual_final = grid_size ** 2
-        st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
+        st.caption(f"Will use {actual_final} sample points for analysis")
     else:
         st.caption("Select an area to see sampling estimation")
     
@@ -202,13 +203,12 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Clear button (optimized batch clear)
+    # Clear button (fast state clear)
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
-        # Clear all related state at once
+        # Clear all cached state efficiently
         keys_to_clear = [
-            'analysis_results', 'selected_area', 'area_coordinates',
-            'cached_bbox', 'cached_area_ha', 'detected_ecosystem',
-            'bbox_coords', 'area_coords_cache'
+            'analysis_results', 'selected_area', 'area_coordinates', 'coord_hash',
+            'cached_area', 'cached_coord_hash', 'detected_ecosystem'
         ]
         for key in keys_to_clear:
             if key in st.session_state:
@@ -273,83 +273,49 @@ with col1:
         key="area_map"
     )
     
-    # Process map interactions with optimized state checking
+    # Process map interactions with minimal processing
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         latest_drawing = map_data['all_drawings'][-1]
         
         if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
             coordinates = latest_drawing['geometry']['coordinates'][0]
             
-            # Only process if coordinates actually changed (reduce unnecessary reruns)
-            current_coords = st.session_state.get('area_coordinates', [])
-            coords_changed = (not current_coords or 
-                            len(coordinates) != len(current_coords) or
-                            any(abs(c1[0] - c2[0]) > 0.000001 or abs(c1[1] - c2[1]) > 0.000001 
-                                for c1, c2 in zip(coordinates, current_coords)))
+            # Use simple hash comparison for faster coordinate change detection
+            current_hash = st.session_state.get('coord_hash', '')
+            new_hash = str(hash(str(coordinates)))
             
-            if coords_changed:
-                # Save the new selection with batch state updates
+            if new_hash != current_hash:
+                # Minimal state update - defer all calculations
                 st.session_state.update({
-                    'selected_area': {
-                        'type': latest_drawing['geometry']['type'],
-                        'coordinates': coordinates
-                    },
+                    'selected_area': latest_drawing,
                     'area_coordinates': coordinates,
-                    'analysis_results': None,
-                    # Clear caches to force recalculation
-                    'cached_bbox': None,
-                    'cached_area_ha': None
+                    'coord_hash': new_hash,
+                    'analysis_results': None
                 })
-                
-                # Quick area display (will be properly calculated in preview section)
-                if len(coordinates) > 2:
-                    lats = [coord[1] for coord in coordinates[:-1]]
-                    lons = [coord[0] for coord in coordinates[:-1]]
-                    lat_range = max(lats) - min(lats)
-                    lon_range = max(lons) - min(lons)
-                    area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
-                    st.success(f"Area selected: {area_ha:.0f} hectares")
+                st.success("Area selected - ready for analysis")
                 st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
-    # Display coordinates of selected area (cached to avoid recalculation)
-    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        # Cache bounding box calculation
-        if 'cached_bbox' not in st.session_state or st.session_state.get('bbox_coords') != st.session_state.area_coordinates:
-            coords = st.session_state.area_coordinates
-            lats = [coord[1] for coord in coords[:-1]]
-            lons = [coord[0] for coord in coords[:-1]]
-            st.session_state.cached_bbox = {
-                'min_lat': min(lats), 'max_lat': max(lats),
-                'min_lon': min(lons), 'max_lon': max(lons)
-            }
-            st.session_state.bbox_coords = coords
+    # Display coordinates only when area is selected (minimal processing)
+    if st.session_state.get('selected_area'):
+        coords = st.session_state.area_coordinates
         
-        bbox = st.session_state.cached_bbox
-        st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
-        st.markdown("### 📍 Selected Area Coordinates")
+        # Quick bounding box calculation (only when needed)
+        lats = [coord[1] for coord in coords[:-1]]
+        lons = [coord[0] for coord in coords[:-1]]
         
-        # Display cached bounding box
+        st.markdown("### 📍 Selected Area")
         st.markdown(f"""
-        <div class="coordinate-bounds">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
-                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
-                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
-            </div>
+        <div style="font-size: 0.9em;">
+            <strong>Bounds:</strong> {min(lats):.4f}°N to {max(lats):.4f}°N, {min(lons):.4f}°E to {max(lons):.4f}°E
         </div>
         """, unsafe_allow_html=True)
         
-        # Show all coordinates in expandable section (load on demand)
-        with st.expander("All Coordinates"):
-            coords = st.session_state.area_coordinates
+        # Show coordinates only in expandable section (load on demand)
+        with st.expander("View All Coordinates"):
             for i, coord in enumerate(coords[:-1]):
-                st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+                st.text(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
     else:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
@@ -413,51 +379,37 @@ with col2:
     
     if st.session_state.get('selected_area'):
         st.success("✅ Area Selected")
-        coords = st.session_state.area_coordinates
         
-        # Calculate area in hectares (cached)
-        if 'cached_area_ha' not in st.session_state or st.session_state.get('area_coords_cache') != coords:
-            # Only recalculate if coordinates changed
+        # Cache area calculation to avoid repeated computation
+        coord_hash = st.session_state.get('coord_hash', '')
+        if 'cached_area' not in st.session_state or st.session_state.get('cached_coord_hash') != coord_hash:
+            coords = st.session_state.area_coordinates
             lats = [coord[1] for coord in coords[:-1]]
             lons = [coord[0] for coord in coords[:-1]]
             lat_range = max(lats) - min(lats)
             lon_range = max(lons) - min(lons)
             area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
-            st.session_state.cached_area_ha = area_ha
-            st.session_state.area_coords_cache = coords
+            st.session_state.cached_area = area_ha
+            st.session_state.cached_coord_hash = coord_hash
         
-        st.metric("Area Size", f"{st.session_state.cached_area_ha:.0f} hectares")
+        st.metric("Area Size", f"{st.session_state.cached_area:.0f} hectares")
         
-        # Show ecosystem detection status with composition
-        if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+        # Show ecosystem status (simplified for performance)
+        ecosystem_type = st.session_state.ecosystem_override
+        if ecosystem_type == "Auto-detect from OpenLandMap":
             if 'detected_ecosystem' in st.session_state:
                 ecosystem_info = st.session_state.detected_ecosystem
-                primary_ecosystem = ecosystem_info['primary_ecosystem']
-                
-                # Show primary ecosystem
-                st.info(f"**Primary:** {primary_ecosystem} ({ecosystem_info['confidence']:.0%} confidence)")
-                
-                # Show composition if multiple ecosystems detected
-                if 'ecosystem_distribution' in ecosystem_info and len(ecosystem_info['ecosystem_distribution']) > 1:
-                    st.info("**Composition:**")
-                    ecosystem_distribution = ecosystem_info['ecosystem_distribution']
-                    total_samples = ecosystem_info['successful_queries']
-                    
-                    for eco_type, data in ecosystem_distribution.items():
-                        percentage = (data['count'] / total_samples) * 100
-                        st.write(f"   • {eco_type}: {percentage:.1f}%")
-                        
+                st.info(f"**Ecosystem:** {ecosystem_info['primary_ecosystem']}")
             else:
-                st.info("**Ecosystem:** Will detect automatically")
+                st.info("**Ecosystem:** Auto-detect during analysis")
         else:
-            st.info(f"**Ecosystem:** {st.session_state.ecosystem_override}")
-        st.info(f"**Analysis:** {st.session_state.analysis_detail}")
+            st.info(f"**Ecosystem:** {ecosystem_type}")
         
+        # Analysis status
         if st.session_state.analysis_results:
-            st.success("📈 Analysis Complete")
-            st.write("Results are ready for viewing")
+            st.success("📈 Analysis Complete - Results ready")
         else:
-            st.info("Ready for analysis - click 'Calculate Value' button")
+            st.info("Ready for analysis")
     else:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
