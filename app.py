@@ -167,12 +167,14 @@ with st.sidebar:
     # Display sampling info (optimized with cached area calculation)
     if st.session_state.get('area_coordinates'):
         # Use cached area if available, otherwise calculate once
-        if 'cached_area_ha' in st.session_state:
+        if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
             area_ha = st.session_state.cached_area_ha
         else:
             coords = np.array(st.session_state.area_coordinates)
             area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
+            # Cache the calculated area
+            st.session_state.cached_area_ha = area_ha
         
         # All areas use the user-defined sample limit
         grid_size = int(np.sqrt(max_sampling_limit))
@@ -471,12 +473,14 @@ with col2:
 if analyze_button and st.session_state.selected_area:
     try:
         # Use cached area calculation if available
-        if 'cached_area_ha' in st.session_state:
+        if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
             area_ha = st.session_state.cached_area_ha
         else:
             coords = np.array(st.session_state.area_coordinates)
             area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
             area_ha = area_km2 * 100
+            # Cache the calculated area
+            st.session_state.cached_area_ha = area_ha
         
         # Show progress bar container under the button
         st.markdown("### 🔄 Analysis Progress")
