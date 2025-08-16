@@ -219,7 +219,7 @@ with st.sidebar:
                 del st.session_state[key]
         st.rerun()
 
-# Initialize analyze_button as False
+# Initialize analyze_button as False - ensure it's always defined
 analyze_button = False
 
 # Map and preview in columns
@@ -364,11 +364,13 @@ with col1:
                 "🚀 Calculate Value", 
                 type="primary",
                 use_container_width=True,
-                help="Calculate ecosystem services value for selected area"
+                help="Calculate ecosystem services value for selected area",
+                key="calculate_button"
             )
     else:
         # Show instruction when no area selected
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar to select an area.")
+        # Ensure analyze_button is always defined
         analyze_button = False
 
 # Right column - Preview and results
