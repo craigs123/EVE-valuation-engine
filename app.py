@@ -208,7 +208,7 @@ with st.sidebar:
         # Clear all cached state efficiently
         keys_to_clear = [
             'analysis_results', 'selected_area', 'area_coordinates', 'coord_hash',
-            'cached_area', 'cached_coord_hash', 'detected_ecosystem', 'force_analysis', 'analysis_triggered'
+            'cached_area', 'cached_coord_hash', 'detected_ecosystem'
         ]
         # Also clear any cached breakdown data
         for key in list(st.session_state.keys()):
@@ -300,7 +300,7 @@ with col1:
         else:
             st.warning("Please draw a polygon or rectangle area")
     
-    # Display area info and analysis controls (consolidated section)
+    # Display coordinates only when area is selected (minimal processing)
     if st.session_state.get('selected_area'):
         coords = st.session_state.area_coordinates
         
@@ -319,60 +319,62 @@ with col1:
         with st.expander("View All Coordinates"):
             for i, coord in enumerate(coords[:-1]):
                 st.text(f"Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E")
-        
-        # Analysis controls - only show when area is selected
-        st.markdown("### 📊 Analysis Controls")
-        
-        col_period, col_button = st.columns([2, 1])
-        
-        with col_period:
-            time_preset = st.selectbox(
-                "Analysis Period",
-                options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
-                index=0,
-                key="map_time_preset"
-            )
-            
-            if time_preset == "Custom Range":
-                col_start, col_end = st.columns(2)
-                with col_start:
-                    start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="map_start_date")
-                with col_end:
-                    end_date = st.date_input("To", value=datetime.now(), key="map_end_date")
-            else:
-                preset_options = {
-                    "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
-                    "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
-                    "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
-                }
-                start_date, end_date = preset_options[time_preset]
-            
-            # Analysis detail level
-            analysis_detail = st.selectbox(
-                "Analysis Detail",
-                options=["Summary Analysis", "Detailed Analysis"],
-                help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
-                key="analysis_detail_main"
-            )
-            
-            # Store setting
-            st.session_state.analysis_detail = analysis_detail
-        
-        with col_button:
-            st.write("") # spacing
-            
-            # Direct button implementation with immediate action
-            analyze_button = st.button("🚀 Calculate Value", key="calc_btn", type="primary")
-            
-            if analyze_button:
-                # Force immediate processing by setting flags
-                st.session_state.force_analysis = True
-                st.session_state.analysis_triggered = True
     else:
-        # Show instruction when no area selected
-        st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar to select an area.")
-        # Ensure analyze_button is always defined
-        analyze_button = False
+        st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
+    
+    # Analysis controls under the map (always visible)
+    st.markdown("### 📊 Analysis Controls")
+    
+    col_period, col_button = st.columns([2, 1])
+    
+    with col_period:
+        time_preset = st.selectbox(
+            "Analysis Period",
+            options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
+            index=0,
+            key="map_time_preset"
+        )
+        
+        if time_preset == "Custom Range":
+            col_start, col_end = st.columns(2)
+            with col_start:
+                start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="map_start_date")
+            with col_end:
+                end_date = st.date_input("To", value=datetime.now(), key="map_end_date")
+        else:
+            preset_options = {
+                "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
+                "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
+                "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
+            }
+            start_date, end_date = preset_options[time_preset]
+        
+        # Analysis detail level (moved from sidebar)
+        analysis_detail = st.selectbox(
+            "Analysis Detail",
+            options=["Summary Analysis", "Detailed Analysis"],
+            help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
+            key="analysis_detail_main"
+        )
+        
+        # Store setting
+        st.session_state.analysis_detail = analysis_detail
+    
+    with col_button:
+        st.write("") # spacing
+        if st.session_state.get('selected_area'):
+            analyze_button = st.button(
+                "🚀 Calculate Value", 
+                type="primary",
+                use_container_width=True,
+                help="Calculate ecosystem services value for selected area"
+            )
+        else:
+            analyze_button = st.button(
+                "Select area first", 
+                disabled=True,
+                use_container_width=True
+            )
 
 # Right column - Preview and results
 with col2:
@@ -415,19 +417,8 @@ with col2:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
 
-# Direct analysis trigger - check both button click and forced analysis flag
-should_analyze = (analyze_button or st.session_state.get('force_analysis', False)) and st.session_state.get('selected_area')
-
-if st.session_state.get('selected_area'):
-    if should_analyze:
-        st.success("🚀 ANALYSIS STARTING - Button clicked successfully!")
-        # Clear the force flag to prevent repeated analysis
-        st.session_state.force_analysis = False
-    else:
-        st.info("Ready to analyze - click Calculate Value button above")
-
 # Analysis with OpenLandMap ecosystem detection
-if should_analyze:
+if analyze_button and st.session_state.get('selected_area'):
     try:
         coords = np.array(st.session_state.area_coordinates)
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
