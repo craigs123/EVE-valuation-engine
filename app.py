@@ -363,14 +363,35 @@ with col1:
     with col_button:
         st.write("") # spacing
         
-        # Form-based workaround for WebSocket issues
+        # URL parameter workaround for WebSocket issues
         if st.session_state.get('selected_area'):
-            with st.form("analysis_form", clear_on_submit=False):
-                st.write("Click to start analysis:")
-                analyze_button = st.form_submit_button("🚀 Calculate Value", type="primary", use_container_width=True)
+            # Check URL parameters for analysis trigger
+            query_params = st.query_params
+            if query_params.get('analyze') == 'true':
+                analyze_button = True
+                st.success("Analysis triggered via URL parameter!")
+                # Clear the parameter to prevent repeated analysis
+                st.query_params.clear()
+            else:
+                analyze_button = False
                 
-                if analyze_button:
-                    st.success("Analysis started via form submission!")
+            # Create analysis trigger link
+            coords_hash = st.session_state.get('coord_hash', '')
+            analysis_url = f"?analyze=true&area={coords_hash}"
+            st.markdown(f"""
+                <a href="{analysis_url}" target="_self" style="
+                    display: inline-block;
+                    background: #1f77b4;
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    text-decoration: none;
+                    border-radius: 0.25rem;
+                    font-weight: bold;
+                    text-align: center;
+                    width: 100%;
+                    box-sizing: border-box;
+                ">🚀 Calculate Value</a>
+            """, unsafe_allow_html=True)
         else:
             st.write("⚠️ Select area first")
             analyze_button = False
