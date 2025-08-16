@@ -137,7 +137,7 @@ with st.sidebar:
         "Sample Points",
         min_value=10,
         max_value=100,
-        value=st.session_state.get('max_sampling_limit', 50),
+        value=st.session_state.get('max_sampling_limit', 10),
         step=10,
         help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
     )
@@ -495,7 +495,7 @@ if analyze_button and st.session_state.selected_area:
                     area_hectares = area_km2 * 100
                     
                     # Use user-defined sample limit for all areas
-                    max_limit = st.session_state.get('max_sampling_limit', 50)
+                    max_limit = st.session_state.get('max_sampling_limit', 10)
                     expected_points = max_limit
                     
                     # Round to nearest perfect square for grid generation
