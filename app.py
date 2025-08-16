@@ -132,46 +132,37 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🎯 Sampling Settings")
     
-    # Maximum sampling limit setting
+    # Maximum sampling limit setting (simplified approach)
     max_sampling_limit = st.slider(
-        "Maximum Sample Points",
+        "Sample Points",
         min_value=10,
         max_value=100,
-        value=st.session_state.get('max_sampling_limit', 100),
+        value=st.session_state.get('max_sampling_limit', 50),
         step=10,
-        help="Upper limit for total sample points. Lower values speed up analysis but may reduce accuracy."
+        help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
     )
     st.session_state.max_sampling_limit = max_sampling_limit
     
-    # Sampling frequency setting
-    sampling_frequency = st.number_input(
-        "Sample Points per 100 Hectares",
-        min_value=0.25,
-        max_value=4.0,
-        value=st.session_state.get('sampling_frequency', 1.0),
-        step=0.25,
-        help=f"Controls sampling density for areas ≤10,000 hectares. Capped at {max_sampling_limit} total points."
-    )
-    st.session_state.sampling_frequency = sampling_frequency
+    # Remove sampling frequency - use fixed value internally
+    st.session_state.sampling_frequency = 1.0
     
     # Sampling strategy information
     st.markdown(f"""
     **📏 Sampling Strategy:**
+    - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
     - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
-    - **Smart sampling**: System automatically balances sampling density with area size for optimal performance
-    - **Maximum sample points**: {max_sampling_limit} points distributed evenly across your selected area
-    - **User control**: Adjust sampling density above for areas under 10,000 hectares
+    - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
     """)
     
-    # Sampling frequency guide
-    if sampling_frequency <= 0.5:
-        st.info("🔹 **Low Density**: Faster analysis, suitable for uniform areas")
-    elif sampling_frequency <= 1.0:
-        st.info("🔸 **Standard Density**: Good balance of speed and accuracy")
-    elif sampling_frequency <= 2.0:
-        st.info("🔸 **High Density**: More accurate for mixed ecosystems")
+    # Sampling points guide
+    if max_sampling_limit <= 20:
+        st.info("🔹 **Low Sampling**: Faster analysis, suitable for uniform areas")
+    elif max_sampling_limit <= 50:
+        st.info("🔸 **Moderate Sampling**: Good balance of speed and accuracy")
+    elif max_sampling_limit <= 80:
+        st.info("🔸 **High Sampling**: More accurate for mixed ecosystems")
     else:
-        st.warning("🔴 **Maximum Density**: Highest accuracy, slower processing")
+        st.warning("🔴 **Maximum Sampling**: Highest accuracy, slower processing")
     
     # Display sampling info
     if st.session_state.get('area_coordinates'):
@@ -179,23 +170,10 @@ with st.sidebar:
         area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
         area_ha = area_km2 * 100
         
-        if area_ha > 10000:
-            # Large areas use maximum sample points
-            final_points = max_sampling_limit
-            grid_size = int(np.sqrt(final_points))
-            actual_final = grid_size ** 2
-            st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points (large area - auto max)")
-        else:
-            # Small areas use user-defined sampling frequency
-            desired_points = max(4, int(area_ha * sampling_frequency / 100))
-            actual_points = min(desired_points, max_sampling_limit)  # Cap at user limit
-            grid_size = int(np.sqrt(actual_points))
-            final_points = grid_size ** 2
-            
-            if desired_points > max_sampling_limit:
-                st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points (capped at {max_sampling_limit})")
-            else:
-                st.caption(f"Current area: ~{area_ha:.0f} ha → {final_points} sample points")
+        # All areas use the user-defined sample limit
+        grid_size = int(np.sqrt(max_sampling_limit))
+        actual_final = grid_size ** 2
+        st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
     else:
         st.caption("Select an area to see sampling estimation")
     
@@ -516,13 +494,9 @@ if analyze_button and st.session_state.selected_area:
                     area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
                     area_hectares = area_km2 * 100
                     
-                    # Calculate expected number of sample points using user limit
-                    max_limit = st.session_state.get('max_sampling_limit', 100)
-                    if area_hectares > 10000:
-                        expected_points = max_limit
-                    else:
-                        desired_points = max(4, int(area_hectares * st.session_state.sampling_frequency / 100))
-                        expected_points = min(desired_points, max_limit)
+                    # Use user-defined sample limit for all areas
+                    max_limit = st.session_state.get('max_sampling_limit', 50)
+                    expected_points = max_limit
                     
                     # Round to nearest perfect square for grid generation
                     grid_size = int(np.sqrt(expected_points))

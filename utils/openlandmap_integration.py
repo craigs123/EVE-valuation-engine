@@ -611,7 +611,7 @@ class OpenLandMapIntegrator:
         except:
             return self._default_ecosystem_result()
     
-    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 100, progress_callback=None) -> Dict:
+    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 50, progress_callback=None) -> Dict:
         """
         Analyze ecosystem type for a polygon area using multiple sample points
         
@@ -624,9 +624,8 @@ class OpenLandMapIntegrator:
             if not coordinates or len(coordinates) < 3:
                 return self._default_ecosystem_result()
             
-            # Calculate area and determine appropriate sample density
-            area_km2 = self._calculate_area_km2(coordinates)
-            num_points = self._calculate_sample_points(area_km2, sampling_frequency=sampling_frequency, max_limit=max_sampling_limit)
+            # Use user-defined sample limit directly (simplified approach)
+            num_points = max_sampling_limit
             
             # Generate sample points within the polygon
             sample_points = self._generate_sample_points(coordinates, num_points=num_points)
@@ -771,7 +770,7 @@ class OpenLandMapIntegrator:
             'source': 'Default (OpenLandMap unavailable)'
         }
 
-def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 100, progress_callback=None) -> Dict:
+def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 50, progress_callback=None) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
     
