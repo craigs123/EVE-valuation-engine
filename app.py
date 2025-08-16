@@ -208,7 +208,7 @@ with st.sidebar:
         # Clear all cached state efficiently
         keys_to_clear = [
             'analysis_results', 'selected_area', 'area_coordinates', 'coord_hash',
-            'cached_area', 'cached_coord_hash', 'detected_ecosystem'
+            'cached_area', 'cached_coord_hash', 'detected_ecosystem', 'trigger_analysis'
         ]
         # Also clear any cached breakdown data
         for key in list(st.session_state.keys()):
@@ -361,13 +361,13 @@ with col1:
         with col_button:
             st.write("") # spacing
             st.write("") # additional spacing
-            analyze_button = st.button(
-                "🚀 Calculate Value", 
-                type="primary",
-                use_container_width=True,
-                help="Calculate ecosystem services value for selected area",
-                key="calculate_button"
-            )
+            
+            # Simple button test - remove all extra parameters that might cause issues
+            if st.button("🚀 Calculate Value"):
+                st.session_state['trigger_analysis'] = True
+                st.rerun()
+            
+            analyze_button = st.session_state.get('trigger_analysis', False)
     else:
         # Show instruction when no area selected
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar to select an area.")
@@ -424,6 +424,10 @@ if st.session_state.get('selected_area'):
         st.success("Button clicked! Starting analysis...")
     else:
         st.info("Ready to analyze - click Calculate Value button above")
+
+# Clear the trigger after processing to prevent re-runs
+if analyze_button:
+    st.session_state['trigger_analysis'] = False
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
