@@ -363,16 +363,22 @@ with col1:
     with col_button:
         st.write("") # spacing
         
-        # Test if basic button works
-        if st.button("DEBUG: Test Button"):
-            st.success("Test button works!")
+        # Browser connectivity test
+        if st.button("🔧 Browser Test"):
+            st.success("✅ Browser connection works!")
+            st.info("If you see this, the issue is not browser connectivity.")
         
+        # Area selection test  
         if st.session_state.get('selected_area'):
-            analyze_button = st.button("🚀 Calculate Value")
+            # Create unique key to avoid conflicts
+            calc_key = f"calc_btn_{hash(str(st.session_state.get('coord_hash', '')))}"
+            analyze_button = st.button("🚀 Calculate Value", key=calc_key)
+            
             if analyze_button:
-                st.success("BUTTON CLICKED - STARTING ANALYSIS NOW!")
+                st.success("🎯 BUTTON CLICK DETECTED!")
+                st.info("Button functionality is working - proceeding to analysis...")
         else:
-            st.button("Select area first", disabled=True)
+            st.button("⚠️ Select area first", disabled=True)
             analyze_button = False
 
 # Right column - Preview and results
