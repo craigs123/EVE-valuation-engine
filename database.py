@@ -196,7 +196,8 @@ class EcosystemAnalysisDB:
                 total_value=total_value,
                 value_per_hectare=value_per_hectare,
                 analysis_results=analysis_results,
-                sampling_points=sampling_points
+                sampling_points=sampling_points,
+                data_source=analysis_results.get('data_source', 'ESVD/TEEB Database')
             )
             
             db.add(analysis)
@@ -209,6 +210,8 @@ class EcosystemAnalysisDB:
             
         except Exception as e:
             st.error(f"Failed to save analysis: {str(e)}")
+            import traceback
+            st.error(f"Traceback: {traceback.format_exc()}")
             return None
     
     @staticmethod
@@ -308,6 +311,8 @@ class SavedAreaDB:
             
         except Exception as e:
             st.error(f"Failed to save area: {str(e)}")
+            import traceback
+            st.error(f"Traceback: {traceback.format_exc()}")
             return None
     
     @staticmethod

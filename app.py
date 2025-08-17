@@ -318,7 +318,7 @@ with st.sidebar:
                             # Show breakdown
                             st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
                             
-                            if baseline.biodiversity_index and baseline.biodiversity_index > 0:
+                            if baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
                                 st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
                             
                             st.markdown("---")
@@ -1255,7 +1255,7 @@ if st.session_state.analysis_results:
         
         with col_detailed4:
             if st.session_state.get('db_initialized', False):
-                baseline_exists = baseline_info is not None if 'baseline_info' in locals() else False
+                baseline_exists = 'baseline_info' in locals() and baseline_info is not None
                 baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
                 if st.button(baseline_text, type="secondary", key="detailed_baseline"):
                     baseline_id = NaturalCapitalBaselineDB.create_baseline(
