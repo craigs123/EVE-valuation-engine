@@ -415,7 +415,7 @@ class OpenLandMapIntegrator:
         """Detect urban areas with high precision - global coverage"""
         urban_centers = [
             # North America
-            {"lat": 34.05, "lon": -118.24, "radius": 0.5, "name": "Los Angeles"},
+            {"lat": 34.05, "lon": -118.24, "radius": 0.3, "name": "Los Angeles"},
             {"lat": 40.71, "lon": -74.01, "radius": 0.3, "name": "New York"},
             {"lat": 37.77, "lon": -122.42, "radius": 0.2, "name": "San Francisco"},
             {"lat": 41.88, "lon": -87.63, "radius": 0.3, "name": "Chicago"},
