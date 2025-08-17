@@ -9,6 +9,15 @@ import numpy as np
 from datetime import datetime, timedelta
 import json
 
+# Database imports
+from database import (
+    init_database, 
+    test_database_connection, 
+    initialize_user_session,
+    EcosystemAnalysisDB,
+    SavedAreaDB
+)
+
 # Page configuration
 st.set_page_config(
     page_title="Ecosystem Valuation Engine",
@@ -16,6 +25,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Initialize database and user session
+if 'db_initialized' not in st.session_state:
+    if init_database():
+        st.session_state.db_initialized = True
+        initialize_user_session()
+    else:
+        st.error("Database initialization failed. Some features may not work properly.")
+        st.session_state.db_initialized = False
 
 # Custom CSS
 st.markdown("""
@@ -205,6 +223,68 @@ with st.sidebar:
     
     # Store in session state
     st.session_state['income_elasticity'] = income_elasticity
+    
+    st.markdown("---")
+    
+    # Database Section
+    if st.session_state.get('db_initialized', False):
+        st.subheader("💾 Saved Data")
+        
+        # Database status indicator
+        if test_database_connection():
+            st.success("🟢 Database connected")
+        else:
+            st.error("🔴 Database offline")
+        
+        # Tabs for different data views
+        tab1, tab2 = st.tabs(["Recent Analyses", "Saved Areas"])
+        
+        with tab1:
+            st.markdown("**📊 Your Recent Analyses**")
+            recent_analyses = EcosystemAnalysisDB.get_user_analyses(limit=5)
+            
+            if recent_analyses:
+                for analysis in recent_analyses:
+                    with st.container():
+                        st.markdown(f"**{analysis.get('area_name', 'Unnamed Area')}**")
+                        st.caption(f"{analysis['ecosystem_type']} • ${analysis['total_value']:,.0f} • {analysis['created_at'].strftime('%Y-%m-%d')}")
+                        
+                        if st.button(f"Load Analysis", key=f"load_{analysis['id']}", use_container_width=True):
+                            # Load the analysis data
+                            full_analysis = EcosystemAnalysisDB.get_analysis_by_id(analysis['id'])
+                            if full_analysis:
+                                st.session_state.area_coordinates = full_analysis['coordinates']
+                                st.session_state.analysis_results = full_analysis['analysis_results']
+                                st.session_state.selected_area = True
+                                st.rerun()
+                        st.markdown("---")
+            else:
+                st.info("No saved analyses yet. Run an analysis to save results.")
+        
+        with tab2:
+            st.markdown("**📍 Your Saved Areas**")
+            saved_areas = SavedAreaDB.get_user_saved_areas()
+            
+            if saved_areas:
+                for area in saved_areas:
+                    with st.container():
+                        st.markdown(f"**{area['name']}**")
+                        st.caption(f"{area['area_hectares']:.0f} ha • {area['created_at'].strftime('%Y-%m-%d')}")
+                        
+                        if area.get('description'):
+                            st.caption(f"📝 {area['description']}")
+                        
+                        if st.button(f"Load Area", key=f"load_area_{area['id']}", use_container_width=True):
+                            # Load the area coordinates
+                            st.session_state.area_coordinates = area['coordinates']
+                            st.session_state.selected_area = True
+                            st.session_state.cached_area_ha = area['area_hectares']
+                            st.rerun()
+                        st.markdown("---")
+            else:
+                st.info("No saved areas yet. Select and save an area first.")
+    else:
+        st.error("🔴 Database unavailable")
     
     st.markdown("---")
     
@@ -765,10 +845,90 @@ if st.session_state.analysis_results:
         else:
             st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         
-        # Option to upgrade to detailed view
-        if st.button("🔍 View Detailed Analysis", type="secondary"):
-            st.session_state['analysis_detail'] = 'Detailed Analysis'
-            st.rerun()
+        # Action buttons
+        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        
+        with col_btn1:
+            if st.button("🔍 View Detailed Analysis", type="secondary"):
+                st.session_state['analysis_detail'] = 'Detailed Analysis'
+                st.rerun()
+        
+        with col_btn2:
+            if st.session_state.get('db_initialized', False):
+                if st.button("💾 Save Analysis", type="primary"):
+                    st.session_state['show_save_analysis'] = True
+                    st.rerun()
+        
+        with col_btn3:
+            if st.session_state.get('db_initialized', False):
+                if st.button("📍 Save Area", type="secondary"):
+                    st.session_state['show_save_area'] = True
+                    st.rerun()
+        
+        # Save Analysis Modal
+        if st.session_state.get('show_save_analysis', False):
+            with st.form("save_analysis_form"):
+                st.subheader("💾 Save Analysis")
+                area_name = st.text_input("Analysis Name", value=f"Analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    save_submitted = st.form_submit_button("Save", type="primary")
+                with col2:
+                    cancel_submitted = st.form_submit_button("Cancel")
+                
+                if save_submitted and area_name:
+                    analysis_id = EcosystemAnalysisDB.save_analysis(
+                        coordinates=st.session_state.area_coordinates,
+                        area_hectares=results['area_ha'],
+                        ecosystem_type=results['ecosystem_type'],
+                        total_value=results['total_value'],
+                        value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
+                        analysis_results=results,
+                        sampling_points=st.session_state.get('max_sampling_limit', 10),
+                        area_name=area_name
+                    )
+                    if analysis_id:
+                        st.success("Analysis saved successfully!")
+                        st.session_state['show_save_analysis'] = False
+                        st.rerun()
+                    else:
+                        st.error("Failed to save analysis")
+                
+                if cancel_submitted:
+                    st.session_state['show_save_analysis'] = False
+                    st.rerun()
+        
+        # Save Area Modal
+        if st.session_state.get('show_save_area', False):
+            with st.form("save_area_form"):
+                st.subheader("📍 Save Area")
+                area_name = st.text_input("Area Name", value=f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    save_submitted = st.form_submit_button("Save", type="primary")
+                with col2:
+                    cancel_submitted = st.form_submit_button("Cancel")
+                
+                if save_submitted and area_name:
+                    area_id = SavedAreaDB.save_area(
+                        name=area_name,
+                        coordinates=st.session_state.area_coordinates,
+                        area_hectares=results['area_ha'],
+                        description=description if description else None
+                    )
+                    if area_id:
+                        st.success("Area saved successfully!")
+                        st.session_state['show_save_area'] = False
+                        st.rerun()
+                    else:
+                        st.error("Failed to save area")
+                
+                if cancel_submitted:
+                    st.session_state['show_save_area'] = False
+                    st.rerun()
             
     else:  # Detailed Analysis
         st.subheader("📈 Detailed Analysis Results")
@@ -970,8 +1130,23 @@ if st.session_state.analysis_results:
                             - **Standardization**: All values in 2020 International dollars per hectare per year
                             - **Quality Assurance**: Only peer-reviewed studies included in calculations
                             """)
-        # Option to switch to summary view
+        # Action buttons for detailed view
         st.markdown("---")
-        if st.button("📊 Switch to Summary View", type="secondary"):
-            st.session_state['analysis_detail'] = 'Summary Analysis'
-            st.rerun()
+        col_detailed1, col_detailed2, col_detailed3 = st.columns(3)
+        
+        with col_detailed1:
+            if st.button("📊 Switch to Summary View", type="secondary"):
+                st.session_state['analysis_detail'] = 'Summary Analysis'
+                st.rerun()
+        
+        with col_detailed2:
+            if st.session_state.get('db_initialized', False):
+                if st.button("💾 Save Detailed Analysis", type="primary", key="save_detailed_analysis"):
+                    st.session_state['show_save_analysis'] = True
+                    st.rerun()
+        
+        with col_detailed3:
+            if st.session_state.get('db_initialized', False):
+                if st.button("📍 Save Current Area", type="secondary", key="save_detailed_area"):
+                    st.session_state['show_save_area'] = True
+                    st.rerun()

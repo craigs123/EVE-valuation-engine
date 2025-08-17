@@ -4,6 +4,17 @@
 
 This is a Streamlit-based geospatial analysis application called the Ecosystem Valuation Engine (EVE), designed for environmental researchers to measure ecosystem growth through economic valuation of ecosystem services. EVE focuses on four main categories of ecosystem services: provisioning (food, water, timber), regulating (climate, water regulation, erosion control), cultural (recreation, spiritual value), and supporting (soil formation, nutrient cycling). The application combines satellite imagery processing with established economic valuation coefficients to track ecosystem service value changes over time.
 
+## Recent Changes (2025-08-17)
+
+**Database Integration Added**: Complete PostgreSQL database integration has been implemented with the following features:
+- **Analysis Storage**: Users can save complete ecosystem analyses with area names and descriptions
+- **Area Management**: Save and reload geographic areas for future analysis
+- **Historical Tracking**: Database foundation for tracking ecosystem value changes over time
+- **User Session Management**: UUID-based user tracking for data isolation
+- **Sidebar Integration**: Database status monitoring and saved data access in the sidebar
+- **Load Functionality**: Load previously saved analyses and areas directly into the application
+- **Save Interface**: Form-based saving with area naming and description capabilities
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -43,9 +54,17 @@ Sampling preference: Simplified user-configurable sample points (10-100 range) w
 - **Comprehensive Diversity Metrics**: Shannon and Simpson diversity indices displayed in UI with interpretation levels (Very High, High, Moderate, Low) for multi-ecosystem areas, providing scientific measures of ecosystem heterogeneity alongside visual composition breakdowns
 
 ### Data Storage Solutions
-- **Sample Data**: JSON files containing predefined sample areas with expected metrics
+- **PostgreSQL Database**: Full database integration for persistent storage of analyses and saved areas
+  - **Ecosystem Analyses**: Complete analysis results with coordinates, values, and metadata
+  - **Saved Areas**: User-defined areas with descriptions for future analysis
+  - **Analysis History**: Historical tracking for ecosystem value changes over time
+- **Database Tables**: 
+  - `ecosystem_analyses`: Stores complete analysis results with ecosystem type, coordinates, total value, per-hectare value, sampling data
+  - `saved_areas`: User-saved areas with names, descriptions, and geographic coordinates
+  - `analysis_history`: Time-series tracking for environmental change analysis
 - **Session Storage**: In-memory storage using Streamlit session state for user selections and analysis results
 - **Export Formats**: CSV and JSON export capabilities for analysis results
+- **User Session Management**: UUID-based session tracking for data isolation and user experience
 
 ### Calculation Methodology
 - **ESVD Integration**: Leverages the Ecosystem Services Valuation Database (ESVD) - world's largest open-access database with 10,000+ peer-reviewed value records
