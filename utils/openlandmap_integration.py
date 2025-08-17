@@ -412,8 +412,9 @@ class OpenLandMapIntegrator:
         return self._detect_global_ecosystems(lat, lon)
     
     def _detect_urban_areas(self, lat: float, lon: float) -> Optional[Dict]:
-        """Detect urban areas with high precision"""
+        """Detect urban areas with high precision - global coverage"""
         urban_centers = [
+            # North America
             {"lat": 34.05, "lon": -118.24, "radius": 0.5, "name": "Los Angeles"},
             {"lat": 40.71, "lon": -74.01, "radius": 0.3, "name": "New York"},
             {"lat": 37.77, "lon": -122.42, "radius": 0.2, "name": "San Francisco"},
@@ -424,6 +425,72 @@ class OpenLandMapIntegrator:
             {"lat": 25.76, "lon": -80.19, "radius": 0.2, "name": "Miami"},
             {"lat": 32.78, "lon": -96.80, "radius": 0.3, "name": "Dallas"},
             {"lat": 47.61, "lon": -122.33, "radius": 0.2, "name": "Seattle"},
+            {"lat": 43.65, "lon": -79.38, "radius": 0.3, "name": "Toronto"},
+            {"lat": 45.50, "lon": -73.57, "radius": 0.2, "name": "Montreal"},
+            {"lat": 49.28, "lon": -123.12, "radius": 0.2, "name": "Vancouver"},
+            {"lat": 19.43, "lon": -99.13, "radius": 0.4, "name": "Mexico City"},
+            
+            # Europe
+            {"lat": 51.51, "lon": -0.13, "radius": 0.4, "name": "London"},
+            {"lat": 48.86, "lon": 2.35, "radius": 0.3, "name": "Paris"},
+            {"lat": 52.52, "lon": 13.40, "radius": 0.3, "name": "Berlin"},
+            {"lat": 41.90, "lon": 12.50, "radius": 0.2, "name": "Rome"},
+            {"lat": 40.42, "lon": -3.70, "radius": 0.3, "name": "Madrid"},
+            {"lat": 52.37, "lon": 4.90, "radius": 0.2, "name": "Amsterdam"},
+            {"lat": 55.76, "lon": 37.62, "radius": 0.4, "name": "Moscow"},
+            {"lat": 59.33, "lon": 18.07, "radius": 0.2, "name": "Stockholm"},
+            {"lat": 60.17, "lon": 24.95, "radius": 0.2, "name": "Helsinki"},
+            {"lat": 55.68, "lon": 12.57, "radius": 0.2, "name": "Copenhagen"},
+            {"lat": 50.85, "lon": 4.35, "radius": 0.2, "name": "Brussels"},
+            {"lat": 47.38, "lon": 8.54, "radius": 0.15, "name": "Zurich"},
+            {"lat": 48.21, "lon": 16.37, "radius": 0.2, "name": "Vienna"},
+            {"lat": 50.08, "lon": 14.42, "radius": 0.2, "name": "Prague"},
+            {"lat": 59.91, "lon": 10.75, "radius": 0.2, "name": "Oslo"},
+            
+            # Asia
+            {"lat": 35.68, "lon": 139.69, "radius": 0.5, "name": "Tokyo"},
+            {"lat": 39.90, "lon": 116.40, "radius": 0.4, "name": "Beijing"},
+            {"lat": 31.23, "lon": 121.47, "radius": 0.3, "name": "Shanghai"},
+            {"lat": 19.08, "lon": 72.88, "radius": 0.3, "name": "Mumbai"},
+            {"lat": 28.61, "lon": 77.21, "radius": 0.4, "name": "Delhi"},
+            {"lat": 37.57, "lon": 126.98, "radius": 0.3, "name": "Seoul"},
+            {"lat": 13.76, "lon": 100.50, "radius": 0.3, "name": "Bangkok"},
+            {"lat": 25.20, "lon": 55.27, "radius": 0.2, "name": "Dubai"},
+            {"lat": 1.35, "lon": 103.82, "radius": 0.15, "name": "Singapore"},
+            {"lat": 22.32, "lon": 114.17, "radius": 0.15, "name": "Hong Kong"},
+            {"lat": 35.69, "lon": 51.42, "radius": 0.3, "name": "Tehran"},
+            {"lat": 33.69, "lon": 73.06, "radius": 0.2, "name": "Islamabad"},
+            {"lat": 41.01, "lon": 28.98, "radius": 0.3, "name": "Istanbul"},
+            {"lat": 31.79, "lon": 35.22, "radius": 0.15, "name": "Jerusalem"},
+            {"lat": 33.89, "lon": 35.50, "radius": 0.2, "name": "Beirut"},
+            
+            # Oceania
+            {"lat": -33.87, "lon": 151.21, "radius": 0.3, "name": "Sydney"},
+            {"lat": -37.81, "lon": 144.96, "radius": 0.3, "name": "Melbourne"},
+            {"lat": -27.47, "lon": 153.03, "radius": 0.2, "name": "Brisbane"},
+            {"lat": -31.95, "lon": 115.86, "radius": 0.2, "name": "Perth"},
+            {"lat": -36.85, "lon": 174.76, "radius": 0.2, "name": "Auckland"},
+            
+            # South America
+            {"lat": -23.55, "lon": -46.63, "radius": 0.4, "name": "São Paulo"},
+            {"lat": -22.91, "lon": -43.17, "radius": 0.3, "name": "Rio de Janeiro"},
+            {"lat": -34.61, "lon": -58.38, "radius": 0.3, "name": "Buenos Aires"},
+            {"lat": 4.71, "lon": -74.07, "radius": 0.3, "name": "Bogotá"},
+            {"lat": -12.05, "lon": -77.04, "radius": 0.3, "name": "Lima"},
+            {"lat": -33.45, "lon": -70.65, "radius": 0.2, "name": "Santiago"},
+            {"lat": 10.48, "lon": -66.90, "radius": 0.2, "name": "Caracas"},
+            
+            # Africa
+            {"lat": 30.04, "lon": 31.24, "radius": 0.3, "name": "Cairo"},
+            {"lat": 6.52, "lon": 3.38, "radius": 0.3, "name": "Lagos"},
+            {"lat": -26.20, "lon": 28.05, "radius": 0.3, "name": "Johannesburg"},
+            {"lat": -33.93, "lon": 18.42, "radius": 0.2, "name": "Cape Town"},
+            {"lat": 33.97, "lon": -6.85, "radius": 0.2, "name": "Rabat"},
+            {"lat": 36.81, "lon": 10.18, "radius": 0.15, "name": "Tunis"},
+            {"lat": -1.29, "lon": 36.82, "radius": 0.2, "name": "Nairobi"},
+            {"lat": 5.56, "lon": -0.20, "radius": 0.2, "name": "Accra"},
+            
+            # US Regional Centers
             {"lat": 33.74, "lon": -117.87, "radius": 0.15, "name": "Orange County"},
             {"lat": 33.68, "lon": -117.83, "radius": 0.1, "name": "Irvine"},
             {"lat": 33.64, "lon": -117.84, "radius": 0.1, "name": "Newport Beach"}
@@ -536,10 +603,38 @@ class OpenLandMapIntegrator:
         # This prevents forests, deserts, and grasslands from being misclassified
         
         urban_metropolitan_areas = [
-            # Major metropolitan cores only (very tight boundaries)
+            # North America - Major metropolitan cores
             {"lat_min": 33.9, "lat_max": 34.3, "lon_min": -118.5, "lon_max": -117.9, "name": "LA Basin"},
             {"lat_min": 40.5, "lat_max": 40.9, "lon_min": -74.3, "lon_max": -73.7, "name": "NYC Metro"},
-            {"lat_min": 37.6, "lat_max": 37.9, "lon_min": -122.5, "lon_max": -122.3, "name": "SF Bay Core"}
+            {"lat_min": 37.6, "lat_max": 37.9, "lon_min": -122.5, "lon_max": -122.3, "name": "SF Bay Core"},
+            {"lat_min": 43.4, "lat_max": 43.9, "lon_min": -79.7, "lon_max": -79.0, "name": "Greater Toronto"},
+            {"lat_min": 19.1, "lat_max": 19.8, "lon_min": -99.4, "lon_max": -98.8, "name": "Mexico City Metro"},
+            
+            # Europe - Major metropolitan areas
+            {"lat_min": 51.3, "lat_max": 51.7, "lon_min": -0.5, "lon_max": 0.2, "name": "Greater London"},
+            {"lat_min": 48.7, "lat_max": 49.0, "lon_min": 2.1, "lon_max": 2.6, "name": "Paris Ile-de-France"},
+            {"lat_min": 52.3, "lat_max": 52.7, "lon_min": 13.1, "lon_max": 13.7, "name": "Berlin Metro"},
+            {"lat_min": 55.5, "lat_max": 56.0, "lon_min": 37.3, "lon_max": 37.9, "name": "Moscow Metro"},
+            {"lat_min": 40.2, "lat_max": 40.6, "lon_min": -3.9, "lon_max": -3.5, "name": "Madrid Metro"},
+            
+            # Asia - Major metropolitan areas
+            {"lat_min": 35.4, "lat_max": 35.9, "lon_min": 139.4, "lon_max": 140.0, "name": "Tokyo Metro"},
+            {"lat_min": 39.7, "lat_max": 40.1, "lon_min": 116.1, "lon_max": 116.7, "name": "Beijing Metro"},
+            {"lat_min": 31.0, "lat_max": 31.5, "lon_min": 121.2, "lon_max": 121.8, "name": "Shanghai Metro"},
+            {"lat_min": 37.3, "lat_max": 37.8, "lon_min": 126.7, "lon_max": 127.3, "name": "Seoul Metro"},
+            {"lat_min": 18.8, "lat_max": 19.4, "lon_min": 72.6, "lon_max": 73.2, "name": "Mumbai Metro"},
+            
+            # Oceania
+            {"lat_min": -34.1, "lat_max": -33.6, "lon_min": 150.9, "lon_max": 151.5, "name": "Sydney Metro"},
+            {"lat_min": -38.1, "lat_max": -37.5, "lon_min": 144.7, "lon_max": 145.3, "name": "Melbourne Metro"},
+            
+            # South America
+            {"lat_min": -23.8, "lat_max": -23.3, "lon_min": -46.9, "lon_max": -46.4, "name": "São Paulo Metro"},
+            {"lat_min": -34.9, "lat_max": -34.3, "lon_min": -58.7, "lon_max": -58.0, "name": "Buenos Aires Metro"},
+            
+            # Africa
+            {"lat_min": 29.8, "lat_max": 30.3, "lon_min": 31.0, "lon_max": 31.5, "name": "Cairo Metro"},
+            {"lat_min": 6.3, "lat_max": 6.7, "lon_min": 3.1, "lon_max": 3.6, "name": "Lagos Metro"}
         ]
         
         for metro in urban_metropolitan_areas:

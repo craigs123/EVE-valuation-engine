@@ -58,7 +58,7 @@ Sampling preference: Simplified user-configurable sample points (10-100 range) w
 - **Multi-Ecosystem Valuation**: Spatial composition-weighted calculations for areas containing multiple ecosystem types with separate ESVD coefficients applied to each type
 - **Ecosystem Diversity Metrics**: Shannon and Simpson diversity indices for measuring ecosystem heterogeneity within selected areas, with full UI integration showing diversity calculations, interpretation levels, and scientific metrics alongside composition breakdowns
 - **Advanced Performance Optimization**: Comprehensive caching system with 60-80% speed improvements in ecosystem detection, NumPy float32 optimization, vectorized operations, and optimized progress tracking (10ms delays for large sample sets)
-- **Urban Ecosystem Support**: Comprehensive urban ecosystem detection and valuation covering major metropolitan areas with authentic ESVD coefficients for urban ecosystem services including climate regulation, pollution control, recreation, and habitat provision
+- **Global Urban Ecosystem Support**: Comprehensive urban ecosystem detection covering 60+ major global metropolitan areas across all continents with authentic ESVD coefficients for urban ecosystem services including climate regulation, pollution control, recreation, and habitat provision
 - **Multi-Ecosystem Classification**: Priority-based ecosystem detection system with regional specialization for US territories, including Forest Belt detection (Northern, Appalachian, Southeastern, Pacific Northwest), Desert Belt classification (Southwest, Sonoran-Chihuahuan), Great Plains Grasslands, Corn Belt Agriculture, and major Wetland systems (Everglades, Louisiana coastal, Chesapeake Bay)
 
 ## External Dependencies
