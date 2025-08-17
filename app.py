@@ -242,47 +242,56 @@ with st.sidebar:
         
         with tab1:
             st.markdown("**📊 Your Recent Analyses**")
-            recent_analyses = EcosystemAnalysisDB.get_user_analyses(limit=5)
-            
-            if recent_analyses:
-                for analysis in recent_analyses:
-                    with st.container():
-                        st.markdown(f"**{analysis.get('area_name', 'Unnamed Area')}**")
-                        st.caption(f"{analysis['ecosystem_type']} • ${analysis['total_value']:,.0f} • {analysis['created_at'].strftime('%Y-%m-%d')}")
-                        
-                        if st.button(f"Load Analysis", key=f"load_{analysis['id']}", use_container_width=True):
-                            # Load the analysis data
-                            full_analysis = EcosystemAnalysisDB.get_analysis_by_id(analysis['id'])
-                            if full_analysis:
-                                st.session_state.area_coordinates = full_analysis['coordinates']
-                                st.session_state.analysis_results = full_analysis['analysis_results']
-                                st.session_state.selected_area = True
-                                st.rerun()
-                        st.markdown("---")
-            else:
+            try:
+                recent_analyses = EcosystemAnalysisDB.get_user_analyses(limit=5)
+                
+                if recent_analyses:
+                    for analysis in recent_analyses:
+                        with st.container():
+                            st.markdown(f"**{analysis.get('area_name', 'Unnamed Area')}**")
+                            st.caption(f"{analysis['ecosystem_type']} • ${analysis['total_value']:,.0f} • {analysis['created_at'].strftime('%Y-%m-%d')}")
+                            
+                            if st.button(f"Load Analysis", key=f"load_{analysis['id']}", use_container_width=True):
+                                # Load the analysis data
+                                full_analysis = EcosystemAnalysisDB.get_analysis_by_id(analysis['id'])
+                                if full_analysis:
+                                    st.session_state.area_coordinates = full_analysis['coordinates']
+                                    st.session_state.analysis_results = full_analysis['analysis_results']
+                                    st.session_state.selected_area = True
+                                    st.rerun()
+                            st.markdown("---")
+                else:
+                    st.info("No saved analyses yet. Run an analysis to save results.")
+            except Exception as e:
+                st.error(f"Error loading analyses: {str(e)}")
                 st.info("No saved analyses yet. Run an analysis to save results.")
         
         with tab2:
             st.markdown("**📍 Your Saved Areas**")
-            saved_areas = SavedAreaDB.get_user_saved_areas()
-            
-            if saved_areas:
-                for area in saved_areas:
-                    with st.container():
-                        st.markdown(f"**{area['name']}**")
-                        st.caption(f"{area['area_hectares']:.0f} ha • {area['created_at'].strftime('%Y-%m-%d')}")
-                        
-                        if area.get('description'):
-                            st.caption(f"📝 {area['description']}")
-                        
-                        if st.button(f"Load Area", key=f"load_area_{area['id']}", use_container_width=True):
-                            # Load the area coordinates
-                            st.session_state.area_coordinates = area['coordinates']
-                            st.session_state.selected_area = True
-                            st.session_state.cached_area_ha = area['area_hectares']
-                            st.rerun()
-                        st.markdown("---")
-            else:
+            try:
+                saved_areas = SavedAreaDB.get_user_saved_areas()
+                
+                if saved_areas:
+                    for area in saved_areas:
+                        with st.container():
+                            st.markdown(f"**{area['name']}**")
+                            st.caption(f"{area['area_hectares']:.0f} ha • {area['created_at'].strftime('%Y-%m-%d')}")
+                            
+                            if area.get('description'):
+                                st.caption(f"📝 {area['description']}")
+                            
+                            if st.button(f"Load Area", key=f"load_area_{area['id']}", use_container_width=True):
+                                # Load the area coordinates
+                                st.session_state.area_coordinates = area['coordinates']
+                                st.session_state.selected_area = True
+                                st.session_state.cached_area_ha = area['area_hectares']
+                                st.session_state.current_area_id = area['id']
+                                st.rerun()
+                            st.markdown("---")
+                else:
+                    st.info("No saved areas yet. Select and save an area first.")
+            except Exception as e:
+                st.error(f"Error loading saved areas: {str(e)}")
                 st.info("No saved areas yet. Select and save an area first.")
         
         with tab3:
@@ -965,7 +974,8 @@ if st.session_state.analysis_results:
                         value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
                         analysis_results=results,
                         sampling_points=st.session_state.get('max_sampling_limit', 10),
-                        area_name=area_name
+                        area_name=area_name,
+                        user_session_id=st.session_state.get('user_id')
                     )
                     if analysis_id:
                         st.success("Analysis saved successfully!")
@@ -996,10 +1006,12 @@ if st.session_state.analysis_results:
                         name=area_name,
                         coordinates=st.session_state.area_coordinates,
                         area_hectares=results['area_ha'],
-                        description=description if description else None
+                        description=description if description else None,
+                        user_session_id=st.session_state.get('user_id')
                     )
                     if area_id:
                         st.success("Area saved successfully!")
+                        st.session_state['current_area_id'] = area_id
                         st.session_state['show_save_area'] = False
                         st.rerun()
                     else:
