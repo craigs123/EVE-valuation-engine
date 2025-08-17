@@ -859,77 +859,7 @@ if analyze_button and st.session_state.selected_area:
 if st.session_state.analysis_results:
     st.markdown("---")
     
-    # Save panels that appear when requested (visible in both views)
-    if st.session_state.get('show_save_analysis', False):
-        with st.container():
-            st.info("💾 **Save Analysis**")
-            with st.form("save_analysis_form"):
-                area_name = st.text_input("Analysis Name", value=f"Analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    save_submitted = st.form_submit_button("Save", type="primary")
-                with col2:
-                    cancel_submitted = st.form_submit_button("Cancel")
-                
-                if save_submitted and area_name:
-                    results = st.session_state.analysis_results
-                    analysis_id = EcosystemAnalysisDB.save_analysis(
-                        coordinates=st.session_state.area_coordinates,
-                        area_hectares=results['area_ha'],
-                        ecosystem_type=results['ecosystem_type'],
-                        total_value=results['total_value'],
-                        value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
-                        analysis_results=results,
-                        sampling_points=st.session_state.get('max_sampling_limit', 10),
-                        area_name=area_name,
-                        user_session_id=st.session_state.get('user_id')
-                    )
-                    if analysis_id:
-                        st.success(f"Analysis saved successfully! ID: {analysis_id}")
-                        st.session_state['show_save_analysis'] = False
-                        st.rerun()
-                    else:
-                        st.error("Failed to save analysis")
-                
-                if cancel_submitted:
-                    st.session_state['show_save_analysis'] = False
-                    st.rerun()
-    
-    # Save Area Panel 
-    if st.session_state.get('show_save_area', False):
-        with st.container():
-            st.info("📍 **Save Area**")
-            with st.form("save_area_form"):
-                area_name = st.text_input("Area Name", value=f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-                description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    save_submitted = st.form_submit_button("Save", type="primary")
-                with col2:
-                    cancel_submitted = st.form_submit_button("Cancel")
-                
-                if save_submitted and area_name:
-                    results = st.session_state.analysis_results
-                    area_id = SavedAreaDB.save_area(
-                        name=area_name,
-                        coordinates=st.session_state.area_coordinates,
-                        area_hectares=results['area_ha'],
-                        description=description if description else None,
-                        user_session_id=st.session_state.get('user_id')
-                    )
-                    if area_id:
-                        st.success(f"Area saved successfully! ID: {area_id}")
-                        st.session_state['current_area_id'] = area_id
-                        st.session_state['show_save_area'] = False
-                        st.rerun()
-                    else:
-                        st.error("Failed to save area")
-                
-                if cancel_submitted:
-                    st.session_state['show_save_area'] = False
-                    st.rerun()
+
     
     # Different displays based on analysis detail level
     analysis_mode = st.session_state.get('analysis_detail', 'Summary Analysis')
@@ -1007,26 +937,10 @@ if st.session_state.analysis_results:
                 st.rerun()
         
         with col_btn2:
-            if st.session_state.get('db_initialized', False):
-                if st.session_state.get('show_save_analysis', False):
-                    if st.button("❌ Cancel Save", type="secondary", key="cancel_save_analysis_summary"):
-                        st.session_state['show_save_analysis'] = False
-                        st.rerun()
-                else:
-                    if st.button("💾 Save Analysis", type="primary", key="save_analysis_summary"):
-                        st.session_state['show_save_analysis'] = True
-                        st.rerun()
+            st.empty()  # Remove save analysis button - panels will always show below
         
         with col_btn3:
-            if st.session_state.get('db_initialized', False):
-                if st.session_state.get('show_save_area', False):
-                    if st.button("❌ Cancel Save", type="secondary", key="cancel_save_area_summary"):
-                        st.session_state['show_save_area'] = False
-                        st.rerun()
-                else:
-                    if st.button("📍 Save Area", type="secondary", key="save_area_summary"):
-                        st.session_state['show_save_area'] = True
-                        st.rerun()
+            st.empty()  # Remove save area button - panels will always show below
         
         with col_btn4:
             if st.session_state.get('db_initialized', False):
@@ -1263,26 +1177,10 @@ if st.session_state.analysis_results:
                 st.rerun()
         
         with col_detailed2:
-            if st.session_state.get('db_initialized', False):
-                if st.session_state.get('show_save_analysis', False):
-                    if st.button("❌ Cancel Save", type="secondary", key="cancel_save_analysis"):
-                        st.session_state['show_save_analysis'] = False
-                        st.rerun()
-                else:
-                    if st.button("💾 Save Analysis", type="primary", key="save_detailed_analysis"):
-                        st.session_state['show_save_analysis'] = True
-                        st.rerun()
+            st.empty()  # Remove save analysis button - panels will always show below
         
         with col_detailed3:
-            if st.session_state.get('db_initialized', False):
-                if st.session_state.get('show_save_area', False):
-                    if st.button("❌ Cancel Save", type="secondary", key="cancel_save_area"):
-                        st.session_state['show_save_area'] = False
-                        st.rerun()
-                else:
-                    if st.button("📍 Save Area", type="secondary", key="save_detailed_area"):
-                        st.session_state['show_save_area'] = True
-                        st.rerun()
+            st.empty()  # Remove save area button - panels will always show below
         
         with col_detailed4:
             if st.session_state.get('db_initialized', False):
@@ -1304,3 +1202,67 @@ if st.session_state.analysis_results:
                         st.rerun()
                     else:
                         st.error("Failed to create baseline")
+    # Always-visible save panels at the end of results
+    if st.session_state.get('db_initialized', False):
+        st.markdown("---")
+        st.subheader("💾 Save Your Work")
+        
+        col_save1, col_save2 = st.columns(2)
+        
+        with col_save1:
+            with st.container():
+                st.markdown("**💾 Save Analysis**")
+                with st.form("save_analysis_form"):
+                    analysis_name = st.text_input("Analysis Name", value=f"Analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        save_analysis_btn = st.form_submit_button("Save Analysis", type="primary")
+                    with col2:
+                        cancel_analysis_btn = st.form_submit_button("Cancel", type="secondary")
+                    
+                    if save_analysis_btn and analysis_name:
+                        results = st.session_state.analysis_results
+                        analysis_id = EcosystemAnalysisDB.save_analysis(
+                            coordinates=st.session_state.area_coordinates,
+                            area_hectares=results['area_ha'],
+                            ecosystem_type=results['ecosystem_type'],
+                            total_value=results['total_value'],
+                            value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
+                            analysis_results=results,
+                            sampling_points=st.session_state.get('max_sampling_limit', 10),
+                            area_name=analysis_name,
+                            user_session_id=st.session_state.get('user_id')
+                        )
+                        if analysis_id:
+                            st.success(f"Analysis saved successfully!")
+                        else:
+                            st.error("Failed to save analysis")
+        
+        with col_save2:
+            with st.container():
+                st.markdown("**📍 Save Area**")
+                with st.form("save_area_form"):
+                    area_name = st.text_input("Area Name", value=f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                    description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        save_area_btn = st.form_submit_button("Save Area", type="primary")
+                    with col2:
+                        cancel_area_btn = st.form_submit_button("Cancel", type="secondary")
+                    
+                    if save_area_btn and area_name:
+                        results = st.session_state.analysis_results
+                        area_id = SavedAreaDB.save_area(
+                            name=area_name,
+                            coordinates=st.session_state.area_coordinates,
+                            area_hectares=results['area_ha'],
+                            description=description if description else None,
+                            user_session_id=st.session_state.get('user_id')
+                        )
+                        if area_id:
+                            st.success(f"Area saved successfully!")
+                            st.session_state['current_area_id'] = area_id
+                        else:
+                            st.error("Failed to save area")
