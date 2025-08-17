@@ -734,7 +734,9 @@ if st.session_state.analysis_results:
         # Simple metrics display for summary
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Total Annual Value", f"${results['total_value']:,}")
+            st.metric("Total Annual Value", "")
+            st.markdown(f"<div style='font-size: 1.1rem; font-weight: bold;'>${results['total_value']:,}</div>", unsafe_allow_html=True)
+            st.caption("annually")
         with col2:
             per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
             st.metric("Value per Hectare", "")
@@ -774,7 +776,8 @@ if st.session_state.analysis_results:
         
         col_metrics = st.columns(3)
         with col_metrics[0]:
-            st.metric("Total Ecosystem Value", f"${results['total_value']:,}/year")
+            st.metric("Total Ecosystem Value", "")
+            st.markdown(f"<div style='font-size: 1.1rem; font-weight: bold;'>${results['total_value']:,}/year</div>", unsafe_allow_html=True)
             with st.expander("💡 How this value is calculated"):
                 st.markdown(f"""
                 **Total Ecosystem Value**: ${results['total_value']:,}/year
@@ -924,10 +927,8 @@ if st.session_state.analysis_results:
                     total = esvd_data[category].get('total', 0)
                     with cols[i]:
                         per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
-                        st.metric(
-                            f"{category.title()} Services",
-                            f"${total:,.0f}/year"
-                        )
+                        st.metric(f"{category.title()} Services", "")
+                        st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
                         st.caption(f"${per_ha_category:.0f}/ha • {(total/results['total_value']*100):.0f}% of total" if results['total_value'] > 0 else f"${per_ha_category:.0f}/ha")
                         
                         with st.expander(f"💡 {category.title()} services breakdown"):
