@@ -150,10 +150,22 @@ def get_db() -> Session:
 def init_database():
     """Initialize database tables"""
     try:
+        # Test connection first
+        with engine.connect() as connection:
+            pass
+        
+        # Create tables
         Base.metadata.create_all(bind=engine)
         return True
     except Exception as e:
-        st.error(f"Database initialization failed: {str(e)}")
+        import traceback
+        error_msg = f"Database initialization failed: {str(e)}"
+        if 'st' in globals():
+            st.error(error_msg)
+            st.error(f"Details: {traceback.format_exc()}")
+        else:
+            print(error_msg)
+            print(f"Details: {traceback.format_exc()}")
         return False
 
 def test_database_connection():
@@ -164,7 +176,8 @@ def test_database_connection():
             result = connection.execute(text("SELECT 1"))
             return True
     except Exception as e:
-        st.error(f"Database connection failed: {str(e)}")
+        # Don't show error message here - just return False
+        # Error will be shown elsewhere if needed
         return False
 
 # Database operations for ecosystem analyses

@@ -29,11 +29,17 @@ st.set_page_config(
 
 # Initialize database and user session
 if 'db_initialized' not in st.session_state:
-    if init_database():
-        st.session_state.db_initialized = True
-        user_id = initialize_user_session()
-    else:
-        st.error("Database initialization failed. Some features may not work properly.")
+    try:
+        if init_database():
+            st.session_state.db_initialized = True
+            user_id = initialize_user_session()
+            pass  # Database ready - no need to show success message every time
+        else:
+            st.error("Database initialization failed. Some features may not work properly.")
+            st.session_state.db_initialized = False
+            user_id = None
+    except Exception as e:
+        st.error(f"Database initialization error: {str(e)}")
         st.session_state.db_initialized = False
         user_id = None
 else:
@@ -234,11 +240,14 @@ with st.sidebar:
     if st.session_state.get('db_initialized', False):
         st.subheader("💾 Saved Data")
         
-        # Database status indicator
-        if test_database_connection():
-            st.success("🟢 Database connected")
-        else:
-            st.error("🔴 Database offline")
+        # Database status indicator  
+        try:
+            if test_database_connection():
+                st.success("🟢 Database connected")
+            else:
+                st.warning("🟡 Database connection issue")
+        except Exception as e:
+            st.error("🔴 Database error")
         
         # Tabs for different data views
         tab1, tab2, tab3 = st.tabs(["Recent Analyses", "Saved Areas", "Baselines"])
