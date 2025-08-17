@@ -31,10 +31,13 @@ st.set_page_config(
 if 'db_initialized' not in st.session_state:
     if init_database():
         st.session_state.db_initialized = True
-        initialize_user_session()
+        user_id = initialize_user_session()
     else:
         st.error("Database initialization failed. Some features may not work properly.")
         st.session_state.db_initialized = False
+        user_id = None
+else:
+    user_id = initialize_user_session()
 
 # Custom CSS
 st.markdown("""
@@ -264,6 +267,7 @@ with st.sidebar:
                     st.info("No saved analyses yet. Run an analysis to save results.")
             except Exception as e:
                 st.error(f"Error loading analyses: {str(e)}")
+                st.caption(f"User ID: {st.session_state.get('user_id', 'Not set')}")
                 st.info("No saved analyses yet. Run an analysis to save results.")
         
         with tab2:
@@ -292,6 +296,7 @@ with st.sidebar:
                     st.info("No saved areas yet. Select and save an area first.")
             except Exception as e:
                 st.error(f"Error loading saved areas: {str(e)}")
+                st.caption(f"User ID: {st.session_state.get('user_id', 'Not set')}")
                 st.info("No saved areas yet. Select and save an area first.")
         
         with tab3:
@@ -978,11 +983,14 @@ if st.session_state.analysis_results:
                         user_session_id=st.session_state.get('user_id')
                     )
                     if analysis_id:
-                        st.success("Analysis saved successfully!")
+                        st.success(f"Analysis saved successfully! ID: {analysis_id}")
                         st.session_state['show_save_analysis'] = False
                         st.rerun()
                     else:
                         st.error("Failed to save analysis")
+                        st.caption(f"User ID: {st.session_state.get('user_id', 'Not set')}")
+                        st.caption(f"Coordinates: {len(st.session_state.area_coordinates) if st.session_state.get('area_coordinates') else 'None'}")
+                        st.caption(f"Results available: {bool(results)}")
                 
                 if cancel_submitted:
                     st.session_state['show_save_analysis'] = False
@@ -1010,12 +1018,15 @@ if st.session_state.analysis_results:
                         user_session_id=st.session_state.get('user_id')
                     )
                     if area_id:
-                        st.success("Area saved successfully!")
+                        st.success(f"Area saved successfully! ID: {area_id}")
                         st.session_state['current_area_id'] = area_id
                         st.session_state['show_save_area'] = False
                         st.rerun()
                     else:
                         st.error("Failed to save area")
+                        st.caption(f"User ID: {st.session_state.get('user_id', 'Not set')}")
+                        st.caption(f"Coordinates: {len(st.session_state.area_coordinates) if st.session_state.get('area_coordinates') else 'None'}")
+                        st.caption(f"Area ha: {results.get('area_ha', 'Not available')}")
                 
                 if cancel_submitted:
                     st.session_state['show_save_area'] = False

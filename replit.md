@@ -7,6 +7,7 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 ## Recent Changes (2025-08-17)
 
 **Database Integration Added**: Complete PostgreSQL database integration has been implemented with the following features:
+**UUID Generation Fixed**: Database tables now automatically generate UUIDs for primary keys, resolving save functionality issues
 - **Analysis Storage**: Users can save complete ecosystem analyses with area names and descriptions
 - **Area Management**: Save and reload geographic areas for future analysis
 - **Natural Capital Baselines**: Establish baseline natural capital values for tracking ecosystem changes over time
