@@ -558,7 +558,45 @@ if analyze_button and st.session_state.selected_area:
                             total_samples = ecosystem_info['successful_queries']
                             
                             if len(ecosystem_distribution) > 1:
-                                st.info("🌍 **Ecosystem Composition Breakdown:**")
+                                st.info("🌍 **Multi-Ecosystem Area Detected:**")
+                                
+                                # Calculate and display diversity metrics
+                                num_ecosystems = len(ecosystem_distribution)
+                                
+                                # Calculate Shannon diversity index
+                                import math
+                                shannon_diversity = 0
+                                for eco_type, data in ecosystem_distribution.items():
+                                    proportion = data['count'] / total_samples
+                                    if proportion > 0:
+                                        shannon_diversity -= proportion * math.log(proportion)
+                                
+                                # Calculate Simpson diversity index
+                                simpson_index = 0
+                                for eco_type, data in ecosystem_distribution.items():
+                                    proportion = data['count'] / total_samples
+                                    simpson_index += proportion ** 2
+                                simpson_diversity = 1 - simpson_index
+                                
+                                # Display diversity metrics
+                                st.markdown(f"**📊 Ecosystem Diversity Metrics:**")
+                                st.markdown(f"   • **Number of ecosystem types**: {num_ecosystems}")
+                                st.markdown(f"   • **Shannon diversity index**: {shannon_diversity:.3f}")
+                                st.markdown(f"   • **Simpson diversity index**: {simpson_diversity:.3f}")
+                                
+                                # Interpret diversity levels
+                                if shannon_diversity > 1.5:
+                                    diversity_level = "Very High"
+                                elif shannon_diversity > 1.0:
+                                    diversity_level = "High" 
+                                elif shannon_diversity > 0.5:
+                                    diversity_level = "Moderate"
+                                else:
+                                    diversity_level = "Low"
+                                
+                                st.markdown(f"   • **Diversity level**: {diversity_level}")
+                                
+                                st.markdown("**🌍 Ecosystem Composition Breakdown:**")
                                 
                                 # Create a more detailed breakdown with percentages (optimized)
                                 composition_lines = []
@@ -572,7 +610,7 @@ if analyze_button and st.session_state.selected_area:
                                 # Display as pre-formatted text for better performance
                                 st.markdown('\n'.join(composition_lines))
                                     
-                                st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: OpenLandMap.org")
+                                st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: OpenLandMap.org | **Diversity Calculation**: Shannon & Simpson indices")
                             else:
                                 # Single ecosystem type
                                 percentage = (ecosystem_distribution[ecosystem_type]['count'] / total_samples) * 100
@@ -614,7 +652,18 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Use mixed ecosystem calculation with proper weighting
                 ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
-                st.info(f"🌍 **Mixed Ecosystem Detected**: {len(ecosystem_distribution)} types found - using weighted calculation")
+                num_types = len(ecosystem_distribution)
+                
+                # Calculate diversity index for valuation display
+                total_points = st.session_state.detected_ecosystem['successful_queries']
+                import math
+                shannon_div = 0
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_points
+                    if proportion > 0:
+                        shannon_div -= proportion * math.log(proportion)
+                
+                st.info(f"🌍 **Mixed Ecosystem Detected**: {num_types} types found (diversity index: {shannon_div:.2f}) - using weighted calculation")
                 
                 # Show detailed composition breakdown for analysis (optimized)
                 st.write("**📋 Detailed Composition for Valuation:**")
