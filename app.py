@@ -15,7 +15,8 @@ from database import (
     test_database_connection, 
     initialize_user_session,
     EcosystemAnalysisDB,
-    SavedAreaDB
+    SavedAreaDB,
+    NaturalCapitalBaselineDB
 )
 
 # Page configuration
@@ -237,7 +238,7 @@ with st.sidebar:
             st.error("🔴 Database offline")
         
         # Tabs for different data views
-        tab1, tab2 = st.tabs(["Recent Analyses", "Saved Areas"])
+        tab1, tab2, tab3 = st.tabs(["Recent Analyses", "Saved Areas", "Baselines"])
         
         with tab1:
             st.markdown("**📊 Your Recent Analyses**")
@@ -283,6 +284,37 @@ with st.sidebar:
                         st.markdown("---")
             else:
                 st.info("No saved areas yet. Select and save an area first.")
+        
+        with tab3:
+            st.markdown("**📊 Natural Capital Baselines**")
+            # Get baselines for current user
+            try:
+                from database import get_db, NaturalCapitalBaseline
+                db = get_db()
+                baselines = db.query(NaturalCapitalBaseline).filter(
+                    NaturalCapitalBaseline.user_session_id == st.session_state.get('user_id')
+                ).order_by(NaturalCapitalBaseline.baseline_date.desc()).limit(5).all()
+                
+                if baselines:
+                    for baseline in baselines:
+                        with st.container():
+                            st.markdown(f"**{baseline.ecosystem_type} Baseline**")
+                            st.caption(f"${baseline.total_baseline_value:,.0f} • {baseline.area_hectares:.0f} ha • {baseline.baseline_date.strftime('%Y-%m-%d')}")
+                            
+                            # Show breakdown
+                            st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
+                            
+                            if baseline.biodiversity_index and baseline.biodiversity_index > 0:
+                                st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
+                            
+                            st.markdown("---")
+                    st.caption("P=Provisioning, R=Regulating, C=Cultural, S=Supporting")
+                else:
+                    st.info("No baselines established yet. Set a baseline after running an analysis.")
+                
+                db.close()
+            except Exception as e:
+                st.error(f"Failed to load baselines: {str(e)}")
     else:
         st.error("🔴 Database unavailable")
     
@@ -845,8 +877,34 @@ if st.session_state.analysis_results:
         else:
             st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         
+        # Check if there's an existing baseline for this area
+        baseline_info = None
+        if st.session_state.get('current_area_id'):
+            baseline_info = NaturalCapitalBaselineDB.get_area_baseline(st.session_state.current_area_id)
+        
+        # Show baseline comparison if available
+        if baseline_info:
+            comparison = NaturalCapitalBaselineDB.compare_to_baseline(results, baseline_info['id'])
+            if comparison:
+                st.markdown("### 📊 Baseline Comparison")
+                
+                col_comp1, col_comp2, col_comp3 = st.columns(3)
+                with col_comp1:
+                    change_color = "green" if comparison['total_change'] > 0 else "red" if comparison['total_change'] < 0 else "gray"
+                    st.markdown(f"**Value Change**: <span style='color: {change_color};'>${comparison['total_change']:+,.0f}</span>", unsafe_allow_html=True)
+                
+                with col_comp2:
+                    percent_color = "green" if comparison['percent_change'] > 0 else "red" if comparison['percent_change'] < 0 else "gray"
+                    st.markdown(f"**Percent Change**: <span style='color: {percent_color};'>{comparison['percent_change']:+.1f}%</span>", unsafe_allow_html=True)
+                
+                with col_comp3:
+                    trend_icon = "📈" if comparison['trend_direction'] == 'improving' else "📉" if comparison['trend_direction'] == 'declining' else "➡️"
+                    st.markdown(f"**Trend**: {trend_icon} {comparison['trend_direction'].title()}")
+                
+                st.caption(f"Baseline established: {baseline_info['baseline_date'].strftime('%Y-%m-%d %H:%M')}")
+        
         # Action buttons
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
         
         with col_btn1:
             if st.button("🔍 View Detailed Analysis", type="secondary"):
@@ -864,6 +922,27 @@ if st.session_state.analysis_results:
                 if st.button("📍 Save Area", type="secondary"):
                     st.session_state['show_save_area'] = True
                     st.rerun()
+        
+        with col_btn4:
+            if st.session_state.get('db_initialized', False):
+                baseline_exists = baseline_info is not None
+                baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
+                if st.button(baseline_text, type="secondary"):
+                    baseline_id = NaturalCapitalBaselineDB.create_baseline(
+                        coordinates=st.session_state.area_coordinates,
+                        area_hectares=results['area_ha'],
+                        ecosystem_type=results['ecosystem_type'],
+                        analysis_results=results,
+                        sampling_points=st.session_state.get('max_sampling_limit', 10),
+                        area_id=st.session_state.get('current_area_id')
+                    )
+                    if baseline_id:
+                        action_text = "updated" if baseline_exists else "established"
+                        st.success(f"Natural capital baseline {action_text}!")
+                        st.session_state['current_baseline_id'] = baseline_id
+                        st.rerun()
+                    else:
+                        st.error("Failed to create baseline")
         
         # Save Analysis Modal
         if st.session_state.get('show_save_analysis', False):
@@ -1132,7 +1211,7 @@ if st.session_state.analysis_results:
                             """)
         # Action buttons for detailed view
         st.markdown("---")
-        col_detailed1, col_detailed2, col_detailed3 = st.columns(3)
+        col_detailed1, col_detailed2, col_detailed3, col_detailed4 = st.columns(4)
         
         with col_detailed1:
             if st.button("📊 Switch to Summary View", type="secondary"):
@@ -1150,3 +1229,24 @@ if st.session_state.analysis_results:
                 if st.button("📍 Save Current Area", type="secondary", key="save_detailed_area"):
                     st.session_state['show_save_area'] = True
                     st.rerun()
+        
+        with col_detailed4:
+            if st.session_state.get('db_initialized', False):
+                baseline_exists = baseline_info is not None if 'baseline_info' in locals() else False
+                baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
+                if st.button(baseline_text, type="secondary", key="detailed_baseline"):
+                    baseline_id = NaturalCapitalBaselineDB.create_baseline(
+                        coordinates=st.session_state.area_coordinates,
+                        area_hectares=results['area_ha'],
+                        ecosystem_type=results['ecosystem_type'],
+                        analysis_results=results,
+                        sampling_points=st.session_state.get('max_sampling_limit', 10),
+                        area_id=st.session_state.get('current_area_id')
+                    )
+                    if baseline_id:
+                        action_text = "updated" if baseline_exists else "established"
+                        st.success(f"Natural capital baseline {action_text}!")
+                        st.session_state['current_baseline_id'] = baseline_id
+                        st.rerun()
+                    else:
+                        st.error("Failed to create baseline")

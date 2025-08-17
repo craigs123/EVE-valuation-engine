@@ -9,11 +9,15 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 **Database Integration Added**: Complete PostgreSQL database integration has been implemented with the following features:
 - **Analysis Storage**: Users can save complete ecosystem analyses with area names and descriptions
 - **Area Management**: Save and reload geographic areas for future analysis
-- **Historical Tracking**: Database foundation for tracking ecosystem value changes over time
+- **Natural Capital Baselines**: Establish baseline natural capital values for tracking ecosystem changes over time
+- **Trend Analysis**: Automatic comparison to baselines showing value changes, percent changes, and trend direction
+- **Historical Tracking**: Complete database foundation for tracking ecosystem value changes over time
 - **User Session Management**: UUID-based user tracking for data isolation
-- **Sidebar Integration**: Database status monitoring and saved data access in the sidebar
+- **Sidebar Integration**: Database status monitoring and saved data access with three tabs (Analyses, Areas, Baselines)
 - **Load Functionality**: Load previously saved analyses and areas directly into the application
 - **Save Interface**: Form-based saving with area naming and description capabilities
+- **Baseline Comparison**: Visual indicators showing improvement/decline with colored change values
+- **Service-level Tracking**: Individual tracking of provisioning, regulating, cultural, and supporting services
 
 ## User Preferences
 
@@ -62,6 +66,8 @@ Sampling preference: Simplified user-configurable sample points (10-100 range) w
   - `ecosystem_analyses`: Stores complete analysis results with ecosystem type, coordinates, total value, per-hectare value, sampling data
   - `saved_areas`: User-saved areas with names, descriptions, and geographic coordinates
   - `analysis_history`: Time-series tracking for environmental change analysis
+  - `natural_capital_baselines`: Baseline natural capital values with service breakdowns, environmental indicators, and metadata
+  - `natural_capital_trends`: Tracks changes from baselines including value changes, trend direction, and driving factors
 - **Session Storage**: In-memory storage using Streamlit session state for user selections and analysis results
 - **Export Formats**: CSV and JSON export capabilities for analysis results
 - **User Session Management**: UUID-based session tracking for data isolation and user experience

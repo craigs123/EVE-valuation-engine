@@ -69,6 +69,74 @@ class AnalysisHistory(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class NaturalCapitalBaseline(Base):
+    """Store baseline natural capital values for ecosystem tracking"""
+    __tablename__ = "natural_capital_baselines"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    area_id = Column(UUID(as_uuid=True), nullable=True)  # Reference to SavedArea
+    user_session_id = Column(String(255), nullable=True)
+    baseline_date = Column(DateTime, nullable=False)
+    ecosystem_type = Column(String(255), nullable=False)
+    
+    # Core natural capital metrics
+    total_baseline_value = Column(Float, nullable=False)
+    provisioning_baseline = Column(Float, nullable=False, default=0)
+    regulating_baseline = Column(Float, nullable=False, default=0)
+    cultural_baseline = Column(Float, nullable=False, default=0)
+    supporting_baseline = Column(Float, nullable=False, default=0)
+    
+    # Environmental indicators
+    vegetation_health_index = Column(Float, nullable=True)  # NDVI or similar
+    biodiversity_index = Column(Float, nullable=True)  # Shannon diversity
+    carbon_stock_estimate = Column(Float, nullable=True)  # tons CO2 equivalent
+    water_regulation_capacity = Column(Float, nullable=True)
+    soil_quality_index = Column(Float, nullable=True)
+    
+    # Baseline metadata
+    data_quality_score = Column(Float, nullable=True)  # 0-1 confidence score
+    satellite_data_quality = Column(String(255), nullable=True)
+    weather_conditions = Column(JSON, nullable=True)
+    seasonal_adjustment = Column(Float, nullable=True)
+    
+    # Reference data
+    coordinates = Column(JSON, nullable=False)
+    area_hectares = Column(Float, nullable=False)
+    sampling_points = Column(Integer, nullable=False)
+    source_coefficients = Column(JSON, nullable=True)  # ESVD coefficients used
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class NaturalCapitalTrend(Base):
+    """Track natural capital changes over time"""
+    __tablename__ = "natural_capital_trends"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    baseline_id = Column(UUID(as_uuid=True), nullable=False)  # Reference to baseline
+    area_id = Column(UUID(as_uuid=True), nullable=True)
+    measurement_date = Column(DateTime, nullable=False)
+    
+    # Value changes from baseline
+    total_value_change = Column(Float, nullable=False)  # Absolute change
+    percent_change = Column(Float, nullable=False)  # Percentage change
+    provisioning_change = Column(Float, nullable=False, default=0)
+    regulating_change = Column(Float, nullable=False, default=0)
+    cultural_change = Column(Float, nullable=False, default=0)
+    supporting_change = Column(Float, nullable=False, default=0)
+    
+    # Environmental indicator changes
+    vegetation_change = Column(Float, nullable=True)
+    biodiversity_change = Column(Float, nullable=True)
+    carbon_change = Column(Float, nullable=True)
+    
+    # Trend metadata
+    trend_direction = Column(String(50), nullable=True)  # 'improving', 'declining', 'stable'
+    confidence_level = Column(Float, nullable=True)  # Statistical confidence
+    driving_factors = Column(JSON, nullable=True)  # Identified causes of change
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Database utility functions
 def get_db() -> Session:
     """Get database session"""
@@ -271,6 +339,201 @@ class SavedAreaDB:
         except Exception as e:
             st.error(f"Failed to retrieve saved areas: {str(e)}")
             return []
+
+# Database operations for natural capital baselines
+class NaturalCapitalBaselineDB:
+    """Database operations for natural capital baselines"""
+    
+    @staticmethod
+    def create_baseline(
+        coordinates: List[List[float]],
+        area_hectares: float,
+        ecosystem_type: str,
+        analysis_results: Dict[str, Any],
+        sampling_points: int,
+        area_id: Optional[str] = None,
+        user_session_id: Optional[str] = None
+    ) -> Optional[str]:
+        """Create a natural capital baseline from analysis results"""
+        try:
+            db = get_db()
+            
+            # Extract service values from analysis results
+            esvd_data = analysis_results.get('esvd_results', {})
+            provisioning = esvd_data.get('provisioning', {}).get('total', 0)
+            regulating = esvd_data.get('regulating', {}).get('total', 0)
+            cultural = esvd_data.get('cultural', {}).get('total', 0)
+            supporting = esvd_data.get('supporting', {}).get('total', 0)
+            
+            # Calculate environmental indicators if available
+            detected_ecosystem = st.session_state.get('detected_ecosystem', {})
+            vegetation_health = detected_ecosystem.get('confidence', 0.5)
+            biodiversity_index = 0
+            
+            # Calculate biodiversity if multiple ecosystems detected
+            if 'ecosystem_distribution' in detected_ecosystem:
+                import math
+                ecosystem_distribution = detected_ecosystem['ecosystem_distribution']
+                total_points = detected_ecosystem.get('successful_queries', 1)
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_points
+                    if proportion > 0:
+                        biodiversity_index -= proportion * math.log(proportion)
+            
+            baseline = NaturalCapitalBaseline(
+                area_id=area_id,
+                user_session_id=user_session_id or st.session_state.get('user_id'),
+                baseline_date=datetime.utcnow(),
+                ecosystem_type=ecosystem_type,
+                total_baseline_value=analysis_results['total_value'],
+                provisioning_baseline=provisioning,
+                regulating_baseline=regulating,
+                cultural_baseline=cultural,
+                supporting_baseline=supporting,
+                vegetation_health_index=vegetation_health,
+                biodiversity_index=biodiversity_index,
+                data_quality_score=detected_ecosystem.get('confidence', 0.5),
+                coordinates=coordinates,
+                area_hectares=area_hectares,
+                sampling_points=sampling_points,
+                source_coefficients=esvd_data
+            )
+            
+            db.add(baseline)
+            db.commit()
+            db.refresh(baseline)
+            
+            baseline_id = str(baseline.id)
+            db.close()
+            return baseline_id
+            
+        except Exception as e:
+            st.error(f"Failed to create baseline: {str(e)}")
+            return None
+    
+    @staticmethod
+    def get_area_baseline(area_id: str) -> Optional[Dict]:
+        """Get the most recent baseline for an area"""
+        try:
+            db = get_db()
+            
+            baseline = db.query(NaturalCapitalBaseline).filter(
+                NaturalCapitalBaseline.area_id == area_id
+            ).order_by(NaturalCapitalBaseline.baseline_date.desc()).first()
+            
+            if baseline:
+                result = {
+                    'id': str(baseline.id),
+                    'baseline_date': baseline.baseline_date,
+                    'ecosystem_type': baseline.ecosystem_type,
+                    'total_baseline_value': baseline.total_baseline_value,
+                    'provisioning_baseline': baseline.provisioning_baseline,
+                    'regulating_baseline': baseline.regulating_baseline,
+                    'cultural_baseline': baseline.cultural_baseline,
+                    'supporting_baseline': baseline.supporting_baseline,
+                    'vegetation_health_index': baseline.vegetation_health_index,
+                    'biodiversity_index': baseline.biodiversity_index,
+                    'area_hectares': baseline.area_hectares,
+                    'data_quality_score': baseline.data_quality_score
+                }
+                db.close()
+                return result
+            
+            db.close()
+            return None
+            
+        except Exception as e:
+            st.error(f"Failed to retrieve baseline: {str(e)}")
+            return None
+    
+    @staticmethod
+    def compare_to_baseline(
+        current_analysis: Dict[str, Any],
+        baseline_id: str
+    ) -> Optional[Dict]:
+        """Compare current analysis to baseline and create trend data"""
+        try:
+            db = get_db()
+            
+            baseline = db.query(NaturalCapitalBaseline).filter(
+                NaturalCapitalBaseline.id == baseline_id
+            ).first()
+            
+            if baseline is None:
+                return None
+            
+            # Calculate changes
+            total_change = current_analysis['total_value'] - baseline.total_baseline_value
+            percent_change = (total_change / baseline.total_baseline_value) * 100 if baseline.total_baseline_value > 0 else 0
+            
+            # Determine trend direction
+            if abs(percent_change) < 5:
+                trend_direction = 'stable'
+            elif percent_change > 0:
+                trend_direction = 'improving'
+            else:
+                trend_direction = 'declining'
+            
+            # Extract current service values
+            esvd_data = current_analysis.get('esvd_results', {})
+            current_provisioning = esvd_data.get('provisioning', {}).get('total', 0)
+            current_regulating = esvd_data.get('regulating', {}).get('total', 0)
+            current_cultural = esvd_data.get('cultural', {}).get('total', 0)
+            current_supporting = esvd_data.get('supporting', {}).get('total', 0)
+            
+            provisioning_change = current_provisioning - baseline.provisioning_baseline
+            regulating_change = current_regulating - baseline.regulating_baseline
+            cultural_change = current_cultural - baseline.cultural_baseline
+            supporting_change = current_supporting - baseline.supporting_baseline
+            
+            # Create trend record
+            trend = NaturalCapitalTrend(
+                baseline_id=baseline_id,
+                area_id=baseline.area_id,
+                measurement_date=datetime.utcnow(),
+                total_value_change=total_change,
+                percent_change=percent_change,
+                provisioning_change=provisioning_change,
+                regulating_change=regulating_change,
+                cultural_change=cultural_change,
+                supporting_change=supporting_change,
+                trend_direction=trend_direction,
+                confidence_level=current_analysis.get('data_quality_score', 0.5)
+            )
+            
+            db.add(trend)
+            db.commit()
+            db.refresh(trend)
+            
+            # Return comparison results
+            result = {
+                'trend_id': str(trend.id),
+                'baseline_date': baseline.baseline_date,
+                'measurement_date': trend.measurement_date,
+                'total_change': total_change,
+                'percent_change': percent_change,
+                'trend_direction': trend_direction,
+                'service_changes': {
+                    'provisioning': provisioning_change,
+                    'regulating': regulating_change,
+                    'cultural': cultural_change,
+                    'supporting': supporting_change
+                },
+                'baseline_values': {
+                    'total': baseline.total_baseline_value,
+                    'provisioning': baseline.provisioning_baseline,
+                    'regulating': baseline.regulating_baseline,
+                    'cultural': baseline.cultural_baseline,
+                    'supporting': baseline.supporting_baseline
+                }
+            }
+            
+            db.close()
+            return result
+            
+        except Exception as e:
+            st.error(f"Failed to compare to baseline: {str(e)}")
+            return None
 
 # Initialize user session
 def initialize_user_session():
