@@ -40,61 +40,57 @@ st.set_page_config(
 )
 
 # Ultra-High Performance Map Optimizations
-@st.cache_data(ttl=1800, max_entries=50, show_spinner=False)  # Balanced cache for map detail
+@st.cache_data(ttl=3600, max_entries=10, show_spinner=False)  # Aggressive cache for fast loading
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
     """Create and cache folium map with maximum performance optimizations"""
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom,
-        tiles="OpenStreetMap",  # Better detail than CartoDB positron
+        tiles="CartoDB positron",  # Fast-loading lightweight tiles
         prefer_canvas=True,
         max_zoom=18,  # Allow much higher zoom for detail
         min_zoom=2,
-        attributionControl=True,
+        attributionControl=False,  # Reduce loading overhead
         zoomControl=True,
         scrollWheelZoom=True,
-        doubleClickZoom=True,  # Re-enable double-click zoom
-        boxZoom=True,  # Re-enable box zoom for better interaction
-        keyboard=True,  # Re-enable keyboard controls
+        doubleClickZoom=True,
+        boxZoom=True,
+        keyboard=True,
         dragging=True,
         tap=True,
-        # Balanced performance and detail
+        # Optimized for fast loading
         options={
-            'worldCopyJump': True,
-            'maxBoundsViscosity': 0.5,
-            'zoomAnimation': True,  # Re-enable smooth zoom animation
-            'markerZoomAnimation': True,
-            'fadeAnimation': True
+            'worldCopyJump': False,
+            'maxBoundsViscosity': 0.0,
+            'zoomAnimation': False,  # Disable for faster performance
+            'markerZoomAnimation': False,
+            'fadeAnimation': False,
+            'zoomSnap': 1,
+            'zoomDelta': 1
         }
     )
     
-    # Add multiple tile layers for better detail options
+    # Add fast-loading tile layers with optimized settings
     folium.TileLayer(
-        tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attr='OpenStreetMap',
-        name='Street Map',
+        tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+        attr='CartoDB',
+        name='Light Map (Fast)',
         overlay=False,
-        control=True
+        control=True,
+        max_zoom=18
     ).add_to(m)
     
     folium.TileLayer(
-        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attr='Esri',
-        name='Satellite',
+        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Satellite (Fast)',
         overlay=False,
-        control=True
+        control=True,
+        max_zoom=20
     ).add_to(m)
     
-    folium.TileLayer(
-        tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-        attr='OpenTopoMap',
-        name='Topographic',
-        overlay=False,
-        control=True
-    ).add_to(m)
-    
-    # Add layer control for switching between map types
-    folium.LayerControl().add_to(m)
+    # Add layer control
+    folium.LayerControl(position='topright').add_to(m)
     
     return m
 
