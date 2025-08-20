@@ -10,9 +10,10 @@ class PrecomputedESVDCoefficients:
     All values are medians from peer-reviewed studies in Int$/ha/year
     """
     
-    def __init__(self):
+    def __init__(self, income_elasticity: float = 0.25):
         # Pre-computed from 10,874 authentic ESVD records
         # Values represent median coefficients from multiple peer-reviewed studies
+        self.income_elasticity = income_elasticity  # User-configurable regional variation factor
         self.coefficients = {
             'forest': {
                 'climate': 235.24,      # From 167 studies
@@ -139,8 +140,7 @@ class PrecomputedESVDCoefficients:
             'global_average': 12500      # World GDP per capita baseline
         }
         
-        # Income elasticity for ecosystem services (research-based)
-        self.income_elasticity = 0.25  # Conservative estimate from literature
+        # Income elasticity is now set by user in constructor (see __init__)
     
     def get_coefficient(self, ecosystem_type: str, service_type: str) -> float:
         """
@@ -275,11 +275,11 @@ class PrecomputedESVDCoefficients:
 # Global singleton for efficient access
 _precomputed_coefficients = None
 
-def get_precomputed_coefficients():
-    """Get singleton instance of pre-computed coefficients"""
+def get_precomputed_coefficients(income_elasticity: float = 0.25):
+    """Get singleton instance with user's elasticity setting"""
     global _precomputed_coefficients
-    if _precomputed_coefficients is None:
-        _precomputed_coefficients = PrecomputedESVDCoefficients()
+    if _precomputed_coefficients is None or _precomputed_coefficients.income_elasticity != income_elasticity:
+        _precomputed_coefficients = PrecomputedESVDCoefficients(income_elasticity)
     return _precomputed_coefficients
 
 # Global function to get base coefficient
@@ -310,7 +310,10 @@ def get_base_coefficient(ecosystem_type, category, service):
 def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
                                      coordinates: tuple = None, sampling_points: int = 10) -> dict:
     """Calculate ecosystem services value using pre-computed coefficients"""
-    coeffs = get_precomputed_coefficients()
+    # Use session state elasticity if available, else default
+    import streamlit as st
+    elasticity = st.session_state.get('income_elasticity', 0.25) if hasattr(st, 'session_state') else 0.25
+    coeffs = get_precomputed_coefficients(elasticity)
     return coeffs.calculate_ecosystem_values(ecosystem_type, area_hectares, coordinates)
 
 def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_hectares: float,
