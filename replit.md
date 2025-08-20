@@ -7,6 +7,7 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 ## Recent Changes (2025-08-20)
 
 **Major Performance and Database Fixes Completed**: Comprehensive improvements for production and preview environments:
+- **Database Schema Fixed**: Added missing sustainability_responses column to ecosystem_analyses table
 - **Database Issues Resolved**: Fixed critical SQLAlchemy column comparison errors in baseline comparison functions
 - **Ultra-Performance Caching**: Extended cache TTL to 30+ minutes with increased entry limits (50 maps, 200 calculations)
 - **Map Rendering Optimizations**: Canvas-based folium rendering with disabled zoom controls for faster interaction
