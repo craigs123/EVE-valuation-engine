@@ -102,7 +102,7 @@ class EcosystemInfographicGenerator:
         
         area_ha = results.get('area_ha', 0)
         value_per_ha = results.get('total_value', 0) / area_ha if area_ha > 0 else 0
-        ecosystem_type = results.get('ecosystem_type', 'Unknown')
+        ecosystem_type = results.get('ecosystem_type') or results.get('primary_ecosystem', 'Unknown')
         
         # Create metric boxes
         metrics = [
@@ -200,7 +200,7 @@ class EcosystemInfographicGenerator:
                            f'{pct:.1f}%', ha='left', va='center', fontweight='bold')
         else:
             # Single ecosystem - show confidence
-            primary_eco = results.get('primary_ecosystem', 'Unknown')
+            primary_eco = results.get('primary_ecosystem') or results.get('ecosystem_type', 'Unknown')
             confidence = results.get('confidence', 0.5)
             
             comp_ax.text(0.5, 0.6, f"Primary Ecosystem: {primary_eco}", 
@@ -229,7 +229,7 @@ class EcosystemInfographicGenerator:
             'Desert': 500
         }
         
-        ecosystem_type = results.get('ecosystem_type', 'Forest')
+        ecosystem_type = results.get('ecosystem_type') or results.get('primary_ecosystem', 'Forest')
         global_avg = global_averages.get(ecosystem_type, 3000)
         
         # Create comparison bars
@@ -300,7 +300,7 @@ class EcosystemInfographicGenerator:
         
         # Key details
         area_ha = results.get('area_ha', 0)
-        ecosystem_type = results.get('ecosystem_type', 'Mixed')
+        ecosystem_type = results.get('ecosystem_type') or results.get('primary_ecosystem', 'Mixed')
         
         details_text = f"{area_ha:,.0f} hectares • {ecosystem_type} Ecosystem"
         ax.text(0.5, 0.5, details_text, fontsize=16, ha='center', va='center',
