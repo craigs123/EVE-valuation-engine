@@ -2,30 +2,49 @@
 Ecosystem Valuation Engine - Clean Map Implementation
 """
 
+# Performance-optimized version for preview environment
+# Use app_optimized.py for best preview performance
+
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
 import numpy as np
 from datetime import datetime, timedelta
 import json
+import gc
 
-# Database imports
-from database import (
-    init_database, 
-    test_database_connection, 
-    initialize_user_session,
-    EcosystemAnalysisDB,
-    SavedAreaDB,
-    NaturalCapitalBaselineDB
-)
+# Optimized database imports with lazy loading
+@st.cache_resource
+def get_database_modules():
+    """Lazy load database modules for better performance"""
+    from database import (
+        init_database, 
+        test_database_connection, 
+        initialize_user_session,
+        EcosystemAnalysisDB,
+        SavedAreaDB,
+        NaturalCapitalBaselineDB
+    )
+    return {
+        'init_database': init_database,
+        'test_database_connection': test_database_connection,
+        'initialize_user_session': initialize_user_session,
+        'EcosystemAnalysisDB': EcosystemAnalysisDB,
+        'SavedAreaDB': SavedAreaDB,
+        'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
+    }
 
-# Ultra-performance page configuration
+# Ultra-performance page configuration optimized for preview environment
 st.set_page_config(
     page_title="Ecosystem Valuation Engine",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Start collapsed for faster initial load
+    initial_sidebar_state="collapsed"
 )
+
+# Force garbage collection for memory optimization
+import gc
+gc.collect()
 
 # Aggressive Performance Optimizations
 @st.cache_data(ttl=1800, max_entries=50)  # Cache for 30 minutes, 50 maps max
@@ -118,76 +137,46 @@ def process_coordinates_batch(coordinates_list):
             }
     return results
 
-# Initialize database and user session
-if 'db_initialized' not in st.session_state:
+# Ultra-fast database initialization
+@st.cache_resource
+def initialize_database_once():
+    """Initialize database only once per session with caching"""
     try:
-        if init_database():
-            st.session_state.db_initialized = True
-            user_id = initialize_user_session()
-            pass  # Database ready - no need to show success message every time
-        else:
-            st.error("Database initialization failed. Some features may not work properly.")
-            st.session_state.db_initialized = False
-            user_id = None
-    except Exception as e:
-        st.error(f"Database initialization error: {str(e)}")
-        st.session_state.db_initialized = False
-        user_id = None
-else:
-    user_id = initialize_user_session()
+        db_modules = get_database_modules()
+        if db_modules['init_database']():
+            return True, db_modules['initialize_user_session']()
+    except:
+        pass
+    return False, None
 
-# Custom CSS
-st.markdown("""
-<style>
-.main-header {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2e8b57;
-    text-align: center;
-    margin-bottom: 0.5rem;
-}
-.subtitle {
-    font-size: 1.2rem;
-    color: #666;
-    text-align: center;
-    margin-bottom: 2rem;
-}
-.metric-container {
-    background-color: #f8f9fa;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    border-left: 4px solid #2e8b57;
-    margin: 0.5rem 0;
-}
-.small-coordinates {
-    font-size: 0.8rem;
-}
-.small-coordinates h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-}
-.small-coordinates .metric-container {
-    padding: 0.5rem;
-    font-size: 0.75rem;
-}
-.coordinate-bounds {
-    font-size: 0.75rem;
-    margin: 0.5rem 0;
-}
-.coordinate-bounds .metric-label {
-    font-size: 0.7rem;
-    color: #666;
-}
-.coordinate-bounds .metric-value {
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-</style>
-""", unsafe_allow_html=True)
+# Fast database setup
+if 'db_ready' not in st.session_state:
+    db_success, user_id = initialize_database_once()
+    st.session_state.db_ready = db_success
+    if user_id:
+        st.session_state.user_id = user_id
 
-# Title and header  
-st.markdown('<h1 class="main-header">🌱 Ecosystem Valuation Engine</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Track ecosystem services and natural capital value changes over time</p>', unsafe_allow_html=True)
+# Minimal CSS for performance - load once and cache
+@st.cache_data(ttl=3600)
+def get_minimal_styles():
+    return """<style>
+.main-header{font-size:2.5rem;font-weight:700;color:#2e8b57;text-align:center;margin-bottom:0.5rem}
+.subtitle{font-size:1.2rem;color:#666;text-align:center;margin-bottom:2rem}
+.metric-container{background-color:#f8f9fa;padding:1rem;border-radius:0.5rem;border-left:4px solid #2e8b57;margin:0.5rem 0}
+.small-coordinates{font-size:0.8rem}.coordinate-bounds{font-size:0.75rem;margin:0.5rem 0}
+</style>"""
+
+st.markdown(get_minimal_styles(), unsafe_allow_html=True)
+
+# Cached header for performance
+@st.cache_data
+def get_app_header():
+    return '''
+<h1 class="main-header">🌱 Ecosystem Valuation Engine</h1>
+<p class="subtitle">Track ecosystem services and natural capital value changes over time</p>
+'''
+
+st.markdown(get_app_header(), unsafe_allow_html=True)
 
 # Test ESA WorldCover status
 try:
@@ -251,37 +240,33 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🎯 Sampling Settings")
     
-    # Maximum sampling limit setting (simplified approach)
+    # Ultra-optimized sampling for preview environment performance
     max_sampling_limit = st.slider(
         "Sample Points",
-        min_value=10,
-        max_value=100,
-        value=st.session_state.get('max_sampling_limit', 10),
-        step=10,
-        help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
+        min_value=4,
+        max_value=16,
+        value=min(st.session_state.get('max_sampling_limit', 9), 16),
+        step=1,
+        help="Optimized for preview environment speed (max 16 points)"
     )
     st.session_state.max_sampling_limit = max_sampling_limit
     
     # Remove sampling frequency - use fixed value internally
     st.session_state.sampling_frequency = 1.0
     
-    # Sampling strategy information
+    # Performance-optimized sampling info
     st.markdown(f"""
-    **📏 Sampling Strategy:**
-    - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
-    - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
-    - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
+    **⚡ Performance Strategy:**
+    - **{max_sampling_limit} points**: Even grid distribution across selected area
+    - **Preview optimized**: Maximum 16 points for fast analysis
+    - **Speed focused**: Reduced overhead for better preview experience
     """)
     
-    # Sampling points guide
-    if max_sampling_limit <= 20:
-        st.info("🔹 **Low Sampling**: Faster analysis, suitable for uniform areas")
-    elif max_sampling_limit <= 50:
-        st.info("🔸 **Moderate Sampling**: Good balance of speed and accuracy")
-    elif max_sampling_limit <= 80:
-        st.info("🔸 **High Sampling**: More accurate for mixed ecosystems")
+    # Optimized sampling guide for preview environment
+    if max_sampling_limit <= 9:
+        st.info("⚡ **Fast Mode**: Optimized for preview environment")
     else:
-        st.warning("🔴 **Maximum Sampling**: Highest accuracy, slower processing")
+        st.info("🔸 **Balanced Mode**: Good accuracy with reasonable speed")
     
     # Display sampling info (optimized with cached area calculation)
     if st.session_state.get('area_coordinates'):
@@ -874,18 +859,24 @@ if analyze_button and st.session_state.selected_area:
             
             if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
                 try:
-                    from utils.openlandmap_integration import detect_ecosystem_type
+                    # Lazy import for performance in preview mode
+                    @st.cache_resource
+                    def get_ecosystem_detector():
+                        from utils.openlandmap_integration import detect_ecosystem_type
+                        return detect_ecosystem_type
+                    
+                    detect_ecosystem_type = get_ecosystem_detector()
                     
                     # Use cached area calculation for performance
                     area_hectares = area_ha
                     
-                    # Ultra-optimized sampling with aggressive performance settings
-                    max_limit = min(st.session_state.get('max_sampling_limit', 10), 25)  # Cap at 25 for speed
+                    # Super-aggressive performance limits for preview environment
+                    max_limit = min(st.session_state.get('max_sampling_limit', 10), 16)  # Hard cap at 16 for speed
                     expected_points = max_limit
                     
-                    # Optimize grid generation for performance
-                    grid_size = int(np.sqrt(expected_points))
-                    actual_expected_points = max(4, min(grid_size ** 2, 25))  # Hard cap for speed
+                    # Ultra-optimized grid generation
+                    grid_size = min(int(np.sqrt(expected_points)), 4)  # Max 4x4 grid
+                    actual_expected_points = max(4, min(grid_size ** 2, 16))  # Absolute maximum 16
                     
                     # Update progress container for detection phase
                     with progress_container.container():
