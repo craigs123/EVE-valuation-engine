@@ -139,6 +139,12 @@ class NaturalCapitalTrend(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # Database utility functions
+def initialize_user_session():
+    """Initialize user session ID for database tracking"""
+    if 'user_id' not in st.session_state:
+        st.session_state.user_id = str(uuid.uuid4())
+    return st.session_state.user_id
+
 def get_db() -> Session:
     """Get database session"""
     db = SessionLocal()
