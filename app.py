@@ -40,33 +40,62 @@ st.set_page_config(
 )
 
 # Ultra-High Performance Map Optimizations
-@st.cache_data(ttl=3600, max_entries=200, show_spinner=False)  # Extended cache, no spinner
+@st.cache_data(ttl=1800, max_entries=50, show_spinner=False)  # Balanced cache for map detail
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
     """Create and cache folium map with maximum performance optimizations"""
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom,
-        tiles="CartoDB positron",  # Faster, lighter tiles
+        tiles="OpenStreetMap",  # Better detail than CartoDB positron
         prefer_canvas=True,
-        max_zoom=12,
-        min_zoom=3,
-        attributionControl=False,
+        max_zoom=18,  # Allow much higher zoom for detail
+        min_zoom=2,
+        attributionControl=True,
         zoomControl=True,
-        scrollWheelZoom=True,  # Re-enable for better UX
-        doubleClickZoom=False,
-        boxZoom=False,
-        keyboard=False,
+        scrollWheelZoom=True,
+        doubleClickZoom=True,  # Re-enable double-click zoom
+        boxZoom=True,  # Re-enable box zoom for better interaction
+        keyboard=True,  # Re-enable keyboard controls
         dragging=True,
         tap=True,
-        # Performance optimizations
+        # Balanced performance and detail
         options={
-            'worldCopyJump': False,
-            'maxBoundsViscosity': 0.0,
-            'zoomAnimation': False,  # Disable zoom animation
-            'markerZoomAnimation': False,
-            'fadeAnimation': False
+            'worldCopyJump': True,
+            'maxBoundsViscosity': 0.5,
+            'zoomAnimation': True,  # Re-enable smooth zoom animation
+            'markerZoomAnimation': True,
+            'fadeAnimation': True
         }
     )
+    
+    # Add multiple tile layers for better detail options
+    folium.TileLayer(
+        tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attr='OpenStreetMap',
+        name='Street Map',
+        overlay=False,
+        control=True
+    ).add_to(m)
+    
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri',
+        name='Satellite',
+        overlay=False,
+        control=True
+    ).add_to(m)
+    
+    folium.TileLayer(
+        tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        attr='OpenTopoMap',
+        name='Topographic',
+        overlay=False,
+        control=True
+    ).add_to(m)
+    
+    # Add layer control for switching between map types
+    folium.LayerControl().add_to(m)
+    
     return m
 
 @st.cache_data(ttl=7200, max_entries=1, show_spinner=False)  # Single cached instance
@@ -78,13 +107,30 @@ def create_drawing_tools():
         position='topleft',
         draw_options={
             'polyline': False,
-            'circle': False,
+            'circle': True,  # Re-enable circle drawing
             'marker': False,
             'circlemarker': False,
-            'polygon': {'allowIntersection': False, 'showArea': True, 'metric': True},
-            'rectangle': {'showArea': True, 'metric': True}
+            'polygon': {
+                'allowIntersection': False, 
+                'showArea': True, 
+                'metric': True,
+                'shapeOptions': {
+                    'color': '#2E8B57',
+                    'weight': 3,
+                    'fillOpacity': 0.3
+                }
+            },
+            'rectangle': {
+                'showArea': True, 
+                'metric': True,
+                'shapeOptions': {
+                    'color': '#2E8B57',
+                    'weight': 3,
+                    'fillOpacity': 0.3
+                }
+            }
         },
-        edit_options={'remove': True, 'edit': False}
+        edit_options={'remove': True, 'edit': True}  # Re-enable editing
     )
 
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
