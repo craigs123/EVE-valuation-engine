@@ -358,36 +358,27 @@ with st.sidebar:
                     ("integrate_livestock", "Integrate livestock where feasible")
                 ]
                 
-                answered_count = sum(1 for response in responses.values() if response is not None)
                 total_count = len(questions)
+                yes_count = sum(1 for response in responses.values() if response is True)
+                score_percentage = (yes_count / total_count) * 100
                 
-                if answered_count > 0:
-                    st.info(f"Current progress: {answered_count}/{total_count} questions answered")
-                    
-                    for key, label in questions:
-                        response = responses.get(key)
-                        if response is not None:
-                            status = "✅ Yes" if response else "❌ No"
-                            st.markdown(f"**{label}**: {status}")
-                        else:
-                            st.markdown(f"**{label}**: ⚪ Not answered")
-                    
-                    # Show sustainability score
-                    if answered_count == total_count:
-                        yes_count = sum(1 for response in responses.values() if response is True)
-                        score_percentage = (yes_count / total_count) * 100
-                        
-                        st.markdown("---")
-                        st.metric("Sustainability Score", f"{score_percentage:.0f}%")
-                        
-                        if score_percentage >= 80:
-                            st.success("🌟 Excellent sustainability practices!")
-                        elif score_percentage >= 60:
-                            st.warning("⚡ Good sustainability practices with room for improvement")
-                        else:
-                            st.error("📈 Consider adopting more sustainable practices")
+                st.info(f"Sustainability assessment responses:")
+                
+                for key, label in questions:
+                    response = responses.get(key, False)
+                    status = "✅ Yes" if response else "❌ No"
+                    st.markdown(f"**{label}**: {status}")
+                
+                # Show sustainability score
+                st.markdown("---")
+                st.metric("Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
+                
+                if score_percentage >= 80:
+                    st.success("🌟 Excellent sustainability practices!")
+                elif score_percentage >= 60:
+                    st.warning("⚡ Good sustainability practices with room for improvement")
                 else:
-                    st.info("Complete the sustainability assessment in the main analysis section to see your results here.")
+                    st.error("📈 Consider adopting more sustainable practices")
             else:
                 st.info("No sustainability assessment completed yet.")
     else:
@@ -598,11 +589,11 @@ with col1:
     # Initialize sustainability responses in session state if not present
     if 'sustainability_responses' not in st.session_state:
         st.session_state.sustainability_responses = {
-            'minimize_soil_disturbance': None,
-            'maintain_living_roots': None,
-            'cover_bare_soil': None,
-            'maximize_diversity': None,
-            'integrate_livestock': None
+            'minimize_soil_disturbance': False,
+            'maintain_living_roots': False,
+            'cover_bare_soil': False,
+            'maximize_diversity': False,
+            'integrate_livestock': False
         }
     
     sustainability_questions = [
@@ -620,30 +611,36 @@ with col1:
         for i, (key, question) in enumerate(sustainability_questions[:3]):
             st.session_state.sustainability_responses[key] = st.radio(
                 question,
-                options=[None, True, False],
-                format_func=lambda x: "Select..." if x is None else ("Yes" if x else "No"),
+                options=[True, False],
+                format_func=lambda x: "Yes" if x else "No",
                 key=f"sustainability_{key}",
-                index=0 if st.session_state.sustainability_responses[key] is None else (1 if st.session_state.sustainability_responses[key] else 2)
+                index=0 if st.session_state.sustainability_responses[key] else 1
             )
     
     with col_q2:
         for i, (key, question) in enumerate(sustainability_questions[3:], 3):
             st.session_state.sustainability_responses[key] = st.radio(
                 question,
-                options=[None, True, False],
-                format_func=lambda x: "Select..." if x is None else ("Yes" if x else "No"),
+                options=[True, False],
+                format_func=lambda x: "Yes" if x else "No",
                 key=f"sustainability_{key}",
-                index=0 if st.session_state.sustainability_responses[key] is None else (1 if st.session_state.sustainability_responses[key] else 2)
+                index=0 if st.session_state.sustainability_responses[key] else 1
             )
     
-    # Show completion status
-    answered_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is not None)
+    # Show completion status and score
     total_count = len(sustainability_questions)
+    yes_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is True)
+    score_percentage = (yes_count / total_count) * 100
     
-    if answered_count == total_count:
-        st.success(f"✅ Sustainability assessment complete ({answered_count}/{total_count} questions answered)")
+    st.success(f"✅ Sustainability assessment complete")
+    st.metric("Current Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
+    
+    if score_percentage >= 80:
+        st.success("🌟 Excellent sustainability practices!")
+    elif score_percentage >= 60:
+        st.warning("⚡ Good sustainability practices with room for improvement")
     else:
-        st.info(f"📝 Sustainability assessment: {answered_count}/{total_count} questions answered")
+        st.error("📈 Consider adopting more sustainable practices")
     
     st.markdown("---")
     st.markdown("### 📊 Analysis Controls")
