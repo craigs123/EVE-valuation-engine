@@ -1155,7 +1155,7 @@ with col2:
         st.metric("Area Size", f"{st.session_state.cached_area_ha:.0f} hectares")
         
         # Show ecosystem detection status with composition
-        if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+        if st.session_state.ecosystem_override == "Auto-detect":
             if 'detected_ecosystem' in st.session_state:
                 ecosystem_info = st.session_state.detected_ecosystem
                 primary_ecosystem = ecosystem_info['primary_ecosystem']
@@ -1483,11 +1483,18 @@ if st.session_state.analysis_results:
                     st.write(f"   • **{eco_type}**: {percentage:.1f}% ({area_for_type:.1f} hectares)")
                 st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
             else:
-                # Single ecosystem
-                st.info(f"**🌱 Ecosystem Type**: {results['ecosystem_type']} (100% coverage)")
+                # Single ecosystem - make sure to show the actual detected type
+                ecosystem_display = results['ecosystem_type']
+                if ecosystem_display == "Auto-detect" and st.session_state.get('detected_ecosystem'):
+                    ecosystem_display = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_display)
+                st.info(f"**🌱 Ecosystem Type**: {ecosystem_display} (100% coverage)")
                 st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         else:
-            st.info(f"**Ecosystem Type**: {results['ecosystem_type']} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+            # Handle ecosystem type display for other cases
+            ecosystem_display = results['ecosystem_type']
+            if ecosystem_display == "Auto-detect" and st.session_state.get('detected_ecosystem'):
+                ecosystem_display = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_display)
+            st.info(f"**Ecosystem Type**: {ecosystem_display} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         
         # Check if there's an existing baseline for this area
         baseline_info = None
