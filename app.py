@@ -481,13 +481,15 @@ with col1:
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
         
+        # Calculate coords_array for all operations
+        coords_array = np.array(coords[:-1], dtype=np.float32)
+        
         # Use cached map center and zoom if available
         cache_key = f"map_center_{hash(str(coords))}"
         if cache_key in st.session_state:
             center_lat, center_lon, zoom_level = st.session_state[cache_key]
         else:
             # Calculate and cache center and zoom
-            coords_array = np.array(coords[:-1], dtype=np.float32)
             center_lat = float(coords_array[:, 1].mean())
             center_lon = float(coords_array[:, 0].mean())
             
