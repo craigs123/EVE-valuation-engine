@@ -385,26 +385,33 @@ with col1:
         center_lat = float(coords_array[:, 1].mean())
         center_lon = float(coords_array[:, 0].mean())
         
-        # Calculate appropriate zoom level based on area size
+        # Calculate appropriate zoom level based on area size with padding
         lat_range = coords_array[:, 1].max() - coords_array[:, 1].min()
         lon_range = coords_array[:, 0].max() - coords_array[:, 0].min()
         max_range = max(lat_range, lon_range)
         
-        # Determine zoom level based on area size
-        if max_range > 10:
+        # Add 50% padding to ensure entire area is visible
+        padded_range = max_range * 1.5
+        
+        # Determine zoom level based on padded area size
+        if padded_range > 15:
+            zoom_level = 5
+        elif padded_range > 8:
             zoom_level = 6
-        elif max_range > 5:
+        elif padded_range > 4:
             zoom_level = 7
-        elif max_range > 2:
+        elif padded_range > 2:
             zoom_level = 8
-        elif max_range > 1:
+        elif padded_range > 1:
             zoom_level = 9
-        elif max_range > 0.5:
+        elif padded_range > 0.5:
             zoom_level = 10
-        elif max_range > 0.1:
+        elif padded_range > 0.2:
             zoom_level = 11
-        else:
+        elif padded_range > 0.1:
             zoom_level = 12
+        else:
+            zoom_level = 13
         
         m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
         
