@@ -1403,16 +1403,14 @@ if analyze_button and st.session_state.selected_area:
                 esvd_results = calculate_mixed_ecosystem_services_value(
                     ecosystem_distribution=ecosystem_distribution,
                     area_hectares=area_ha,
-                    coordinates=(center_lat, center_lon),
-                    income_elasticity=st.session_state.get('income_elasticity', 0.6)
+                    coordinates=(center_lat, center_lon)
                 )
             else:
                 # Single ecosystem calculation
                 esvd_results = calculate_ecosystem_services_value(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
-                    coordinates=(center_lat, center_lon),
-                    income_elasticity=st.session_state.get('income_elasticity', 0.6)
+                    coordinates=(center_lat, center_lon)
                 )
             
             # Store comprehensive analysis results
