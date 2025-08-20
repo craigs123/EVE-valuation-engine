@@ -1402,7 +1402,9 @@ if st.session_state.analysis_results:
         with col_save1:
             with st.container():
                 st.markdown("**💾 Save Analysis**")
-                with st.form("save_analysis_form"):
+                # Use unique form key to prevent double-click issues
+                form_key = f"save_analysis_form_{hash(str(st.session_state.get('analysis_results', {})))}"
+                with st.form(form_key):
                     analysis_name = st.text_input("Analysis Name", value=f"Analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}")
                     
                     col1, col2 = st.columns(2)
@@ -1412,27 +1414,40 @@ if st.session_state.analysis_results:
                         cancel_analysis_btn = st.form_submit_button("Cancel", type="secondary")
                     
                     if save_analysis_btn and analysis_name:
+                        # Check if we've already saved this analysis to prevent duplicates
                         results = st.session_state.analysis_results
-                        analysis_id = EcosystemAnalysisDB.save_analysis(
-                            coordinates=st.session_state.area_coordinates,
-                            area_hectares=results['area_ha'],
-                            ecosystem_type=results['ecosystem_type'],
-                            total_value=results['total_value'],
-                            value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
-                            analysis_results=results,
-                            sampling_points=st.session_state.get('max_sampling_limit', 10),
-                            area_name=analysis_name,
-                            user_session_id=st.session_state.get('user_id')
-                        )
-                        if analysis_id:
-                            st.success(f"Analysis saved successfully!")
+                        save_key = f"saved_analysis_{hash(str(results))}"
+                        
+                        if save_key not in st.session_state:
+                            analysis_id = EcosystemAnalysisDB.save_analysis(
+                                coordinates=st.session_state.area_coordinates,
+                                area_hectares=results['area_ha'],
+                                ecosystem_type=results['ecosystem_type'],
+                                total_value=results['total_value'],
+                                value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
+                                analysis_results=results,
+                                sampling_points=st.session_state.get('max_sampling_limit', 10),
+                                area_name=analysis_name,
+                                user_session_id=st.session_state.get('user_id')
+                            )
+                            if analysis_id:
+                                st.session_state[save_key] = analysis_id
+                                st.success(f"Analysis saved successfully!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to save analysis")
                         else:
-                            st.error("Failed to save analysis")
+                            st.info("This analysis has already been saved!")
+                    
+                    if cancel_analysis_btn:
+                        st.info("Save cancelled")
         
         with col_save2:
             with st.container():
                 st.markdown("**📍 Save Area**")
-                with st.form("save_area_form"):
+                # Use unique form key to prevent double-click issues
+                area_form_key = f"save_area_form_{hash(str(st.session_state.get('area_coordinates', [])))}"
+                with st.form(area_form_key):
                     area_name = st.text_input("Area Name", value=f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}")
                     description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
                     
@@ -1443,16 +1458,27 @@ if st.session_state.analysis_results:
                         cancel_area_btn = st.form_submit_button("Cancel", type="secondary")
                     
                     if save_area_btn and area_name:
-                        results = st.session_state.analysis_results
-                        area_id = SavedAreaDB.save_area(
-                            name=area_name,
-                            coordinates=st.session_state.area_coordinates,
-                            area_hectares=results['area_ha'],
-                            description=description if description else None,
-                            user_session_id=st.session_state.get('user_id')
-                        )
-                        if area_id:
-                            st.success(f"Area saved successfully!")
-                            st.session_state['current_area_id'] = area_id
+                        # Check if we've already saved this area to prevent duplicates
+                        coordinates_key = f"saved_area_{hash(str(st.session_state.get('area_coordinates', [])))}"
+                        
+                        if coordinates_key not in st.session_state:
+                            results = st.session_state.analysis_results
+                            area_id = SavedAreaDB.save_area(
+                                name=area_name,
+                                coordinates=st.session_state.area_coordinates,
+                                area_hectares=results['area_ha'],
+                                description=description if description else None,
+                                user_session_id=st.session_state.get('user_id')
+                            )
+                            if area_id:
+                                st.session_state[coordinates_key] = area_id
+                                st.session_state['current_area_id'] = area_id
+                                st.success(f"Area saved successfully!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to save area")
                         else:
-                            st.error("Failed to save area")
+                            st.info("This area has already been saved!")
+                    
+                    if cancel_area_btn:
+                        st.info("Save cancelled")
