@@ -240,6 +240,48 @@ Example: 100ha Forest
 • Cultural Services: $1,417/ha/year (from 46 peer-reviewed studies)
 • Total Value: $141,653/year (authentic data only)
             """, language="text")
+            
+            # Quality Factor Details
+            with st.expander("🔍 Quality Factor Methodology"):
+                st.markdown("**Quality Factor Derivation (Satellite-Based):**")
+                col_q1, col_q2 = st.columns(2)
+                
+                with col_q1:
+                    st.markdown("""
+                    **Input Data:**
+                    - Red band reflectance
+                    - Near-infrared reflectance  
+                    - Cloud coverage %
+                    - Data quality flags
+                    
+                    **NDVI Calculation:**
+                    ```
+                    NDVI = (NIR - Red) / (NIR + Red)
+                    ```
+                    """)
+                
+                with col_q2:
+                    st.markdown("""
+                    **Weighted Scoring (100 points):**
+                    - NDVI Health: 40% weight
+                    - Data Quality: 30% weight
+                    - Cloud Coverage: 20% weight
+                    - Spectral Health: 10% weight
+                    """)
+                
+                st.markdown("**Quality Categories & Multipliers:**")
+                quality_data = {
+                    "Excellent (≥85pts)": "1.2x - Premium ecosystem health",
+                    "Good (70-84pts)": "1.0x - Standard baseline",
+                    "Fair (55-69pts)": "0.8x - Moderate degradation", 
+                    "Poor (40-54pts)": "0.6x - Significant degradation",
+                    "Degraded (<40pts)": "0.4x - Severely degraded"
+                }
+                
+                for category, description in quality_data.items():
+                    st.info(f"**{category}**: {description}")
+                
+                st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
     else:
         st.warning("⚠️ **Using estimated coefficients** - ESVD database not loaded")
         st.info("For authentic scientific data, ensure the ESVD database CSV is properly loaded in the data/ directory.")
