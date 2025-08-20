@@ -1217,8 +1217,56 @@ if st.session_state.analysis_results:
         if 'ecosystem_results' in results.get('esvd_results', {}):
             ecosystem_results = results['esvd_results']['ecosystem_results']
             
-            st.markdown("### 🌱 Individual Ecosystem Natural Capital Calculations")
-            st.markdown("*Separate calculations for each ecosystem type detected in your mixed area*")
+            st.markdown("### 🌱 Mixed Ecosystem Analysis")
+            
+            # Show combined totals first
+            col_total1, col_total2, col_total3 = st.columns(3)
+            
+            with col_total1:
+                st.metric("Combined Total Value", f"${results['total_value']:,.0f}/year")
+                st.caption("Sum of all ecosystem contributions")
+            
+            with col_total2:
+                combined_per_ha = results['total_value'] / results['area_ha'] if results['area_ha'] > 0 else 0
+                st.metric("Combined Value per Hectare", f"${combined_per_ha:,.0f}/ha/year")
+                st.caption("Weighted average across all ecosystems")
+            
+            with col_total3:
+                num_ecosystems = len(ecosystem_results)
+                st.metric("Ecosystem Types Detected", str(num_ecosystems))
+                st.caption("Different ecosystem types in this area")
+            
+            # Show total composition breakdown
+            st.markdown("**📊 Total Area Composition:**")
+            comp_cols = st.columns(min(len(ecosystem_results), 4))
+            for i, (ecosystem_type, eco_data) in enumerate(ecosystem_results.items()):
+                with comp_cols[i % 4]:
+                    percentage = eco_data.get('area_percentage', 0)
+                    area_ha = eco_data.get('area_hectares', 0)
+                    st.markdown(f"**{ecosystem_type.title()}**")
+                    st.markdown(f"{percentage:.1f}% ({area_ha:.1f} ha)")
+            
+            # Show combined services breakdown
+            if 'esvd_results' in results:
+                st.markdown("**🌿 Combined Ecosystem Services (Total from All Ecosystems):**")
+                esvd_data = results['esvd_results']
+                
+                if 'provisioning' in esvd_data:
+                    services_cols = st.columns(4)
+                    categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                    
+                    for i, category in enumerate(categories):
+                        if category in esvd_data:
+                            total = esvd_data[category].get('total', 0)
+                            with services_cols[i]:
+                                percentage = (total / results['total_value'] * 100) if results['total_value'] > 0 else 0
+                                st.markdown(f"**{category.title()}**")
+                                st.markdown(f"${total:,.0f}/year")
+                                st.caption(f"{percentage:.0f}% of combined total")
+            
+            st.markdown("---")
+            st.markdown("### 🔍 Individual Ecosystem Natural Capital Calculations")
+            st.markdown("*Detailed breakdown for each ecosystem type detected in your mixed area*")
             
             # Create expandable sections for each ecosystem type
             for ecosystem_type, eco_data in ecosystem_results.items():
@@ -1281,14 +1329,20 @@ if st.session_state.analysis_results:
         if 'ecosystem_results' in results.get('esvd_results', {}):
             ecosystem_results = results['esvd_results']['ecosystem_results']
             
-            # Create comparison table
+            # Create enhanced comparison table
             comparison_data = []
+            total_value = results['total_value']
+            
             for ecosystem_type, eco_data in ecosystem_results.items():
+                eco_value = eco_data.get('current_value', 0)
+                contribution_pct = (eco_value / total_value * 100) if total_value > 0 else 0
+                
                 comparison_data.append({
                     'Ecosystem Type': ecosystem_type.title(),
                     'Area (ha)': f"{eco_data.get('area_hectares', 0):.1f}",
                     'Area (%)': f"{eco_data.get('area_percentage', 0):.1f}%",
-                    'Total Value ($/year)': f"${eco_data.get('current_value', 0):,.0f}",
+                    'Total Value ($/year)': f"${eco_value:,.0f}",
+                    'Value Contribution (%)': f"{contribution_pct:.1f}%",
                     'Value per Hectare ($/ha/year)': f"${eco_data.get('value_per_hectare', 0):,.0f}"
                 })
             
@@ -1296,7 +1350,12 @@ if st.session_state.analysis_results:
             df = pd.DataFrame(comparison_data)
             st.dataframe(df, use_container_width=True)
             
-            st.caption("💡 Mixed ecosystem total value is the sum of all individual ecosystem contributions")
+            # Show the calculation summary
+            st.markdown("**💡 Mixed Ecosystem Calculation Summary:**")
+            st.markdown(f"- **Combined Total**: ${total_value:,.0f}/year (sum of all individual ecosystem values)")
+            st.markdown(f"- **Total Area**: {results['area_ha']:,.1f} hectares")
+            st.markdown(f"- **Weighted Average**: ${total_value/results['area_ha']:,.0f}/ha/year")
+            st.caption("Each ecosystem contributes its proportional value based on area coverage and ecosystem-specific ESVD coefficients")
 
         # Action buttons for detailed view
         st.markdown("---")
