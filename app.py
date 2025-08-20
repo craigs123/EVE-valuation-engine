@@ -453,23 +453,8 @@ with st.sidebar:
         help="Auto-detection uses geographic analysis for ecosystem classification"
     )
     
-    # Income elasticity for regional adjustments
-    st.subheader("🌍 Regional Adjustment Settings")
-    income_elasticity = st.slider(
-        "Income Elasticity Factor",
-        min_value=0.1,
-        max_value=0.5,
-        value=0.25,
-        step=0.05,
-        help="Controls how much regional GDP differences affect ecosystem service values. Higher values = more regional variation. Standard economics uses 0.25."
-    )
-    
-    st.caption("**Regional Formula**: Value = ESVD_Coefficient × (Regional_GDP / Global_GDP)^elasticity")
-    st.caption("Examples: North America/Europe get ~20-50% higher values, Africa gets ~30-40% lower values")
-    
     # Store settings
     st.session_state.ecosystem_override = ecosystem_override
-    st.session_state.income_elasticity = income_elasticity
     
     st.markdown("---")
     st.subheader("🎯 Sampling Settings")
