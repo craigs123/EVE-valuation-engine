@@ -197,16 +197,6 @@ try:
     
     if esvd_status['authentic']:
         st.success(f"✅ **AUTHENTIC ESVD DATABASE ACTIVE** - Using {esvd_status['total_records']:,} peer-reviewed values from {esvd_status['unique_studies']:,} studies")
-        st.markdown("""
-        **🔬 Methodology**: EVE integrates the authentic Ecosystem Services Valuation Database (ESVD) APR2024 V1.1 
-        from the Foundation for Sustainable Development. All ecosystem service values are derived from peer-reviewed 
-        scientific studies, standardized to International dollars per hectare per year (2020 price levels).
-        
-        **📊 Data Sources**: 10,874 valuation records from 1,354+ research studies across 140+ countries, 
-        covering four categories: Provisioning (food, water, timber), Regulating (climate, water regulation, 
-        erosion control), Cultural (recreation, aesthetic, spiritual), and Supporting services (soil formation, 
-        nutrient cycling, habitat provision).
-        """)
         
         # Show ESVD integration details
         with st.expander("🔬 View Authentic ESVD Integration Details"):
@@ -240,82 +230,6 @@ Example: 100ha Forest
 • Cultural Services: $1,417/ha/year (from 46 peer-reviewed studies)
 • Total Value: $141,653/year (authentic data only)
             """, language="text")
-            
-            # Quality Factor Details
-            with st.expander("🔍 Quality Factor Methodology"):
-                st.markdown("**Quality Factor Derivation (Satellite-Based):**")
-                col_q1, col_q2 = st.columns(2)
-                
-                with col_q1:
-                    st.markdown("""
-                    **Input Data:**
-                    - Red band reflectance
-                    - Near-infrared reflectance  
-                    - Cloud coverage %
-                    - Data quality flags
-                    
-                    **NDVI Calculation:**
-                    ```
-                    NDVI = (NIR - Red) / (NIR + Red)
-                    ```
-                    """)
-                
-                with col_q2:
-                    st.markdown("""
-                    **Weighted Scoring (100 points):**
-                    - NDVI Health: 40% weight
-                    - Data Quality: 30% weight
-                    - Cloud Coverage: 20% weight
-                    - Spectral Health: 10% weight
-                    """)
-                
-                st.markdown("**Quality Categories & Multipliers:**")
-                quality_data = {
-                    "Excellent (≥85pts)": "1.2x - Premium ecosystem health",
-                    "Good (70-84pts)": "1.0x - Standard baseline",
-                    "Fair (55-69pts)": "0.8x - Moderate degradation", 
-                    "Poor (40-54pts)": "0.6x - Significant degradation",
-                    "Degraded (<40pts)": "0.4x - Severely degraded"
-                }
-                
-                for category, description in quality_data.items():
-                    st.info(f"**{category}**: {description}")
-                
-                st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
-            
-            # USGS Integration Status
-            with st.expander("🛰️ Satellite Data Source Status"):
-                try:
-                    from utils.usgs_integration import usgs_integrator
-                    usgs_status = usgs_integrator.test_connection()
-                    
-                    col_s1, col_s2 = st.columns(2)
-                    
-                    with col_s1:
-                        st.markdown("**USGS Earth Explorer Integration:**")
-                        st.info(f"Libraries: {'✅ Available' if usgs_status['usgs_available'] else '❌ Missing'}")
-                        st.info(f"Credentials: {'✅ Provided' if usgs_status['credentials_provided'] else '❌ Missing'}")
-                        st.info(f"Authentication: {'✅ Success' if usgs_status['authentication_success'] else '❌ Failed'}")
-                    
-                    with col_s2:
-                        st.markdown("**Current Data Source:**")
-                        if usgs_status['authentication_success']:
-                            st.success("🛰️ **AUTHENTIC LANDSAT IMAGERY**")
-                            st.success("Real satellite bands for quality factors")
-                            st.success("Actual cloud coverage and data quality")
-                        else:
-                            st.warning("📊 **ENHANCED SIMULATION**")
-                            st.info("Realistic satellite-like data")
-                            st.info("Geographic and seasonal accuracy")
-                    
-                    if usgs_status.get('error'):
-                        st.error(f"Issue: {usgs_status['error']}")
-                        if 'credentials' in usgs_status['error'].lower():
-                            st.info("💡 Add USGS_USERNAME and USGS_PASSWORD to use authentic satellite data")
-                
-                except Exception as e:
-                    st.warning("Could not check USGS status")
-                    st.info("Using enhanced simulation for satellite data")
     else:
         st.warning("⚠️ **Using estimated coefficients** - ESVD database not loaded")
         st.info("For authentic scientific data, ensure the ESVD database CSV is properly loaded in the data/ directory.")
@@ -457,6 +371,120 @@ with st.sidebar:
     
     # Store in session state
     st.session_state['income_elasticity'] = income_elasticity
+    
+    st.markdown("---")
+    
+    # Methodology and Sources section
+    st.header("📚 Methodology and Sources")
+    
+    st.markdown("""
+    **Ecosystem Valuation Engine (EVE)** combines satellite remote sensing with the world's largest ecosystem service valuation database to measure natural capital in economic terms.
+    
+    EVE tracks four categories of ecosystem services: **provisioning** (food, water, timber), **regulating** (climate, water regulation, erosion control), **cultural** (recreation, spiritual value), and **supporting** (soil formation, nutrient cycling).
+    """)
+    
+    with st.expander("🔬 Scientific Methodology"):
+        st.markdown("""
+        **Data Sources:**
+        - **ESVD Database**: 10,874 peer-reviewed ecosystem service values from 1,354+ scientific studies
+        - **Satellite Data**: USGS Landsat imagery for ecosystem health assessment
+        - **Quality Factors**: NDVI, cloud coverage, and spectral health indicators
+        
+        **Economic Valuation:**
+        - All values standardized to 2020 International dollars per hectare per year
+        - Regional adjustment factors for income and cost of living
+        - Quality multipliers (0.4x to 1.2x) based on ecosystem health
+        
+        **Service Categories:**
+        - **Provisioning**: Food production, Fresh water, Timber, Genetic resources
+        - **Regulating**: Climate regulation, Water purification, Disease control, Pollination  
+        - **Cultural**: Recreation, Aesthetic value, Spiritual significance, Education
+        - **Supporting**: Habitat provision, Nutrient cycling, Soil formation, Primary production
+        """)
+        
+        st.markdown("**Calculation Method:**")
+        st.code("""
+Final Value = AUTHENTIC_ESVD_BASE × REGIONAL_ADJUSTMENT × QUALITY_FACTOR
+
+Example: 100ha Forest
+• Cultural Services: $1,417/ha/year (from 46 peer-reviewed studies)
+• Total Value: $141,653/year (authentic data only)
+        """, language="text")
+        
+        # Quality Factor Details
+        st.markdown("**Quality Factor Derivation (Satellite-Based):**")
+        col_q1, col_q2 = st.columns(2)
+        
+        with col_q1:
+            st.markdown("""
+            **Input Data:**
+            - Red band reflectance
+            - Near-infrared reflectance  
+            - Cloud coverage %
+            - Data quality flags
+            
+            **NDVI Calculation:**
+            ```
+            NDVI = (NIR - Red) / (NIR + Red)
+            ```
+            """)
+        
+        with col_q2:
+            st.markdown("""
+            **Weighted Scoring (100 points):**
+            - NDVI Health: 40% weight
+            - Data Quality: 30% weight
+            - Cloud Coverage: 20% weight
+            - Spectral Health: 10% weight
+            """)
+        
+        st.markdown("**Quality Categories & Multipliers:**")
+        quality_data = {
+            "Excellent (≥85pts)": "1.2x - Premium ecosystem health",
+            "Good (70-84pts)": "1.0x - Standard baseline",
+            "Fair (55-69pts)": "0.8x - Moderate degradation", 
+            "Poor (40-54pts)": "0.6x - Significant degradation",
+            "Degraded (<40pts)": "0.4x - Severely degraded"
+        }
+        
+        for category, description in quality_data.items():
+            st.info(f"**{category}**: {description}")
+        
+        st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
+    
+    # USGS Integration Status
+    with st.expander("🛰️ Satellite Data Source Status"):
+        try:
+            from utils.usgs_integration import usgs_integrator
+            usgs_status = usgs_integrator.test_connection()
+            
+            col_s1, col_s2 = st.columns(2)
+            
+            with col_s1:
+                st.markdown("**USGS Earth Explorer Integration:**")
+                st.info(f"Libraries: {'✅ Available' if usgs_status['usgs_available'] else '❌ Missing'}")
+                st.info(f"Credentials: {'✅ Provided' if usgs_status['credentials_provided'] else '❌ Missing'}")
+                st.info(f"Authentication: {'✅ Success' if usgs_status['authentication_success'] else '❌ Failed'}")
+            
+            with col_s2:
+                st.markdown("**Current Data Source:**")
+                if usgs_status['authentication_success']:
+                    st.success("🛰️ **AUTHENTIC LANDSAT IMAGERY**")
+                    st.success("Real satellite bands for quality factors")
+                    st.success("Actual cloud coverage and data quality")
+                else:
+                    st.warning("📊 **ENHANCED SIMULATION**")
+                    st.info("Realistic satellite-like data")
+                    st.info("Geographic and seasonal accuracy")
+            
+            if usgs_status.get('error'):
+                st.error(f"Issue: {usgs_status['error']}")
+                if 'credentials' in usgs_status['error'].lower():
+                    st.info("💡 Add USGS_USERNAME and USGS_PASSWORD to use authentic satellite data")
+        
+        except Exception as e:
+            st.warning("Could not check USGS status")
+            st.info("Using enhanced simulation for satellite data")
     
     st.markdown("---")
     

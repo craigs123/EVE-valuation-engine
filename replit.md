@@ -9,6 +9,7 @@ Application name preference: Call the application "Ecosystem Valuation Engine" o
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
 Sampling preference: Simplified user-configurable sample points (10-100 range) with even distribution across any area size. No complex density calculations or area size restrictions.
+Methodology display: Methodology and data sources content moved to settings sidebar under "Methodology and Sources" section to keep main interface uncluttered.
 
 ## System Architecture
 
