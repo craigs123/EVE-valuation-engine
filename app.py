@@ -390,26 +390,24 @@ with col1:
         lon_range = coords_array[:, 0].max() - coords_array[:, 0].min()
         max_range = max(lat_range, lon_range)
         
-        # Add more generous padding and use more conservative zoom levels
-        padded_range = max_range * 3.0  # Increased padding for wider view
+        # Use very conservative zoom levels for maximum geographical context
+        padded_range = max_range * 5.0  # Much larger padding for wide context
         
-        # More conservative zoom levels to avoid zooming too close
-        if padded_range > 20:
+        # Very conservative zoom levels - stay zoomed out
+        if padded_range > 30:
+            zoom_level = 3
+        elif padded_range > 15:
             zoom_level = 4
-        elif padded_range > 10:
+        elif padded_range > 8:
             zoom_level = 5
-        elif padded_range > 5:
+        elif padded_range > 4:
             zoom_level = 6
-        elif padded_range > 2.5:
+        elif padded_range > 2:
             zoom_level = 7
-        elif padded_range > 1.5:
+        elif padded_range > 1:
             zoom_level = 8
-        elif padded_range > 0.8:
-            zoom_level = 9
-        elif padded_range > 0.4:
-            zoom_level = 10
         else:
-            zoom_level = 11
+            zoom_level = 9  # Maximum zoom level reduced
         
         m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
         
@@ -428,7 +426,7 @@ with col1:
             [float(coords_array[:, 1].min()), float(coords_array[:, 0].min())],  # Southwest
             [float(coords_array[:, 1].max()), float(coords_array[:, 0].max())]   # Northeast
         ]
-        m.fit_bounds(bounds, padding=[60, 60])  # More generous padding for wider context
+        m.fit_bounds(bounds, padding=[100, 100])  # Maximum padding for extensive geographical context
     else:
         # Default map view when no area is selected
         m = folium.Map(location=[40.0, -100.0], zoom_start=4)
