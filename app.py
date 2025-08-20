@@ -1499,10 +1499,14 @@ if st.session_state.analysis_results:
         # Check if there's an existing baseline for this area
         baseline_info = None
         if st.session_state.get('current_area_id'):
+            db_modules = get_database_modules()
+            NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
             baseline_info = NaturalCapitalBaselineDB.get_area_baseline(st.session_state.current_area_id)
         
         # Show baseline comparison if available
         if baseline_info:
+            db_modules = get_database_modules()
+            NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
             comparison = NaturalCapitalBaselineDB.compare_to_baseline(results, baseline_info['id'])
             if comparison:
                 st.markdown("### 📊 Baseline Comparison")
@@ -1565,6 +1569,8 @@ if st.session_state.analysis_results:
                 baseline_exists = baseline_info is not None
                 baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
                 if st.button(baseline_text, type="secondary"):
+                    db_modules = get_database_modules()
+                    NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
                     baseline_id = NaturalCapitalBaselineDB.create_baseline(
                         coordinates=st.session_state.area_coordinates,
                         area_hectares=results['area_ha'],
@@ -2018,6 +2024,8 @@ if st.session_state.analysis_results:
                 baseline_exists = st.session_state.get('current_baseline_id') is not None
                 baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
                 if st.button(baseline_text, type="secondary", key="detailed_baseline"):
+                    db_modules = get_database_modules()
+                    NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
                     baseline_id = NaturalCapitalBaselineDB.create_baseline(
                         coordinates=st.session_state.area_coordinates,
                         area_hectares=results['area_ha'],
@@ -2180,6 +2188,8 @@ if st.session_state.analysis_results:
                         
                         if coordinates_key not in st.session_state:
                             results = st.session_state.analysis_results
+                            db_modules = get_database_modules()
+                            SavedAreaDB = db_modules['SavedAreaDB']
                             area_id = SavedAreaDB.save_area(
                                 name=area_name,
                                 coordinates=st.session_state.area_coordinates,
