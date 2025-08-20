@@ -1178,7 +1178,31 @@ if st.session_state.analysis_results:
                 st.rerun()
         
         with col_btn2:
-            st.empty()  # Remove save analysis button - panels will always show below
+            # Social Media Infographic Generator (Summary View)
+            if st.button("📸 Generate Infographic", type="secondary", key="generate_infographic_summary"):
+                try:
+                    from utils.infographic_generator import generate_results_infographic
+                    
+                    with st.spinner("Creating your infographic..."):
+                        # Get area name for the infographic
+                        area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
+                        
+                        # Generate the infographic
+                        infographic_b64 = generate_results_infographic(
+                            results=results,
+                            area_name=area_name,
+                            style='full'
+                        )
+                        
+                        # Store in session state for display
+                        st.session_state['current_infographic'] = infographic_b64
+                        st.session_state['show_infographic'] = True
+                        st.success("Infographic created! Scroll down to view and download.")
+                        st.rerun()
+                        
+                except Exception as e:
+                    st.error(f"Failed to generate infographic: {str(e)}")
+                    st.info("Try again or contact support if the issue persists.")
         
         with col_btn3:
             st.empty()  # Remove save area button - panels will always show below
