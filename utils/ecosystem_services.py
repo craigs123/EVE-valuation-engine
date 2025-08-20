@@ -205,20 +205,14 @@ class EcosystemServicesCalculator:
             # Get coordinates for regional adjustment
             coordinates = self._extract_coordinates(area_bounds)
             
-            # Get ESVD baseline values - prioritize authentic database
-            from utils.authentic_esvd_loader import get_esvd_loader
-            authentic_esvd = get_esvd_loader()
+            # Use pre-computed ESVD coefficients for optimal performance
+            from utils.precomputed_esvd_coefficients import get_precomputed_coefficients
+            precomputed_esvd = get_precomputed_coefficients()
             
-            if authentic_esvd.is_loaded:
-                # Use authentic ESVD database (primary)
-                esvd_results = self._calculate_authentic_esvd_values(
-                    authentic_esvd, ecosystem_type, area_ha, coordinates
-                )
-            else:
-                # Fallback to static coefficients only if authentic database unavailable
-                esvd_results = self.esvd.calculate_esvd_values(
-                    ecosystem_type, area_ha, coordinates, income_elasticity=0.6
-                )
+            # Calculate values using pre-computed authentic coefficients
+            esvd_results = precomputed_esvd.calculate_ecosystem_values(
+                ecosystem_type, area_ha, coordinates
+            )
             
             if 'error' in esvd_results:
                 # Fallback to legacy calculations
