@@ -89,38 +89,75 @@ def create_drawing_tools():
 
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
-    """Ultra-optimized area calculation with extended caching"""
-    if not coordinates or len(coordinates) < 3:
+    """Ultra-optimized area calculation with extended caching and error handling"""
+    try:
+        if not coordinates or len(coordinates) < 3:
+            return 0.0
+        
+        # Validate coordinate format
+        for coord in coordinates[:3]:  # Check first few coordinates
+            if not isinstance(coord, (list, tuple)) or len(coord) < 2:
+                raise ValueError("Invalid coordinate format")
+        
+        # Skip the last coordinate if it duplicates the first (polygon closure)
+        coords = coordinates[:-1] if len(coordinates) > 1 and coordinates[-1] == coordinates[0] else coordinates
+        
+        # Additional validation
+        if len(coords) < 3:
+            return 0.0
+        
+        # Convert to NumPy array once with float32 for memory efficiency
+        coords_array = np.array(coords, dtype=np.float32)
+        
+        # Validate array shape
+        if coords_array.shape[1] < 2:
+            raise ValueError("Insufficient coordinate dimensions")
+        
+        # Ultra-fast vectorized shoelace formula
+        x, y = coords_array[:, 0], coords_array[:, 1]
+        area_deg2 = 0.5 * abs(np.sum(x * np.roll(y, -1) - y * np.roll(x, -1)))
+        
+        # Pre-computed conversion to hectares (111.32 km per degree)²
+        return area_deg2 * 12392.6424
+        
+    except Exception as e:
+        st.error(f"Error in area calculation: {e}")
         return 0.0
-    
-    # Skip the last coordinate if it duplicates the first (polygon closure)
-    coords = coordinates[:-1] if coordinates[-1] == coordinates[0] else coordinates
-    
-    # Convert to NumPy array once with float32 for memory efficiency
-    coords_array = np.array(coords, dtype=np.float32)
-    
-    # Ultra-fast vectorized shoelace formula
-    x, y = coords_array[:, 0], coords_array[:, 1]
-    area_deg2 = 0.5 * abs(np.sum(x * np.roll(y, -1) - y * np.roll(x, -1)))
-    
-    # Pre-computed conversion to hectares (111.32 km per degree)²
-    return area_deg2 * 12392.6424
 
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)
 def calculate_bbox_optimized(coordinates):
-    """Ultra-fast bounding box calculation with extended caching"""
-    if not coordinates or len(coordinates) < 3:
+    """Ultra-fast bounding box calculation with extended caching and error handling"""
+    try:
+        if not coordinates or len(coordinates) < 3:
+            return {}
+        
+        # Validate coordinate format
+        for coord in coordinates[:3]:  # Check first few coordinates
+            if not isinstance(coord, (list, tuple)) or len(coord) < 2:
+                raise ValueError("Invalid coordinate format")
+        
+        # Skip the last coordinate if it duplicates the first
+        coords = coordinates[:-1] if len(coordinates) > 1 and coordinates[-1] == coordinates[0] else coordinates
+        
+        if len(coords) < 1:
+            return {}
+            
+        coords_array = np.array(coords, dtype=np.float32)
+        
+        # Validate array shape
+        if coords_array.shape[1] < 2:
+            raise ValueError("Insufficient coordinate dimensions")
+            
+        lats, lons = coords_array[:, 1], coords_array[:, 0]
+        
+        return {
+            'min_lat': float(lats.min()), 'max_lat': float(lats.max()),
+            'min_lon': float(lons.min()), 'max_lon': float(lons.max())
+        }
+        
+    except Exception as e:
+        st.error(f"Error in bounding box calculation: {e}")
         return {}
-    
-    # Skip the last coordinate if it duplicates the first
-    coords = coordinates[:-1] if coordinates[-1] == coordinates[0] else coordinates
-    coords_array = np.array(coords, dtype=np.float32)
-    lats, lons = coords_array[:, 1], coords_array[:, 0]
-    
-    return {
-        'min_lat': float(lats.min()), 'max_lat': float(lats.max()),
-        'min_lon': float(lons.min()), 'max_lon': float(lons.max())
-    }
 
 # Performance-optimized session state management
 def clear_analysis_cache():
@@ -828,14 +865,14 @@ with col1:
         if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
             coordinates = latest_drawing['geometry']['coordinates'][0]
             
-            # Only process if coordinates actually changed (reduce unnecessary reruns)
+            # Only process if coordinates actually changed (prevent hanging)
             current_coords = st.session_state.get('area_coordinates', [])
-            coords_changed = (not current_coords or 
-                            len(coordinates) != len(current_coords) or
-                            any(abs(c1[0] - c2[0]) > 0.000001 or abs(c1[1] - c2[1]) > 0.000001 
-                                for c1, c2 in zip(coordinates, current_coords)))
             
-            if coords_changed:
+            # Simplified comparison to prevent hanging
+            coords_hash = hash(str(coordinates))
+            current_hash = st.session_state.get('coords_hash', None)
+            
+            if coords_hash != current_hash:
                 # Save the new selection with batch state updates
                 st.session_state.update({
                     'selected_area': {
@@ -843,6 +880,7 @@ with col1:
                         'coordinates': coordinates
                     },
                     'area_coordinates': coordinates,
+                    'coords_hash': coords_hash,  # Store hash to prevent reprocessing
                     'analysis_results': None,
                     # Clear caches to force recalculation
                     'cached_bbox': None,
@@ -852,13 +890,17 @@ with col1:
                 
                 # Quick area display using optimized calculation (cached)
                 if len(coordinates) > 2:
-                    area_ha = calculate_area_optimized(coordinates)
-                    st.success(f"Area selected: {area_ha:.0f} hectares")
-                    
-                    # Pre-cache all calculations to speed up future operations
-                    st.session_state.cached_area_ha = area_ha
-                    st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
-                st.rerun()
+                    try:
+                        area_ha = calculate_area_optimized(coordinates)
+                        st.success(f"Area selected: {area_ha:.0f} hectares")
+                        
+                        # Pre-cache all calculations to speed up future operations
+                        st.session_state.cached_area_ha = area_ha
+                        st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
+                    except Exception as e:
+                        st.error(f"Error calculating area: {e}")
+                        # Reset to prevent hanging
+                        st.session_state.coords_hash = None
         else:
             st.warning("Please draw a polygon or rectangle area")
     
@@ -866,12 +908,16 @@ with col1:
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
         
-        # Use pre-cached bbox if available, otherwise calculate
-        if 'cached_bbox' in st.session_state:
+        # Use pre-cached bbox if available, otherwise calculate (with error handling)
+        if 'cached_bbox' in st.session_state and st.session_state.cached_bbox:
             bbox = st.session_state.cached_bbox
         else:
-            bbox = calculate_bbox_optimized(coords)
-            st.session_state.cached_bbox = bbox
+            try:
+                bbox = calculate_bbox_optimized(coords)
+                st.session_state.cached_bbox = bbox
+            except Exception as e:
+                st.error(f"Error processing coordinates: {e}")
+                bbox = None
         st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         st.markdown("### 📍 Selected Area Coordinates")
         
@@ -890,11 +936,19 @@ with col1:
             </div>
             """, unsafe_allow_html=True)
         
-        # Show all coordinates in expandable section (load on demand)
+        # Show all coordinates in expandable section (load on demand, with error handling)
         with st.expander("All Coordinates"):
             coords = st.session_state.area_coordinates
-            for i, coord in enumerate(coords[:-1]):
-                st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
+            try:
+                # Limit to prevent performance issues
+                display_coords = coords[:-1] if len(coords) > 1 else coords
+                for i, coord in enumerate(display_coords[:50]):  # Limit to 50 points max
+                    if len(coord) >= 2:
+                        st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
+                if len(display_coords) > 50:
+                    st.markdown(f"<small>... and {len(display_coords) - 50} more points</small>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error displaying coordinates: {e}")
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
