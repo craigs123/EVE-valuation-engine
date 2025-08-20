@@ -506,7 +506,7 @@ class NaturalCapitalBaselineDB:
                 return None
             
             # Calculate changes
-            baseline_value = float(baseline.total_baseline_value) if baseline.total_baseline_value is not None else 0.0
+            baseline_value = baseline.total_baseline_value if baseline.total_baseline_value is not None else 0.0
             total_change = current_analysis['total_value'] - baseline_value
             percent_change = (total_change / baseline_value) * 100 if baseline_value > 0 else 0
             
