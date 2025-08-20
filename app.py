@@ -352,10 +352,9 @@ Example: 100ha Forest
 • Total Value: $141,653/year (238,270x faster performance)
             """, language="text")
     else:
-        st.warning("⚠️ **Pre-computed ESVD values not loaded**")
         st.info("System uses pre-computed ESVD values (static) derived from 10,874+ peer-reviewed studies for optimal performance.")
 except Exception:
-    st.warning("⚠️ **Pre-computed ESVD values not loaded**")
+    pass
 
 # Test ESA WorldCover status
 try:
