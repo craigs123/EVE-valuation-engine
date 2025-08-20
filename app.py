@@ -609,22 +609,26 @@ with col1:
     
     with col_q1:
         for i, (key, question) in enumerate(sustainability_questions[:3]):
+            st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
             st.session_state.sustainability_responses[key] = st.radio(
-                question,
+                "",  # Empty label since we're using markdown above
                 options=[True, False],
                 format_func=lambda x: "Yes" if x else "No",
                 key=f"sustainability_{key}",
-                index=0 if st.session_state.sustainability_responses[key] else 1
+                index=0 if st.session_state.sustainability_responses[key] else 1,
+                label_visibility="collapsed"
             )
     
     with col_q2:
         for i, (key, question) in enumerate(sustainability_questions[3:], 3):
+            st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
             st.session_state.sustainability_responses[key] = st.radio(
-                question,
+                "",  # Empty label since we're using markdown above
                 options=[True, False],
                 format_func=lambda x: "Yes" if x else "No",
                 key=f"sustainability_{key}",
-                index=0 if st.session_state.sustainability_responses[key] else 1
+                index=0 if st.session_state.sustainability_responses[key] else 1,
+                label_visibility="collapsed"
             )
     
     # Show completion status and score
