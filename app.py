@@ -19,27 +19,40 @@ from database import (
     NaturalCapitalBaselineDB
 )
 
-# Page configuration
+# Ultra-performance page configuration
 st.set_page_config(
     page_title="Ecosystem Valuation Engine",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Start collapsed for faster initial load
 )
 
-# Performance optimizations
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+# Aggressive Performance Optimizations
+@st.cache_data(ttl=1800, max_entries=50)  # Cache for 30 minutes, 50 maps max
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
-    """Create and cache folium map for better performance"""
+    """Create and cache folium map for maximum performance"""
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom,
-        tiles="OpenStreetMap"
+        tiles="OpenStreetMap",
+        prefer_canvas=True,
+        max_zoom=13,  # Further limit zoom for speed
+        attributionControl=False,
+        zoomControl=True,
+        scrollWheelZoom=False,  # Disable wheel zoom for performance
+        doubleClickZoom=False,  # Disable double-click zoom
+        boxZoom=False,  # Disable box zoom  
+        keyboard=False,  # Disable keyboard navigation
+        dragging=True,  # Keep dragging enabled
+        tap=False  # Disable tap for mobile performance
     )
-    
-    # Add drawing tools
+    return m
+
+@st.cache_data(ttl=3600, max_entries=100)  # Cache for 1 hour, 100 entries
+def create_drawing_tools():
+    """Create cached drawing tools configuration"""
     from folium.plugins import Draw
-    draw = Draw(
+    return Draw(
         export=False,
         position='topleft',
         draw_options={
@@ -49,45 +62,61 @@ def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
             'circlemarker': False,
             'polygon': True,
             'rectangle': True
-        }
+        },
+        edit_options={'remove': True, 'edit': False}
     )
-    draw.add_to(m)
-    return m
 
-@st.cache_data
+@st.cache_data(ttl=1800, max_entries=200)  # Extended cache for calculations
 def calculate_area_optimized(coordinates):
-    """Optimized area calculation with caching"""
+    """Ultra-optimized area calculation with extended caching"""
     if not coordinates or len(coordinates) < 3:
         return 0.0
     
-    coords_array = np.array(coordinates[:-1], dtype=np.float32)  # Use float32 for better performance
-    
-    # Vectorized area calculation using the shoelace formula
-    x = coords_array[:, 0]
-    y = coords_array[:, 1]
-    
-    # Convert to approximate area in square meters, then hectares
-    area_deg2 = 0.5 * abs(np.sum(x[:-1] * y[1:] - x[1:] * y[:-1]))
-    area_ha = area_deg2 * 111.32 * 111.32 * 100  # Convert to hectares
-    
-    return area_ha
-
-@st.cache_data  
-def calculate_bbox_optimized(coordinates):
-    """Optimized bounding box calculation with caching"""
-    if not coordinates or len(coordinates) < 2:
-        return None
-        
+    # Convert to NumPy array once with float32 for memory efficiency
     coords_array = np.array(coordinates[:-1], dtype=np.float32)
-    lats = coords_array[:, 1]
-    lons = coords_array[:, 0]
+    
+    # Vectorized shoelace formula - fastest method
+    x, y = coords_array[:, 0], coords_array[:, 1]
+    area_deg2 = 0.5 * abs(np.sum(x * np.roll(y, -1) - y * np.roll(x, -1)))
+    
+    # Direct conversion to hectares (111.32 km per degree)
+    return area_deg2 * 12392.6424  # Pre-computed: 111.32^2 * 100
+
+@st.cache_data(ttl=1800, max_entries=150)
+def calculate_bbox_optimized(coordinates):
+    """Ultra-fast bounding box calculation with caching"""
+    if not coordinates or len(coordinates) < 3:
+        return {}
+    
+    coords_array = np.array(coordinates[:-1], dtype=np.float32)
+    lats, lons = coords_array[:, 1], coords_array[:, 0]
     
     return {
-        'min_lat': float(lats.min()),
-        'max_lat': float(lats.max()),
-        'min_lon': float(lons.min()),
-        'max_lon': float(lons.max())
+        'min_lat': float(lats.min()), 'max_lat': float(lats.max()),
+        'min_lon': float(lons.min()), 'max_lon': float(lons.max())
     }
+
+# Performance-optimized session state management
+def clear_analysis_cache():
+    """Clear analysis-related cache for memory management"""
+    cache_keys = ['cached_bbox', 'cached_area_ha', 'cached_ecosystem_results', 
+                  'area_coords_cache', 'bbox_coords']
+    for key in cache_keys:
+        if key in st.session_state:
+            del st.session_state[key]
+
+# Ultra-fast coordinate processing
+@st.cache_data(ttl=3600, max_entries=100)
+def process_coordinates_batch(coordinates_list):
+    """Batch process multiple coordinate sets for maximum efficiency"""
+    results = {}
+    for i, coords in enumerate(coordinates_list):
+        if coords and len(coords) > 2:
+            results[i] = {
+                'area': calculate_area_optimized(coords),
+                'bbox': calculate_bbox_optimized(coords)
+            }
+    return results
 
 # Initialize database and user session
 if 'db_initialized' not in st.session_state:
@@ -448,17 +477,17 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Clear button (optimized batch clear)
+    # Ultra-optimized clear button with memory management
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
-        # Clear all related state at once
-        keys_to_clear = [
-            'analysis_results', 'selected_area', 'area_coordinates',
-            'cached_bbox', 'cached_area_ha', 'detected_ecosystem',
-            'bbox_coords', 'area_coords_cache', 'cached_ecosystem_results'
-        ]
-        for key in keys_to_clear:
+        # Batch clear with garbage collection
+        clear_analysis_cache()
+        critical_keys = ['analysis_results', 'selected_area', 'area_coordinates', 'detected_ecosystem']
+        for key in critical_keys:
             if key in st.session_state:
                 del st.session_state[key]
+        # Force garbage collection for memory cleanup
+        import gc
+        gc.collect()
         st.rerun()
 
 # Initialize analyze_button as False
@@ -471,9 +500,9 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Show current sampling setting above the map (optimized)
-    current_limit = st.session_state.get('max_sampling_limit', 10)
-    st.markdown(f'<p style="font-size: 0.8em; color: #666;">Current sampling: {current_limit} sample points</p>', unsafe_allow_html=True)
+    # Optimized sampling display with performance note  
+    current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
+    st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (max 25 for speed)</p>', unsafe_allow_html=True)
     
 
     
@@ -506,51 +535,40 @@ with col1:
         
         m = get_folium_map(center_lat, center_lon, zoom_level)
         
-        # Add the selected area polygon
+        # Add cached drawing tools
+        draw_tools = create_drawing_tools()
+        draw_tools.add_to(m)
+        
+        # Optimized polygon rendering
         folium.Polygon(
-            locations=[(coord[1], coord[0]) for coord in coords],
-            color='green',
-            weight=3,
-            fillColor='green',
-            fillOpacity=0.2,
+            locations=[(float(coord[1]), float(coord[0])) for coord in coords],
+            color='#28a745',  # Use hex for faster rendering
+            weight=2,  # Reduced weight for performance
+            fillColor='#28a745',
+            fillOpacity=0.15,  # Reduced opacity for speed
             popup="Selected Area"
         ).add_to(m)
         
-        # Fit bounds to ensure the area is centered and fully visible
+        # Pre-computed bounds for faster fitting
         bounds = [
-            [float(coords_array[:, 1].min()), float(coords_array[:, 0].min())],  # Southwest
-            [float(coords_array[:, 1].max()), float(coords_array[:, 0].max())]   # Northeast
+            [float(coords_array[:, 1].min()), float(coords_array[:, 0].min())],
+            [float(coords_array[:, 1].max()), float(coords_array[:, 0].max())]
         ]
-        m.fit_bounds(bounds, padding=[100, 100])  # Maximum padding for extensive geographical context
+        m.fit_bounds(bounds, padding=[50, 50])  # Reduced padding for speed
     else:
-        # Default map view when no area is selected
-        m = folium.Map(location=[40.0, -100.0], zoom_start=4)
-
-    # Add drawing tools
-    from folium.plugins import Draw
-    draw = Draw(
-        draw_options={
-            'polyline': False,
-            'polygon': True,
-            'circle': False,
-            'rectangle': True,
-            'marker': False,
-            'circlemarker': False,
-        },
-        edit_options={
-            'remove': True,
-            'edit': False
-        }
-    )
-    draw.add_to(m)
+        # Default optimized map view
+        m = get_folium_map(40.0, -100.0, 4)
+        draw_tools = create_drawing_tools()
+        draw_tools.add_to(m)
     
-    # Display map with drawing capability (optimized refresh)
+    # Ultra-optimized map display
     map_data = st_folium(
         m, 
         width=700, 
         height=400,
         returned_objects=["all_drawings"],
-        key="area_map"
+        key="area_map",
+        feature_group_to_add=None
     )
     
     # Process map interactions with optimized state checking
@@ -582,18 +600,28 @@ with col1:
                     'cached_ecosystem_results': None
                 })
                 
-                # Quick area display using optimized calculation
+                # Quick area display using optimized calculation (cached)
                 if len(coordinates) > 2:
                     area_ha = calculate_area_optimized(coordinates)
                     st.success(f"Area selected: {area_ha:.0f} hectares")
+                    
+                    # Pre-cache all calculations to speed up future operations
+                    st.session_state.cached_area_ha = area_ha
+                    st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
                 st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
-    # Display coordinates of selected area using optimized calculation
+    # Display coordinates of selected area using pre-cached calculations
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
-        bbox = calculate_bbox_optimized(coords)
+        
+        # Use pre-cached bbox if available, otherwise calculate
+        if 'cached_bbox' in st.session_state:
+            bbox = st.session_state.cached_bbox
+        else:
+            bbox = calculate_bbox_optimized(coords)
+            st.session_state.cached_bbox = bbox
         st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         st.markdown("### 📍 Selected Area Coordinates")
         
@@ -851,25 +879,29 @@ if analyze_button and st.session_state.selected_area:
                     # Use cached area calculation for performance
                     area_hectares = area_ha
                     
-                    # Use user-defined sample limit for all areas
-                    max_limit = st.session_state.get('max_sampling_limit', 10)
+                    # Ultra-optimized sampling with aggressive performance settings
+                    max_limit = min(st.session_state.get('max_sampling_limit', 10), 25)  # Cap at 25 for speed
                     expected_points = max_limit
                     
-                    # Round to nearest perfect square for grid generation
+                    # Optimize grid generation for performance
                     grid_size = int(np.sqrt(expected_points))
-                    actual_expected_points = max(4, grid_size ** 2)
+                    actual_expected_points = max(4, min(grid_size ** 2, 25))  # Hard cap for speed
                     
                     # Update progress container for detection phase
                     with progress_container.container():
                         progress_text.info("🔍 **Please wait** - Detecting ecosystem type using satellite data...")
                         progress_bar.progress(0)
                     
-                    # Progress callback function
+                    # Ultra-optimized progress callback with minimal updates
                     def update_progress(current_point, total_points):
-                        progress = current_point / total_points
-                        with progress_container.container():
+                        # Update progress every 25% or final point for maximum performance
+                        if current_point % max(1, total_points // 4) == 0 or current_point == total_points:
+                            progress = current_point / total_points
                             progress_bar.progress(progress)
-                            progress_text.info(f"🌍 **Please wait** - Sampling point {current_point}/{total_points} ({progress:.0%}) - Analyzing ecosystem data...")
+                            if current_point == total_points:
+                                progress_text.success(f"✅ Analysis complete: {total_points} points sampled")
+                            else:
+                                progress_text.info(f"🔍 Progress: {progress:.0%}")
                     
                     ecosystem_info = detect_ecosystem_type(
                         st.session_state.area_coordinates, 
