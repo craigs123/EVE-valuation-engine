@@ -584,67 +584,88 @@ with col1:
     # Analysis controls under the map
     # Sustainability Assessment Questions
     st.markdown("### 🌱 Sustainability Assessment")
-    st.markdown("*Please answer these questions about your land management practices*")
     
-    # Initialize sustainability responses in session state if not present
-    if 'sustainability_responses' not in st.session_state:
-        st.session_state.sustainability_responses = {
-            'minimize_soil_disturbance': False,
-            'maintain_living_roots': False,
-            'cover_bare_soil': False,
-            'maximize_diversity': False,
-            'integrate_livestock': False
-        }
+    # Check if area is selected
+    area_selected = 'selected_coordinates' in st.session_state and st.session_state.selected_coordinates is not None
     
-    sustainability_questions = [
-        ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
-        ("maintain_living_roots", "Do you maintain living roots in the soil?"),
-        ("cover_bare_soil", "Do you continuously cover bare soil?"),
-        ("maximize_diversity", "Do you maximize diversity, with emphasis on crops, soil microbes, and pollinators?"),
-        ("integrate_livestock", "Do you integrate livestock where feasible?")
-    ]
-    
-    # Display questions in a compact grid layout
-    col_q1, col_q2 = st.columns(2)
-    
-    with col_q1:
-        for i, (key, question) in enumerate(sustainability_questions[:3]):
-            st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
-            st.session_state.sustainability_responses[key] = st.radio(
-                "",  # Empty label since we're using markdown above
-                options=[True, False],
-                format_func=lambda x: "Yes" if x else "No",
-                key=f"sustainability_{key}",
-                index=0 if st.session_state.sustainability_responses[key] else 1,
-                label_visibility="collapsed"
-            )
-    
-    with col_q2:
-        for i, (key, question) in enumerate(sustainability_questions[3:], 3):
-            st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
-            st.session_state.sustainability_responses[key] = st.radio(
-                "",  # Empty label since we're using markdown above
-                options=[True, False],
-                format_func=lambda x: "Yes" if x else "No",
-                key=f"sustainability_{key}",
-                index=0 if st.session_state.sustainability_responses[key] else 1,
-                label_visibility="collapsed"
-            )
-    
-    # Show completion status and score
-    total_count = len(sustainability_questions)
-    yes_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is True)
-    score_percentage = (yes_count / total_count) * 100
-    
-    st.success(f"✅ Sustainability assessment complete")
-    st.metric("Current Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
-    
-    if score_percentage >= 80:
-        st.success("🌟 Excellent sustainability practices!")
-    elif score_percentage >= 60:
-        st.warning("⚡ Good sustainability practices with room for improvement")
+    if not area_selected:
+        st.markdown("*Please select an area on the map above to complete the sustainability assessment*")
+        # Display greyed out questions
+        st.markdown("""
+        <div style="opacity: 0.4; pointer-events: none; background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border: 1px dashed #dee2e6;">
+        <p><strong>Sustainability Questions:</strong></p>
+        <ul style="margin-bottom: 0.5rem;">
+        <li>Do you minimize soil disturbance?</li>
+        <li>Do you maintain living roots in the soil?</li>
+        <li>Do you continuously cover bare soil?</li>
+        <li>Do you maximize diversity (crops, soil microbes, pollinators)?</li>
+        <li>Do you integrate livestock where feasible?</li>
+        </ul>
+        <p style="margin-bottom: 0;"><em>📍 Select an area on the map to activate these questions.</em></p>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.error("📈 Consider adopting more sustainable practices")
+        st.markdown("*Please answer these questions about your land management practices*")
+        
+        # Initialize sustainability responses in session state if not present
+        if 'sustainability_responses' not in st.session_state:
+            st.session_state.sustainability_responses = {
+                'minimize_soil_disturbance': False,
+                'maintain_living_roots': False,
+                'cover_bare_soil': False,
+                'maximize_diversity': False,
+                'integrate_livestock': False
+            }
+        
+        sustainability_questions = [
+            ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
+            ("maintain_living_roots", "Do you maintain living roots in the soil?"),
+            ("cover_bare_soil", "Do you continuously cover bare soil?"),
+            ("maximize_diversity", "Do you maximize diversity, with emphasis on crops, soil microbes, and pollinators?"),
+            ("integrate_livestock", "Do you integrate livestock where feasible?")
+        ]
+        
+        # Display questions in a compact grid layout
+        col_q1, col_q2 = st.columns(2)
+        
+        with col_q1:
+            for i, (key, question) in enumerate(sustainability_questions[:3]):
+                st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                st.session_state.sustainability_responses[key] = st.radio(
+                    question,  # Using question as label for accessibility
+                    options=[True, False],
+                    format_func=lambda x: "Yes" if x else "No",
+                    key=f"sustainability_{key}",
+                    index=0 if st.session_state.sustainability_responses[key] else 1,
+                    label_visibility="collapsed"
+                )
+        
+        with col_q2:
+            for i, (key, question) in enumerate(sustainability_questions[3:], 3):
+                st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                st.session_state.sustainability_responses[key] = st.radio(
+                    question,  # Using question as label for accessibility
+                    options=[True, False],
+                    format_func=lambda x: "Yes" if x else "No",
+                    key=f"sustainability_{key}",
+                    index=0 if st.session_state.sustainability_responses[key] else 1,
+                    label_visibility="collapsed"
+                )
+        
+        # Show completion status and score
+        total_count = len(sustainability_questions)
+        yes_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is True)
+        score_percentage = (yes_count / total_count) * 100
+        
+        st.success(f"✅ Sustainability assessment complete")
+        st.metric("Current Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
+        
+        if score_percentage >= 80:
+            st.success("🌟 Excellent sustainability practices!")
+        elif score_percentage >= 60:
+            st.warning("⚡ Good sustainability practices with room for improvement")
+        else:
+            st.error("📈 Consider adopting more sustainable practices")
     
     st.markdown("---")
     st.markdown("### 📊 Analysis Controls")

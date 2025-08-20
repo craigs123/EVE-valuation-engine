@@ -484,7 +484,7 @@ class NaturalCapitalBaselineDB:
                 return None
             
             # Calculate changes
-            baseline_value = float(baseline.total_baseline_value or 0.0)
+            baseline_value = float(baseline.total_baseline_value) if baseline.total_baseline_value is not None else 0.0
             total_change = current_analysis['total_value'] - baseline_value
             percent_change = (total_change / baseline_value) * 100 if baseline_value > 0 else 0
             
@@ -503,10 +503,10 @@ class NaturalCapitalBaselineDB:
             current_cultural = esvd_data.get('cultural', {}).get('total', 0)
             current_supporting = esvd_data.get('supporting', {}).get('total', 0)
             
-            provisioning_change = current_provisioning - float(baseline.provisioning_baseline or 0.0)
-            regulating_change = current_regulating - float(baseline.regulating_baseline or 0.0)
-            cultural_change = current_cultural - float(baseline.cultural_baseline or 0.0)
-            supporting_change = current_supporting - float(baseline.supporting_baseline or 0.0)
+            provisioning_change = current_provisioning - (float(baseline.provisioning_baseline) if baseline.provisioning_baseline is not None else 0.0)
+            regulating_change = current_regulating - (float(baseline.regulating_baseline) if baseline.regulating_baseline is not None else 0.0)
+            cultural_change = current_cultural - (float(baseline.cultural_baseline) if baseline.cultural_baseline is not None else 0.0)
+            supporting_change = current_supporting - (float(baseline.supporting_baseline) if baseline.supporting_baseline is not None else 0.0)
             
             # Create trend record
             trend = NaturalCapitalTrend(
