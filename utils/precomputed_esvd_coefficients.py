@@ -126,15 +126,21 @@ class PrecomputedESVDCoefficients:
             }
         }
         
-        # Regional deviation factors from ESVD global norm
-        # ESVD coefficients already include global regional adjustments,
-        # these represent local deviations from that global average
-        self.regional_deviation_factors = {
-            'high_income_premium': 1.05,   # Premium above ESVD global norm
-            'emerging_economy': 0.98,      # Slight discount from global norm
-            'least_developed': 0.95,       # Larger discount reflecting conditions  
-            'global_norm': 1.0             # ESVD global average (no deviation)
+        # Regional adjustment factors based on GDP per capita
+        # Since ESVD coefficients represent a global average,
+        # adjust based on local purchasing power and economic conditions
+        self.regional_gdp_data = {
+            'north_america': 65000,      # USD GDP per capita
+            'europe': 45000,             # Western Europe average
+            'asia_pacific_developed': 40000,  # Japan, Australia, NZ
+            'asia_emerging': 12000,      # China, Southeast Asia
+            'latin_america': 8000,       # Regional average
+            'africa': 2000,              # Sub-Saharan Africa
+            'global_average': 12500      # World GDP per capita baseline
         }
+        
+        # Income elasticity for ecosystem services (research-based)
+        self.income_elasticity = 0.25  # Conservative estimate from literature
     
     def get_coefficient(self, ecosystem_type: str, service_type: str) -> float:
         """
@@ -150,47 +156,72 @@ class PrecomputedESVDCoefficients:
         ecosystem_coeffs = self.coefficients.get(ecosystem_type, self.coefficients['forest'])
         return ecosystem_coeffs.get(service_type, 100.0)  # Default fallback
     
-    def get_regional_factor(self, coordinates: tuple = None) -> float:
+    def get_regional_gdp(self, coordinates: tuple = None) -> float:
         """
-        Get regional deviation factor from ESVD global norm
-        
-        ESVD coefficients already incorporate global regional factors from 
-        1,354+ studies across different regions. This method calculates 
-        local deviations from that global average.
+        Get regional GDP per capita based on coordinates
+        Adapted from the previous working method
         
         Args:
             coordinates: (latitude, longitude) tuple
             
         Returns:
-            Regional deviation factor (centered around 1.0)
+            GDP per capita for the region
         """
         if not coordinates or len(coordinates) < 2:
-            return self.regional_deviation_factors['global_norm']
+            return self.regional_gdp_data['global_average']
         
         lat, lon = coordinates[0], coordinates[1]
         
-        # Regional deviations from ESVD's global norm based on economic data
-        
-        # High-income regions: North America, Western Europe, Australia/NZ
-        if ((lat > 40 and -130 <= lon <= -60) or      # North America (wider range)
-            (lat > 50 and -10 <= lon <= 30) or        # Western Europe
-            (lat < -25 and 110 <= lon <= 180)):       # Australia/NZ  
-            return self.regional_deviation_factors['high_income_premium']
+        # Regional GDP classification (adapted from previous method)
+        # North America
+        if lat > 25 and -130 <= lon <= -60:
+            return self.regional_gdp_data['north_america']
             
-        # Emerging economies: East Asia, South America, Eastern Europe
-        elif ((lat > 20 and 70 <= lon <= 140) or     # East/Southeast Asia
-              (-35 <= lat <= 15 and -80 <= lon <= -30) or  # South America
-              (45 <= lat <= 65 and 20 <= lon <= 50)):      # Eastern Europe
-            return self.regional_deviation_factors['emerging_economy']
+        # Europe  
+        elif lat > 35 and -10 <= lon <= 50:
+            return self.regional_gdp_data['europe']
             
-        # Least developed regions: Sub-Saharan Africa, parts of South Asia
-        elif ((-35 <= lat <= 20 and -20 <= lon <= 50) or   # Sub-Saharan Africa
-              (10 <= lat <= 35 and 60 <= lon <= 95)):      # South Asia (parts)
-            return self.regional_deviation_factors['least_developed']
+        # Developed Asia-Pacific (Japan, Australia, NZ)
+        elif ((lat > 30 and 125 <= lon <= 145) or           # Japan
+              (lat < -25 and 110 <= lon <= 180)):           # Australia/NZ
+            return self.regional_gdp_data['asia_pacific_developed']
             
-        # Default: no deviation from ESVD global norm
+        # Emerging Asia (China, Southeast Asia, India)
+        elif lat > -10 and 60 <= lon <= 140:
+            return self.regional_gdp_data['asia_emerging']
+            
+        # Latin America
+        elif -35 <= lat <= 30 and -120 <= lon <= -30:
+            return self.regional_gdp_data['latin_america']
+            
+        # Africa
+        elif -35 <= lat <= 35 and -20 <= lon <= 55:
+            return self.regional_gdp_data['africa']
+            
+        # Default to global average
         else:
-            return self.regional_deviation_factors['global_norm']
+            return self.regional_gdp_data['global_average']
+    
+    def get_regional_factor(self, coordinates: tuple = None) -> float:
+        """
+        Calculate regional adjustment factor using income elasticity
+        Adapted from the previous working method, treating ESVD as baseline
+        
+        Args:
+            coordinates: (latitude, longitude) tuple
+            
+        Returns:
+            Regional adjustment factor
+        """
+        regional_gdp = self.get_regional_gdp(coordinates)
+        global_gdp = self.regional_gdp_data['global_average']
+        
+        # Calculate adjustment using income elasticity
+        # Since ESVD coefficients represent global average, adjust based on local GDP
+        adjustment_factor = (regional_gdp / global_gdp) ** self.income_elasticity
+        
+        # Apply reasonable bounds to prevent extreme values
+        return max(0.5, min(2.0, adjustment_factor))
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple = None) -> dict:
