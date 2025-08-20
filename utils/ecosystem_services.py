@@ -9,8 +9,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Any, Tuple, Optional
 import math
-from .esvd_integration import ESVDIntegration
-from .authentic_esvd_loader import get_authentic_coefficient, get_esvd_loader
+from .precomputed_esvd_coefficients import get_precomputed_coefficients
 
 class EcosystemServicesCalculator:
     """
@@ -18,144 +17,11 @@ class EcosystemServicesCalculator:
     """
     
     def __init__(self):
-        # Initialize ESVD integration for authentic coefficients
-        self.esvd = ESVDIntegration()
-        self.authentic_esvd = get_esvd_loader()
+        # Initialize pre-computed ESVD coefficients for optimal performance
+        self.precomputed_esvd = get_precomputed_coefficients()
         
         # Performance cache for repeated calculations
         self._calculation_cache = {}
-        
-        # Legacy economic valuation coefficients (now replaced by ESVD data)
-        # Kept for fallback purposes only
-        self.service_values = {
-            'provisioning': {
-                'food_production': {
-                    'forest': 32,
-                    'grassland': 54,
-                    'wetland': 25,
-                    'agricultural': 92,
-                    'coastal': 38
-                },
-                'fresh_water': {
-                    'forest': 28,
-                    'grassland': 3,
-                    'wetland': 15,
-                    'agricultural': 2,
-                    'coastal': 7
-                },
-                'timber_fiber': {
-                    'forest': 721,
-                    'grassland': 2,
-                    'wetland': 162,
-                    'agricultural': 8,
-                    'coastal': 12
-                },
-                'genetic_resources': {
-                    'forest': 79,
-                    'grassland': 13,
-                    'wetland': 49,
-                    'agricultural': 6,
-                    'coastal': 33
-                }
-            },
-            'regulating': {
-                'climate_regulation': {
-                    'forest': 969,
-                    'grassland': 127,
-                    'wetland': 1654,
-                    'agricultural': 39,
-                    'coastal': 381
-                },
-                'water_regulation': {
-                    'forest': 1380,
-                    'grassland': 87,
-                    'wetland': 15567,
-                    'agricultural': 18,
-                    'coastal': 2143
-                },
-                'erosion_control': {
-                    'forest': 1056,
-                    'grassland': 129,
-                    'wetland': 8498,
-                    'agricultural': 24,
-                    'coastal': 2729
-                },
-                'pollution_control': {
-                    'forest': 88,
-                    'grassland': 87,
-                    'wetland': 6696,
-                    'agricultural': 9,
-                    'coastal': 51
-                },
-                'disease_control': {
-                    'forest': 60,
-                    'grassland': 3,
-                    'wetland': 25,
-                    'agricultural': 1,
-                    'coastal': 8
-                }
-            },
-            'cultural': {
-                'recreation': {
-                    'forest': 112,
-                    'grassland': 23,
-                    'wetland': 658,
-                    'agricultural': 3,
-                    'coastal': 2016
-                },
-                'aesthetic_value': {
-                    'forest': 2,
-                    'grassland': 1,
-                    'wetland': 3,
-                    'agricultural': 1,
-                    'coastal': 12
-                },
-                'spiritual_value': {
-                    'forest': 3,
-                    'grassland': 1,
-                    'wetland': 15,
-                    'agricultural': 1,
-                    'coastal': 8
-                },
-                'educational_value': {
-                    'forest': 258,
-                    'grassland': 1,
-                    'wetland': 20,
-                    'agricultural': 1,
-                    'coastal': 35
-                }
-            },
-            'supporting': {
-                'soil_formation': {
-                    'forest': 13,
-                    'grassland': 2,
-                    'wetland': 3,
-                    'agricultural': 1,
-                    'coastal': 1
-                },
-                'nutrient_cycling': {
-                    'forest': 114,
-                    'grassland': 4,
-                    'wetland': 19,
-                    'agricultural': 2,
-                    'coastal': 7
-                },
-                'primary_production': {
-                    'forest': 161,
-                    'grassland': 28,
-                    'wetland': 89,
-                    'agricultural': 12,
-                    'coastal': 112
-                },
-                'habitat_provision': {
-                    'forest': 302,
-                    'grassland': 23,
-                    'wetland': 1619,
-                    'agricultural': 3,
-                    'coastal': 405
-                }
-            }
-        }
         
         # Quality multipliers based on ecosystem health
         self.quality_multipliers = {
@@ -167,7 +33,7 @@ class EcosystemServicesCalculator:
         }
     
     def calculate_ecosystem_services_value(self, satellite_data: Dict, area_bounds: Dict, 
-                                         ecosystem_type: str = None) -> Dict[str, Any]:
+                                         ecosystem_type: str = "forest") -> Dict[str, Any]:
         """
         Calculate total ecosystem services value using ESVD coefficients and track changes over time
         
@@ -205,18 +71,12 @@ class EcosystemServicesCalculator:
             # Get coordinates for regional adjustment
             coordinates = self._extract_coordinates(area_bounds)
             
-            # Use pre-computed ESVD coefficients for optimal performance
-            from utils.precomputed_esvd_coefficients import get_precomputed_coefficients
-            precomputed_esvd = get_precomputed_coefficients()
-            
-            # Calculate values using pre-computed authentic coefficients
-            esvd_results = precomputed_esvd.calculate_ecosystem_values(
-                ecosystem_type, area_ha, coordinates
+            # Calculate values using pre-computed authentic ESVD coefficients
+            esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
+                ecosystem_type, area_ha, coordinates if coordinates else None
             )
             
-            if 'error' in esvd_results:
-                # Fallback to legacy calculations
-                return self._calculate_legacy_values(satellite_data, area_bounds, ecosystem_type)
+            # No fallback needed - pre-computed coefficients always available
             
             # Calculate services values for each time point using ESVD as baseline
             services_time_series = []
@@ -305,94 +165,7 @@ class EcosystemServicesCalculator:
         except Exception as e:
             return {'error': f'Error calculating ESVD ecosystem services value: {str(e)}'}
     
-    def _calculate_authentic_esvd_values(self, esvd_loader, ecosystem_type: str, 
-                                       area_ha: float, coordinates: tuple = None) -> Dict[str, Any]:
-        """
-        Calculate values using authentic ESVD database
-        """
-        try:
-            # Define ecosystem service mappings
-            service_categories = {
-                'provisioning': {
-                    'food_production': 'food',
-                    'fresh_water': 'water', 
-                    'timber_fiber': 'timber',
-                    'genetic_resources': 'habitat'
-                },
-                'regulating': {
-                    'climate_regulation': 'climate',
-                    'water_regulation': 'water_regulation',
-                    'erosion_control': 'erosion',
-                    'pollution_control': 'pollution'
-                },
-                'cultural': {
-                    'recreation': 'recreation',
-                    'aesthetic_value': 'cultural',
-                    'spiritual_value': 'cultural'
-                },
-                'supporting': {
-                    'habitat_services': 'habitat',
-                    'nutrient_cycling': 'habitat',
-                    'soil_formation': 'erosion'
-                }
-            }
-            
-            results = {}
-            total_value = 0
-            
-            # Calculate values for each category using authentic ESVD data
-            for category, services in service_categories.items():
-                category_total = 0
-                category_services = {}
-                
-                for service, esvd_service in services.items():
-                    # Get authentic coefficient from ESVD database
-                    coefficient = esvd_loader.get_coefficient(ecosystem_type, esvd_service)
-                    value = coefficient * area_ha
-                    
-                    category_services[service] = value
-                    category_total += value
-                
-                category_services['total'] = category_total
-                results[category] = category_services
-                total_value += category_total
-            
-            # Apply regional adjustment if coordinates provided
-            regional_factor = 1.0
-            if coordinates and len(coordinates) >= 2:
-                # Simple income adjustment based on GDP (simplified)
-                lat, lon = coordinates[0], coordinates[1]
-                if lat > 35 or lat < -35:  # Developed regions approximation
-                    regional_factor = 1.2
-                elif -10 <= lat <= 35:  # Tropical/developing approximation
-                    regional_factor = 0.8
-            
-            # Apply regional factor to all values
-            if regional_factor != 1.0:
-                for category in results:
-                    for service in results[category]:
-                        results[category][service] *= regional_factor
-                total_value *= regional_factor
-            
-            return {
-                'provisioning': results.get('provisioning', {}),
-                'regulating': results.get('regulating', {}), 
-                'cultural': results.get('cultural', {}),
-                'supporting': results.get('supporting', {}),
-                'total_annual_value': total_value,
-                'area_hectares': area_ha,
-                'ecosystem_type': ecosystem_type,
-                'metadata': {
-                    'data_source': 'Authentic ESVD Database APR2024 V1.1',
-                    'regional_adjustment': regional_factor,
-                    'database_version': 'ESVD APR2024V1.1',
-                    'methodology': 'Dynamic calculation from 10,874+ peer-reviewed studies'
-                }
-            }
-            
-        except Exception as e:
-            print(f"Error in authentic ESVD calculation: {e}")
-            return {'error': f'Authentic ESVD calculation failed: {e}'}
+
     
     def _calculate_multi_ecosystem_values(self, satellite_data: Dict, area_bounds: Dict, 
                                         multi_detection: Dict) -> Dict[str, Any]:
@@ -438,7 +211,7 @@ class EcosystemServicesCalculator:
                 ecosystem_area_ha = total_area_ha * (percentage / 100.0)
                 
                 # Get ESVD values for this ecosystem type
-                esvd_results = self.esvd.calculate_esvd_values(
+                esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
                     ecosystem_type, ecosystem_area_ha, coordinates
                 )
                 
@@ -575,79 +348,8 @@ class EcosystemServicesCalculator:
                 f"Total annual value: ${total_value:,.0f}. "
                 f"Trend: {trend_text}.")
     
-    def _calculate_provisioning_services(self, ecosystem_type: str, area_ha: float, 
-                                       quality_multiplier: float, data_point: Dict) -> Dict[str, float]:
-        """Calculate provisioning services values"""
-        services = self.service_values['provisioning']
-        
-        # Adjust values based on vegetation health (NDVI)
-        red = data_point.get('red_mean', 0)
-        nir = data_point.get('nir_mean', 0)
-        ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
-        vegetation_factor = max(0.5, min(1.5, ndvi * 2))  # Scale NDVI to vegetation productivity
-        
-        values = {}
-        for service, type_values in services.items():
-            base_value = type_values.get(ecosystem_type, 0)
-            adjusted_value = base_value * area_ha * quality_multiplier * vegetation_factor
-            values[service] = float(adjusted_value)
-        
-        values['total'] = sum(values.values())
-        return values
-    
-    def _calculate_regulating_services(self, ecosystem_type: str, area_ha: float, 
-                                     quality_multiplier: float, data_point: Dict) -> Dict[str, float]:
-        """Calculate regulating services values"""
-        services = self.service_values['regulating']
-        
-        # Adjust values based on vegetation cover and health
-        red = data_point.get('red_mean', 0)
-        nir = data_point.get('nir_mean', 0)
-        ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
-        regulation_factor = max(0.6, min(1.4, (ndvi + 0.5) * 1.2))
-        
-        values = {}
-        for service, type_values in services.items():
-            base_value = type_values.get(ecosystem_type, 0)
-            adjusted_value = base_value * area_ha * quality_multiplier * regulation_factor
-            values[service] = float(adjusted_value)
-        
-        values['total'] = sum(values.values())
-        return values
-    
-    def _calculate_cultural_services(self, ecosystem_type: str, area_ha: float, 
-                                   quality_multiplier: float, data_point: Dict) -> Dict[str, float]:
-        """Calculate cultural services values"""
-        services = self.service_values['cultural']
-        
-        # Cultural services are less dependent on vegetation but affected by overall quality
-        aesthetic_factor = quality_multiplier  # Direct relationship with ecosystem quality
-        
-        values = {}
-        for service, type_values in services.items():
-            base_value = type_values.get(ecosystem_type, 0)
-            adjusted_value = base_value * area_ha * aesthetic_factor
-            values[service] = float(adjusted_value)
-        
-        values['total'] = sum(values.values())
-        return values
-    
-    def _calculate_supporting_services(self, ecosystem_type: str, area_ha: float, 
-                                     quality_multiplier: float, data_point: Dict) -> Dict[str, float]:
-        """Calculate supporting services values"""
-        services = self.service_values['supporting']
-        
-        # Supporting services are fundamental and relatively stable
-        stability_factor = max(0.8, quality_multiplier)  # More stable than other services
-        
-        values = {}
-        for service, type_values in services.items():
-            base_value = type_values.get(ecosystem_type, 0)
-            adjusted_value = base_value * area_ha * stability_factor
-            values[service] = float(adjusted_value)
-        
-        values['total'] = sum(values.values())
-        return values
+    # Legacy methods removed - now using pre-computed ESVD coefficients
+
     
     def _assess_ecosystem_quality(self, data_point: Dict) -> str:
         """Assess ecosystem quality based on satellite indicators"""
