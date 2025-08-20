@@ -1576,7 +1576,26 @@ if st.session_state.analysis_results:
             st.markdown(f"- **Combined Total**: ${total_value:,.0f}/year (sum of all individual ecosystem values)")
             st.markdown(f"- **Total Area**: {results['area_ha']:,.1f} hectares")
             st.markdown(f"- **Weighted Average**: ${total_value/results['area_ha']:,.0f}/ha/year")
-            st.caption("Each ecosystem contributes its proportional value based on area coverage and ecosystem-specific ESVD coefficients")
+            st.caption("Each ecosystem contributes its proportional value based on area coverage and ecosystem-specific coefficients")
+            
+            # Data source disclaimer
+            with st.expander("ℹ️ Data Source Information"):
+                st.markdown("""
+                **Current Data Source**: Estimated coefficients for demonstration purposes
+                
+                **For Authentic ESVD Integration**:
+                1. Visit [www.esvd.net](https://www.esvd.net/) and create free account
+                2. Download the complete ESVD dataset (CSV format)
+                3. Contact support to enable authentic database integration
+                
+                **ESVD Database Contains**:
+                - 4,042+ peer-reviewed value records from 693 studies
+                - Data from 2,000+ study sites across 140+ countries  
+                - Values standardized to Int$/ha/year (2020 price levels)
+                - Quality indicators and uncertainty measures
+                
+                The authentic ESVD database represents 30+ years of ecosystem service valuation research.
+                """)
 
         # Action buttons for detailed view
         st.markdown("---")
