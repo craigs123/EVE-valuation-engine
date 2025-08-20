@@ -281,3 +281,86 @@ def get_precomputed_coefficients():
     if _precomputed_coefficients is None:
         _precomputed_coefficients = PrecomputedESVDCoefficients()
     return _precomputed_coefficients
+
+# Global function to get base coefficient
+def get_base_coefficient(ecosystem_type, category, service):
+    """Get base coefficient for a specific ecosystem, category, and service"""
+    coeffs = PrecomputedESVDCoefficients()
+    ecosystem_lower = ecosystem_type.lower().replace(' ', '_')
+    
+    # Map ecosystem types
+    if ecosystem_lower in ['forest', 'woodland', 'trees']:
+        ecosystem_key = 'forest'
+    elif ecosystem_lower in ['wetland', 'marsh', 'swamp']:
+        ecosystem_key = 'wetland'  
+    elif ecosystem_lower in ['grassland', 'prairie', 'meadow']:
+        ecosystem_key = 'grassland'
+    elif ecosystem_lower in ['agricultural', 'cropland', 'farmland']:
+        ecosystem_key = 'agricultural'
+    elif ecosystem_lower in ['coastal', 'marine']:
+        ecosystem_key = 'coastal'
+    else:
+        ecosystem_key = 'grassland'  # Default fallback
+    
+    if ecosystem_key in coeffs.coefficients:
+        return coeffs.coefficients[ecosystem_key].get(service, 0)
+    return 0
+
+# Main calculation functions for API compatibility
+def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
+                                     coordinates: tuple = None, sampling_points: int = 10) -> dict:
+    """Calculate ecosystem services value using pre-computed coefficients"""
+    coeffs = get_precomputed_coefficients()
+    return coeffs.calculate_ecosystem_values(ecosystem_type, area_hectares, coordinates)
+
+def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_hectares: float,
+                                           coordinates: tuple = None, sampling_points: int = 10) -> dict:
+    """Calculate mixed ecosystem values with proper weighting"""
+    total_points = sum(data['count'] for data in ecosystem_distribution.values())
+    if total_points == 0:
+        return calculate_ecosystem_services_value('Grassland', area_hectares, coordinates)
+    
+    # Calculate weighted results
+    combined_results = {'provisioning': {}, 'regulating': {}, 'cultural': {}, 'supporting': {}}
+    total_value = 0
+    
+    for ecosystem_type, data in ecosystem_distribution.items():
+        weight = data['count'] / total_points
+        area_portion = area_hectares * weight
+        
+        # Calculate values for this ecosystem type
+        eco_results = calculate_ecosystem_services_value(ecosystem_type, area_portion, coordinates)
+        
+        # Add to combined results
+        for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
+            if category not in combined_results:
+                combined_results[category] = {}
+            
+            if category in eco_results:
+                for service, value in eco_results[category].items():
+                    if service not in combined_results[category]:
+                        combined_results[category][service] = 0
+                    combined_results[category][service] += value
+        
+        total_value += eco_results.get('total_annual_value', 0)
+    
+    # Add totals for each category
+    for category in combined_results:
+        if 'total' not in combined_results[category]:
+            combined_results[category]['total'] = sum(v for k, v in combined_results[category].items() if k != 'total')
+    
+    return {
+        'provisioning': combined_results['provisioning'],
+        'regulating': combined_results['regulating'],
+        'cultural': combined_results['cultural'],
+        'supporting': combined_results['supporting'],
+        'total_annual_value': total_value,
+        'area_hectares': area_hectares,
+        'ecosystem_type': 'multi_ecosystem',
+        'ecosystem_results': {eco: calculate_ecosystem_services_value(eco, area_hectares * (data['count'] / total_points), coordinates) 
+                             for eco, data in ecosystem_distribution.items()},
+        'metadata': {
+            'data_source': 'Pre-computed from Authentic ESVD Database APR2024 V1.1',
+            'methodology': 'Area-weighted calculation from multiple ecosystem types with regional adjustments'
+        }
+    }

@@ -1316,8 +1316,8 @@ if analyze_button and st.session_state.selected_area:
                 progress_text.info("💰 **Please wait** - Calculating ecosystem service values using ESVD database...")
                 progress_bar.progress(0.9)
             
-            # Calculate authentic ecosystem values using ESVD database
-            from utils.esvd_integration import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
+            # Calculate authentic ecosystem values using pre-computed ESVD coefficients
+            from utils.precomputed_esvd_coefficients import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
             
             # Get center coordinates for regional adjustment (optimized)
             coords_array = np.array(st.session_state.area_coordinates[:-1], dtype=np.float32)
@@ -1704,13 +1704,12 @@ if st.session_state.analysis_results:
                                 if service != 'total' and value > 0:
                                     service_name = service.replace('_', ' ').title()
                                     
-                                    # Get the base coefficient from ESVD
-                                    from utils.esvd_integration import ESVDIntegration
-                                    esvd_inst = ESVDIntegration()
-                                    ecosystem_mapped = esvd_inst.map_ecosystem_type(results['ecosystem_type'])
+                                    # Get the base coefficient from pre-computed ESVD data
+                                    from utils.precomputed_esvd_coefficients import get_base_coefficient
+                                    ecosystem_mapped = results['ecosystem_type']
                                     
-                                    if ecosystem_mapped and category in esvd_inst.esvd_coefficients:
-                                        base_coeff = esvd_inst.esvd_coefficients[category].get(service, {}).get(ecosystem_mapped, 0)
+                                    if ecosystem_mapped:
+                                        base_coeff = get_base_coefficient(ecosystem_mapped, category, service)
                                         regional_factor = results.get('regional_factor', 1.0)
                                         area_ha = results['area_ha']
                                         
