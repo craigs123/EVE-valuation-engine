@@ -141,7 +141,11 @@ class EnhancedSatelliteSimulator:
         signature = self.ecosystem_signatures.get(ecosystem_type, self.ecosystem_signatures['Grassland'])
         
         # Generate time series
-        date_range = pd.date_range(start=start_date, end=end_date, freq='ME')  # Fixed deprecated 'M'
+        try:
+            date_range = pd.date_range(start=start_date, end=end_date, freq='ME')  # Month end frequency
+        except:
+            # Fallback for older pandas versions
+            date_range = pd.date_range(start=start_date, end=end_date, freq='M')
         
         time_series_data = []
         

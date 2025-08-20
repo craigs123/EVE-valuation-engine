@@ -97,20 +97,14 @@ class USGSEarthExplorerIntegrator:
         try:
             # Initialize API and EarthExplorer clients
             if API is not None and EarthExplorer is not None:
-                # Try new M2M API endpoint first
+                # Try standard API initialization
                 try:
-                    self.api = API(self.username, self.password, catalog_id='EE')
+                    self.api = API(self.username, self.password)
                     self.ee = EarthExplorer(self.username, self.password)
                     return True
                 except Exception as api_error:
-                    # Fallback to legacy endpoint
-                    try:
-                        self.api = API(self.username, self.password)
-                        self.ee = EarthExplorer(self.username, self.password)
-                        return True
-                    except Exception as legacy_error:
-                        print(f"USGS authentication failed (both endpoints): {api_error}, {legacy_error}")
-                        return False
+                    print(f"USGS authentication failed: {api_error}")
+                    return False
             else:
                 return False
         except Exception as e:
