@@ -37,6 +37,7 @@ class EcosystemAnalysis(Base):
     total_value = Column(Float, nullable=False)
     value_per_hectare = Column(Float, nullable=False)
     analysis_results = Column(JSON, nullable=False)  # Store full analysis data
+    sustainability_responses = Column(JSON, nullable=True)  # Store sustainability assessment responses
     sampling_points = Column(Integer, nullable=False, default=10)
     data_source = Column(String(255), nullable=False, default='ESVD')
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -194,7 +195,8 @@ class EcosystemAnalysisDB:
         analysis_results: Dict[str, Any],
         sampling_points: int = 10,
         area_name: Optional[str] = None,
-        user_session_id: Optional[str] = None
+        user_session_id: Optional[str] = None,
+        sustainability_responses: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """Save ecosystem analysis to database"""
         try:
@@ -209,6 +211,7 @@ class EcosystemAnalysisDB:
                 total_value=total_value,
                 value_per_hectare=value_per_hectare,
                 analysis_results=analysis_results,
+                sustainability_responses=sustainability_responses,
                 sampling_points=sampling_points,
                 data_source=analysis_results.get('data_source', 'ESVD/TEEB Database')
             )

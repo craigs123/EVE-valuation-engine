@@ -250,7 +250,7 @@ with st.sidebar:
             st.error("🔴 Database error")
         
         # Tabs for different data views
-        tab1, tab2, tab3 = st.tabs(["Recent Analyses", "Saved Areas", "Baselines"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Recent Analyses", "Saved Areas", "Baselines", "Sustainability"])
         
         with tab1:
             st.markdown("**📊 Your Recent Analyses**")
@@ -343,6 +343,53 @@ with st.sidebar:
                 db.close()
             except Exception as e:
                 st.error(f"Failed to load baselines: {str(e)}")
+        
+        with tab4:
+            st.markdown("**🌱 Sustainability Assessment**")
+            
+            # Show current sustainability responses
+            if 'sustainability_responses' in st.session_state:
+                responses = st.session_state.sustainability_responses
+                questions = [
+                    ("minimize_soil_disturbance", "Minimize soil disturbance"),
+                    ("maintain_living_roots", "Maintain living roots in soil"),
+                    ("cover_bare_soil", "Continuously cover bare soil"),
+                    ("maximize_diversity", "Maximize diversity (crops, microbes, pollinators)"),
+                    ("integrate_livestock", "Integrate livestock where feasible")
+                ]
+                
+                answered_count = sum(1 for response in responses.values() if response is not None)
+                total_count = len(questions)
+                
+                if answered_count > 0:
+                    st.info(f"Current progress: {answered_count}/{total_count} questions answered")
+                    
+                    for key, label in questions:
+                        response = responses.get(key)
+                        if response is not None:
+                            status = "✅ Yes" if response else "❌ No"
+                            st.markdown(f"**{label}**: {status}")
+                        else:
+                            st.markdown(f"**{label}**: ⚪ Not answered")
+                    
+                    # Show sustainability score
+                    if answered_count == total_count:
+                        yes_count = sum(1 for response in responses.values() if response is True)
+                        score_percentage = (yes_count / total_count) * 100
+                        
+                        st.markdown("---")
+                        st.metric("Sustainability Score", f"{score_percentage:.0f}%")
+                        
+                        if score_percentage >= 80:
+                            st.success("🌟 Excellent sustainability practices!")
+                        elif score_percentage >= 60:
+                            st.warning("⚡ Good sustainability practices with room for improvement")
+                        else:
+                            st.error("📈 Consider adopting more sustainable practices")
+                else:
+                    st.info("Complete the sustainability assessment in the main analysis section to see your results here.")
+            else:
+                st.info("No sustainability assessment completed yet.")
     else:
         st.error("🔴 Database unavailable")
     
@@ -544,6 +591,61 @@ with col1:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
     # Analysis controls under the map
+    # Sustainability Assessment Questions
+    st.markdown("### 🌱 Sustainability Assessment")
+    st.markdown("*Please answer these questions about your land management practices*")
+    
+    # Initialize sustainability responses in session state if not present
+    if 'sustainability_responses' not in st.session_state:
+        st.session_state.sustainability_responses = {
+            'minimize_soil_disturbance': None,
+            'maintain_living_roots': None,
+            'cover_bare_soil': None,
+            'maximize_diversity': None,
+            'integrate_livestock': None
+        }
+    
+    sustainability_questions = [
+        ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
+        ("maintain_living_roots", "Do you maintain living roots in the soil?"),
+        ("cover_bare_soil", "Do you continuously cover bare soil?"),
+        ("maximize_diversity", "Do you maximize diversity, with emphasis on crops, soil microbes, and pollinators?"),
+        ("integrate_livestock", "Do you integrate livestock where feasible?")
+    ]
+    
+    # Display questions in a compact grid layout
+    col_q1, col_q2 = st.columns(2)
+    
+    with col_q1:
+        for i, (key, question) in enumerate(sustainability_questions[:3]):
+            st.session_state.sustainability_responses[key] = st.radio(
+                question,
+                options=[None, True, False],
+                format_func=lambda x: "Select..." if x is None else ("Yes" if x else "No"),
+                key=f"sustainability_{key}",
+                index=0 if st.session_state.sustainability_responses[key] is None else (1 if st.session_state.sustainability_responses[key] else 2)
+            )
+    
+    with col_q2:
+        for i, (key, question) in enumerate(sustainability_questions[3:], 3):
+            st.session_state.sustainability_responses[key] = st.radio(
+                question,
+                options=[None, True, False],
+                format_func=lambda x: "Select..." if x is None else ("Yes" if x else "No"),
+                key=f"sustainability_{key}",
+                index=0 if st.session_state.sustainability_responses[key] is None else (1 if st.session_state.sustainability_responses[key] else 2)
+            )
+    
+    # Show completion status
+    answered_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is not None)
+    total_count = len(sustainability_questions)
+    
+    if answered_count == total_count:
+        st.success(f"✅ Sustainability assessment complete ({answered_count}/{total_count} questions answered)")
+    else:
+        st.info(f"📝 Sustainability assessment: {answered_count}/{total_count} questions answered")
+    
+    st.markdown("---")
     st.markdown("### 📊 Analysis Controls")
     
     col_period, col_button = st.columns([2, 1])
@@ -1428,7 +1530,8 @@ if st.session_state.analysis_results:
                                 analysis_results=results,
                                 sampling_points=st.session_state.get('max_sampling_limit', 10),
                                 area_name=analysis_name,
-                                user_session_id=st.session_state.get('user_id')
+                                user_session_id=st.session_state.get('user_id'),
+                                sustainability_responses=st.session_state.get('sustainability_responses')
                             )
                             if analysis_id:
                                 st.session_state[save_key] = analysis_id
