@@ -2,7 +2,7 @@ modules = ["python-3.11", "python3", "postgresql-16"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["glibcLocales", "xcodebuild", "zlib"]
+packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "qhull", "tcl", "tk", "xcodebuild", "zlib"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -37,4 +37,4 @@ localPort = 5000
 externalPort = 80
 
 [agent]
-integrations = ["web_scraper==1.0.0"]
+integrations = ["web_scraper==1.0.0", "python_openai==1.0.0"]

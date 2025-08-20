@@ -8,6 +8,7 @@ from streamlit_folium import st_folium
 import numpy as np
 from datetime import datetime, timedelta
 import json
+import base64
 
 # Database imports
 from database import (
@@ -1563,7 +1564,31 @@ if st.session_state.analysis_results:
                 st.rerun()
         
         with col_detailed2:
-            st.empty()  # Remove save analysis button - panels will always show below
+            # Social Media Infographic Generator
+            if st.button("📸 Generate Infographic", type="secondary", key="generate_infographic"):
+                try:
+                    from utils.infographic_generator import generate_results_infographic
+                    
+                    with st.spinner("Creating your infographic..."):
+                        # Get area name for the infographic
+                        area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
+                        
+                        # Generate the infographic
+                        infographic_b64 = generate_results_infographic(
+                            results=results,
+                            area_name=area_name,
+                            style='full'
+                        )
+                        
+                        # Store in session state for display
+                        st.session_state['current_infographic'] = infographic_b64
+                        st.session_state['show_infographic'] = True
+                        st.success("Infographic created! Scroll down to view and download.")
+                        st.rerun()
+                        
+                except Exception as e:
+                    st.error(f"Failed to generate infographic: {str(e)}")
+                    st.info("Try again or contact support if the issue persists.")
         
         with col_detailed3:
             st.empty()  # Remove save area button - panels will always show below
@@ -1638,6 +1663,81 @@ if st.session_state.analysis_results:
                     
                     if cancel_analysis_btn:
                         st.info("Save cancelled")
+        
+        # Social Media Infographic Display and Download
+        if st.session_state.get('show_infographic', False) and st.session_state.get('current_infographic'):
+            st.markdown("---")
+            st.subheader("📸 Social Media Infographic")
+            
+            col_info1, col_info2 = st.columns([2, 1])
+            
+            with col_info1:
+                # Display the infographic
+                infographic_b64 = st.session_state['current_infographic']
+                st.image(f"data:image/png;base64,{infographic_b64}", 
+                        caption="Your Ecosystem Analysis Infographic", 
+                        use_column_width=True)
+                
+                # Sharing tips
+                st.info("""
+                **Perfect for sharing on:**
+                - LinkedIn (professional environmental content)
+                - Twitter/X (sustainability discussions) 
+                - Instagram (environmental awareness)
+                - Research presentations and reports
+                """)
+            
+            with col_info2:
+                st.markdown("**Download Options**")
+                
+                # Download as PNG
+                st.download_button(
+                    label="📥 Download PNG",
+                    data=base64.b64decode(infographic_b64),
+                    file_name=f"ecosystem_infographic_{datetime.now().strftime('%Y%m%d_%H%M')}.png",
+                    mime="image/png",
+                    type="primary"
+                )
+                
+                # Generate compact version
+                if st.button("🎯 Compact Version", type="secondary", key="compact_infographic"):
+                    try:
+                        from utils.infographic_generator import generate_results_infographic
+                        
+                        with st.spinner("Creating compact version..."):
+                            area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
+                            compact_b64 = generate_results_infographic(
+                                results=results,
+                                area_name=area_name,
+                                style='compact'
+                            )
+                            st.session_state['compact_infographic'] = compact_b64
+                            st.success("Compact version ready!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+                
+                # Show compact version if available
+                if st.session_state.get('compact_infographic'):
+                    st.markdown("**Compact Version:**")
+                    compact_b64 = st.session_state['compact_infographic']
+                    st.image(f"data:image/png;base64,{compact_b64}", 
+                            caption="Compact Summary Card", 
+                            width=300)
+                    
+                    st.download_button(
+                        label="📥 Download Compact",
+                        data=base64.b64decode(compact_b64),
+                        file_name=f"ecosystem_summary_{datetime.now().strftime('%Y%m%d_%H%M')}.png",
+                        mime="image/png"
+                    )
+                
+                # Clear infographics button
+                if st.button("🗑️ Clear Infographics", type="secondary"):
+                    st.session_state['show_infographic'] = False
+                    st.session_state['current_infographic'] = None
+                    st.session_state['compact_infographic'] = None
+                    st.rerun()
         
         with col_save2:
             with st.container():

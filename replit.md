@@ -6,6 +6,8 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 
 ## Recent Changes (2025-08-20)
 
+**Social Media Infographic Generator Added**: Auto-generating colorful infographics for sharing ecosystem analysis results on social media platforms.
+
 **Major Performance and Database Fixes Completed**: Comprehensive improvements for production and preview environments:
 - **Database Schema Fixed**: Added missing sustainability_responses column to ecosystem_analyses table
 - **Database Issues Resolved**: Fixed critical SQLAlchemy column comparison errors in baseline comparison functions
@@ -16,6 +18,7 @@ This is a Streamlit-based geospatial analysis application called the Ecosystem V
 - **Progress Tracking**: Reduced update frequency (25% intervals) for smoother progress indication during analysis
 - **Area-Dependent Sustainability**: Questions activate only after area selection with improved visual feedback
 - **Vectorized Calculations**: NumPy float32 operations with pre-computed constants for fastest area calculations
+- **Infographic Generation**: Automated creation of compelling social media-ready infographics with ecosystem service breakdowns, value comparisons, and professional branding for sharing on LinkedIn, Twitter/X, and Instagram
 
 **Sustainability Assessment Enhancements**:
 - Questions default to 'No' instead of requiring selection for streamlined UX
