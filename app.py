@@ -427,8 +427,8 @@ with col1:
         
         # Fit bounds to ensure the area is centered and fully visible
         bounds = [
-            [coords_array[:, 1].min(), coords_array[:, 0].min()],  # Southwest
-            [coords_array[:, 1].max(), coords_array[:, 0].max()]   # Northeast
+            [float(coords_array[:, 1].min()), float(coords_array[:, 0].min())],  # Southwest
+            [float(coords_array[:, 1].max()), float(coords_array[:, 0].max())]   # Northeast
         ]
         m.fit_bounds(bounds, padding=[20, 20])  # 20px padding on all sides
     else:
