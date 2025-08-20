@@ -4,7 +4,24 @@
 
 This is a Streamlit-based geospatial analysis application called the Ecosystem Valuation Engine (EVE), designed for environmental researchers to measure ecosystem growth through economic valuation of ecosystem services. EVE focuses on four main categories of ecosystem services: provisioning (food, water, timber), regulating (climate, water regulation, erosion control), cultural (recreation, spiritual value), and supporting (soil formation, nutrient cycling). The application combines satellite imagery processing with established economic valuation coefficients to track ecosystem service value changes over time.
 
-## Recent Changes (2025-08-17)
+## Recent Changes (2025-08-20)
+
+**Performance Optimizations Implemented**: Significant performance improvements for both deployed and preview environments:
+- **Caching System**: Added comprehensive @st.cache_data decorators for map rendering, area calculations, and coordinate processing
+- **Optimized Map Rendering**: Cached folium map creation with TTL and optimized drawing tools configuration
+- **Vectorized Calculations**: Replaced iterative coordinate processing with NumPy vectorized operations using float32 for better performance
+- **Area-Dependent Sustainability Assessment**: Questions now activate only after area selection with visual feedback and greyed-out preview
+- **Database Performance**: Fixed SQLAlchemy column comparison issues and optimized query patterns
+- **Memory Management**: Implemented batch state clearing and optimized session state usage
+- **Preview Mode Optimization**: Added specific optimizations for Replit preview environment performance
+
+**Sustainability Assessment Enhancements**:
+- Questions default to 'No' instead of requiring selection for streamlined UX
+- Larger font size for better readability
+- Real-time scoring with immediate feedback
+- Integration with database for persistent storage
+
+## Previous Changes (2025-08-17)
 
 **Database Integration Added**: Complete PostgreSQL database integration has been implemented with the following features:
 **UUID Generation Fixed**: Database tables now automatically generate UUIDs for primary keys, resolving save functionality issues

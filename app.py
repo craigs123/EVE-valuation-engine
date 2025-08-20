@@ -27,6 +27,68 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Performance optimizations
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
+    """Create and cache folium map for better performance"""
+    m = folium.Map(
+        location=[center_lat, center_lon],
+        zoom_start=zoom,
+        tiles="OpenStreetMap"
+    )
+    
+    # Add drawing tools
+    from folium.plugins import Draw
+    draw = Draw(
+        export=False,
+        position='topleft',
+        draw_options={
+            'polyline': False,
+            'circle': False,
+            'marker': False,
+            'circlemarker': False,
+            'polygon': True,
+            'rectangle': True
+        }
+    )
+    draw.add_to(m)
+    return m
+
+@st.cache_data
+def calculate_area_optimized(coordinates):
+    """Optimized area calculation with caching"""
+    if not coordinates or len(coordinates) < 3:
+        return 0.0
+    
+    coords_array = np.array(coordinates[:-1], dtype=np.float32)  # Use float32 for better performance
+    
+    # Vectorized area calculation using the shoelace formula
+    x = coords_array[:, 0]
+    y = coords_array[:, 1]
+    
+    # Convert to approximate area in square meters, then hectares
+    area_deg2 = 0.5 * abs(np.sum(x[:-1] * y[1:] - x[1:] * y[:-1]))
+    area_ha = area_deg2 * 111.32 * 111.32 * 100  # Convert to hectares
+    
+    return area_ha
+
+@st.cache_data  
+def calculate_bbox_optimized(coordinates):
+    """Optimized bounding box calculation with caching"""
+    if not coordinates or len(coordinates) < 2:
+        return None
+        
+    coords_array = np.array(coordinates[:-1], dtype=np.float32)
+    lats = coords_array[:, 1]
+    lons = coords_array[:, 0]
+    
+    return {
+        'min_lat': float(lats.min()),
+        'max_lat': float(lats.max()),
+        'min_lon': float(lons.min()),
+        'max_lon': float(lons.max())
+    }
+
 # Initialize database and user session
 if 'db_initialized' not in st.session_state:
     try:
@@ -415,39 +477,32 @@ with col1:
     
 
     
-    # Create interactive map - center on selected area if available
-    if st.session_state.selected_area and st.session_state.area_coordinates:
-        # Calculate center of selected area
+    # Create optimized interactive map - use cached calculations
+    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
-        coords_array = np.array(coords[:-1], dtype=np.float32)
-        center_lat = float(coords_array[:, 1].mean())
-        center_lon = float(coords_array[:, 0].mean())
         
-        # Calculate appropriate zoom level based on area size with padding
-        lat_range = coords_array[:, 1].max() - coords_array[:, 1].min()
-        lon_range = coords_array[:, 0].max() - coords_array[:, 0].min()
-        max_range = max(lat_range, lon_range)
-        
-        # Use very conservative zoom levels for maximum geographical context
-        padded_range = max_range * 5.0  # Much larger padding for wide context
-        
-        # Very conservative zoom levels - stay zoomed out
-        if padded_range > 30:
-            zoom_level = 3
-        elif padded_range > 15:
-            zoom_level = 4
-        elif padded_range > 8:
-            zoom_level = 5
-        elif padded_range > 4:
-            zoom_level = 6
-        elif padded_range > 2:
-            zoom_level = 7
-        elif padded_range > 1:
-            zoom_level = 8
+        # Use cached map center and zoom if available
+        cache_key = f"map_center_{hash(str(coords))}"
+        if cache_key in st.session_state:
+            center_lat, center_lon, zoom_level = st.session_state[cache_key]
         else:
-            zoom_level = 9  # Maximum zoom level reduced
+            # Calculate and cache center and zoom
+            coords_array = np.array(coords[:-1], dtype=np.float32)
+            center_lat = float(coords_array[:, 1].mean())
+            center_lon = float(coords_array[:, 0].mean())
+            
+            # Optimized zoom calculation
+            lat_range = coords_array[:, 1].max() - coords_array[:, 1].min()
+            lon_range = coords_array[:, 0].max() - coords_array[:, 0].min()
+            max_range = max(lat_range, lon_range) * 5.0  # Padding factor
+            
+            # Simplified zoom levels for performance
+            zoom_level = max(3, min(9, int(10 - np.log10(max(max_range, 0.1)))))
+            
+            # Cache the calculated values
+            st.session_state[cache_key] = (center_lat, center_lon, zoom_level)
         
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
+        m = get_folium_map(center_lat, center_lon, zoom_level)
         
         # Add the selected area polygon
         folium.Polygon(
@@ -525,36 +580,18 @@ with col1:
                     'cached_ecosystem_results': None
                 })
                 
-                # Quick area display (will be properly calculated in preview section)
+                # Quick area display using optimized calculation
                 if len(coordinates) > 2:
-                    coords_array = np.array(coordinates[:-1], dtype=np.float32)
-                    lats = coords_array[:, 1]
-                    lons = coords_array[:, 0]
-                    lat_range = lats.max() - lats.min()
-                    lon_range = lons.max() - lons.min()
-                    area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
+                    area_ha = calculate_area_optimized(coordinates)
                     st.success(f"Area selected: {area_ha:.0f} hectares")
-                    # Cache for later use
-                    st.session_state.cached_area_ha = area_ha
                 st.rerun()
         else:
             st.warning("Please draw a polygon or rectangle area")
     
-    # Display coordinates of selected area (cached to avoid recalculation)
+    # Display coordinates of selected area using optimized calculation
     if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        # Cache bounding box calculation (optimized)
-        if 'cached_bbox' not in st.session_state or st.session_state.get('bbox_coords') != st.session_state.area_coordinates:
-            coords = st.session_state.area_coordinates
-            coords_array = np.array(coords[:-1], dtype=np.float32)
-            lats = coords_array[:, 1]
-            lons = coords_array[:, 0]
-            st.session_state.cached_bbox = {
-                'min_lat': float(lats.min()), 'max_lat': float(lats.max()),
-                'min_lon': float(lons.min()), 'max_lon': float(lons.max())
-            }
-            st.session_state.bbox_coords = coords
-        
-        bbox = st.session_state.cached_bbox
+        coords = st.session_state.area_coordinates
+        bbox = calculate_bbox_optimized(coords)
         st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         st.markdown("### 📍 Selected Area Coordinates")
         
