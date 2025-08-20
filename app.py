@@ -1217,7 +1217,7 @@ if analyze_button and st.session_state.selected_area:
             # Detect ecosystem type if auto-detection is enabled
             ecosystem_type = st.session_state.ecosystem_override
             
-            if st.session_state.ecosystem_override == "Auto-detect from OpenLandMap":
+            if st.session_state.ecosystem_override == "Auto-detect":
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
                     
@@ -1409,11 +1409,16 @@ if analyze_button and st.session_state.selected_area:
                     coordinates=(center_lat, center_lon)
                 )
             
+            # Determine the actual ecosystem type for display
+            display_ecosystem_type = ecosystem_type
+            if st.session_state.ecosystem_override == "Auto-detect" and st.session_state.get('detected_ecosystem'):
+                display_ecosystem_type = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_type)
+            
             # Store comprehensive analysis results
             st.session_state.analysis_results = {
                 'total_value': int(esvd_results['total_annual_value']),
                 'area_ha': area_ha,
-                'ecosystem_type': ecosystem_type,
+                'ecosystem_type': display_ecosystem_type,
                 'esvd_results': esvd_results,
                 'value_per_ha': esvd_results['total_annual_value'] / area_ha,
                 'data_source': 'ESVD/TEEB Database',
