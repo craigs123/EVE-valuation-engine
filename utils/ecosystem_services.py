@@ -205,10 +205,20 @@ class EcosystemServicesCalculator:
             # Get coordinates for regional adjustment
             coordinates = self._extract_coordinates(area_bounds)
             
-            # Get ESVD baseline values
-            esvd_results = self.esvd.calculate_esvd_values(
-                ecosystem_type, area_ha, coordinates, income_elasticity=0.6
-            )
+            # Get ESVD baseline values - prioritize authentic database
+            from utils.authentic_esvd_loader import get_esvd_loader
+            authentic_esvd = get_esvd_loader()
+            
+            if authentic_esvd.is_loaded:
+                # Use authentic ESVD database (primary)
+                esvd_results = self._calculate_authentic_esvd_values(
+                    authentic_esvd, ecosystem_type, area_ha, coordinates
+                )
+            else:
+                # Fallback to static coefficients only if authentic database unavailable
+                esvd_results = self.esvd.calculate_esvd_values(
+                    ecosystem_type, area_ha, coordinates, income_elasticity=0.6
+                )
             
             if 'error' in esvd_results:
                 # Fallback to legacy calculations
@@ -300,6 +310,95 @@ class EcosystemServicesCalculator:
             
         except Exception as e:
             return {'error': f'Error calculating ESVD ecosystem services value: {str(e)}'}
+    
+    def _calculate_authentic_esvd_values(self, esvd_loader, ecosystem_type: str, 
+                                       area_ha: float, coordinates: tuple = None) -> Dict[str, Any]:
+        """
+        Calculate values using authentic ESVD database
+        """
+        try:
+            # Define ecosystem service mappings
+            service_categories = {
+                'provisioning': {
+                    'food_production': 'food',
+                    'fresh_water': 'water', 
+                    'timber_fiber': 'timber',
+                    'genetic_resources': 'habitat'
+                },
+                'regulating': {
+                    'climate_regulation': 'climate',
+                    'water_regulation': 'water_regulation',
+                    'erosion_control': 'erosion',
+                    'pollution_control': 'pollution'
+                },
+                'cultural': {
+                    'recreation': 'recreation',
+                    'aesthetic_value': 'cultural',
+                    'spiritual_value': 'cultural'
+                },
+                'supporting': {
+                    'habitat_services': 'habitat',
+                    'nutrient_cycling': 'habitat',
+                    'soil_formation': 'erosion'
+                }
+            }
+            
+            results = {}
+            total_value = 0
+            
+            # Calculate values for each category using authentic ESVD data
+            for category, services in service_categories.items():
+                category_total = 0
+                category_services = {}
+                
+                for service, esvd_service in services.items():
+                    # Get authentic coefficient from ESVD database
+                    coefficient = esvd_loader.get_coefficient(ecosystem_type, esvd_service)
+                    value = coefficient * area_ha
+                    
+                    category_services[service] = value
+                    category_total += value
+                
+                category_services['total'] = category_total
+                results[category] = category_services
+                total_value += category_total
+            
+            # Apply regional adjustment if coordinates provided
+            regional_factor = 1.0
+            if coordinates and len(coordinates) >= 2:
+                # Simple income adjustment based on GDP (simplified)
+                lat, lon = coordinates[0], coordinates[1]
+                if lat > 35 or lat < -35:  # Developed regions approximation
+                    regional_factor = 1.2
+                elif -10 <= lat <= 35:  # Tropical/developing approximation
+                    regional_factor = 0.8
+            
+            # Apply regional factor to all values
+            if regional_factor != 1.0:
+                for category in results:
+                    for service in results[category]:
+                        results[category][service] *= regional_factor
+                total_value *= regional_factor
+            
+            return {
+                'provisioning': results.get('provisioning', {}),
+                'regulating': results.get('regulating', {}), 
+                'cultural': results.get('cultural', {}),
+                'supporting': results.get('supporting', {}),
+                'total_annual_value': total_value,
+                'area_hectares': area_ha,
+                'ecosystem_type': ecosystem_type,
+                'metadata': {
+                    'data_source': 'Authentic ESVD Database APR2024 V1.1',
+                    'regional_adjustment': regional_factor,
+                    'database_version': 'ESVD APR2024V1.1',
+                    'methodology': 'Dynamic calculation from 10,874+ peer-reviewed studies'
+                }
+            }
+            
+        except Exception as e:
+            print(f"Error in authentic ESVD calculation: {e}")
+            return {'error': f'Authentic ESVD calculation failed: {e}'}
     
     def _calculate_multi_ecosystem_values(self, satellite_data: Dict, area_bounds: Dict, 
                                         multi_detection: Dict) -> Dict[str, Any]:

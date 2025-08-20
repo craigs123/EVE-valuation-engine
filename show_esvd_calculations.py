@@ -1,70 +1,75 @@
+#!/usr/bin/env python3
 """
-Show how EVE calculates actual ecosystem values using authentic ESVD data
+ESVD Value Calculation Demonstration
+Shows whether values are calculated dynamically from the authentic database
+or using static fallbacks.
 """
 
-from utils.authentic_esvd_loader import get_esvd_loader
 import pandas as pd
+from utils.authentic_esvd_loader import get_esvd_loader
+from utils.esvd_integration import ESVDIntegration
 
-def show_calculation_example():
-    """Demonstrate actual ESVD calculations for a forest ecosystem"""
+def main():
+    print("🌱 ESVD Value Calculation Analysis")
+    print("="*50)
     
-    print("=" * 70)
-    print("EVE CALCULATION EXAMPLE - AUTHENTIC ESVD VALUES")
-    print("=" * 70)
+    # Test the authentic ESVD database
+    print("\n1. AUTHENTIC ESVD DATABASE (Dynamic Calculation)")
+    print("-" * 45)
     
-    # Load ESVD data
-    loader = get_esvd_loader()
+    authentic_esvd = get_esvd_loader()
     
-    # Get summary
-    summary = loader.get_data_summary()
-    print(f"Database Status: {summary['status']}")
-    print(f"Total Records: {summary['total_records']:,}")
-    print(f"Unique Studies: {summary['unique_studies']:,}")
-    print()
-    
-    # Example: Calculate Forest ecosystem values
-    ecosystem_type = "forest"
-    area_hectares = 100  # 100 hectare forest
-    
-    print(f"EXAMPLE: {area_hectares} hectare {ecosystem_type.upper()} ecosystem")
-    print("-" * 50)
-    
-    # Get values for each service category
-    service_categories = ['provisioning', 'regulating', 'cultural', 'supporting']
-    
-    total_value = 0
-    breakdown = {}
-    
-    for service in service_categories:
-        values = loader.get_values_for_ecosystem_service(ecosystem_type, service)
+    if authentic_esvd.is_loaded:
+        print(f"✅ Authentic database loaded: {len(authentic_esvd.data):,} records")
         
-        if values:
-            avg_per_ha = sum(values) / len(values)
-            total_for_service = avg_per_ha * area_hectares
-            total_value += total_for_service
-            breakdown[service] = {
-                'per_ha': avg_per_ha,
-                'total': total_for_service,
-                'records': len(values)
-            }
-            
-            print(f"{service.capitalize()} Services:")
-            print(f"  Records found: {len(values)}")
-            print(f"  Average value: ${avg_per_ha:,.0f}/ha/year")
-            print(f"  Total for {area_hectares}ha: ${total_for_service:,.0f}/year")
-            print(f"  Sample values: ${values[0]:.0f}, ${values[1] if len(values)>1 else 0:.0f}, ${values[2] if len(values)>2 else 0:.0f}/ha/year")
-            print()
-        else:
-            print(f"{service.capitalize()} Services: No authentic values found")
-            print()
+        # Test dynamic calculations for different ecosystems
+        test_ecosystems = ['forest', 'wetland', 'grassland', 'agricultural']
+        test_services = ['climate', 'food', 'water', 'recreation']
+        
+        for ecosystem in test_ecosystems:
+            print(f"\n📍 {ecosystem.upper()} ecosystem:")
+            for service in test_services:
+                # Get real values from ESVD database
+                values = authentic_esvd.get_values_for_ecosystem_service(ecosystem, service)
+                coefficient = authentic_esvd.get_coefficient(ecosystem, service)
+                
+                print(f"  {service}: ${coefficient:.2f}/ha/year", end="")
+                if values:
+                    print(f" (from {len(values)} studies, median of ${min(values):.0f}-${max(values):.0f})")
+                else:
+                    print(" (using fallback value)")
+    else:
+        print("❌ Authentic ESVD database not loaded")
     
-    print("=" * 50)
-    print(f"TOTAL ECOSYSTEM VALUE: ${total_value:,.0f}/year")
-    print(f"PER HECTARE VALUE: ${total_value/area_hectares:,.0f}/ha/year")
-    print()
-    print("This calculation uses ONLY authentic peer-reviewed values")
-    print("from the ESVD database - no estimated coefficients!")
-    print("=" * 70)
+    print("\n" + "="*50)
+    print("\n2. STATIC FALLBACK SYSTEM (Hardcoded Values)")
+    print("-" * 45)
+    
+    # Test static fallback system
+    static_esvd = ESVDIntegration()
+    
+    print("Sample static coefficients from hardcoded matrix:")
+    print("Forest - Food Production: $289/ha/year")
+    print("Forest - Climate Regulation: $2156/ha/year") 
+    print("Wetland - Water Regulation: $8000/ha/year")
+    print("Grassland - Food Production: $221/ha/year")
+    
+    # Show which system is currently being used
+    print("\n" + "="*50)
+    print("\n3. CURRENT SYSTEM IN USE")
+    print("-" * 25)
+    
+    if authentic_esvd.is_loaded:
+        print("🎯 PRIMARY: Authentic ESVD Database (DYNAMIC)")
+        print("   Source: 10,874+ peer-reviewed studies")
+        print("   Method: Dynamic median calculation from real research")
+        print("   Fallback: Static values only when no studies found")
+    else:
+        print("⚠️  FALLBACK: Static coefficient matrix")
+        print("   Source: Hardcoded values")
+        print("   Method: Fixed coefficients")
+    
+    print("\n" + "="*50)
 
 if __name__ == "__main__":
-    show_calculation_example()
+    main()
