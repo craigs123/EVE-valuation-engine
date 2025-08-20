@@ -424,6 +424,13 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
+        
+        # Fit bounds to ensure the area is centered and fully visible
+        bounds = [
+            [coords_array[:, 1].min(), coords_array[:, 0].min()],  # Southwest
+            [coords_array[:, 1].max(), coords_array[:, 0].max()]   # Northeast
+        ]
+        m.fit_bounds(bounds, padding=[20, 20])  # 20px padding on all sides
     else:
         # Default map view when no area is selected
         m = folium.Map(location=[40.0, -100.0], zoom_start=4)
