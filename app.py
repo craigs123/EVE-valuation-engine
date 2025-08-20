@@ -586,7 +586,7 @@ with col1:
     st.markdown("### 🌱 Sustainability Assessment")
     
     # Check if area is selected
-    area_selected = 'selected_coordinates' in st.session_state and st.session_state.selected_coordinates is not None
+    area_selected = ('selected_area' in st.session_state and st.session_state.selected_area is not None) or ('area_coordinates' in st.session_state and st.session_state.area_coordinates is not None)
     
     if not area_selected:
         st.markdown("*Please select an area on the map above to complete the sustainability assessment*")
