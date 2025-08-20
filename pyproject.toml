@@ -24,4 +24,7 @@ dependencies = [
     "pillow>=11.3.0",
     "matplotlib>=3.10.5",
     "seaborn>=0.13.2",
+    "landsatxplore>=0.15.0",
+    "rasterio>=1.4.3",
+    "pyproj>=3.7.2",
 ]

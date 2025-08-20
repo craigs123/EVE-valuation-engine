@@ -282,6 +282,40 @@ Example: 100ha Forest
                     st.info(f"**{category}**: {description}")
                 
                 st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
+            
+            # USGS Integration Status
+            with st.expander("🛰️ Satellite Data Source Status"):
+                try:
+                    from utils.usgs_integration import usgs_integrator
+                    usgs_status = usgs_integrator.test_connection()
+                    
+                    col_s1, col_s2 = st.columns(2)
+                    
+                    with col_s1:
+                        st.markdown("**USGS Earth Explorer Integration:**")
+                        st.info(f"Libraries: {'✅ Available' if usgs_status['usgs_available'] else '❌ Missing'}")
+                        st.info(f"Credentials: {'✅ Provided' if usgs_status['credentials_provided'] else '❌ Missing'}")
+                        st.info(f"Authentication: {'✅ Success' if usgs_status['authentication_success'] else '❌ Failed'}")
+                    
+                    with col_s2:
+                        st.markdown("**Current Data Source:**")
+                        if usgs_status['authentication_success']:
+                            st.success("🛰️ **AUTHENTIC LANDSAT IMAGERY**")
+                            st.success("Real satellite bands for quality factors")
+                            st.success("Actual cloud coverage and data quality")
+                        else:
+                            st.warning("📊 **ENHANCED SIMULATION**")
+                            st.info("Realistic satellite-like data")
+                            st.info("Geographic and seasonal accuracy")
+                    
+                    if usgs_status.get('error'):
+                        st.error(f"Issue: {usgs_status['error']}")
+                        if 'credentials' in usgs_status['error'].lower():
+                            st.info("💡 Add USGS_USERNAME and USGS_PASSWORD to use authentic satellite data")
+                
+                except Exception as e:
+                    st.warning("Could not check USGS status")
+                    st.info("Using enhanced simulation for satellite data")
     else:
         st.warning("⚠️ **Using estimated coefficients** - ESVD database not loaded")
         st.info("For authentic scientific data, ensure the ESVD database CSV is properly loaded in the data/ directory.")
