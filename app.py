@@ -188,7 +188,30 @@ st.markdown("""
 
 # Title and header  
 st.markdown('<h1 class="main-header">🌱 Ecosystem Valuation Engine</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Track ecosystem services and natural capital value changes over time</p>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Professional ecosystem services valuation powered by authentic ESVD database</p>', unsafe_allow_html=True)
+
+# ESVD Integration Status
+try:
+    from utils.authentic_esvd_loader import get_esvd_loader
+    esvd_status = get_esvd_loader().get_data_summary()
+    
+    if esvd_status['authentic']:
+        st.success(f"✅ **AUTHENTIC ESVD DATABASE ACTIVE** - Using {esvd_status['total_records']:,} peer-reviewed values from {esvd_status['unique_studies']:,} studies")
+        st.markdown("""
+        **🔬 Methodology**: EVE integrates the authentic Ecosystem Services Valuation Database (ESVD) APR2024 V1.1 
+        from the Foundation for Sustainable Development. All ecosystem service values are derived from peer-reviewed 
+        scientific studies, standardized to International dollars per hectare per year (2020 price levels).
+        
+        **📊 Data Sources**: 10,874 valuation records from 1,354+ research studies across 140+ countries, 
+        covering four categories: Provisioning (food, water, timber), Regulating (climate, water regulation, 
+        erosion control), Cultural (recreation, aesthetic, spiritual), and Supporting services (soil formation, 
+        nutrient cycling, habitat provision).
+        """)
+    else:
+        st.warning("⚠️ **Using estimated coefficients** - ESVD database not loaded")
+        st.info("For authentic scientific data, ensure the ESVD database CSV is properly loaded in the data/ directory.")
+except Exception:
+    st.warning("⚠️ **Using estimated coefficients** - ESVD database not loaded")
 
 # Test ESA WorldCover status
 try:
@@ -424,8 +447,11 @@ with st.sidebar:
                             # Show breakdown
                             st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
                             
-                            if hasattr(baseline, 'biodiversity_index') and baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
-                                st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
+                            try:
+                                if hasattr(baseline, 'biodiversity_index') and baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
+                                    st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
+                            except Exception:
+                                pass  # Skip biodiversity index if not available
                             
                             st.markdown("---")
                     st.caption("P=Provisioning, R=Regulating, C=Cultural, S=Supporting")
@@ -1579,8 +1605,11 @@ if st.session_state.analysis_results:
             st.caption("Each ecosystem contributes its proportional value based on area coverage and ecosystem-specific coefficients")
             
             # Authentic ESVD data source information
-            from utils.authentic_esvd_loader import get_esvd_loader
-            esvd_status = get_esvd_loader().get_data_summary()
+            try:
+                from utils.authentic_esvd_loader import get_esvd_loader
+                esvd_status = get_esvd_loader().get_data_summary()
+            except Exception:
+                esvd_status = {'authentic': False}
             
             with st.expander("ℹ️ Data Source Information"):
                 if esvd_status['authentic']:

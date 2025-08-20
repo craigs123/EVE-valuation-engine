@@ -94,10 +94,15 @@ class ESVDDataLoader:
                 service_filter |= self.data['ES_Text'].str.contains(term, case=False, na=False)
         
         # Apply filters and extract values
-        if isinstance(ecosystem_filter, bool) or isinstance(service_filter, bool):
+        try:
+            if isinstance(ecosystem_filter, bool) and ecosystem_filter is False:
+                return []
+            if isinstance(service_filter, bool) and service_filter is False:
+                return []
+                
+            filtered_data = self.data[ecosystem_filter & service_filter]
+        except Exception:
             return []
-        
-        filtered_data = self.data[ecosystem_filter & service_filter]
         
         # Extract numerical values
         values = pd.to_numeric(filtered_data['Int$ Per Hectare Per Year'], errors='coerce')
