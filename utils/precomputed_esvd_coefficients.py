@@ -126,12 +126,14 @@ class PrecomputedESVDCoefficients:
             }
         }
         
-        # Regional adjustment factors based on global GDP data
-        self.regional_factors = {
-            'developed': 1.3,       # High-income countries
-            'developing': 0.8,      # Middle-income countries  
-            'least_developed': 0.6, # Low-income countries
-            'global_average': 1.0   # Baseline
+        # Regional deviation factors from ESVD global norm
+        # ESVD coefficients already include global regional adjustments,
+        # these represent local deviations from that global average
+        self.regional_deviation_factors = {
+            'high_income_premium': 1.05,   # Premium above ESVD global norm
+            'emerging_economy': 0.98,      # Slight discount from global norm
+            'least_developed': 0.95,       # Larger discount reflecting conditions  
+            'global_norm': 1.0             # ESVD global average (no deviation)
         }
     
     def get_coefficient(self, ecosystem_type: str, service_type: str) -> float:
@@ -150,26 +152,45 @@ class PrecomputedESVDCoefficients:
     
     def get_regional_factor(self, coordinates: tuple = None) -> float:
         """
-        Get regional adjustment factor based on coordinates
+        Get regional deviation factor from ESVD global norm
+        
+        ESVD coefficients already incorporate global regional factors from 
+        1,354+ studies across different regions. This method calculates 
+        local deviations from that global average.
         
         Args:
             coordinates: (latitude, longitude) tuple
             
         Returns:
-            Regional adjustment factor
+            Regional deviation factor (centered around 1.0)
         """
         if not coordinates or len(coordinates) < 2:
-            return self.regional_factors['global_average']
+            return self.regional_deviation_factors['global_norm']
         
         lat, lon = coordinates[0], coordinates[1]
         
-        # Simplified regional classification based on latitude
-        if abs(lat) > 45:  # Northern/Southern developed regions
-            return self.regional_factors['developed']
-        elif -20 <= lat <= 40:  # Tropical/subtropical developing regions
-            return self.regional_factors['developing']
-        else:  # Other regions
-            return self.regional_factors['global_average']
+        # Regional deviations from ESVD's global norm based on economic data
+        
+        # High-income regions: North America, Western Europe, Australia/NZ
+        if ((lat > 40 and -130 <= lon <= -60) or      # North America (wider range)
+            (lat > 50 and -10 <= lon <= 30) or        # Western Europe
+            (lat < -25 and 110 <= lon <= 180)):       # Australia/NZ  
+            return self.regional_deviation_factors['high_income_premium']
+            
+        # Emerging economies: East Asia, South America, Eastern Europe
+        elif ((lat > 20 and 70 <= lon <= 140) or     # East/Southeast Asia
+              (-35 <= lat <= 15 and -80 <= lon <= -30) or  # South America
+              (45 <= lat <= 65 and 20 <= lon <= 50)):      # Eastern Europe
+            return self.regional_deviation_factors['emerging_economy']
+            
+        # Least developed regions: Sub-Saharan Africa, parts of South Asia
+        elif ((-35 <= lat <= 20 and -20 <= lon <= 50) or   # Sub-Saharan Africa
+              (10 <= lat <= 35 and 60 <= lon <= 95)):      # South Asia (parts)
+            return self.regional_deviation_factors['least_developed']
+            
+        # Default: no deviation from ESVD global norm
+        else:
+            return self.regional_deviation_factors['global_norm']
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple = None) -> dict:
@@ -215,7 +236,7 @@ class PrecomputedESVDCoefficients:
                 'data_source': 'Pre-computed from Authentic ESVD Database APR2024 V1.1',
                 'regional_adjustment': regional_factor,
                 'database_version': 'ESVD APR2024V1.1',
-                'methodology': 'Static coefficients from 10,874+ peer-reviewed studies',
+                'methodology': 'Static coefficients from 10,874+ peer-reviewed studies with regional deviation adjustments',
                 'performance_optimized': True
             }
         }
