@@ -505,9 +505,10 @@ class NaturalCapitalBaselineDB:
             if baseline is None:
                 return None
             
-            # Calculate changes
-            baseline_value = baseline.total_baseline_value if baseline.total_baseline_value is not None else 0.0
-            total_change = current_analysis['total_value'] - baseline_value
+            # Calculate changes - ensure we use actual values not column objects
+            baseline_value = float(baseline.total_baseline_value) if baseline.total_baseline_value is not None else 0.0
+            current_value = float(current_analysis['total_value'])
+            total_change = current_value - baseline_value
             percent_change = (total_change / baseline_value) * 100 if baseline_value > 0 else 0
             
             # Determine trend direction

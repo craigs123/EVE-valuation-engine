@@ -423,7 +423,7 @@ with st.sidebar:
                             # Show breakdown
                             st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
                             
-                            if baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
+                            if hasattr(baseline, 'biodiversity_index') and baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
                                 st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
                             
                             st.markdown("---")
@@ -500,9 +500,9 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Optimized sampling display with performance note  
+    # Performance-optimized sampling display  
     current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
-    st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (max 25 for speed)</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
     
 
     
@@ -568,7 +568,7 @@ with col1:
         height=400,
         returned_objects=["all_drawings"],
         key="area_map",
-        feature_group_to_add=None
+
     )
     
     # Process map interactions with optimized state checking
@@ -626,18 +626,19 @@ with col1:
         st.markdown("### 📍 Selected Area Coordinates")
         
         # Display cached bounding box
-        st.markdown(f"""
-        <div class="coordinate-bounds">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
-                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
+        if bbox:
+            st.markdown(f"""
+            <div class="coordinate-bounds">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                    <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
+                    <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
+                    <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
+                </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
-                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         # Show all coordinates in expandable section (load on demand)
         with st.expander("All Coordinates"):
@@ -1569,7 +1570,7 @@ if st.session_state.analysis_results:
         
         with col_detailed4:
             if st.session_state.get('db_initialized', False):
-                baseline_exists = 'baseline_info' in locals() and baseline_info is not None
+                baseline_exists = st.session_state.get('current_baseline_id') is not None
                 baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
                 if st.button(baseline_text, type="secondary", key="detailed_baseline"):
                     baseline_id = NaturalCapitalBaselineDB.create_baseline(
