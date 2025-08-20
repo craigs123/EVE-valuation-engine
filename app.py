@@ -1411,11 +1411,11 @@ if analyze_button and st.session_state.selected_area:
             
             # Store comprehensive analysis results
             st.session_state.analysis_results = {
-                'total_value': int(esvd_results['metadata']['total_value']),
+                'total_value': int(esvd_results['total_annual_value']),
                 'area_ha': area_ha,
                 'ecosystem_type': ecosystem_type,
                 'esvd_results': esvd_results,
-                'value_per_ha': esvd_results['metadata']['value_per_hectare'],
+                'value_per_ha': esvd_results['total_annual_value'] / area_ha,
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results['metadata']['regional_adjustment']
             }

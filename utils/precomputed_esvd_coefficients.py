@@ -268,7 +268,9 @@ class PrecomputedESVDCoefficients:
                 'regional_adjustment': regional_factor,
                 'database_version': 'ESVD APR2024V1.1',
                 'methodology': 'Static coefficients from 10,874+ peer-reviewed studies with regional deviation adjustments',
-                'performance_optimized': True
+                'performance_optimized': True,
+                'total_value': total_value,
+                'value_per_hectare': total_value / area_hectares if area_hectares > 0 else 0
             }
         }
 
