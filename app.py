@@ -10,15 +10,26 @@ from datetime import datetime, timedelta
 import json
 import base64
 
-# Database imports
-from database import (
-    init_database, 
-    test_database_connection, 
-    initialize_user_session,
-    EcosystemAnalysisDB,
-    SavedAreaDB,
-    NaturalCapitalBaselineDB
-)
+# Database imports (lazy loading for performance)
+@st.cache_resource(show_spinner=False)
+def get_database_modules():
+    """Lazy load database modules for better performance"""
+    from database import (
+        init_database, 
+        test_database_connection, 
+        initialize_user_session,
+        EcosystemAnalysisDB,
+        SavedAreaDB,
+        NaturalCapitalBaselineDB
+    )
+    return {
+        'init_database': init_database,
+        'test_database_connection': test_database_connection,
+        'initialize_user_session': initialize_user_session,
+        'EcosystemAnalysisDB': EcosystemAnalysisDB,
+        'SavedAreaDB': SavedAreaDB,
+        'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
+    }
 
 # Ultra-performance page configuration
 st.set_page_config(
@@ -28,30 +39,39 @@ st.set_page_config(
     initial_sidebar_state="collapsed"  # Start collapsed for faster initial load
 )
 
-# Aggressive Performance Optimizations
-@st.cache_data(ttl=1800, max_entries=50)  # Cache for 30 minutes, 50 maps max
+# Ultra-High Performance Map Optimizations
+@st.cache_data(ttl=3600, max_entries=200, show_spinner=False)  # Extended cache, no spinner
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
-    """Create and cache folium map for maximum performance"""
+    """Create and cache folium map with maximum performance optimizations"""
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom,
-        tiles="OpenStreetMap",
+        tiles="CartoDB positron",  # Faster, lighter tiles
         prefer_canvas=True,
-        max_zoom=13,  # Further limit zoom for speed
+        max_zoom=12,
+        min_zoom=3,
         attributionControl=False,
         zoomControl=True,
-        scrollWheelZoom=False,  # Disable wheel zoom for performance
-        doubleClickZoom=False,  # Disable double-click zoom
-        boxZoom=False,  # Disable box zoom  
-        keyboard=False,  # Disable keyboard navigation
-        dragging=True,  # Keep dragging enabled
-        tap=False  # Disable tap for mobile performance
+        scrollWheelZoom=True,  # Re-enable for better UX
+        doubleClickZoom=False,
+        boxZoom=False,
+        keyboard=False,
+        dragging=True,
+        tap=True,
+        # Performance optimizations
+        options={
+            'worldCopyJump': False,
+            'maxBoundsViscosity': 0.0,
+            'zoomAnimation': False,  # Disable zoom animation
+            'markerZoomAnimation': False,
+            'fadeAnimation': False
+        }
     )
     return m
 
-@st.cache_data(ttl=3600, max_entries=100)  # Cache for 1 hour, 100 entries
+@st.cache_data(ttl=7200, max_entries=1, show_spinner=False)  # Single cached instance
 def create_drawing_tools():
-    """Create cached drawing tools configuration"""
+    """Create cached drawing tools configuration with performance optimizations"""
     from folium.plugins import Draw
     return Draw(
         export=False,
@@ -61,35 +81,40 @@ def create_drawing_tools():
             'circle': False,
             'marker': False,
             'circlemarker': False,
-            'polygon': True,
-            'rectangle': True
+            'polygon': {'allowIntersection': False, 'showArea': True, 'metric': True},
+            'rectangle': {'showArea': True, 'metric': True}
         },
         edit_options={'remove': True, 'edit': False}
     )
 
-@st.cache_data(ttl=1800, max_entries=200)  # Extended cache for calculations
+@st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
     """Ultra-optimized area calculation with extended caching"""
     if not coordinates or len(coordinates) < 3:
         return 0.0
     
-    # Convert to NumPy array once with float32 for memory efficiency
-    coords_array = np.array(coordinates[:-1], dtype=np.float32)
+    # Skip the last coordinate if it duplicates the first (polygon closure)
+    coords = coordinates[:-1] if coordinates[-1] == coordinates[0] else coordinates
     
-    # Vectorized shoelace formula - fastest method
+    # Convert to NumPy array once with float32 for memory efficiency
+    coords_array = np.array(coords, dtype=np.float32)
+    
+    # Ultra-fast vectorized shoelace formula
     x, y = coords_array[:, 0], coords_array[:, 1]
     area_deg2 = 0.5 * abs(np.sum(x * np.roll(y, -1) - y * np.roll(x, -1)))
     
-    # Direct conversion to hectares (111.32 km per degree)
-    return area_deg2 * 12392.6424  # Pre-computed: 111.32^2 * 100
+    # Pre-computed conversion to hectares (111.32 km per degree)²
+    return area_deg2 * 12392.6424
 
-@st.cache_data(ttl=1800, max_entries=150)
+@st.cache_data(ttl=3600, max_entries=500, show_spinner=False)
 def calculate_bbox_optimized(coordinates):
-    """Ultra-fast bounding box calculation with caching"""
+    """Ultra-fast bounding box calculation with extended caching"""
     if not coordinates or len(coordinates) < 3:
         return {}
     
-    coords_array = np.array(coordinates[:-1], dtype=np.float32)
+    # Skip the last coordinate if it duplicates the first
+    coords = coordinates[:-1] if coordinates[-1] == coordinates[0] else coordinates
+    coords_array = np.array(coords, dtype=np.float32)
     lats, lons = coords_array[:, 1], coords_array[:, 0]
     
     return {
@@ -101,13 +126,71 @@ def calculate_bbox_optimized(coordinates):
 def clear_analysis_cache():
     """Clear analysis-related cache for memory management"""
     cache_keys = ['cached_bbox', 'cached_area_ha', 'cached_ecosystem_results', 
-                  'area_coords_cache', 'bbox_coords']
+                  'area_coords_cache', 'bbox_coords', 'map_center_cache']
     for key in cache_keys:
         if key in st.session_state:
             del st.session_state[key]
 
-# Ultra-fast coordinate processing
-@st.cache_data(ttl=3600, max_entries=100)
+# Preload and cache critical data
+@st.cache_data(ttl=7200, show_spinner=False)
+def preload_esvd_data():
+    """Preload ESVD data for instant access"""
+    try:
+        from utils.authentic_esvd_loader import get_esvd_loader
+        return get_esvd_loader().get_data_summary()
+    except:
+        return {'authentic': False}
+
+@st.cache_data(ttl=1800, show_spinner=False) 
+def preload_usgs_status():
+    """Preload USGS status for instant display"""
+    try:
+        from utils.usgs_integration import usgs_integrator
+        return usgs_integrator.test_connection()
+    except:
+        return {'usgs_available': False, 'authentication_success': False}
+
+# Performance-optimized lazy loading for heavy analysis modules
+@st.cache_resource(show_spinner=False)
+def get_analysis_modules():
+    """Lazy load analysis modules only when needed"""
+    try:
+        from utils.ecosystem_services import (
+            detect_ecosystem_type_enhanced, 
+            get_ecosystem_service_values
+        )
+        from utils.natural_capital import (
+            calculate_ecosystem_service_value,
+            generate_natural_capital_report
+        )
+        return {
+            'detect_ecosystem': detect_ecosystem_type_enhanced,
+            'get_service_values': get_ecosystem_service_values,
+            'calculate_value': calculate_ecosystem_service_value,
+            'generate_report': generate_natural_capital_report
+        }
+    except ImportError as e:
+        st.error(f"Analysis modules not available: {e}")
+        return None
+
+# Ultra-fast component caching
+@st.cache_data(ttl=3600, show_spinner=False)
+def create_performance_metrics_display():
+    """Pre-render performance metrics components"""
+    return {
+        'loading_indicators': {
+            'map': "🗺️ Loading map...",
+            'analysis': "📊 Processing ecosystem analysis...", 
+            'calculations': "🧮 Computing natural capital values..."
+        },
+        'success_messages': {
+            'area_selected': lambda area: f"✅ Area selected: {area:.0f} hectares",
+            'analysis_complete': "🎉 Analysis complete!"
+        }
+    }
+
+# Ultra-fast coordinate processing with extended caching
+@st.cache_data(ttl=7200, max_entries=300, show_spinner=False)
 def process_coordinates_batch(coordinates_list):
     """Batch process multiple coordinate sets for maximum efficiency"""
     results = {}
@@ -122,9 +205,10 @@ def process_coordinates_batch(coordinates_list):
 # Initialize database and user session
 if 'db_initialized' not in st.session_state:
     try:
-        if init_database():
+        db_modules = get_database_modules()
+        if db_modules['init_database']():
             st.session_state.db_initialized = True
-            user_id = initialize_user_session()
+            user_id = db_modules['initialize_user_session']()
             pass  # Database ready - no need to show success message every time
         else:
             st.error("Database initialization failed. Some features may not work properly.")
@@ -135,7 +219,8 @@ if 'db_initialized' not in st.session_state:
         st.session_state.db_initialized = False
         user_id = None
 else:
-    user_id = initialize_user_session()
+    db_modules = get_database_modules()
+    user_id = db_modules['initialize_user_session']()
 
 # Custom CSS
 st.markdown("""
@@ -190,10 +275,9 @@ st.markdown("""
 st.markdown('<h1 class="main-header">🌱 Ecosystem Valuation Engine</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Professional ecosystem services valuation powered by authentic ESVD database</p>', unsafe_allow_html=True)
 
-# ESVD Integration Status
+# ESVD Integration Status (using preloaded data for speed)
 try:
-    from utils.authentic_esvd_loader import get_esvd_loader
-    esvd_status = get_esvd_loader().get_data_summary()
+    esvd_status = preload_esvd_data()
     
     if esvd_status['authentic']:
         st.success(f"✅ **AUTHENTIC ESVD DATABASE ACTIVE** - Using {esvd_status['total_records']:,} peer-reviewed values from {esvd_status['unique_studies']:,} studies")
@@ -455,8 +539,7 @@ Example: 100ha Forest
     # USGS Integration Status
     with st.expander("🛰️ Satellite Data Source Status"):
         try:
-            from utils.usgs_integration import usgs_integrator
-            usgs_status = usgs_integrator.test_connection()
+            usgs_status = preload_usgs_status()
             
             col_s1, col_s2 = st.columns(2)
             
@@ -494,7 +577,8 @@ Example: 100ha Forest
         
         # Database status indicator  
         try:
-            if test_database_connection():
+            db_modules = get_database_modules()
+            if db_modules['test_database_connection']():
                 st.success("🟢 Database connected")
             else:
                 st.warning("🟡 Database connection issue")
@@ -507,7 +591,8 @@ Example: 100ha Forest
         with tab1:
             st.markdown("**📊 Your Recent Analyses**")
             try:
-                recent_analyses = EcosystemAnalysisDB.get_user_analyses(limit=5)
+                db_modules = get_database_modules()
+                recent_analyses = db_modules['EcosystemAnalysisDB'].get_user_analyses(limit=5)
                 
                 if recent_analyses:
                     for analysis in recent_analyses:
@@ -517,7 +602,7 @@ Example: 100ha Forest
                             
                             if st.button(f"Load Analysis", key=f"load_{analysis['id']}", use_container_width=True):
                                 # Load the analysis data
-                                full_analysis = EcosystemAnalysisDB.get_analysis_by_id(analysis['id'])
+                                full_analysis = db_modules['EcosystemAnalysisDB'].get_analysis_by_id(analysis['id'])
                                 if full_analysis:
                                     st.session_state.area_coordinates = full_analysis['coordinates']
                                     st.session_state.analysis_results = full_analysis['analysis_results']
@@ -537,7 +622,7 @@ Example: 100ha Forest
         with tab2:
             st.markdown("**📍 Your Saved Areas**")
             try:
-                saved_areas = SavedAreaDB.get_user_saved_areas()
+                saved_areas = db_modules['SavedAreaDB'].get_user_saved_areas()
                 
                 if saved_areas:
                     for area in saved_areas:
@@ -725,14 +810,15 @@ with col1:
         draw_tools = create_drawing_tools()
         draw_tools.add_to(m)
     
-    # Ultra-optimized map display
+    # Ultra-optimized map display with performance settings
     map_data = st_folium(
         m, 
         width=700, 
         height=400,
         returned_objects=["all_drawings"],
         key="area_map",
-
+        feature_group_to_add=None,  # Reduce memory usage
+        debug=False  # Disable debug for performance
     )
     
     # Process map interactions with optimized state checking
