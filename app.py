@@ -1724,7 +1724,7 @@ if st.session_state.analysis_results:
                 )
                 
                 # Generate compact version
-                if st.button("🎯 Compact Version", type="secondary", key="compact_infographic"):
+                if st.button("🎯 Compact Version", type="secondary", key="compact_infographic_btn"):
                     try:
                         from utils.infographic_generator import generate_results_infographic
                         
@@ -1735,16 +1735,16 @@ if st.session_state.analysis_results:
                                 area_name=area_name,
                                 style='compact'
                             )
-                            st.session_state['compact_infographic'] = compact_b64
+                            st.session_state['compact_infographic_data'] = compact_b64
                             st.success("Compact version ready!")
                             st.rerun()
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
                 
                 # Show compact version if available
-                if st.session_state.get('compact_infographic'):
+                if st.session_state.get('compact_infographic_data'):
                     st.markdown("**Compact Version:**")
-                    compact_b64 = st.session_state['compact_infographic']
+                    compact_b64 = st.session_state['compact_infographic_data']
                     st.image(f"data:image/png;base64,{compact_b64}", 
                             caption="Compact Summary Card", 
                             width=300)
@@ -1760,7 +1760,7 @@ if st.session_state.analysis_results:
                 if st.button("🗑️ Clear Infographics", type="secondary"):
                     st.session_state['show_infographic'] = False
                     st.session_state['current_infographic'] = None
-                    st.session_state['compact_infographic'] = None
+                    st.session_state['compact_infographic_data'] = None
                     st.rerun()
         
         with col_save2:
