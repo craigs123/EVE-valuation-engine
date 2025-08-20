@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Tuple, Optional
 import math
 from .esvd_integration import ESVDIntegration
+from .authentic_esvd_loader import get_authentic_coefficient, get_esvd_loader
 
 class EcosystemServicesCalculator:
     """
@@ -19,6 +20,7 @@ class EcosystemServicesCalculator:
     def __init__(self):
         # Initialize ESVD integration for authentic coefficients
         self.esvd = ESVDIntegration()
+        self.authentic_esvd = get_esvd_loader()
         
         # Performance cache for repeated calculations
         self._calculation_cache = {}
