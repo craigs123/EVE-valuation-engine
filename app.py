@@ -1700,7 +1700,7 @@ if st.session_state.analysis_results:
                 infographic_b64 = st.session_state['current_infographic']
                 st.image(f"data:image/png;base64,{infographic_b64}", 
                         caption="Your Ecosystem Analysis Infographic", 
-                        use_column_width=True)
+                        use_container_width=True)
                 
                 # Sharing tips
                 st.info("""
