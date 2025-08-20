@@ -1211,6 +1211,93 @@ if st.session_state.analysis_results:
                             - **Standardization**: All values in 2020 International dollars per hectare per year
                             - **Quality Assurance**: Only peer-reviewed studies included in calculations
                             """)
+    
+    # Show individual ecosystem calculations for mixed ecosystems
+    if 'esvd_results' in results and results.get('ecosystem_type') == 'multi_ecosystem':
+        if 'ecosystem_results' in results.get('esvd_results', {}):
+            ecosystem_results = results['esvd_results']['ecosystem_results']
+            
+            st.markdown("### 🌱 Individual Ecosystem Natural Capital Calculations")
+            st.markdown("*Separate calculations for each ecosystem type detected in your mixed area*")
+            
+            # Create expandable sections for each ecosystem type
+            for ecosystem_type, eco_data in ecosystem_results.items():
+                with st.expander(f"🔍 **{ecosystem_type.title()} Ecosystem** - {eco_data.get('area_percentage', 0):.1f}% of total area"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"""
+                        **📊 {ecosystem_type.title()} Summary**:
+                        - **Area**: {eco_data.get('area_hectares', 0):.1f} hectares ({eco_data.get('area_percentage', 0):.1f}% of total)
+                        - **Total Value**: ${eco_data.get('current_value', 0):,.0f}/year
+                        - **Value per Hectare**: ${eco_data.get('value_per_hectare', 0):,.0f}/ha/year
+                        """)
+                        
+                        if eco_data.get('annual_change_usd', 0) != 0:
+                            change_direction = "📈 increasing" if eco_data['annual_change_usd'] > 0 else "📉 decreasing"
+                            st.markdown(f"- **Annual Change**: {change_direction} by ${abs(eco_data.get('annual_change_usd', 0)):,.0f}/year")
+                    
+                    with col2:
+                        # Show ecosystem-specific service breakdown if available
+                        if 'esvd_metadata' in eco_data:
+                            esvd_meta = eco_data['esvd_metadata']
+                            if any(cat in esvd_meta for cat in ['provisioning', 'regulating', 'cultural', 'supporting']):
+                                st.markdown(f"**Service Categories for {ecosystem_type.title()}**:")
+                                
+                                categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                                for category in categories:
+                                    if category in esvd_meta:
+                                        cat_total = esvd_meta[category].get('total', 0)
+                                        if cat_total > 0:
+                                            percentage = (cat_total / eco_data.get('current_value', 1)) * 100
+                                            st.markdown(f"- **{category.title()}**: ${cat_total:,.0f}/year ({percentage:.0f}%)")
+                    
+                    # Detailed service breakdown for this ecosystem
+                    st.markdown("---")
+                    st.markdown(f"**📋 Detailed Service Values for {ecosystem_type.title()}**:")
+                    
+                    if 'esvd_metadata' in eco_data:
+                        esvd_meta = eco_data['esvd_metadata']
+                        service_cols = st.columns(4)
+                        categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                        
+                        for i, category in enumerate(categories):
+                            if category in esvd_meta:
+                                with service_cols[i]:
+                                    st.markdown(f"**{category.title()}**")
+                                    for service, value in esvd_meta[category].items():
+                                        if service != 'total' and value > 0:
+                                            service_name = service.replace('_', ' ').title()
+                                            st.markdown(f"• {service_name}: ${value:,.0f}")
+                    
+                    # Regional adjustment info for this ecosystem
+                    if 'esvd_metadata' in eco_data:
+                        regional_adj = eco_data['esvd_metadata'].get('regional_adjustment', 1.0)
+                        st.caption(f"💡 Regional adjustment factor: {regional_adj:.2f} applied to base ESVD coefficients")
+        
+        # Summary comparison table
+        st.markdown("### 📊 Ecosystem Comparison Summary")
+        
+        if 'ecosystem_results' in results.get('esvd_results', {}):
+            ecosystem_results = results['esvd_results']['ecosystem_results']
+            
+            # Create comparison table
+            comparison_data = []
+            for ecosystem_type, eco_data in ecosystem_results.items():
+                comparison_data.append({
+                    'Ecosystem Type': ecosystem_type.title(),
+                    'Area (ha)': f"{eco_data.get('area_hectares', 0):.1f}",
+                    'Area (%)': f"{eco_data.get('area_percentage', 0):.1f}%",
+                    'Total Value ($/year)': f"${eco_data.get('current_value', 0):,.0f}",
+                    'Value per Hectare ($/ha/year)': f"${eco_data.get('value_per_hectare', 0):,.0f}"
+                })
+            
+            import pandas as pd
+            df = pd.DataFrame(comparison_data)
+            st.dataframe(df, use_container_width=True)
+            
+            st.caption("💡 Mixed ecosystem total value is the sum of all individual ecosystem contributions")
+
         # Action buttons for detailed view
         st.markdown("---")
         col_detailed1, col_detailed2, col_detailed3, col_detailed4 = st.columns(4)

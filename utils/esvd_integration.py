@@ -478,7 +478,8 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_
             'calculation_method': 'weighted_mixed_ecosystem',
             'composition_details': ecosystem_distribution
         },
-        'individual_ecosystem_results': {}
+        'individual_ecosystem_results': {},
+        'ecosystem_results': {}  # For compatibility with UI display code
     }
     
     # Calculate values for each ecosystem type
@@ -498,6 +499,15 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: Dict, area_
             'area_hectares': ecosystem_area,
             'total_value': individual_result['metadata']['total_value'],
             'services': individual_result
+        }
+        
+        # Also populate ecosystem_results for UI compatibility
+        weighted_results['ecosystem_results'][ecosystem_type] = {
+            'area_hectares': ecosystem_area,
+            'area_percentage': proportion * 100,
+            'current_value': individual_result['metadata']['total_value'],
+            'value_per_hectare': individual_result['metadata']['value_per_hectare'],
+            'esvd_metadata': individual_result  # Full individual results for detailed breakdown
         }
         
         # Add weighted contribution to totals
