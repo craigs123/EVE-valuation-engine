@@ -270,6 +270,9 @@ with st.sidebar:
                                     st.session_state.area_coordinates = full_analysis['coordinates']
                                     st.session_state.analysis_results = full_analysis['analysis_results']
                                     st.session_state.selected_area = True
+                                    # Clear cached area to recalculate for map centering
+                                    st.session_state.cached_area_ha = None
+                                    st.session_state.cached_bbox = None
                                     st.rerun()
                             st.markdown("---")
                 else:
@@ -299,6 +302,8 @@ with st.sidebar:
                                 st.session_state.selected_area = True
                                 st.session_state.cached_area_ha = area['area_hectares']
                                 st.session_state.current_area_id = area['id']
+                                # Clear bbox cache to force map re-centering
+                                st.session_state.cached_bbox = None
                                 st.rerun()
                             st.markdown("---")
                 else:
@@ -372,12 +377,38 @@ with col1:
     
 
     
-    # Create interactive map
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
-    
-    # Add existing selection if available
+    # Create interactive map - center on selected area if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
+        # Calculate center of selected area
         coords = st.session_state.area_coordinates
+        coords_array = np.array(coords[:-1], dtype=np.float32)
+        center_lat = float(coords_array[:, 1].mean())
+        center_lon = float(coords_array[:, 0].mean())
+        
+        # Calculate appropriate zoom level based on area size
+        lat_range = coords_array[:, 1].max() - coords_array[:, 1].min()
+        lon_range = coords_array[:, 0].max() - coords_array[:, 0].min()
+        max_range = max(lat_range, lon_range)
+        
+        # Determine zoom level based on area size
+        if max_range > 10:
+            zoom_level = 6
+        elif max_range > 5:
+            zoom_level = 7
+        elif max_range > 2:
+            zoom_level = 8
+        elif max_range > 1:
+            zoom_level = 9
+        elif max_range > 0.5:
+            zoom_level = 10
+        elif max_range > 0.1:
+            zoom_level = 11
+        else:
+            zoom_level = 12
+        
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level)
+        
+        # Add the selected area polygon
         folium.Polygon(
             locations=[(coord[1], coord[0]) for coord in coords],
             color='green',
@@ -386,6 +417,9 @@ with col1:
             fillOpacity=0.2,
             popup="Selected Area"
         ).add_to(m)
+    else:
+        # Default map view when no area is selected
+        m = folium.Map(location=[40.0, -100.0], zoom_start=4)
 
     # Add drawing tools
     from folium.plugins import Draw
