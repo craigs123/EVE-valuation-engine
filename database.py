@@ -199,11 +199,20 @@ class EcosystemAnalysisDB:
         sustainability_responses: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """Save ecosystem analysis to database"""
+        db = None
         try:
             db = get_db()
             
+            # Handle session state safely
+            session_user_id = None
+            try:
+                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                    session_user_id = st.session_state.get('user_id')
+            except:
+                pass  # No session state available
+            
             analysis = EcosystemAnalysis(
-                user_session_id=user_session_id or st.session_state.get('user_id'),
+                user_session_id=user_session_id or session_user_id,
                 area_name=area_name,
                 coordinates=coordinates,
                 area_hectares=area_hectares,
@@ -221,14 +230,27 @@ class EcosystemAnalysisDB:
             db.refresh(analysis)
             
             analysis_id = str(analysis.id)
-            db.close()
             return analysis_id
             
         except Exception as e:
-            st.error(f"Failed to save analysis: {str(e)}")
+            error_msg = f"Failed to save analysis: {str(e)}"
             import traceback
-            st.error(f"Traceback: {traceback.format_exc()}")
+            traceback_msg = f"Traceback: {traceback.format_exc()}"
+            
+            # Try to show error in Streamlit if available
+            try:
+                if hasattr(st, 'error'):
+                    st.error(error_msg)
+                    st.error(traceback_msg)
+            except:
+                # Fallback to print if no Streamlit context
+                print(error_msg)
+                print(traceback_msg)
+            
             return None
+        finally:
+            if db:
+                db.close()
     
     @staticmethod
     def get_user_analyses(user_session_id: Optional[str] = None, limit: int = 10) -> List[Dict]:
@@ -503,10 +525,10 @@ class NaturalCapitalBaselineDB:
             current_cultural = esvd_data.get('cultural', {}).get('total', 0)
             current_supporting = esvd_data.get('supporting', {}).get('total', 0)
             
-            provisioning_change = current_provisioning - (float(baseline.provisioning_baseline) if baseline.provisioning_baseline is not None else 0.0)
-            regulating_change = current_regulating - (float(baseline.regulating_baseline) if baseline.regulating_baseline is not None else 0.0)
-            cultural_change = current_cultural - (float(baseline.cultural_baseline) if baseline.cultural_baseline is not None else 0.0)
-            supporting_change = current_supporting - (float(baseline.supporting_baseline) if baseline.supporting_baseline is not None else 0.0)
+            provisioning_change = current_provisioning - (baseline.provisioning_baseline if baseline.provisioning_baseline is not None else 0.0)
+            regulating_change = current_regulating - (baseline.regulating_baseline if baseline.regulating_baseline is not None else 0.0)
+            cultural_change = current_cultural - (baseline.cultural_baseline if baseline.cultural_baseline is not None else 0.0)
+            supporting_change = current_supporting - (baseline.supporting_baseline if baseline.supporting_baseline is not None else 0.0)
             
             # Create trend record
             trend = NaturalCapitalTrend(
