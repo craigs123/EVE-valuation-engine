@@ -418,7 +418,7 @@ if 'area_coordinates' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
-# Sidebar configuration - optimized for performance
+# Sidebar configuration - optimized for performance with expandable sections
 with st.sidebar:
     st.header("Analysis Settings")
     
@@ -427,129 +427,124 @@ with st.sidebar:
     def get_ecosystem_options():
         return ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"]
     
-    # Ecosystem type override
-    ecosystem_override = st.selectbox(
-        "Ecosystem Type",
-        options=get_ecosystem_options(),
-        help="Auto-detection uses geographic analysis for ecosystem classification"
-    )
+    # Basic Settings (always visible)
+    with st.expander("🌿 **Ecosystem Detection**", expanded=True):
+        ecosystem_override = st.selectbox(
+            "Ecosystem Type",
+            options=get_ecosystem_options(),
+            help="Auto-detection uses geographic analysis for ecosystem classification"
+        )
+        st.session_state.ecosystem_override = ecosystem_override
     
-    # Store settings
-    st.session_state.ecosystem_override = ecosystem_override
+    # Sampling Settings (expandable)
+    with st.expander("🎯 **Sampling Configuration**"):
+        # Maximum sampling limit setting (simplified approach)
+        max_sampling_limit = st.slider(
+            "Sample Points",
+            min_value=10,
+            max_value=100,
+            value=st.session_state.get('max_sampling_limit', 10),
+            step=10,
+            help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
+        )
+        st.session_state.max_sampling_limit = max_sampling_limit
+        
+        # Set sampling frequency to match the current sample points selection
+        st.session_state.sampling_frequency = max_sampling_limit
     
-    st.markdown("---")
-    st.subheader("🎯 Sampling Settings")
-    
-    # Maximum sampling limit setting (simplified approach)
-    max_sampling_limit = st.slider(
-        "Sample Points",
-        min_value=10,
-        max_value=100,
-        value=st.session_state.get('max_sampling_limit', 10),
-        step=10,
-        help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
-    )
-    st.session_state.max_sampling_limit = max_sampling_limit
-    
-    # Set sampling frequency to match the current sample points selection
-    st.session_state.sampling_frequency = max_sampling_limit
-    
-    # Sampling strategy information  
-    if st.session_state.get('area_coordinates'):
-        st.markdown(f"""
-        **📏 Current Sampling Strategy:**
-        - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
-        - **Performance control**: Adjust sample points to balance speed vs accuracy for your analysis
-        """)
-    else:
-        st.markdown(f"""
-        **📏 Sampling Strategy (when area selected):**
-        - **Even distribution**: {max_sampling_limit} sample points will be distributed evenly across selected area
-        - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
-        - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
-        """)
-    
-    # Optimized sampling guide - reduce conditional rendering
-    sampling_guide = {
-        (0, 20): "🔹 **Low Sampling**: Faster analysis, suitable for uniform areas",
-        (21, 50): "🔸 **Moderate Sampling**: Good balance of speed and accuracy", 
-        (51, 80): "🔸 **High Sampling**: More accurate for mixed ecosystems",
-        (81, 100): "🔴 **Maximum Sampling**: Highest accuracy, slower processing"
-    }
-    
-    for (min_val, max_val), message in sampling_guide.items():
-        if min_val <= max_sampling_limit <= max_val:
-            st.info(message)
-            break
-    
-    # Optimized sampling info display - only show when needed
-    if st.session_state.get('area_coordinates') and st.session_state.get('cached_area_ha'):
-        area_ha = st.session_state.cached_area_ha
-        grid_size = int(np.sqrt(max_sampling_limit))
-        actual_final = grid_size ** 2
-        st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
-    elif st.session_state.get('area_coordinates'):
-        st.caption("Area calculation in progress...")
-    else:
-        st.caption("Select an area to see sampling estimation")
+        # Sampling strategy information  
+        if st.session_state.get('area_coordinates'):
+            st.markdown(f"""
+            **📏 Current Sampling Strategy:**
+            - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
+            - **Performance control**: Adjust sample points to balance speed vs accuracy for your analysis
+            """)
+        else:
+            st.markdown(f"""
+            **📏 Sampling Strategy (when area selected):**
+            - **Even distribution**: {max_sampling_limit} sample points will be distributed evenly across selected area
+            - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
+            - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
+            """)
+        
+        # Optimized sampling guide - reduce conditional rendering
+        sampling_guide = {
+            (0, 20): "🔹 **Low Sampling**: Faster analysis, suitable for uniform areas",
+            (21, 50): "🔸 **Moderate Sampling**: Good balance of speed and accuracy", 
+            (51, 80): "🔸 **High Sampling**: More accurate for mixed ecosystems",
+            (81, 100): "🔴 **Maximum Sampling**: Highest accuracy, slower processing"
+        }
+        
+        for (min_val, max_val), message in sampling_guide.items():
+            if min_val <= max_sampling_limit <= max_val:
+                st.info(message)
+                break
+        
+        # Optimized sampling info display - only show when needed
+        if st.session_state.get('area_coordinates') and st.session_state.get('cached_area_ha'):
+            area_ha = st.session_state.cached_area_ha
+            grid_size = int(np.sqrt(max_sampling_limit))
+            actual_final = grid_size ** 2
+            st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
+        elif st.session_state.get('area_coordinates'):
+            st.caption("Area calculation in progress...")
+        else:
+            st.caption("Select an area to see sampling estimation")
     
 
     
-    st.markdown("---")
+    # Regional Adjustment Settings (expandable)
+    with st.expander("🌍 **Regional Adjustments**"):
+        st.markdown("**Income Elasticity of Willingness to Pay**")
+        
+        income_elasticity = st.slider(
+            "Income elasticity factor",
+            min_value=0.1,
+            max_value=1.0,
+            value=0.6,
+            step=0.1,
+            help="Higher values increase regional income differences in valuation. Research suggests 0.5-0.6 for environmental services."
+        )
+        
+        # Combine captions for faster rendering
+        st.caption("📚 **Methodological basis**: Income elasticity approach from benefit transfer literature | 🔬 **Formula**: Value × (Regional_GDP / Global_GDP)^elasticity")
+        
+        # Store in session state
+        st.session_state['income_elasticity'] = income_elasticity
     
-    # Regional Adjustment Settings
-    st.subheader("🌍 Regional Adjustments")
-    st.markdown("**Income Elasticity of Willingness to Pay**")
-    
-    income_elasticity = st.slider(
-        "Income elasticity factor",
-        min_value=0.1,
-        max_value=1.0,
-        value=0.6,
-        step=0.1,
-        help="Higher values increase regional income differences in valuation. Research suggests 0.5-0.6 for environmental services."
-    )
-    
-    # Combine captions for faster rendering
-    st.caption("📚 **Methodological basis**: Income elasticity approach from benefit transfer literature | 🔬 **Formula**: Value × (Regional_GDP / Global_GDP)^elasticity")
-    
-    # Store in session state
-    st.session_state['income_elasticity'] = income_elasticity
-    
-    st.markdown("---")
-    st.subheader("📊 Analysis Configuration")
-    
-    # Analysis period settings
-    time_preset = st.selectbox(
-        "Analysis Period",
-        options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
-        index=0,
-        key="sidebar_time_preset"
-    )
-    
-    if time_preset == "Custom Range":
-        start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="sidebar_start_date")
-        end_date = st.date_input("To", value=datetime.now(), key="sidebar_end_date")
-    else:
-        preset_options = {
-            "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
-            "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
-            "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
-        }
-        start_date, end_date = preset_options[time_preset]
-    
-    # Analysis detail level
-    analysis_detail = st.selectbox(
-        "Analysis Detail",
-        options=["Summary Analysis", "Detailed Analysis"],
-        help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
-        key="sidebar_analysis_detail"
-    )
-    
-    # Store settings
-    st.session_state.analysis_detail = analysis_detail
-    st.session_state.analysis_start_date = start_date
-    st.session_state.analysis_end_date = end_date
+    # Analysis Configuration (expandable)
+    with st.expander("📊 **Analysis Configuration**"):
+        # Analysis period settings
+        time_preset = st.selectbox(
+            "Analysis Period",
+            options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
+            index=0,
+            key="sidebar_time_preset"
+        )
+        
+        if time_preset == "Custom Range":
+            start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="sidebar_start_date")
+            end_date = st.date_input("To", value=datetime.now(), key="sidebar_end_date")
+        else:
+            preset_options = {
+                "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
+                "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
+                "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
+            }
+            start_date, end_date = preset_options[time_preset]
+        
+        # Analysis detail level
+        analysis_detail = st.selectbox(
+            "Analysis Detail",
+            options=["Summary Analysis", "Detailed Analysis"],
+            help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
+            key="sidebar_analysis_detail"
+        )
+        
+        # Store settings
+        st.session_state.analysis_detail = analysis_detail
+        st.session_state.analysis_start_date = start_date
+        st.session_state.analysis_end_date = end_date
     
     # Calculate Value button in sidebar
     st.markdown("---")
