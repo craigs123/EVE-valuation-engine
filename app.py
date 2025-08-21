@@ -1227,11 +1227,22 @@ with col2:
         st.markdown("### 📈 Step 3: Results")
         results = st.session_state.analysis_results
         
-        # Key metrics display
+        # Key metrics display with water area exclusion information
         col_metrics1, col_metrics2 = st.columns(2)
         with col_metrics1:
             st.metric("Total Value", f"${results['total_value']:,.0f} /year")
-            st.metric("Area Size", f"{results['area_ha']:,.0f} hectares")
+            
+            # Display area information with water exclusion details
+            land_area = results.get('area_ha', results.get('area_hectares', 0))
+            total_area = results.get('total_area_hectares', land_area)
+            water_area = results.get('water_area_hectares', 0)
+            
+            if water_area > 0:
+                st.metric("Land Area Analyzed", f"{land_area:,.0f} hectares")
+                st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
+            else:
+                st.metric("Area Size", f"{land_area:,.0f} hectares")
+        
         with col_metrics2:
             st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
             st.metric("Ecosystem Type", results['ecosystem_type'])
@@ -1639,7 +1650,15 @@ if st.session_state.analysis_results:
             st.markdown(f"**${per_ha:.0f}/ha**")
             st.caption("per hectare annually")
         with col3:
-            st.metric("Area Analyzed", f"{results['area_ha']:,.0f} ha")
+            # Area display with water exclusion for summary
+            land_area = results.get('area_ha', results.get('area_hectares', 0))
+            water_area = results.get('water_area_hectares', 0)
+            
+            if water_area > 0:
+                st.metric("Land Area Analyzed", f"{land_area:,.0f} ha")
+                st.caption(f"🌊 {water_area:,.0f} ha water excluded")
+            else:
+                st.metric("Area Analyzed", f"{land_area:,.0f} ha")
         
         # Enhanced ecosystem composition display
         if 'esvd_results' in results and 'metadata' in results['esvd_results']:
@@ -1780,8 +1799,13 @@ if st.session_state.analysis_results:
                 **Calculation Method**:
                 1. **Service Categories**: Sum of Provisioning + Regulating + Cultural + Supporting services
                 2. **Base Values**: ESVD coefficients ($/ha/year) for each service type
-                3. **Area Scaling**: Multiply by {results['area_ha']:,.0f} hectares
+                3. **Area Scaling**: Multiply by {results.get('area_ha', results.get('area_hectares', 0)):,.0f} hectares (land area only)
                 4. **Regional Adjustment**: Apply factor of {results.get('regional_factor', 1.0):.2f} for local conditions
+                
+                **Water Area Exclusion**:
+                {f"• Water areas excluded: {results.get('water_area_hectares', 0):,.0f} hectares" if results.get('water_area_hectares', 0) > 0 else "• No significant water areas detected"}
+                • Natural capital calculations performed on land areas only
+                • Open water bodies identified and separated from ecosystem service valuations
                 
                 **Data Sources**:
                 - ESVD Database: 10,874+ peer-reviewed value estimates
@@ -1798,10 +1822,15 @@ if st.session_state.analysis_results:
                 st.markdown(f"""
                 **Value per Hectare**: ${per_ha_detailed:.0f}/ha/year
                 
-                **Formula**: Total Value ÷ Area
+                **Formula**: Total Value ÷ Land Area
                 - Total Value: ${results['total_value']:,}/year
-                - Area: {results['area_ha']:,.0f} hectares
-                - Per Hectare: ${results['total_value']:,} ÷ {results['area_ha']:,.0f} = ${per_ha_detailed:.0f}/ha/year
+                - Land Area: {results.get('area_ha', results.get('area_hectares', 0)):,.0f} hectares
+                - Per Hectare: ${results['total_value']:,} ÷ {results.get('area_ha', results.get('area_hectares', 0)):,.0f} = ${per_ha_detailed:.0f}/ha/year
+                
+                **Area Breakdown**:
+                • Land area analyzed: {results.get('area_ha', results.get('area_hectares', 0)):,.0f} hectares
+                {f"• Water area excluded: {results.get('water_area_hectares', 0):,.0f} hectares" if results.get('water_area_hectares', 0) > 0 else "• No water areas excluded"}
+                {f"• Total selected area: {results.get('total_area_hectares', results.get('area_ha', results.get('area_hectares', 0))):,.0f} hectares" if results.get('water_area_hectares', 0) > 0 else ""}
                 
                 **What this means**:
                 Each hectare of {results['ecosystem_type'].lower()} provides ${per_ha_detailed:.0f} worth of ecosystem 

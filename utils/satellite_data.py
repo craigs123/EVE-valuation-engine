@@ -524,6 +524,9 @@ class SatelliteDataProcessor:
         # Keep original detection for better accuracy
         final_type = detected_type
         
+        # Determine if this is open water (to be excluded from land calculations)
+        is_open_water = ndwi > 0.4 and ndvi < 0.1  # Clear water signature
+        
         return {
             'detected_type': final_type,
             'raw_detection': detected_type,
@@ -535,7 +538,9 @@ class SatelliteDataProcessor:
                 'ndbi': ndbi
             },
             'scores': scores,
-            'location': {'lat': lat, 'lon': lon}
+            'location': {'lat': lat, 'lon': lon},
+            'is_open_water': is_open_water,  # Flag for water area exclusion
+            'water_confidence': min(ndwi * 2, 1.0) if ndwi > 0.2 else 0  # Water confidence score
         }
     
     def _detect_multiple_ecosystems(self, bbox: Dict, time_series_data: List[Dict], grid_size: int = 4) -> Dict[str, Any]:
@@ -605,22 +610,44 @@ class SatelliteDataProcessor:
                     'bbox': sub_bbox,
                     'ecosystem_type': sub_detection['detected_type'],
                     'confidence': sub_detection['confidence'],
-                    'spectral_indices': sub_detection['spectral_indices']
+                    'spectral_indices': sub_detection['spectral_indices'],
+                    'is_open_water': sub_detection.get('is_open_water', False),
+                    'water_confidence': sub_detection.get('water_confidence', 0)
                 })
         
-        # Calculate ecosystem composition
+        # Calculate ecosystem composition and separate water areas
         from collections import Counter
         ecosystem_counts = Counter(ecosystem_detections)
         total_cells = len(ecosystem_detections)
         
-        ecosystem_composition = {
-            ecosystem: (count / total_cells) * 100.0 
-            for ecosystem, count in ecosystem_counts.items()
-        }
+        # Count water cells for exclusion
+        water_cells = sum(1 for result in grid_results if result.get('is_open_water', False))
+        land_cells = total_cells - water_cells
+        water_percentage = (water_cells / total_cells) * 100.0 if total_cells > 0 else 0
         
-        # Determine primary ecosystem
-        primary_ecosystem = ecosystem_counts.most_common(1)[0][0]
-        primary_percentage = ecosystem_composition[primary_ecosystem]
+        # Calculate ecosystem composition based on land cells only
+        land_ecosystem_counts = Counter([
+            detection for i, detection in enumerate(ecosystem_detections)
+            if not grid_results[i].get('is_open_water', False)
+        ])
+        
+        if land_cells > 0:
+            ecosystem_composition = {
+                ecosystem: (count / land_cells) * 100.0 
+                for ecosystem, count in land_ecosystem_counts.items()
+            }
+        else:
+            # All water - create minimal wetland classification
+            ecosystem_composition = {'wetland': 100.0}
+            land_ecosystem_counts = Counter({'wetland': 1})
+        
+        # Determine primary ecosystem from land areas only
+        if land_ecosystem_counts:
+            primary_ecosystem = land_ecosystem_counts.most_common(1)[0][0]
+            primary_percentage = ecosystem_composition[primary_ecosystem]
+        else:
+            primary_ecosystem = 'wetland'
+            primary_percentage = 100.0
         
         # Calculate overall confidence based on consistency
         confidence = primary_percentage / 100.0  # Higher confidence for more homogeneous areas
@@ -632,7 +659,10 @@ class SatelliteDataProcessor:
             'method': 'spatial_grid_analysis',
             'grid_size': grid_size,
             'total_cells_analyzed': total_cells,
+            'land_cells_analyzed': land_cells,
+            'water_cells_detected': water_cells,
+            'water_percentage': water_percentage,
             'grid_results': grid_results,
-            'diversity_index': len(ecosystem_counts),  # Number of different ecosystem types
+            'diversity_index': len(land_ecosystem_counts),  # Number of different ecosystem types on land
             'homogeneity': primary_percentage  # Percentage of primary ecosystem
         }

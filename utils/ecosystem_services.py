@@ -52,6 +52,24 @@ class EcosystemServicesCalculator:
             time_series = satellite_data['time_series']
             area_ha = self._calculate_area_hectares(area_bounds)
             
+            # Calculate water exclusion for single ecosystem analysis
+            total_area_ha = self._calculate_area_hectares(area_bounds)
+            ecosystem_detection = satellite_data.get('ecosystem_detection', {})
+            
+            # Check if this is open water area that should be excluded
+            is_open_water = ecosystem_detection.get('is_open_water', False)
+            water_confidence = ecosystem_detection.get('water_confidence', 0)
+            
+            if is_open_water:
+                # Mostly water - minimal land area for calculation
+                water_area_ha = total_area_ha * max(0.8, water_confidence)  # Use water confidence
+                land_area_ha = total_area_ha - water_area_ha
+                effective_area_ha = land_area_ha
+            else:
+                water_area_ha = 0
+                land_area_ha = total_area_ha
+                effective_area_ha = total_area_ha
+            
             # Use automatic ecosystem type detection if not provided
             if ecosystem_type is None:
                 # Check for multi-ecosystem detection first
@@ -61,19 +79,17 @@ class EcosystemServicesCalculator:
                     return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection)
                 else:
                     # Single ecosystem - use primary detected type
-                    ecosystem_detection = satellite_data.get('ecosystem_detection', {})
                     ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
                     detection_confidence = ecosystem_detection.get('confidence', 0.5)
             else:
-                ecosystem_detection = satellite_data.get('ecosystem_detection', {})
                 detection_confidence = 1.0
             
             # Get coordinates for regional adjustment
             coordinates = self._extract_coordinates(area_bounds)
             
-            # Calculate values using pre-computed authentic ESVD coefficients
+            # Calculate values using pre-computed authentic ESVD coefficients (use effective land area)
             esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
-                ecosystem_type, area_ha, coordinates if coordinates else None
+                ecosystem_type, effective_area_ha, coordinates if coordinates else None
             )
             
             # No fallback needed - pre-computed coefficients always available
@@ -117,7 +133,7 @@ class EcosystemServicesCalculator:
                     'cultural': cultural_value,
                     'supporting': supporting_value,
                     'ecosystem_quality': quality,
-                    'area_hectares': area_ha,
+                    'area_hectares': effective_area_ha,
                     'esvd_metadata': esvd_results.get('metadata', {})
                 })
             
@@ -142,10 +158,13 @@ class EcosystemServicesCalculator:
                 'mean_value': float(mean_value),
                 'trend_slope': float(trend),
                 'annual_change_usd': float(annual_change),
-                'value_per_hectare': float(current_value / area_ha) if area_ha > 0 else 0,
+                'value_per_hectare': float(current_value / effective_area_ha) if effective_area_ha > 0 else 0,
                 'ecosystem_type': ecosystem_type,
                 'detected_ecosystem_type': ecosystem_type,
-                'area_hectares': float(area_ha),
+                'area_hectares': float(effective_area_ha),  # Land area used for calculations
+                'total_area_hectares': float(total_area_ha),  # Total selected area
+                'water_area_hectares': float(water_area_ha),  # Excluded water area
+                'is_open_water_area': is_open_water,  # Flag indicating if area is mostly water
                 'ecosystem_detection': ecosystem_detection,
                 'detection_confidence': detection_confidence,
                 'time_series': services_time_series,
@@ -185,6 +204,11 @@ class EcosystemServicesCalculator:
             total_area_ha = self._calculate_area_hectares(area_bounds)
             coordinates = self._extract_coordinates(area_bounds)
             
+            # Calculate water exclusion based on detection results
+            water_percentage = multi_detection.get('water_percentage', 0)
+            water_area_ha = total_area_ha * (water_percentage / 100.0)
+            land_area_ha = total_area_ha - water_area_ha
+            
             ecosystem_composition = multi_detection.get('ecosystem_composition', {})
             primary_ecosystem = multi_detection.get('primary_ecosystem', 'forest')
             
@@ -207,8 +231,8 @@ class EcosystemServicesCalculator:
                 if percentage < 1.0:  # Skip ecosystems with less than 1% coverage
                     continue
                 
-                # Calculate area for this ecosystem type
-                ecosystem_area_ha = total_area_ha * (percentage / 100.0)
+                # Calculate area for this ecosystem type (based on land area only)
+                ecosystem_area_ha = land_area_ha * (percentage / 100.0)
                 
                 # Get ESVD values for this ecosystem type
                 esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
@@ -289,8 +313,11 @@ class EcosystemServicesCalculator:
                 'previous_value': float(previous_total),
                 'value_change': float(current_total - previous_total),
                 'annual_change_usd': float(combined_trend * 365) if combined_trend != 0 else 0,
-                'value_per_hectare': float(current_total / total_area_ha) if total_area_ha > 0 else 0,
-                'area_hectares': float(total_area_ha),
+                'value_per_hectare': float(current_total / land_area_ha) if land_area_ha > 0 else 0,
+                'area_hectares': float(land_area_ha),  # Land area used for calculations
+                'total_area_hectares': float(total_area_ha),  # Total selected area
+                'water_area_hectares': float(water_area_ha),  # Excluded water area
+                'water_percentage': float(water_percentage),  # Percentage of area that is water
                 'ecosystem_type': 'multi_ecosystem',
                 'primary_ecosystem': primary_ecosystem,
                 'ecosystem_composition': ecosystem_composition,
@@ -300,7 +327,7 @@ class EcosystemServicesCalculator:
                 'time_series': combined_time_series,
                 'valuation_summary': self._generate_multi_ecosystem_summary(ecosystem_composition, current_total, combined_trend),
                 'data_source': 'ESVD (Ecosystem Services Valuation Database) - Multi-ecosystem Analysis',
-                'calculation_method': 'spatial_composition_weighted'
+                'calculation_method': 'spatial_composition_weighted_land_only'
             }
             
         except Exception as e:
