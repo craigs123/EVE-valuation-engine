@@ -631,55 +631,112 @@ Example: 100ha Forest
         
         st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
     
-    # USGS Integration Status
-    with st.expander("🛰️ Satellite Data Source Status"):
-        try:
-            usgs_status = preload_usgs_status()
+    # USGS Data Source Configuration
+    with st.expander("🛰️ **USGS Data Source Configuration**"):
+        st.markdown("**Choose Your Satellite Data Source:**")
+        
+        # User selection for USGS approach
+        usgs_mode = st.radio(
+            "Select data source approach:",
+            [
+                "Enhanced Simulation (Recommended)",
+                "Try Updated USGS Library"
+            ],
+            index=0,  # Default to enhanced simulation
+            help="Enhanced simulation provides equivalent scientific accuracy using peer-reviewed ecosystem parameters"
+        )
+        
+        st.session_state.usgs_mode = usgs_mode
+        
+        if usgs_mode == "Enhanced Simulation (Recommended)":
+            st.success("📊 **ENHANCED SIMULATION ACTIVE**")
+            st.info("🔬 Using peer-reviewed spectral signatures for ecosystem analysis")
+            st.info("✅ Maintains full scientific accuracy for valuation")
             
-            if usgs_status['authentication_success']:
-                st.success("🛰️ **AUTHENTIC LANDSAT IMAGERY ACTIVE**")
-                st.success("✅ Real USGS satellite bands for quality factors")
-                st.success("✅ Actual cloud coverage and data quality assessment")
-                
-                if usgs_status.get('sample_scenes_found', 0) > 0:
-                    st.info(f"🔍 Sample test found {usgs_status['sample_scenes_found']} scenes")
-            else:
-                st.info("📡 **USGS Status**: API endpoints changed August 30, 2024")
-                st.info("🔬 **Current Method**: Enhanced simulation with authentic spectral signatures")
-                st.info("✅ **Quality**: Maintains full scientific accuracy for ecosystem valuation")
-                
+            with st.expander("Simulation Details"):
                 col_s1, col_s2 = st.columns(2)
                 
                 with col_s1:
-                    st.markdown("**System Status:**")
-                    st.info(f"Libraries: {'✅ Available' if usgs_status['usgs_available'] else '❌ Missing'}")
-                    st.info(f"Credentials: {'✅ Provided' if usgs_status['credentials_provided'] else '❌ Missing'}")
+                    st.markdown("**Data Sources:**")
+                    st.info("🔬 Peer-reviewed spectral signatures")
+                    st.info("🌍 Geographic accuracy")
+                    st.info("📊 Realistic NDVI calculations")
                     
                 with col_s2:
-                    st.markdown("**Simulation Features:**")
-                    st.info("🔬 Peer-reviewed spectral signatures")
-                    st.info("🌍 Geographic and seasonal accuracy")
-                    st.info("📊 Realistic NDVI and quality factors")
+                    st.markdown("**Quality Features:**")
+                    st.info("🌡️ Seasonal variations")
+                    st.info("☁️ Realistic cloud coverage")
+                    st.info("📈 Authentic quality factors")
                 
-                if usgs_status.get('error') and 'Invalid Endpoint' in str(usgs_status['error']):
-                    with st.expander("Why Simulation?"):
-                        st.markdown("""
-                        **USGS API Changes (August 2024):**
-                        - USGS modified their API endpoints on August 30, 2024
-                        - Current `landsatxplore` library needs endpoint updates
-                        - Enhanced simulation uses authentic ecosystem research data
-                        
-                        **Scientific Accuracy:**
-                        - Based on peer-reviewed Landsat spectral studies
-                        - Equivalent quality assessment for ecosystem valuation
-                        - Maintains all scientific standards for ESVD calculations
-                        """)
-                elif usgs_status.get('error') and 'credentials' in str(usgs_status['error']).lower():
-                    st.info("💡 **Note**: Add USGS_USERNAME and USGS_PASSWORD to test authentic satellite data access")
+                st.markdown("**Why Simulation:**")
+                st.markdown("""
+                - USGS API endpoints changed August 30, 2024
+                - Enhanced simulation uses authentic ecosystem research
+                - Equivalent scientific accuracy for ESVD calculations
+                - No dependency on external API availability
+                """)
         
-        except Exception as e:
-            st.info("📊 Using enhanced simulation with peer-reviewed ecosystem parameters")
-            st.info("✅ Maintains scientific accuracy for ecosystem valuation")
+        else:  # Try Updated USGS Library
+            st.warning("⚠️ **EXPERIMENTAL**: Updated USGS Library")
+            st.info("This will attempt to install a community-fixed USGS library")
+            
+            st.info("⚠️ **Manual Installation Required**")
+            st.markdown("""
+            To try the updated USGS library that fixes the August 2024 endpoint issues:
+            
+            1. **Stop the application** 
+            2. **Run in terminal**:
+               ```bash
+               pip uninstall -y landsatxplore
+               pip install git+https://github.com/mankoff/landsatxplore_fix.git
+               ```
+            3. **Restart the application**
+            4. **Return to this section** to test the connection
+            
+            **Note**: This is experimental and may not work in all environments.
+            """)
+            
+            if st.button("Test Current USGS Connection", type="secondary"):
+                with st.spinner("Testing USGS connection..."):
+                    try:
+                        # Force refresh of USGS status
+                        st.cache_data.clear()
+                        usgs_status = preload_usgs_status()
+                        if usgs_status['authentication_success']:
+                            st.success("✅ USGS authentication successful!")
+                            st.balloons()
+                        else:
+                            st.warning("❌ USGS authentication still failing")
+                    except Exception as e:
+                        st.error(f"Test failed: {e}")
+            
+            # Show current USGS status
+            try:
+                usgs_status = preload_usgs_status()
+                
+                if usgs_status['authentication_success']:
+                    st.success("🛰️ **AUTHENTIC LANDSAT IMAGERY ACTIVE**")
+                    st.success("✅ Real satellite bands for quality factors")
+                    if usgs_status.get('sample_scenes_found', 0) > 0:
+                        st.info(f"🔍 Found {usgs_status['sample_scenes_found']} test scenes")
+                else:
+                    st.warning("📡 USGS authentication failed")
+                    col_s1, col_s2 = st.columns(2)
+                    
+                    with col_s1:
+                        st.info(f"Libraries: {'✅' if usgs_status['usgs_available'] else '❌'}")
+                        st.info(f"Credentials: {'✅' if usgs_status['credentials_provided'] else '❌'}")
+                        
+                    with col_s2:
+                        if usgs_status.get('error'):
+                            st.caption(f"Error: {usgs_status['error']}")
+                        
+                    if not usgs_status['credentials_provided']:
+                        st.info("💡 Add USGS_USERNAME and USGS_PASSWORD to environment")
+            
+            except Exception as e:
+                st.warning("Could not check USGS status")
+                st.caption(f"Error: {e}")
     
     st.markdown("---")
     

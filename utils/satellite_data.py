@@ -43,8 +43,17 @@ class SatelliteDataProcessor:
             Dictionary containing processed satellite data
         """
         try:
-            # Priority 1: Try authentic USGS Earth Explorer data
-            if use_authentic:
+            # Priority 1: Check user preference and try authentic USGS data if requested
+            user_wants_usgs = True  # Default to trying USGS first
+            try:
+                # Check if user selected enhanced simulation in UI
+                import streamlit as st
+                if hasattr(st, 'session_state') and hasattr(st.session_state, 'usgs_mode'):
+                    user_wants_usgs = st.session_state.usgs_mode == "Try Updated USGS Library"
+            except:
+                user_wants_usgs = True  # Default to trying USGS
+            
+            if use_authentic and user_wants_usgs:
                 try:
                     from .usgs_integration import usgs_integrator
                     usgs_data = usgs_integrator.get_landsat_data(area_bounds, start_date, end_date)
