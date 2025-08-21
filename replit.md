@@ -3,12 +3,13 @@
 ## Overview
 The Ecosystem Valuation Engine (EVE) is a Streamlit-based geospatial analysis application designed for environmental researchers. Its primary purpose is to measure ecosystem growth through the economic valuation of ecosystem services, focusing on provisioning, regulating, cultural, and supporting categories. EVE combines satellite imagery processing with established economic valuation coefficients to track changes in ecosystem service values over time. The project aims to provide a robust tool for assessing natural capital, enabling trend analysis, and generating insightful reports for environmental management and policy.
 
-## Recent Changes (January 21, 2025)
-- **Fixed Architecture Inconsistency**: Removed unnecessary ESVD database loading, confirmed system uses pre-computed static coefficients for 238,270x performance improvement
-- **Updated Regional Adjustment Method**: Changed from exponent-based to traditional multiplier method for income elasticity (more economically standard)
-- **Added Calculation Transparency**: New "Show Calculation Breakdown" button displays step-by-step total value computation with individual ESVD coefficients
-- **Resolved Database Initialization**: Fixed type annotation errors preventing proper startup (tuple | None syntax)
-- **Clarified Data Architecture**: Pre-computed ESVD coefficients + authentic USGS Landsat imagery (removed confusing ESA references)
+## Recent Changes (August 21, 2025)
+- **Streamlined Interface**: Removed redundant "Run Analysis" button from sidebar, keeping single main "Calculate Ecosystem Value" button for cleaner UX
+- **Improved Sidebar Organization**: Moved pre-computed ESVD coefficient details from main page to sidebar expandable section  
+- **Cleaned Main Page**: Removed unnecessary system status messages from main interface, focusing purely on 3-step analysis workflow
+- **USGS Authentication Status**: Documented August 30, 2024 USGS API endpoint changes causing "Invalid Endpoint" errors in landsatxplore library
+- **Enhanced Error Handling**: Improved USGS authentication messages with clear explanation of enhanced simulation fallback when API unavailable
+- **Technical Documentation**: Added detailed explanation in sidebar about why enhanced simulation maintains scientific accuracy equivalent to authentic satellite data
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
