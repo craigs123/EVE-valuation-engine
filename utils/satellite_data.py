@@ -502,30 +502,58 @@ class SatelliteDataProcessor:
         elif -90 < lon < -75 and 41 < lat < 49:
             scores['wetland'] += 1
         
-        # Special handling for water bodies - override other detections if clear water signal
-        if ndwi > 0.4 and ndvi < 0.1:  # Clear water signature: high NDWI, very low NDVI
+        # Enhanced water detection - prioritize water signatures over other ecosystem types
+        is_open_water = False
+        water_confidence = 0
+        
+        # Strong water indicators
+        if ndwi > 0.2 and ndvi < 0.0:  # Very strong water signature (negative NDVI)
+            detected_type = 'wetland'
+            confidence = 0.95
+            is_open_water = True
+            water_confidence = 1.0
+            scores['wetland'] = 10  # Maximum score
+        elif ndwi > 0.15 and ndvi < -0.2:  # Strong water signature
             detected_type = 'wetland'
             confidence = 0.9
-            scores['wetland'] = max(scores.get('wetland', 0), 8)  # Boost wetland score
-        elif ndwi > 0.3 and ndvi < 0.2:  # Likely water/wetland
-            if scores.get('wetland', 0) < 5:
-                scores['wetland'] = 5  # Ensure wetland gets decent score
+            is_open_water = True
+            water_confidence = 0.9
+            scores['wetland'] = 9
+        elif ndwi > 0.1 and ndvi < -0.1:  # Moderate water signature
+            detected_type = 'wetland'
+            confidence = 0.8
+            is_open_water = True
+            water_confidence = 0.8
+            scores['wetland'] = 8
+        elif ndwi > 0.2 and ndvi < 0.1:  # Clear water with low vegetation
+            detected_type = 'wetland'
+            confidence = 0.85
+            is_open_water = True
+            water_confidence = 0.7
+            scores['wetland'] = 8
+        elif ndwi > 0.3:  # High NDWI indicates water presence
+            if scores.get('wetland', 0) < 6:
+                scores['wetland'] = 6  # Boost wetland score
+            water_confidence = min(ndwi * 2, 1.0)
+            # Continue with standard detection but flag potential water
             detected_type = max(scores.keys(), key=lambda k: scores[k])
             max_score = scores[detected_type]
             total_possible = 10
             confidence = min(max_score / total_possible, 1.0)
+            
+            # Override if wetland wins
+            if detected_type == 'wetland':
+                is_open_water = water_confidence > 0.6
         else:
             # Standard scoring approach
             detected_type = max(scores.keys(), key=lambda k: scores[k])
             max_score = scores[detected_type]
             total_possible = 10  # Adjusted maximum possible score
             confidence = min(max_score / total_possible, 1.0)
+            water_confidence = max(0, ndwi * 2) if ndwi > 0 else 0
         
         # Keep original detection for better accuracy
         final_type = detected_type
-        
-        # Determine if this is open water (to be excluded from land calculations)
-        is_open_water = ndwi > 0.4 and ndvi < 0.1  # Clear water signature
         
         return {
             'detected_type': final_type,
