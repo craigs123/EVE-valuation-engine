@@ -446,8 +446,8 @@ with st.sidebar:
     )
     st.session_state.max_sampling_limit = max_sampling_limit
     
-    # Remove sampling frequency - use fixed value internally
-    st.session_state.sampling_frequency = 1.0
+    # Set sampling frequency to match the current sample points selection
+    st.session_state.sampling_frequency = max_sampling_limit
     
     # Sampling strategy information
     st.markdown(f"""
