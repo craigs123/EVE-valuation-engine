@@ -408,18 +408,23 @@ class SatelliteDataProcessor:
             scores['desert'] += 4
             scores['urban'] += 2
         
-        # NDWI-based classification (water detection) - enhanced for wetlands
-        if ndwi > 0.3:
+        # NDWI-based classification (water detection) - enhanced for wetlands and open water
+        if ndwi > 0.5:  # Very high NDWI = open water bodies
+            scores['wetland'] += 8
+            scores['coastal'] += 3
+            scores['forest'] -= 3  # Strongly discourage forest for water areas
+        elif ndwi > 0.3:  # High NDWI = wetlands/water areas
             scores['wetland'] += 6
             scores['coastal'] += 2
-        elif ndwi > 0.15:
+            scores['forest'] -= 1  # Reduce forest likelihood
+        elif ndwi > 0.15:  # Moderate NDWI = wet areas
             scores['wetland'] += 4
             scores['coastal'] += 1
-        elif ndwi > 0.05:
+        elif ndwi > 0.05:  # Low NDWI = potentially wet
             scores['wetland'] += 2
-        elif ndwi > -0.05:
+        elif ndwi > -0.05:  # Neutral NDWI
             scores['wetland'] += 1
-        elif ndwi < -0.2:
+        elif ndwi < -0.2:  # Very low NDWI = dry areas
             scores['desert'] += 1
             scores['urban'] += 1
         
@@ -497,11 +502,24 @@ class SatelliteDataProcessor:
         elif -90 < lon < -75 and 41 < lat < 49:
             scores['wetland'] += 1
         
-        # Determine best match
-        detected_type = max(scores.keys(), key=lambda k: scores[k])
-        max_score = scores[detected_type]
-        total_possible = 10  # Adjusted maximum possible score
-        confidence = min(max_score / total_possible, 1.0)
+        # Special handling for water bodies - override other detections if clear water signal
+        if ndwi > 0.4 and ndvi < 0.1:  # Clear water signature: high NDWI, very low NDVI
+            detected_type = 'wetland'
+            confidence = 0.9
+            scores['wetland'] = max(scores.get('wetland', 0), 8)  # Boost wetland score
+        elif ndwi > 0.3 and ndvi < 0.2:  # Likely water/wetland
+            if scores.get('wetland', 0) < 5:
+                scores['wetland'] = 5  # Ensure wetland gets decent score
+            detected_type = max(scores.keys(), key=lambda k: scores[k])
+            max_score = scores[detected_type]
+            total_possible = 10
+            confidence = min(max_score / total_possible, 1.0)
+        else:
+            # Standard scoring approach
+            detected_type = max(scores.keys(), key=lambda k: scores[k])
+            max_score = scores[detected_type]
+            total_possible = 10  # Adjusted maximum possible score
+            confidence = min(max_score / total_possible, 1.0)
         
         # Keep original detection for better accuracy
         final_type = detected_type
@@ -534,9 +552,9 @@ class SatelliteDataProcessor:
         """
         if not time_series_data:
             return {
-                'primary_ecosystem': 'forest',
-                'ecosystem_composition': {'forest': 100.0},
-                'confidence': 0.5,
+                'primary_ecosystem': 'wetland',  # More appropriate default for undefined areas
+                'ecosystem_composition': {'wetland': 100.0},
+                'confidence': 0.3,
                 'method': 'default_fallback'
             }
         
