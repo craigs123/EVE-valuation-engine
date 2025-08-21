@@ -557,29 +557,7 @@ with st.sidebar:
         st.session_state.analysis_start_date = start_date
         st.session_state.analysis_end_date = end_date
     
-    # Calculate Value button in sidebar
-    st.markdown("---")
-    st.subheader("🚀 Run Analysis")
-    
-    area_selected = bool(st.session_state.get('selected_area') and st.session_state.get('area_coordinates'))
-    
-    if area_selected:
-        analyze_button = st.button(
-            "🚀 Calculate Value", 
-            type="primary",
-            use_container_width=True,
-            help="Calculate ecosystem services value for selected area",
-            key="sidebar_calculate_btn"
-        )
-    else:
-        analyze_button = st.button(
-            "Select area first", 
-            disabled=True,
-            use_container_width=True,
-            key="sidebar_disabled_btn"
-        )
-    
-    st.markdown("---")
+    # Removed redundant Calculate Value button - main page has the primary button
     
     # Methodology and Sources section
     st.header("📚 Methodology and Sources")
