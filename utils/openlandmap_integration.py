@@ -740,9 +740,8 @@ class OpenLandMapIntegrator:
                     ecosystem_results.append(result)
                     successful_queries += 1
                 
-                # Further reduced delay - only for very large sample sets
-                if progress_callback and len(sample_points) > 50:
-                    time.sleep(0.01)  # 10ms delay only for very large sample sets
+                # Remove delays for development environment - significantly faster processing
+                # Development optimization: no delays for faster sampling
             
             if not ecosystem_results:
                 return self._default_ecosystem_result()
@@ -866,6 +865,9 @@ class OpenLandMapIntegrator:
         grid_size = int(np.sqrt(target_points))
         actual_points = grid_size ** 2
         
+        # Development environment optimization
+        if os.environ.get('DEV_MODE') == 'true':
+            return min(max(4, actual_points), 50)  # Cap at 50 points for dev speed
         return max(4, actual_points)  # Ensure minimum of 4 points
     
     def _default_ecosystem_result(self) -> Dict:

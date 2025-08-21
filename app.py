@@ -404,7 +404,7 @@ with st.sidebar:
             "Sample Points",
             min_value=10,
             max_value=100,
-            value=st.session_state.get('max_sampling_limit', 10),
+            value=st.session_state.get('max_sampling_limit', 25),
             step=10,
             help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
         )
@@ -430,10 +430,10 @@ with st.sidebar:
         
         # Optimized sampling guide - reduce conditional rendering
         sampling_guide = {
-            (0, 20): "🔹 **Low Sampling**: Faster analysis, suitable for uniform areas",
-            (21, 50): "🔸 **Moderate Sampling**: Good balance of speed and accuracy", 
-            (51, 80): "🔸 **High Sampling**: More accurate for mixed ecosystems",
-            (81, 100): "🔴 **Maximum Sampling**: Highest accuracy, slower processing"
+            (0, 20): "🔹 **Low Sampling**: Very fast analysis, suitable for uniform areas",
+            (21, 40): "🔸 **Moderate Sampling**: Fast with good accuracy balance", 
+            (41, 70): "🔸 **High Sampling**: Detailed analysis for mixed ecosystems",
+            (71, 100): "🔴 **Maximum Sampling**: Most accurate, longer processing"
         }
         
         for (min_val, max_val), message in sampling_guide.items():

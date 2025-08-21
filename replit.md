@@ -4,6 +4,7 @@
 The Ecosystem Valuation Engine (EVE) is a Streamlit-based geospatial analysis application designed for environmental researchers. Its primary purpose is to measure ecosystem growth through the economic valuation of ecosystem services, focusing on provisioning, regulating, cultural, and supporting categories. EVE combines satellite imagery processing with established economic valuation coefficients to track changes in ecosystem service values over time. The project aims to provide a robust tool for assessing natural capital, enabling trend analysis, and generating insightful reports for environmental management and policy.
 
 ## Recent Changes (August 21, 2025)
+- **Development Performance Optimization**: Increased default sample points to 25 (sweet spot for speed/accuracy), removed API delays, optimized for faster development iterations
 - **Water Area Exclusion Implementation**: Natural capital calculations now performed on land areas only, with water bodies automatically detected and excluded
 - **Enhanced Water Detection**: Improved NDWI-based detection with thresholds optimized for various water types (lakes, rivers, coastal areas)
 - **Water Area Reporting**: Users now see excluded water hectares and percentages in both summary and detailed analysis views
@@ -18,7 +19,8 @@ Preferred communication style: Simple, everyday language.
 Application name preference: Call the application "Ecosystem Valuation Engine" or "EVE" instead of "Natural Capital Measurement Tool".
 Interface preference: Clean, uncluttered homepage with date controls and analysis button on main page rather than sidebar.
 Map interaction preference: Single area selection that automatically saves, with easy clear/replace functionality.
-Sampling preference: Simplified user-configurable sample points (10-100 range) with even distribution across any area size. No complex density calculations or area size restrictions.
+Sampling preference: Simplified user-configurable sample points (10-100 range) with even distribution across any area size. Default of 25 points for optimal speed/accuracy balance in development.
+Performance preference: Fast sampling for development environment - prioritize speed for iterative testing while maintaining scientific accuracy.
 Methodology display: Methodology and data sources content moved to settings sidebar under "Methodology and Sources" section to keep main interface uncluttered.
 
 ## System Architecture
