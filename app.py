@@ -371,9 +371,6 @@ st.markdown("""
 st.title("🌱 Ecosystem Valuation Engine")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
-# System status - focus on what's working  
-st.info("📊 **System Status**: Using pre-computed coefficients from 10,874+ ESVD peer-reviewed studies + USGS satellite data for ecosystem valuation")
-
 # Initialize session state
 if 'selected_area' not in st.session_state:
     st.session_state.selected_area = None
