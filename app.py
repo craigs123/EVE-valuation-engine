@@ -1187,6 +1187,9 @@ with col2:
     else:
         st.warning("⚠️ No area selected")
         st.write("Select an area on the map to begin analysis")
+    
+    # Progress display container for analysis (will be updated during analysis)
+    analysis_progress_container = st.empty()
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
@@ -1201,14 +1204,10 @@ if analyze_button and st.session_state.selected_area:
             # Cache the calculated area
             st.session_state.cached_area_ha = area_ha
         
-        # Show progress bar container under the button
-        st.markdown("### 🔄 Analysis Progress")
-        st.warning("⏳ **Please wait** - Analysis in progress...")
-        
-        # Create progress elements that will be used throughout analysis
-        progress_container = st.empty()
-        
-        with progress_container.container():
+        # Update the progress container in the right column instead of creating new sections
+        with analysis_progress_container.container():
+            st.markdown("### 🔄 Analysis in Progress")
+            st.warning("⏳ Please wait - Analysis running...")
             progress_text = st.empty()
             progress_bar = st.progress(0)
             st.info("🔍 Starting ecosystem analysis - this may take a few moments...")
@@ -1233,9 +1232,11 @@ if analyze_button and st.session_state.selected_area:
                     actual_expected_points = max(4, min(grid_size ** 2, 25))  # Hard cap for speed
                     
                     # Update progress container for detection phase
-                    with progress_container.container():
+                    with analysis_progress_container.container():
+                        st.markdown("### 🔄 Analysis in Progress")
+                        progress_text = st.empty()
+                        progress_bar = st.progress(0)
                         progress_text.info("🔍 **Please wait** - Detecting ecosystem type using satellite data...")
-                        progress_bar.progress(0)
                     
                     # Ultra-optimized progress callback with minimal updates
                     def update_progress(current_point, total_points):
@@ -1256,8 +1257,10 @@ if analyze_button and st.session_state.selected_area:
                     )
                     
                     # Show completion in progress container
-                    with progress_container.container():
-                        progress_bar.progress(1.0)
+                    with analysis_progress_container.container():
+                        st.markdown("### 🔄 Analysis in Progress")
+                        progress_text = st.empty()
+                        progress_bar = st.progress(1.0)
                         progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']} sample points")
                     
                     # Brief pause to show completion (reduced for performance)
@@ -1426,14 +1429,14 @@ if analyze_button and st.session_state.selected_area:
             }
             
             # Show final completion
-            with progress_container.container():
-                progress_bar.progress(1.0)
-                progress_text.success("🎉 **Analysis complete!** Economic valuation calculated successfully.")
+            with analysis_progress_container.container():
+                st.markdown("### ✅ Analysis Complete")
+                st.success("🎉 **Analysis complete!** Economic valuation calculated successfully.")
             
             # Brief pause to show completion, then clear
             import time
             time.sleep(1.2)
-            progress_container.empty()
+            analysis_progress_container.empty()
                 
         st.success("Analysis complete!")
         st.rerun()
