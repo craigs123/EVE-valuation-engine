@@ -449,13 +449,20 @@ with st.sidebar:
     # Set sampling frequency to match the current sample points selection
     st.session_state.sampling_frequency = max_sampling_limit
     
-    # Sampling strategy information
-    st.markdown(f"""
-    **📏 Sampling Strategy:**
-    - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
-    - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
-    - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
-    """)
+    # Sampling strategy information  
+    if st.session_state.get('area_coordinates'):
+        st.markdown(f"""
+        **📏 Current Sampling Strategy:**
+        - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
+        - **Performance control**: Adjust sample points to balance speed vs accuracy for your analysis
+        """)
+    else:
+        st.markdown(f"""
+        **📏 Sampling Strategy (when area selected):**
+        - **Even distribution**: {max_sampling_limit} sample points will be distributed evenly across selected area
+        - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
+        - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
+        """)
     
     # Sampling points guide
     if max_sampling_limit <= 20:
