@@ -398,41 +398,8 @@ Example: 100ha Forest
 except Exception:
     pass
 
-# Test ESA WorldCover status
-try:
-    import ee
-    try:
-        ee.Initialize()
-        st.success("✅ ESA WorldCover integration available (currently not used)")
-        esa_available = True
-    except Exception as e:
-        st.info("📍 Using geographic-based ecosystem detection")
-        with st.expander("🛠️ About ESA WorldCover Integration"):
-            st.write("**ESA WorldCover authentication (optional - not currently used):**")
-            
-            tab1, tab2 = st.tabs(["Notebook Authentication", "Terminal Authentication"])
-            
-            with tab1:
-                st.write("**Recommended for this environment:**")
-                st.code("earthengine authenticate --auth_mode=notebook", language="bash")
-                st.write("1. Run the command above")
-                st.write("2. Open the provided URL in your browser")
-                st.write("3. Copy the verification code")
-                st.write("4. Paste it when prompted")
-                st.write("5. Refresh this page to activate satellite data")
-            
-            with tab2:
-                st.write("**Standard authentication:**")
-                st.code("earthengine authenticate", language="bash")
-                st.write("1. Run the command above in your terminal")
-                st.write("2. Complete the browser authentication flow")
-                st.write("3. Refresh this page to activate satellite data")
-            
-            st.info("**Note:** Current system uses pre-computed ESVD values (static, from 10,874+ studies) and geographic analysis for ecosystem classification")
-        esa_available = False
-except ImportError:
-    st.info("📍 Using geographic-based ecosystem detection with pre-computed ESVD values")
-    esa_available = False
+# System status - focus on what's working  
+st.info("📊 **System Status**: Using authentic ESVD database with 10,874+ peer-reviewed studies for ecosystem valuation")
 
 # Initialize session state
 if 'selected_area' not in st.session_state:
