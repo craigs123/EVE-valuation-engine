@@ -261,9 +261,21 @@ class EcosystemAnalysisDB:
     @staticmethod
     def get_user_analyses(user_session_id: Optional[str] = None, limit: int = 10) -> List[Dict]:
         """Get user's recent analyses"""
+        db = None
         try:
             db = get_db()
-            session_id = user_session_id or st.session_state.get('user_id')
+            
+            # Handle session state safely
+            session_user_id = None
+            try:
+                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                    session_user_id = st.session_state.get('user_id')
+            except:
+                pass  # No session state available
+            
+            session_id = user_session_id or session_user_id
+            if not session_id:
+                return []
             
             analyses = db.query(EcosystemAnalysis).filter(
                 EcosystemAnalysis.user_session_id == session_id
@@ -281,16 +293,24 @@ class EcosystemAnalysisDB:
                     'coordinates': analysis.coordinates
                 })
             
-            db.close()
             return result
             
         except Exception as e:
-            st.error(f"Failed to retrieve analyses: {str(e)}")
+            # Try to show error in Streamlit if available
+            try:
+                if hasattr(st, 'error'):
+                    st.error(f"Failed to retrieve analyses: {str(e)}")
+            except:
+                print(f"Failed to retrieve analyses: {str(e)}")
             return []
+        finally:
+            if db:
+                db.close()
     
     @staticmethod
     def get_analysis_by_id(analysis_id: str) -> Optional[Dict]:
         """Get specific analysis by ID"""
+        db = None
         try:
             db = get_db()
             
@@ -311,15 +331,20 @@ class EcosystemAnalysisDB:
                     'sampling_points': analysis.sampling_points,
                     'created_at': analysis.created_at
                 }
-                db.close()
                 return result
             
-            db.close()
             return None
             
         except Exception as e:
-            st.error(f"Failed to retrieve analysis: {str(e)}")
+            try:
+                if hasattr(st, 'error'):
+                    st.error(f"Failed to retrieve analysis: {str(e)}")
+            except:
+                print(f"Failed to retrieve analysis: {str(e)}")
             return None
+        finally:
+            if db:
+                db.close()
 
 # Database operations for saved areas
 class SavedAreaDB:
@@ -334,11 +359,20 @@ class SavedAreaDB:
         user_session_id: Optional[str] = None
     ) -> Optional[str]:
         """Save area for future analysis"""
+        db = None
         try:
             db = get_db()
             
+            # Handle session state safely
+            session_user_id = None
+            try:
+                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                    session_user_id = st.session_state.get('user_id')
+            except:
+                pass  # No session state available
+            
             saved_area = SavedArea(
-                user_session_id=user_session_id or st.session_state.get('user_id'),
+                user_session_id=user_session_id or session_user_id,
                 name=name,
                 description=description,
                 coordinates=coordinates,
@@ -350,21 +384,46 @@ class SavedAreaDB:
             db.refresh(saved_area)
             
             area_id = str(saved_area.id)
-            db.close()
             return area_id
             
         except Exception as e:
-            st.error(f"Failed to save area: {str(e)}")
+            error_msg = f"Failed to save area: {str(e)}"
             import traceback
-            st.error(f"Traceback: {traceback.format_exc()}")
+            traceback_msg = f"Traceback: {traceback.format_exc()}"
+            
+            # Try to show error in Streamlit if available
+            try:
+                if hasattr(st, 'error'):
+                    st.error(error_msg)
+                    st.error(traceback_msg)
+            except:
+                # Fallback to print if no Streamlit context
+                print(error_msg)
+                print(traceback_msg)
+            
             return None
+        finally:
+            if db:
+                db.close()
     
     @staticmethod
     def get_user_saved_areas(user_session_id: Optional[str] = None) -> List[Dict]:
         """Get user's saved areas"""
+        db = None
         try:
             db = get_db()
-            session_id = user_session_id or st.session_state.get('user_id')
+            
+            # Handle session state safely
+            session_user_id = None
+            try:
+                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                    session_user_id = st.session_state.get('user_id')
+            except:
+                pass  # No session state available
+                
+            session_id = user_session_id or session_user_id
+            if not session_id:
+                return []
             
             areas = db.query(SavedArea).filter(
                 SavedArea.user_session_id == session_id
@@ -382,12 +441,19 @@ class SavedAreaDB:
                     'created_at': area.created_at
                 })
             
-            db.close()
             return result
             
         except Exception as e:
-            st.error(f"Failed to retrieve saved areas: {str(e)}")
+            # Try to show error in Streamlit if available
+            try:
+                if hasattr(st, 'error'):
+                    st.error(f"Failed to retrieve saved areas: {str(e)}")
+            except:
+                print(f"Failed to retrieve saved areas: {str(e)}")
             return []
+        finally:
+            if db:
+                db.close()
 
 # Database operations for natural capital baselines
 class NaturalCapitalBaselineDB:

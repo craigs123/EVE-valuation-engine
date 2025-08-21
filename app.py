@@ -699,6 +699,7 @@ Example: 100ha Forest
         with tab2:
             st.markdown("**📍 Your Saved Areas**")
             try:
+                db_modules = get_database_modules()
                 saved_areas = db_modules['SavedAreaDB'].get_user_saved_areas()
                 
                 if saved_areas:
@@ -2068,6 +2069,8 @@ if st.session_state.analysis_results:
                         save_key = f"saved_analysis_{hash(str(results))}"
                         
                         if save_key not in st.session_state:
+                            db_modules = get_database_modules()
+                            EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
                             analysis_id = EcosystemAnalysisDB.save_analysis(
                                 coordinates=st.session_state.area_coordinates,
                                 area_hectares=results['area_ha'],
