@@ -418,14 +418,19 @@ if 'area_coordinates' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
-# Sidebar configuration
+# Sidebar configuration - optimized for performance
 with st.sidebar:
     st.header("Analysis Settings")
+    
+    # Cache ecosystem options to avoid recreation
+    @st.cache_data
+    def get_ecosystem_options():
+        return ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"]
     
     # Ecosystem type override
     ecosystem_override = st.selectbox(
         "Ecosystem Type",
-        options=["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"],
+        options=get_ecosystem_options(),
         help="Auto-detection uses geographic analysis for ecosystem classification"
     )
     
@@ -464,32 +469,27 @@ with st.sidebar:
         - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
         """)
     
-    # Sampling points guide
-    if max_sampling_limit <= 20:
-        st.info("🔹 **Low Sampling**: Faster analysis, suitable for uniform areas")
-    elif max_sampling_limit <= 50:
-        st.info("🔸 **Moderate Sampling**: Good balance of speed and accuracy")
-    elif max_sampling_limit <= 80:
-        st.info("🔸 **High Sampling**: More accurate for mixed ecosystems")
-    else:
-        st.warning("🔴 **Maximum Sampling**: Highest accuracy, slower processing")
+    # Optimized sampling guide - reduce conditional rendering
+    sampling_guide = {
+        (0, 20): "🔹 **Low Sampling**: Faster analysis, suitable for uniform areas",
+        (21, 50): "🔸 **Moderate Sampling**: Good balance of speed and accuracy", 
+        (51, 80): "🔸 **High Sampling**: More accurate for mixed ecosystems",
+        (81, 100): "🔴 **Maximum Sampling**: Highest accuracy, slower processing"
+    }
     
-    # Display sampling info (optimized with cached area calculation)
-    if st.session_state.get('area_coordinates'):
-        # Use cached area if available, otherwise calculate once
-        if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
-            area_ha = st.session_state.cached_area_ha
-        else:
-            coords = np.array(st.session_state.area_coordinates)
-            area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
-            # Cache the calculated area
-            st.session_state.cached_area_ha = area_ha
-        
-        # All areas use the user-defined sample limit
+    for (min_val, max_val), message in sampling_guide.items():
+        if min_val <= max_sampling_limit <= max_val:
+            st.info(message)
+            break
+    
+    # Optimized sampling info display - only show when needed
+    if st.session_state.get('area_coordinates') and st.session_state.get('cached_area_ha'):
+        area_ha = st.session_state.cached_area_ha
         grid_size = int(np.sqrt(max_sampling_limit))
         actual_final = grid_size ** 2
         st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
+    elif st.session_state.get('area_coordinates'):
+        st.caption("Area calculation in progress...")
     else:
         st.caption("Select an area to see sampling estimation")
     
@@ -510,8 +510,8 @@ with st.sidebar:
         help="Higher values increase regional income differences in valuation. Research suggests 0.5-0.6 for environmental services."
     )
     
-    st.caption("📚 **Methodological basis**: Income elasticity approach from benefit transfer literature")
-    st.caption("🔬 **Formula**: Value × (Regional_GDP / Global_Average_GDP)^elasticity")
+    # Combine captions for faster rendering
+    st.caption("📚 **Methodological basis**: Income elasticity approach from benefit transfer literature | 🔬 **Formula**: Value × (Regional_GDP / Global_GDP)^elasticity")
     
     # Store in session state
     st.session_state['income_elasticity'] = income_elasticity
