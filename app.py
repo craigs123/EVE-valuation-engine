@@ -351,8 +351,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and header  
-st.markdown('<h1 class="main-header">🌱 Ecosystem Valuation Engine</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Professional ecosystem services valuation powered by authentic ESVD database</p>', unsafe_allow_html=True)
+st.title("🌱 Ecosystem Valuation Engine")
+st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
 # ESVD Integration Status (using preloaded data for speed)
 try:
@@ -881,8 +881,8 @@ analyze_button = False
 col1, col2 = st.columns([3, 2])
 
 with col1:
-    st.subheader("🗺️ Select Your Area")
-    st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
+    st.subheader("🗺️ Step 1: Select Your Area")
+    st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area")
     
     # Performance-optimized sampling display  
     current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
@@ -1140,10 +1140,59 @@ with col1:
 
 # Right column - Preview and results
 with col2:
-    st.subheader("📊 Analysis Preview")
+    st.subheader("📊 Step 2: Configure & Calculate")
     
+    # Quick configuration in main area for better UX
     if st.session_state.get('selected_area'):
-        st.success("✅ Area Selected")
+        st.success("✅ Area Selected - Ready to analyze!")
+        
+        # Quick configuration options in main area
+        col_config1, col_config2 = st.columns(2)
+        
+        with col_config1:
+            quick_ecosystem = st.selectbox(
+                "Ecosystem Type:",
+                ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban"],
+                help="Auto-detect uses satellite analysis",
+                key="quick_ecosystem"
+            )
+            st.session_state.ecosystem_override = quick_ecosystem
+        
+        with col_config2:
+            quick_analysis = st.selectbox(
+                "Analysis Type:",
+                ["Summary Analysis", "Detailed Analysis"],
+                help="Summary: key metrics only. Detailed: full breakdown",
+                key="quick_analysis"
+            )
+            st.session_state.analysis_detail = quick_analysis
+        
+        # Prominent calculate button
+        if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
+            # Set analyze_button for processing
+            analyze_button = True
+        else:
+            analyze_button = False
+            
+    else:
+        st.info("👆 First, draw an area on the map above")
+        analyze_button = False
+    
+    # Results section
+    if st.session_state.get('analysis_results'):
+        st.markdown("### 📈 Step 3: Results")
+        results = st.session_state.analysis_results
+        
+        # Key metrics display
+        col_metrics1, col_metrics2 = st.columns(2)
+        with col_metrics1:
+            st.metric("Total Value", f"${results['total_value']:,.0f} /year")
+            st.metric("Area Size", f"{results['area_ha']:,.0f} hectares")
+        with col_metrics2:
+            st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
+            st.metric("Ecosystem Type", results['ecosystem_type'])
+        
+    elif st.session_state.get('selected_area'):
         coords = st.session_state.area_coordinates
         
         # Calculate area in hectares (cached)
