@@ -10,37 +10,45 @@ from datetime import datetime, timedelta
 import json
 import base64
 
-# Database imports (lazy loading for performance)
-@st.cache_resource(show_spinner=False)
+# Ultra-fast lazy loading for production performance
+@st.cache_resource(show_spinner=False, ttl=3600)
 def get_database_modules():
-    """Lazy load database modules for better performance"""
-    from database import (
-        init_database, 
-        test_database_connection, 
-        initialize_user_session,
-        EcosystemAnalysisDB,
-        SavedAreaDB,
-        NaturalCapitalBaselineDB
-    )
-    return {
-        'init_database': init_database,
-        'test_database_connection': test_database_connection,
-        'initialize_user_session': initialize_user_session,
-        'EcosystemAnalysisDB': EcosystemAnalysisDB,
-        'SavedAreaDB': SavedAreaDB,
-        'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
-    }
+    """Lazy load database modules with extended caching for production performance"""
+    try:
+        from database import (
+            init_database, 
+            test_database_connection, 
+            initialize_user_session,
+            EcosystemAnalysisDB,
+            SavedAreaDB,
+            NaturalCapitalBaselineDB
+        )
+        return {
+            'init_database': init_database,
+            'test_database_connection': test_database_connection,
+            'initialize_user_session': initialize_user_session,
+            'EcosystemAnalysisDB': EcosystemAnalysisDB,
+            'SavedAreaDB': SavedAreaDB,
+            'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
+        }
+    except ImportError:
+        return None  # Graceful fallback
 
-# Clean, simple page configuration
+# Optimized page configuration for production
 st.set_page_config(
     page_title="Ecosystem Valuation Engine",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }  # Remove menu items for faster loading
 )
 
-# Ultra-High Performance Map Optimizations
-@st.cache_data(ttl=3600, max_entries=10, show_spinner=False)  # Aggressive cache for fast loading
+# Production-optimized map caching with extended TTL
+@st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
     """Create and cache folium map with maximum performance optimizations"""
     m = folium.Map(
@@ -287,25 +295,28 @@ def process_coordinates_batch(coordinates_list):
             }
     return results
 
-# Initialize database and user session
+# Initialize database and user session with fallback handling
 if 'db_initialized' not in st.session_state:
     try:
         db_modules = get_database_modules()
-        if db_modules['init_database']():
+        if db_modules and db_modules['init_database']():
             st.session_state.db_initialized = True
             user_id = db_modules['initialize_user_session']()
             pass  # Database ready - no need to show success message every time
         else:
-            st.error("Database initialization failed. Some features may not work properly.")
             st.session_state.db_initialized = False
-            user_id = None
+            st.session_state.user_id = "anonymous"
+            user_id = "anonymous"
     except Exception as e:
-        st.error(f"Database initialization error: {str(e)}")
         st.session_state.db_initialized = False
-        user_id = None
+        st.session_state.user_id = "anonymous" 
+        user_id = "anonymous"
 else:
     db_modules = get_database_modules()
-    user_id = db_modules['initialize_user_session']()
+    if db_modules:
+        user_id = db_modules['initialize_user_session']()
+    else:
+        user_id = st.session_state.get('user_id', 'anonymous')
 
 # Custom CSS
 st.markdown("""
@@ -690,7 +701,7 @@ Example: 100ha Forest
         # Database status indicator  
         try:
             db_modules = get_database_modules()
-            if db_modules['test_database_connection']():
+            if db_modules and db_modules['test_database_connection']():
                 st.success("🟢 Database connected")
             else:
                 st.warning("🟡 Database connection issue")
@@ -704,7 +715,10 @@ Example: 100ha Forest
             st.markdown("**📊 Your Recent Analyses**")
             try:
                 db_modules = get_database_modules()
-                recent_analyses = db_modules['EcosystemAnalysisDB'].get_user_analyses(limit=5)
+                if db_modules:
+                    recent_analyses = db_modules['EcosystemAnalysisDB'].get_user_analyses(limit=5)
+                else:
+                    recent_analyses = []
                 
                 if recent_analyses:
                     for analysis in recent_analyses:
@@ -714,7 +728,10 @@ Example: 100ha Forest
                             
                             if st.button(f"Load Analysis", key=f"load_{analysis['id']}", use_container_width=True):
                                 # Load the analysis data
-                                full_analysis = db_modules['EcosystemAnalysisDB'].get_analysis_by_id(analysis['id'])
+                                if db_modules:
+                                    full_analysis = db_modules['EcosystemAnalysisDB'].get_analysis_by_id(analysis['id'])
+                                else:
+                                    full_analysis = None
                                 if full_analysis:
                                     st.session_state.area_coordinates = full_analysis['coordinates']
                                     st.session_state.analysis_results = full_analysis['analysis_results']
@@ -735,7 +752,10 @@ Example: 100ha Forest
             st.markdown("**📍 Your Saved Areas**")
             try:
                 db_modules = get_database_modules()
-                saved_areas = db_modules['SavedAreaDB'].get_user_saved_areas()
+                if db_modules:
+                    saved_areas = db_modules['SavedAreaDB'].get_user_saved_areas()
+                else:
+                    saved_areas = []
                 
                 if saved_areas:
                     for area in saved_areas:
