@@ -156,7 +156,7 @@ class PrecomputedESVDCoefficients:
         ecosystem_coeffs = self.coefficients.get(ecosystem_type, self.coefficients['forest'])
         return ecosystem_coeffs.get(service_type, 100.0)  # Default fallback
     
-    def get_regional_gdp(self, coordinates: tuple = None) -> float:
+    def get_regional_gdp(self, coordinates: tuple | None = None) -> float:
         """
         Get regional GDP per capita based on coordinates
         Adapted from the previous working method
@@ -202,7 +202,7 @@ class PrecomputedESVDCoefficients:
         else:
             return self.regional_gdp_data['global_average']
     
-    def get_regional_factor(self, coordinates: tuple = None) -> float:
+    def get_regional_factor(self, coordinates: tuple | None = None) -> float:
         """
         Calculate regional adjustment factor using income elasticity (multiplier method)
         Uses traditional economic approach where elasticity is a direct multiplier
@@ -226,7 +226,7 @@ class PrecomputedESVDCoefficients:
         return max(0.4, min(2.5, adjustment_factor))
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
-                                 coordinates: tuple = None) -> dict:
+                                 coordinates: tuple | None = None) -> dict:
         """
         Calculate ecosystem service values using pre-computed coefficients
         
@@ -312,7 +312,7 @@ def get_base_coefficient(ecosystem_type, category, service):
 
 # Main calculation functions for API compatibility
 def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
-                                     coordinates: tuple = None, sampling_points: int = 10) -> dict:
+                                     coordinates: tuple | None = None, sampling_points: int = 10) -> dict:
     """Calculate ecosystem services value using pre-computed coefficients"""
     # Use session state elasticity if available, else default
     import streamlit as st
@@ -321,7 +321,7 @@ def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float
     return coeffs.calculate_ecosystem_values(ecosystem_type, area_hectares, coordinates)
 
 def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_hectares: float,
-                                           coordinates: tuple = None, sampling_points: int = 10) -> dict:
+                                           coordinates: tuple | None = None, sampling_points: int = 10) -> dict:
     """Calculate mixed ecosystem values with proper weighting"""
     total_points = sum(data['count'] for data in ecosystem_distribution.values())
     if total_points == 0:
