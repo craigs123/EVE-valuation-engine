@@ -1119,18 +1119,23 @@ with col1:
     
     with col_button:
         st.write("") # spacing
-        if st.session_state.selected_area:
+        # Ensure only one button state is rendered to prevent duplicates
+        area_selected = bool(st.session_state.get('selected_area') and st.session_state.get('area_coordinates'))
+        
+        if area_selected:
             analyze_button = st.button(
                 "🚀 Calculate Value", 
                 type="primary",
                 use_container_width=True,
-                help="Calculate ecosystem services value for selected area"
+                help="Calculate ecosystem services value for selected area",
+                key="calculate_value_btn"
             )
         else:
             analyze_button = st.button(
                 "Select area first", 
                 disabled=True,
-                use_container_width=True
+                use_container_width=True,
+                key="select_area_first_btn"
             )
 
 # Right column - Preview and results
