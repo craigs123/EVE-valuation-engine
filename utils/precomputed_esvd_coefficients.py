@@ -204,8 +204,8 @@ class PrecomputedESVDCoefficients:
     
     def get_regional_factor(self, coordinates: tuple = None) -> float:
         """
-        Calculate regional adjustment factor using income elasticity
-        Adapted from the previous working method, treating ESVD as baseline
+        Calculate regional adjustment factor using income elasticity (multiplier method)
+        Uses traditional economic approach where elasticity is a direct multiplier
         
         Args:
             coordinates: (latitude, longitude) tuple
@@ -216,12 +216,14 @@ class PrecomputedESVDCoefficients:
         regional_gdp = self.get_regional_gdp(coordinates)
         global_gdp = self.regional_gdp_data['global_average']
         
-        # Calculate adjustment using income elasticity
-        # Since ESVD coefficients represent global average, adjust based on local GDP
-        adjustment_factor = (regional_gdp / global_gdp) ** self.income_elasticity
+        # Calculate adjustment using income elasticity as multiplier
+        # Formula: 1 + (elasticity × (regional_gdp/global_gdp - 1))
+        # This represents responsiveness to income differences from global baseline
+        gdp_ratio = regional_gdp / global_gdp
+        adjustment_factor = 1 + (self.income_elasticity * (gdp_ratio - 1))
         
         # Apply reasonable bounds to prevent extreme values
-        return max(0.5, min(2.0, adjustment_factor))
+        return max(0.4, min(2.5, adjustment_factor))
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple = None) -> dict:
