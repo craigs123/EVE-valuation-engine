@@ -31,12 +31,12 @@ def get_database_modules():
         'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
     }
 
-# Ultra-performance page configuration
+# Clean, simple page configuration
 st.set_page_config(
     page_title="Ecosystem Valuation Engine",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Start collapsed for faster initial load
+    initial_sidebar_state="collapsed"
 )
 
 # Ultra-High Performance Map Optimizations
