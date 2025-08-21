@@ -994,7 +994,6 @@ with col1:
     else:
         st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
-    # Analysis controls under the map
     # Sustainability Assessment Questions
     st.markdown("### 🌱 Sustainability Assessment")
     
