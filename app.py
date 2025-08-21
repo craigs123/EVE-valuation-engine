@@ -1525,7 +1525,8 @@ if analyze_button and st.session_state.selected_area:
                 'esvd_results': esvd_results,
                 'value_per_ha': esvd_results['total_annual_value'] / area_ha,
                 'data_source': 'ESVD/TEEB Database',
-                'regional_factor': esvd_results['metadata']['regional_adjustment']
+                'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
+                'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
             }
             
             # Show final completion

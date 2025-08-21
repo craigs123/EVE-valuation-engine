@@ -268,6 +268,7 @@ class PrecomputedESVDCoefficients:
             'metadata': {
                 'data_source': 'Pre-computed from Authentic ESVD Database APR2024 V1.1',
                 'regional_adjustment': regional_factor,
+                'quality_factor': 1.0,  # Default quality factor
                 'database_version': 'ESVD APR2024V1.1',
                 'methodology': 'Static coefficients from 10,874+ peer-reviewed studies with regional deviation adjustments',
                 'performance_optimized': True,
@@ -368,6 +369,12 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_
                              for eco, data in ecosystem_distribution.items()},
         'metadata': {
             'data_source': 'Pre-computed from Authentic ESVD Database APR2024 V1.1',
-            'methodology': 'Area-weighted calculation from multiple ecosystem types with regional adjustments'
+            'regional_adjustment': 1.0,
+            'quality_factor': 1.0,
+            'database_version': 'ESVD APR2024V1.1',
+            'methodology': 'Area-weighted calculation from multiple ecosystem types with regional adjustments',
+            'performance_optimized': True,
+            'total_value': total_value,
+            'value_per_hectare': total_value / area_hectares if area_hectares > 0 else 0
         }
     }
