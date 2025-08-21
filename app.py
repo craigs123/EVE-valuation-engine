@@ -696,7 +696,7 @@ Example: 100ha Forest
             
             if usgs_status.get('error'):
                 st.error(f"Issue: {usgs_status['error']}")
-                if 'credentials' in usgs_status['error'].lower():
+                if 'credentials' in str(usgs_status['error']).lower():
                     st.info("💡 Add USGS_USERNAME and USGS_PASSWORD to use authentic satellite data")
         
         except Exception as e:
@@ -1360,9 +1360,11 @@ if analyze_button and st.session_state.selected_area:
                     }
             
             # Update progress for valuation phase
-            with progress_container.container():
+            with analysis_progress_container.container():
+                st.markdown("### 🔄 Analysis in Progress")
+                progress_text = st.empty()
+                progress_bar = st.progress(0.9)
                 progress_text.info("💰 **Please wait** - Calculating ecosystem service values using pre-computed ESVD coefficients...")
-                progress_bar.progress(0.9)
             
             # Calculate authentic ecosystem values using pre-computed ESVD coefficients
             from utils.precomputed_esvd_coefficients import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
