@@ -534,6 +534,63 @@ with st.sidebar:
     st.session_state['income_elasticity'] = income_elasticity
     
     st.markdown("---")
+    st.subheader("📊 Analysis Configuration")
+    
+    # Analysis period settings
+    time_preset = st.selectbox(
+        "Analysis Period",
+        options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
+        index=0,
+        key="sidebar_time_preset"
+    )
+    
+    if time_preset == "Custom Range":
+        start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="sidebar_start_date")
+        end_date = st.date_input("To", value=datetime.now(), key="sidebar_end_date")
+    else:
+        preset_options = {
+            "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
+            "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
+            "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
+        }
+        start_date, end_date = preset_options[time_preset]
+    
+    # Analysis detail level
+    analysis_detail = st.selectbox(
+        "Analysis Detail",
+        options=["Summary Analysis", "Detailed Analysis"],
+        help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
+        key="sidebar_analysis_detail"
+    )
+    
+    # Store settings
+    st.session_state.analysis_detail = analysis_detail
+    st.session_state.analysis_start_date = start_date
+    st.session_state.analysis_end_date = end_date
+    
+    # Calculate Value button in sidebar
+    st.markdown("---")
+    st.subheader("🚀 Run Analysis")
+    
+    area_selected = bool(st.session_state.get('selected_area') and st.session_state.get('area_coordinates'))
+    
+    if area_selected:
+        analyze_button = st.button(
+            "🚀 Calculate Value", 
+            type="primary",
+            use_container_width=True,
+            help="Calculate ecosystem services value for selected area",
+            key="sidebar_calculate_btn"
+        )
+    else:
+        analyze_button = st.button(
+            "Select area first", 
+            disabled=True,
+            use_container_width=True,
+            key="sidebar_disabled_btn"
+        )
+    
+    st.markdown("---")
     
     # Methodology and Sources section
     st.header("📚 Methodology and Sources")
@@ -1079,64 +1136,7 @@ with col1:
         else:
             st.error("📈 Consider adopting more sustainable practices")
     
-    st.markdown("---")
-    st.markdown("### 📊 Analysis Controls")
-    
-    col_period, col_button = st.columns([2, 1])
-    
-    with col_period:
-        time_preset = st.selectbox(
-            "Analysis Period",
-            options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
-            index=0,
-            key="map_time_preset"
-        )
-        
-        if time_preset == "Custom Range":
-            col_start, col_end = st.columns(2)
-            with col_start:
-                start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="map_start_date")
-            with col_end:
-                end_date = st.date_input("To", value=datetime.now(), key="map_end_date")
-        else:
-            preset_options = {
-                "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
-                "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
-                "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
-            }
-            start_date, end_date = preset_options[time_preset]
-        
-        # Analysis detail level (moved from sidebar)
-        analysis_detail = st.selectbox(
-            "Analysis Detail",
-            options=["Summary Analysis", "Detailed Analysis"],
-            help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
-            key="analysis_detail_main"
-        )
-        
-        # Store setting
-        st.session_state.analysis_detail = analysis_detail
-    
-    with col_button:
-        st.write("") # spacing
-        # Ensure only one button state is rendered to prevent duplicates
-        area_selected = bool(st.session_state.get('selected_area') and st.session_state.get('area_coordinates'))
-        
-        if area_selected:
-            analyze_button = st.button(
-                "🚀 Calculate Value", 
-                type="primary",
-                use_container_width=True,
-                help="Calculate ecosystem services value for selected area",
-                key="calculate_value_btn"
-            )
-        else:
-            analyze_button = st.button(
-                "Select area first", 
-                disabled=True,
-                use_container_width=True,
-                key="select_area_first_btn"
-            )
+    # Analysis controls have been moved to sidebar to eliminate duplicate interfaces
 
 # Right column - Preview and results
 with col2:
