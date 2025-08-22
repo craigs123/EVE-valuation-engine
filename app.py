@@ -103,7 +103,7 @@ def create_drawing_tools():
         position='topleft',
         draw_options={
             'polyline': False,
-            'circle': True,  # Re-enable circle drawing
+            'circle': False,  # Disable circle drawing
             'marker': False,
             'circlemarker': False,
             'polygon': {
