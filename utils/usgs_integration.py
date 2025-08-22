@@ -496,18 +496,18 @@ class USGSEarthExplorerIntegrator:
         try:
             import requests
             
-            # Test login endpoint
-            login_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['login']}"
-            payload = {
+            # First try the new login-token endpoint (recommended for M2M v1.5)
+            login_token_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['login_token']}"
+            token_payload = {
                 "username": self.username,
-                "password": self.password
+                "token": self.password  # M2M API uses token-based auth
             }
             
-            response = requests.post(login_url, json=payload, timeout=10)
+            response = requests.post(login_token_url, json=token_payload, timeout=10)
             
             if response.status_code == 200:
                 result = response.json()
-                if result.get('data'):  # Successful authentication
+                if result.get('data'):  # Successful token authentication
                     api_key = result['data']
                     
                     # Test permissions
@@ -523,23 +523,72 @@ class USGSEarthExplorerIntegrator:
                     # Test logout
                     logout_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['logout']}"
                     logout_payload = {"apiKey": api_key}
-                    requests.post(logout_url, json=logout_payload, timeout=5)
+                    logout_response = requests.post(logout_url, json=logout_payload, timeout=5)
                     
                     return {
-                        'success': True, 
+                        'success': True,
                         'api_key': api_key,
                         'permissions': permissions,
-                        'status': 'M2M API v1.5 connection successful'
+                        'logout_success': logout_response.status_code == 200,
+                        'method': 'M2M API v1.5 token authentication'
                     }
-            
+                else:
+                    error_msg = result.get('errorMessage', 'Token authentication failed')
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'error_code': result.get('errorCode'),
+                        'suggestion': 'Register for M2M API access at https://ers.cr.usgs.gov/register/'
+                    }
+            else:
+                # Fallback to legacy login endpoint
+                login_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['login']}"
+                legacy_payload = {
+                    "username": self.username,
+                    "password": self.password
+                }
+                
+                legacy_response = requests.post(login_url, json=legacy_payload, timeout=10)
+                
+                if legacy_response.status_code == 200:
+                    legacy_result = legacy_response.json()
+                    if legacy_result.get('data'):  # Successful legacy authentication
+                        api_key = legacy_result['data']
+                        
+                        # Test logout
+                        logout_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['logout']}"
+                        logout_payload = {"apiKey": api_key}
+                        logout_response = requests.post(logout_url, json=logout_payload, timeout=5)
+                        
+                        return {
+                            'success': True,
+                            'api_key': api_key,
+                            'permissions': [],
+                            'logout_success': logout_response.status_code == 200,
+                            'method': 'M2M API v1.5 legacy authentication',
+                            'warning': 'Using deprecated login endpoint - consider upgrading to token-based auth'
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'error': legacy_result.get('errorMessage', 'Legacy authentication failed'),
+                            'error_code': legacy_result.get('errorCode'),
+                            'suggestion': 'Check credentials or register for new M2M API access'
+                        }
+                else:
+                    return {
+                        'success': False,
+                        'error': f'Both token and legacy authentication failed. HTTP {legacy_response.status_code}',
+                        'status_code': legacy_response.status_code,
+                        'suggestion': 'Apply for M2M API access at https://ers.cr.usgs.gov/register/ or check credentials'
+                    }
+                    
+        except Exception as e:
             return {
                 'success': False, 
-                'status_code': response.status_code,
-                'response': response.text[:200] if response.text else 'No response'
+                'error': str(e),
+                'suggestion': 'Network error or invalid API endpoint. Check internet connection and USGS API status.'
             }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
 
     def test_authentication(self) -> Dict[str, Any]:
         """Test USGS authentication with current credentials"""
