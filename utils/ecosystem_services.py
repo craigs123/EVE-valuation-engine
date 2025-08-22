@@ -175,12 +175,7 @@ class EcosystemServicesCalculator:
                     'cultural_percent': float(latest_services.get('cultural', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
                     'supporting_percent': float(latest_services.get('supporting', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0
                 },
-                'esvd_results': {
-                    'provisioning': latest_services.get('provisioning', {}),
-                    'regulating': latest_services.get('regulating', {}),
-                    'cultural': latest_services.get('cultural', {}),
-                    'supporting': latest_services.get('supporting', {})
-                },
+                'esvd_results': esvd_results,  # Use the raw ESVD results which have service breakdown
                 'valuation_summary': self._generate_valuation_summary(current_value, trend, ecosystem_type),
                 'data_source': 'ESVD (Ecosystem Services Valuation Database)',
                 'esvd_metadata': esvd_metadata,
