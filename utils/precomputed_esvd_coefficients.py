@@ -336,8 +336,16 @@ class PrecomputedESVDCoefficients:
             total_value += category_total
         
         results['total_value'] = total_value
+        results['total_annual_value'] = total_value  # Compatibility key for app.py
+        results['current_value'] = total_value  # Compatibility key for ecosystem_services.py
         results['regional_adjustment_factor'] = regional_factor
         results['country_gdp'] = self.get_country_gdp(coordinates) if coordinates else self.global_gdp_average
+        results['metadata'] = {
+            'regional_adjustment': regional_factor,
+            'quality_factor': 1.0,
+            'data_source': 'ESVD/TEEB Database',
+            'calculation_method': 'Precomputed coefficients'
+        }
         
         return results
 
@@ -373,7 +381,16 @@ def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_
     
     return {
         'total_value': total_value,
+        'total_annual_value': total_value,  # Compatibility key for app.py
+        'current_value': total_value,  # Compatibility key for ecosystem_services.py
         'ecosystem_breakdown': weighted_results,
+        'ecosystem_results': weighted_results,  # Compatibility alias
         'regional_adjustment_factor': weighted_results[list(weighted_results.keys())[0]].get('regional_adjustment_factor', 1.0) if weighted_results else 1.0,
-        'country_gdp': weighted_results[list(weighted_results.keys())[0]].get('country_gdp', 11312) if weighted_results else 11312
+        'country_gdp': weighted_results[list(weighted_results.keys())[0]].get('country_gdp', 11312) if weighted_results else 11312,
+        'metadata': {
+            'regional_adjustment': weighted_results[list(weighted_results.keys())[0]].get('regional_adjustment_factor', 1.0) if weighted_results else 1.0,
+            'quality_factor': 1.0,
+            'data_source': 'ESVD/TEEB Database (Mixed Ecosystems)',
+            'calculation_method': 'Weighted precomputed coefficients'
+        }
     }

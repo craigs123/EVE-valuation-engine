@@ -1660,11 +1660,11 @@ if analyze_button and st.session_state.selected_area:
             
             # Store comprehensive analysis results
             st.session_state.analysis_results = {
-                'total_value': int(esvd_results['total_annual_value']),
+                'total_value': int(esvd_results.get('total_annual_value', esvd_results.get('current_value', 0))),
                 'area_ha': area_ha,
                 'ecosystem_type': display_ecosystem_type,
                 'esvd_results': esvd_results,
-                'value_per_ha': esvd_results['total_annual_value'] / area_ha,
+                'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
                 'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
