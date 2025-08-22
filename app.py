@@ -2146,8 +2146,6 @@ if st.session_state.analysis_results:
         st.markdown("### 🌿 Ecosystem Services Breakdown")
         esvd_data = results['esvd_results']
         
-        # Debug: Show what we have in esvd_data
-        st.write("Debug - ESVD data keys:", list(esvd_data.keys()))
         
         # Check if we have the expected categories
         has_categories = any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting'])
@@ -2171,13 +2169,10 @@ if st.session_state.analysis_results:
                         with st.expander(f"💡 {category.title()} services breakdown"):
                             st.markdown(f"**{category.title()} Services Calculation**")
                             
-                            # Debug: Show category structure
-                            st.write(f"Debug - {category} structure:", esvd_data[category])
                             
                             # Show individual service calculations
                             if 'services' in esvd_data[category]:
                                 services_data = esvd_data[category]['services']
-                                st.write(f"Debug - Services data type: {type(services_data)}, content: {services_data}")
                                 
                                 if services_data and isinstance(services_data, dict):  # Check if services_data has content
                                     for service, value in services_data.items():
@@ -2196,7 +2191,6 @@ if st.session_state.analysis_results:
                                     st.markdown(f"**Total {category.title()} Services**: ${category_total:,.0f}/year")
                                 else:
                                     st.info(f"No {category} services detected for this ecosystem type")
-                                st.write(f"Debug - No 'services' key in {category}, available keys:", list(esvd_data[category].keys()))
                             
                             # Add methodology explanation
                             st.markdown(f"""
