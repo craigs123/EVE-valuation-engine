@@ -7,6 +7,7 @@ import folium
 from streamlit_folium import st_folium
 import numpy as np
 from datetime import datetime, timedelta
+from typing import Dict, Optional, Any
 import json
 import base64
 
@@ -1285,6 +1286,9 @@ with col2:
         st.markdown("### 📈 Step 3: Results")
         results = st.session_state.analysis_results
         
+        # Display data source status - show clearly which method was used
+        display_data_source_status(results.get('satellite_data'))
+        
         # Key metrics display with water area exclusion information
         col_metrics1, col_metrics2 = st.columns(2)
         with col_metrics1:
@@ -1696,6 +1700,9 @@ if st.session_state.analysis_results:
         st.subheader("📈 Summary Results")
         results = st.session_state.analysis_results
         
+        # Show data source status in summary view
+        display_data_source_status(results.get('satellite_data'))
+        
         # Simple metrics display for summary
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -1841,6 +1848,9 @@ if st.session_state.analysis_results:
     else:  # Detailed Analysis
         st.subheader("📈 Detailed Analysis Results")
         results = st.session_state.analysis_results
+        
+        # Show detailed data source status in detailed view
+        display_data_source_status(results.get('satellite_data'))
         
 
         
