@@ -1784,6 +1784,28 @@ if st.session_state.analysis_results:
                 
                 st.caption(f"Baseline established: {baseline_info['baseline_date'].strftime('%Y-%m-%d %H:%M')}")
         
+        # Add ecosystem services breakdown to summary view
+        if 'esvd_results' in results:
+            st.markdown("### 🌿 Ecosystem Services Breakdown")
+            esvd_data = results['esvd_results']
+            
+            # Check if we have service category data
+            if any(category in esvd_data for category in ['provisioning', 'regulating', 'cultural', 'supporting']):
+                categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                cols = st.columns(4)
+                
+                for i, category in enumerate(categories):
+                    if category in esvd_data and isinstance(esvd_data[category], dict):
+                        total = esvd_data[category].get('total', 0)
+                        with cols[i]:
+                            per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
+                            percentage = (total/results['total_value']*100) if results['total_value'] > 0 else 0
+                            st.metric(f"{category.title()}", f"${total:,.0f}/year")
+                            st.caption(f"${per_ha_category:.0f}/ha • {percentage:.0f}% of total")
+            else:
+                # Fallback for simple data structure
+                st.info("Service breakdown details available in Detailed Analysis view")
+        
         # Action buttons
         col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
         
