@@ -467,8 +467,24 @@ with st.sidebar:
             help="Higher values increase regional income differences in valuation. Research suggests 0.5-0.6 for environmental services."
         )
         
-        # Combine captions for faster rendering
-        st.caption("📚 **Methodological basis**: Income elasticity approach from benefit transfer literature | 🔬 **Formula**: Value × (Regional_GDP / Global_GDP)^elasticity")
+        # Updated methodology explanation with authentic data sources
+        st.markdown("""
+        **📚 Methodology:** Income elasticity of willingness to pay method from environmental economics literature  
+        **🔬 Formula:** 1 + (elasticity × (regional_GDP/global_GDP - 1))  
+        **📊 Data Source:** World Bank GDP per capita (2020), aligned with ESVD baseline year  
+        **🔒 Bounds:** 0.4x to 2.5x adjustment range prevents extreme values
+        """)
+        
+        # Show regional examples
+        if st.checkbox("Show regional examples", key="show_regional_examples"):
+            st.markdown("""
+            **Regional GDP Examples (World Bank 2020):**
+            - North America: $63,543 → 2.5x adjustment
+            - Europe: $38,420 → 2.4x adjustment  
+            - Asia Emerging: $7,348 → 0.8x adjustment
+            - Africa: $1,739 → 0.5x adjustment
+            - Global Average: $11,312 (baseline)
+            """)
         
         # Store in session state
         st.session_state['income_elasticity'] = income_elasticity
