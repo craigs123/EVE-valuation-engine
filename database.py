@@ -161,8 +161,13 @@ def init_database():
         with engine.connect() as connection:
             pass
         
-        # Create tables
+        # Create tables - but handle gracefully if they exist
         Base.metadata.create_all(bind=engine)
+        return True
+    except Exception as e:
+        # Database not available - app should work without it
+        print(f"Database initialization warning: {e}")
+        return False
         return True
     except Exception as e:
         import traceback
