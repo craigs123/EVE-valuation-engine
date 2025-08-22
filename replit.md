@@ -50,9 +50,9 @@ EVE leverages pre-computed coefficients from the Ecosystem Services Valuation Da
 - **Pandas/NumPy**: Data manipulation and numerical computations.
 
 ### Ecosystem Data Integration
-- **Primary Source**: USGS NLCD API for accurate ecosystem identification in US territories
+- **Primary Source**: USGS Earth Explorer API for global satellite data and ecosystem identification
 - **Secondary Sources**: Enhanced geographic detection, ESA WorldCover, MODIS land cover
-- **Global Coverage**: Fallback to multiple international data sources for non-US areas
+- **Global Coverage**: USGS provides worldwide Landsat imagery and ecosystem data with enhanced regional detection fallbacks
 
 ### Geospatial Processing
 - **Coordinate Systems**: Handles geographic coordinate processing and area calculations.

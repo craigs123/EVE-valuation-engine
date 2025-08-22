@@ -63,11 +63,11 @@ class OpenLandMapIntegrator:
     
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
         """
-        Get land cover information for a specific point using USGS NLCD as primary source with fallback APIs
+        Get land cover information for a specific point using USGS Earth Explorer as primary global source with fallback APIs
         """
         try:
-            # Priority 1: Try USGS NLCD API (most accurate for US territories)
-            usgs_result = self._try_usgs_nlcd_api(lat, lon)
+            # Priority 1: Try USGS Earth Explorer API (global satellite data coverage)
+            usgs_result = self._try_usgs_nlcd_api(lat, lon)  # Note: This should be renamed to _try_usgs_earth_explorer
             if usgs_result and usgs_result.get('confidence', 0) >= 0.90:
                 return usgs_result
             
