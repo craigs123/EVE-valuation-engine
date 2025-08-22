@@ -581,18 +581,13 @@ class EcosystemServicesCalculator:
                 quality = self._assess_ecosystem_quality(data_point)
                 quality_multiplier = self.quality_multipliers[quality]
                 
-                provisioning_value = self._calculate_provisioning_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
-                )
-                regulating_value = self._calculate_regulating_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
-                )
-                cultural_value = self._calculate_cultural_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
-                )
-                supporting_value = self._calculate_supporting_services(
-                    ecosystem_type, area_ha, quality_multiplier, data_point
-                )
+                # Use simplified legacy values for fallback
+                base_value_per_ha = 2000  # Base ecosystem value per hectare
+                
+                provisioning_value = {'total': base_value_per_ha * 0.3 * area_ha * quality_multiplier}
+                regulating_value = {'total': base_value_per_ha * 0.4 * area_ha * quality_multiplier}
+                cultural_value = {'total': base_value_per_ha * 0.2 * area_ha * quality_multiplier}
+                supporting_value = {'total': base_value_per_ha * 0.1 * area_ha * quality_multiplier}
                 
                 total_value = (provisioning_value['total'] + regulating_value['total'] + 
                               cultural_value['total'] + supporting_value['total'])
@@ -644,3 +639,138 @@ class EcosystemServicesCalculator:
             
         except Exception as e:
             return {'error': f'Legacy calculation also failed: {str(e)}'}
+
+# Main ecosystem detection function that should be imported by app.py
+def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> Dict[str, Any]:
+    """
+    Enhanced ecosystem detection function using multiple data sources
+    """
+    try:
+        from .openlandmap_integration import OpenLandMapIntegrator
+        
+        integrator = OpenLandMapIntegrator()
+        
+        if not coordinates or len(coordinates) < 3:
+            return {
+                'primary_ecosystem': 'Grassland',
+                'confidence': 0.5,
+                'successful_queries': 0,
+                'ecosystem_distribution': {'Grassland': {'count': 1, 'confidence': 0.5}},
+                'error': 'Insufficient coordinates provided'
+            }
+        
+        # Extract coordinate bounds
+        lats = [coord[1] for coord in coordinates if len(coord) >= 2]
+        lons = [coord[0] for coord in coordinates if len(coord) >= 2]
+        
+        if not lats or not lons:
+            return {
+                'primary_ecosystem': 'Grassland',
+                'confidence': 0.5,
+                'successful_queries': 0,
+                'ecosystem_distribution': {'Grassland': {'count': 1, 'confidence': 0.5}},
+                'error': 'Invalid coordinate format'
+            }
+        
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+        
+        # Generate sample points
+        sample_points = []
+        for i in range(num_samples):
+            lat = min_lat + (max_lat - min_lat) * np.random.random()
+            lon = min_lon + (max_lon - min_lon) * np.random.random()
+            sample_points.append((lat, lon))
+        
+        # Query ecosystem types
+        ecosystem_results = []
+        successful_queries = 0
+        
+        for lat, lon in sample_points:
+            try:
+                result = integrator.get_land_cover_point(lat, lon)
+                if result:
+                    ecosystem_results.append(result)
+                    successful_queries += 1
+            except Exception:
+                continue
+        
+        if not ecosystem_results:
+            return {
+                'primary_ecosystem': 'Grassland',
+                'confidence': 0.6,
+                'successful_queries': 0,
+                'ecosystem_distribution': {'Grassland': {'count': 1, 'confidence': 0.6}},
+                'error': 'No successful ecosystem queries'
+            }
+        
+        # Count ecosystem types
+        ecosystem_counts = {}
+        total_confidence = 0
+        
+        for result in ecosystem_results:
+            ecosystem_type = result.get('ecosystem_type', 'Grassland')
+            confidence = result.get('confidence', 0.5)
+            
+            if ecosystem_type not in ecosystem_counts:
+                ecosystem_counts[ecosystem_type] = {'count': 0, 'confidence': 0}
+            
+            ecosystem_counts[ecosystem_type]['count'] += 1
+            ecosystem_counts[ecosystem_type]['confidence'] += confidence
+            total_confidence += confidence
+        
+        # Calculate averages
+        for eco_type in ecosystem_counts:
+            count = ecosystem_counts[eco_type]['count']
+            ecosystem_counts[eco_type]['confidence'] = ecosystem_counts[eco_type]['confidence'] / count
+        
+        # Find primary ecosystem
+        primary_ecosystem = max(ecosystem_counts.items(), key=lambda x: x[1]['count'])[0]
+        primary_confidence = ecosystem_counts[primary_ecosystem]['confidence']
+        
+        return {
+            'primary_ecosystem': primary_ecosystem,
+            'confidence': primary_confidence,
+            'successful_queries': successful_queries,
+            'ecosystem_distribution': ecosystem_counts,
+            'sample_points': len(sample_points),
+            'detection_method': 'Enhanced multi-source detection'
+        }
+        
+    except Exception as e:
+        return {
+            'primary_ecosystem': 'Grassland',
+            'confidence': 0.5,
+            'successful_queries': 0,
+            'ecosystem_distribution': {'Grassland': {'count': 1, 'confidence': 0.5}},
+            'error': f'Detection failed: {str(e)}'
+        }
+
+def get_ecosystem_service_values(ecosystem_type: str, coordinates: List, 
+                               start_date: datetime, end_date: datetime,
+                               num_samples: int = 10) -> Dict[str, Any]:
+    """
+    Get ecosystem service values for a given area and time period
+    """
+    try:
+        # Initialize calculator
+        calculator = EcosystemServicesCalculator()
+        
+        # Create area bounds from coordinates
+        area_bounds = {'coordinates': coordinates}
+        
+        # Get satellite data
+        from .usgs_integration import usgs_integrator
+        satellite_data = usgs_integrator.get_landsat_data(
+            area_bounds, start_date, end_date
+        )
+        
+        # Calculate ecosystem services
+        results = calculator.calculate_ecosystem_services_value(
+            satellite_data, area_bounds, ecosystem_type
+        )
+        
+        return results
+        
+    except Exception as e:
+        return {'error': f'Failed to calculate ecosystem service values: {str(e)}'}
