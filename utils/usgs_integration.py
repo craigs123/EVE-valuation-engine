@@ -26,6 +26,19 @@ except ImportError:
     USGS_AVAILABLE = False
     print("USGS dependencies not available. Install with: pip install landsatxplore rasterio pyproj")
 
+# USGS M2M API v1.5 endpoints (updated August 2024)
+M2M_BASE_URL = "https://m2m.cr.usgs.gov/api/api/json/stable/"
+M2M_ENDPOINTS = {
+    'login': 'login',  # Legacy - deprecated February 2025
+    'login_token': 'login-token',  # New token-based auth (recommended)
+    'logout': 'logout',
+    'permissions': 'permissions',
+    'dataset_search': 'dataset-search',
+    'scene_search': 'scene-search',
+    'download_options': 'download-options',
+    'download_request': 'download-request'
+}
+
 class USGSEarthExplorerIntegrator:
     """
     Integrates with USGS Earth Explorer to fetch authentic Landsat imagery
@@ -410,7 +423,7 @@ class USGSEarthExplorerIntegrator:
         return fallback_data
     
     def test_connection(self) -> Dict[str, Any]:
-        """Test USGS Earth Explorer connection"""
+        """Test USGS Earth Explorer connection with new M2M API v1.5 endpoints"""
         test_result = {
             'usgs_available': USGS_AVAILABLE,
             'credentials_provided': bool(self.username and self.password),
@@ -419,7 +432,9 @@ class USGSEarthExplorerIntegrator:
             'test_search': False,
             'error': None,
             'sample_scenes_found': 0,
-            'search_error': None
+            'search_error': None,
+            'm2m_api_version': '1.5',
+            'endpoint_url': M2M_BASE_URL
         }
         
         if not USGS_AVAILABLE:
@@ -431,10 +446,20 @@ class USGSEarthExplorerIntegrator:
             return test_result
         
         try:
-            # Test authentication
+            # First, test direct M2M API connection
+            m2m_result = self._test_m2m_api_direct()
+            if m2m_result['success']:
+                test_result['authentication_success'] = True
+                test_result['api_access'] = True
+                test_result['method'] = 'Direct M2M API v1.5'
+                test_result['api_key'] = m2m_result.get('api_key', 'Available')
+                return test_result
+            
+            # Fall back to landsatxplore library
             if self.authenticate():
                 test_result['authentication_success'] = True
                 test_result['api_access'] = True
+                test_result['method'] = 'landsatxplore library'
                 
                 # Test a simple search
                 try:
@@ -459,11 +484,62 @@ class USGSEarthExplorerIntegrator:
                     pass
             else:
                 test_result['error'] = 'Authentication failed'
+                test_result['fallback_info'] = 'Enhanced simulation with authentic spectral signatures active'
                 
         except Exception as e:
             test_result['error'] = str(e)
         
         return test_result
+    
+    def _test_m2m_api_direct(self) -> Dict[str, Any]:
+        """Test direct M2M API connection with new v1.5 endpoints"""
+        try:
+            import requests
+            
+            # Test login endpoint
+            login_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['login']}"
+            payload = {
+                "username": self.username,
+                "password": self.password
+            }
+            
+            response = requests.post(login_url, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('data'):  # Successful authentication
+                    api_key = result['data']
+                    
+                    # Test permissions
+                    permissions_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['permissions']}"
+                    perm_payload = {"apiKey": api_key}
+                    perm_response = requests.post(permissions_url, json=perm_payload, timeout=5)
+                    
+                    permissions = []
+                    if perm_response.status_code == 200:
+                        perm_result = perm_response.json()
+                        permissions = perm_result.get('data', [])
+                    
+                    # Test logout
+                    logout_url = f"{M2M_BASE_URL}{M2M_ENDPOINTS['logout']}"
+                    logout_payload = {"apiKey": api_key}
+                    requests.post(logout_url, json=logout_payload, timeout=5)
+                    
+                    return {
+                        'success': True, 
+                        'api_key': api_key,
+                        'permissions': permissions,
+                        'status': 'M2M API v1.5 connection successful'
+                    }
+            
+            return {
+                'success': False, 
+                'status_code': response.status_code,
+                'response': response.text[:200] if response.text else 'No response'
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
 # Global instance for easy access
 usgs_integrator = USGSEarthExplorerIntegrator()

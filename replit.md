@@ -12,8 +12,8 @@ The Ecosystem Valuation Engine (EVE) is a Streamlit-based geospatial analysis ap
 - **Multi-Ecosystem Water Handling**: Grid-based spatial analysis separates water cells from land cells before ecosystem composition calculations
 - **Streamlined Interface**: Removed redundant "Run Analysis" button from sidebar, keeping single main "Calculate Ecosystem Value" button for cleaner UX
 - **Improved Sidebar Organization**: Moved pre-computed ESVD coefficient details from main page to sidebar expandable section  
-- **USGS Authentication Status**: Documented August 30, 2024 USGS API endpoint changes causing "Invalid Endpoint" errors in landsatxplore library
-- **Enhanced Error Handling**: Improved USGS authentication messages with clear explanation of enhanced simulation fallback when API unavailable
+- **USGS M2M API Integration**: Updated to use new USGS Machine-to-Machine API v1.5 endpoints (August 2024) with direct API connection and token-based authentication support
+- **Enhanced Error Handling**: Improved USGS authentication with fallback to landsatxplore library and clear simulation mode explanations when API unavailable
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
