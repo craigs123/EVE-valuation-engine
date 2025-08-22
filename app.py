@@ -2055,26 +2055,34 @@ if st.session_state.analysis_results:
                             st.markdown(f"**{category.title()} Services Calculation**")
                             
                             # Show individual service calculations
-                            for service, value in esvd_data[category].items():
-                                if service != 'total' and value > 0:
-                                    service_name = service.replace('_', ' ').title()
+                            if 'services' in esvd_data[category]:
+                                services_data = esvd_data[category]['services']
+                                for service, value in services_data.items():
+                                    if isinstance(value, (int, float)) and value > 0:
+                                        service_name = service.replace('_', ' ').title()
                                     
-                                    # Get the base coefficient from pre-computed ESVD data
-                                    from utils.precomputed_esvd_coefficients import get_base_coefficient
-                                    ecosystem_mapped = results['ecosystem_type']
-                                    
-                                    if ecosystem_mapped:
-                                        base_coeff = get_base_coefficient(ecosystem_mapped, category, service)
-                                        regional_factor = results.get('regional_factor', 1.0)
-                                        area_ha = results['area_ha']
-                                        
-                                        st.markdown(f"""
-                                        **{service_name}**: ${value:,.0f}/year
-                                        - Pre-computed ESVD coefficient: ${base_coeff}/ha/year
-                                        - Area: {area_ha:,.0f} hectares
-                                        - Regional adjustment factor: {regional_factor:.2f}
-                                        - Calculation: ${base_coeff} × {area_ha:,.0f} ha × {regional_factor:.2f} = ${value:,.0f}/year
-                                        """)
+                                        # Get the base coefficient from pre-computed ESVD data
+                                        try:
+                                            from utils.precomputed_esvd_coefficients import get_precomputed_coefficients
+                                            coefficients = get_precomputed_coefficients()
+                                            ecosystem_mapped = results['ecosystem_type'].lower()
+                                            
+                                            # Get coefficient based on service type
+                                            base_coeff = coefficients.get_coefficient(ecosystem_mapped, service)
+                                            regional_factor = results.get('regional_factor', 1.0)
+                                            area_ha = results['area_ha']
+                                            
+                                            st.markdown(f"""
+                                            **{service_name}**: ${value:,.0f}/year
+                                            - Pre-computed ESVD coefficient: ${base_coeff}/ha/year
+                                            - Area: {area_ha:,.0f} hectares
+                                            - Regional adjustment factor: {regional_factor:.2f}
+                                            - Calculation: ${base_coeff} × {area_ha:,.0f} ha × {regional_factor:.2f} = ${value:,.0f}/year
+                                            """)
+                                        except Exception:
+                                            st.markdown(f"**{service_name}**: ${value:,.0f}/year")
+                            else:
+                                st.info("Detailed service breakdown not available for this ecosystem type.")
                             
                             # Add methodology explanation
                             st.markdown(f"""
