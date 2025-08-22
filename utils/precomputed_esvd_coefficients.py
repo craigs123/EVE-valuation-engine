@@ -340,3 +340,18 @@ class PrecomputedESVDCoefficients:
         results['country_gdp'] = self.get_country_gdp(coordinates) if coordinates else self.global_gdp_average
         
         return results
+
+# Module-level functions for compatibility
+def get_precomputed_coefficients():
+    """Get instance of precomputed coefficients calculator"""
+    return PrecomputedESVDCoefficients()
+
+def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, coordinates: tuple = None):
+    """Calculate ecosystem services value using precomputed coefficients"""
+    calculator = PrecomputedESVDCoefficients()
+    return calculator.calculate_ecosystem_values(ecosystem_type, area_hectares, coordinates)
+
+# Alternative function name for compatibility
+def calculate_ecosystem_value_precomputed(ecosystem_type: str, area_hectares: float, coordinates: tuple = None):
+    """Alternative name - calculate ecosystem services value using precomputed coefficients"""
+    return calculate_ecosystem_services_value(ecosystem_type, area_hectares, coordinates)
