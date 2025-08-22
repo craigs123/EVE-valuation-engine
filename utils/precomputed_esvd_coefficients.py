@@ -355,3 +355,25 @@ def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float
 def calculate_ecosystem_value_precomputed(ecosystem_type: str, area_hectares: float, coordinates: tuple = None):
     """Alternative name - calculate ecosystem services value using precomputed coefficients"""
     return calculate_ecosystem_services_value(ecosystem_type, area_hectares, coordinates)
+
+def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_hectares: float, coordinates: tuple = None):
+    """Calculate ecosystem services value for mixed ecosystems with weighted calculation"""
+    calculator = PrecomputedESVDCoefficients()
+    
+    total_value = 0
+    weighted_results = {}
+    
+    for ecosystem_type, data in ecosystem_distribution.items():
+        weight = data.get('count', 1) if isinstance(data, dict) else 1
+        ecosystem_area = area_hectares * (weight / sum(d.get('count', 1) if isinstance(d, dict) else 1 for d in ecosystem_distribution.values()))
+        
+        result = calculator.calculate_ecosystem_values(ecosystem_type.lower(), ecosystem_area, coordinates)
+        weighted_results[ecosystem_type] = result
+        total_value += result.get('total_value', 0)
+    
+    return {
+        'total_value': total_value,
+        'ecosystem_breakdown': weighted_results,
+        'regional_adjustment_factor': weighted_results[list(weighted_results.keys())[0]].get('regional_adjustment_factor', 1.0) if weighted_results else 1.0,
+        'country_gdp': weighted_results[list(weighted_results.keys())[0]].get('country_gdp', 11312) if weighted_results else 11312
+    }
