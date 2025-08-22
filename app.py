@@ -19,12 +19,18 @@ def get_database_modules():
         from database import (
             init_database, 
             initialize_user_session,
-            SavedAreaDB
+            SavedAreaDB,
+            EcosystemAnalysisDB,
+            NaturalCapitalTrendDB,
+            NaturalCapitalBaselineDB
         )
         return {
             'init_database': init_database,
             'initialize_user_session': initialize_user_session,
-            'SavedAreaDB': SavedAreaDB
+            'SavedAreaDB': SavedAreaDB,
+            'EcosystemAnalysisDB': EcosystemAnalysisDB,
+            'NaturalCapitalTrendDB': NaturalCapitalTrendDB,
+            'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
         }
     except ImportError:
         return None  # Graceful fallback
