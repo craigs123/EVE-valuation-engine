@@ -1809,8 +1809,23 @@ if st.session_state.analysis_results:
                             st.metric(f"{category.title()}", f"${total:,.0f}/year")
                             st.caption(f"${per_ha_category:.0f}/ha • {percentage:.0f}% of total")
             else:
-                # Fallback for simple data structure
-                st.info("Service breakdown details available in Detailed Analysis view")
+                # Fallback - show basic service information if available
+                st.info("**Service Categories Overview:**")
+                if 'services_data' in esvd_data:
+                    services_data = esvd_data['services_data']
+                    # Show any available service data
+                    cols_fallback = st.columns(2)
+                    service_count = 0
+                    for service_name, service_value in services_data.items():
+                        if isinstance(service_value, (int, float)) and service_value > 0:
+                            with cols_fallback[service_count % 2]:
+                                st.markdown(f"**{service_name.replace('_', ' ').title()}**: ${service_value:,.0f}/year")
+                                service_count += 1
+                    
+                    if service_count == 0:
+                        st.caption("Service breakdown details available in Detailed Analysis view")
+                else:
+                    st.caption("Service breakdown details available in Detailed Analysis view")
         
         # Action buttons
         col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
@@ -2146,9 +2161,11 @@ if st.session_state.analysis_results:
         st.markdown("### 🌿 Ecosystem Services Breakdown")
         esvd_data = results['esvd_results']
         
-        
         # Check if we have the expected categories
         has_categories = any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting'])
+        
+        # Also check for alternative data structures
+        has_services_data = 'services_data' in esvd_data
         
         if has_categories:
             categories = ['provisioning', 'regulating', 'cultural', 'supporting']
@@ -2205,6 +2222,37 @@ if st.session_state.analysis_results:
                             - **Standardization**: All values in 2020 International dollars per hectare per year
                             - **Performance Optimized**: Static calculations provide 238,270x speed improvement
                             """)
+        elif has_services_data:
+            # Alternative display for services_data structure
+            st.markdown("**Individual Services Breakdown:**")
+            services_data = esvd_data['services_data']
+            
+            # Create a grid display for all services
+            service_items = [(k, v) for k, v in services_data.items() if isinstance(v, (int, float)) and v > 0]
+            
+            if service_items:
+                # Display in columns
+                cols_services = st.columns(min(3, len(service_items)))
+                for i, (service_name, service_value) in enumerate(service_items):
+                    with cols_services[i % 3]:
+                        clean_name = service_name.replace('_', ' ').title()
+                        per_ha_service = service_value / results.get('area_ha', 1) if results.get('area_ha', 1) > 0 else 0
+                        percentage = (service_value / results.get('total_value', 1) * 100) if results.get('total_value', 1) > 0 else 0
+                        
+                        st.metric(f"{clean_name}", f"${service_value:,.0f}/year")
+                        st.caption(f"${per_ha_service:.0f}/ha • {percentage:.1f}% of total")
+            else:
+                st.info("No individual service data available to display")
+        else:
+            # Final fallback - show whatever data is available
+            st.info("**Available Data:**")
+            if esvd_data:
+                for key, value in esvd_data.items():
+                    if isinstance(value, (int, float)) and value > 0:
+                        clean_key = key.replace('_', ' ').title()
+                        st.markdown(f"• **{clean_key}**: ${value:,.0f}")
+            else:
+                st.warning("No ecosystem services breakdown data available")
     
     # Show individual ecosystem calculations for mixed ecosystems
     if 'esvd_results' in results and results.get('ecosystem_type') == 'multi_ecosystem':
