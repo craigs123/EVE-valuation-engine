@@ -63,14 +63,13 @@ class OpenLandMapIntegrator:
     
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
         """
-        Get land cover information for a specific point using ESA WorldCover and fallback APIs
+        Get land cover information for a specific point using USGS NLCD as primary source with fallback APIs
         """
         try:
-            # Priority 1: Try ESA WorldCover through Google Earth Engine (most accurate)
-            if EE_AVAILABLE:
-                esa_result = self._try_esa_worldcover(lat, lon)
-                if esa_result and esa_result.get('confidence', 0) >= 0.95:
-                    return esa_result
+            # Priority 1: Try USGS NLCD API (most accurate for US territories)
+            usgs_result = self._try_usgs_nlcd_api(lat, lon)
+            if usgs_result and usgs_result.get('confidence', 0) >= 0.90:
+                return usgs_result
             
             # Priority 2: Enhanced geographic detection for high-confidence cases
             enhanced_result = self._enhanced_geographic_detection(lat, lon)
@@ -79,12 +78,13 @@ class OpenLandMapIntegrator:
                     enhanced_result.get('confidence', 0) >= 0.85):
                     return enhanced_result
             
-            # Priority 3: Other external APIs for validation
+            # Priority 3: Other external APIs for validation (including ESA as fallback)
             apis_to_try = [
-                self._try_usgs_nlcd_api,
+                self._try_esa_worldcover if EE_AVAILABLE else None,
                 self._try_copernicus_land_service,
                 self._try_modis_land_cover
             ]
+            apis_to_try = [api for api in apis_to_try if api is not None]
             
             for api_method in apis_to_try:
                 try:

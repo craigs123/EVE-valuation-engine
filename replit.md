@@ -49,9 +49,10 @@ EVE leverages pre-computed coefficients from the Ecosystem Services Valuation Da
 - **Plotly**: Interactive charting and dashboards.
 - **Pandas/NumPy**: Data manipulation and numerical computations.
 
-### OpenLandMap Integration
-- **API Integration**: Direct connection to OpenLandMap.org REST API for global land cover data.
-- **Data Sources**: Accesses global land cover data, MODIS land cover, and IUCN habitat classifications.
+### Ecosystem Data Integration
+- **Primary Source**: USGS NLCD API for accurate ecosystem identification in US territories
+- **Secondary Sources**: Enhanced geographic detection, ESA WorldCover, MODIS land cover
+- **Global Coverage**: Fallback to multiple international data sources for non-US areas
 
 ### Geospatial Processing
 - **Coordinate Systems**: Handles geographic coordinate processing and area calculations.
