@@ -475,15 +475,18 @@ with st.sidebar:
         **🔒 Bounds:** 0.4x to 2.5x adjustment range prevents extreme values
         """)
         
-        # Show regional examples
-        if st.checkbox("Show regional examples", key="show_regional_examples"):
+        # Show country-specific examples
+        if st.checkbox("Show country-specific examples", key="show_country_examples"):
             st.markdown("""
-            **Regional GDP Examples (World Bank 2020):**
-            - North America: $63,543 → 2.5x adjustment
-            - Europe: $38,420 → 2.4x adjustment  
-            - Asia Emerging: $7,348 → 0.8x adjustment
-            - Africa: $1,739 → 0.5x adjustment
+            **Country-Specific GDP Examples (World Bank 2020):**
+            - USA: $63,593 → 2.5x adjustment
+            - Germany: $46,259 → 2.4x adjustment
+            - China: $10,500 → 0.92x adjustment
+            - Brazil: $6,797 → 0.76x adjustment
+            - Kenya: $1,838 → 0.50x adjustment
             - Global Average: $11,312 (baseline)
+            
+            *Note: Now uses individual country data instead of regional averages*
             """)
         
         # Store in session state

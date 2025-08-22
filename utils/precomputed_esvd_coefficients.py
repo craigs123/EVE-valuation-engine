@@ -1,26 +1,132 @@
 """
-Pre-computed ESVD Coefficients with Regional Adjustment
+Pre-computed ESVD Coefficients with Country-Specific Regional Adjustment
 Calculated from authentic ESVD APR2024 V1.1 database (10,874 records)
 Static values for optimal performance while maintaining research authenticity
 
 Regional Adjustment Methodology:
-- Uses World Bank GDP per capita data (2020) for geographic adjustments
+- Uses World Bank GDP per capita data (2020) for country-specific adjustments
 - Applies income elasticity method from environmental economics literature  
-- Formula: 1 + (elasticity × (regional_GDP/global_GDP - 1))
+- Formula: 1 + (elasticity × (country_GDP/global_GDP - 1))
 - Bounded to prevent extreme values (0.4 to 2.5 multiplier range)
 - Aligns with 2020 Int$ baseline year used in ESVD coefficients
 """
 
+def get_country_from_coordinates(lat: float, lon: float) -> str:
+    """
+    Map coordinates to country code using geographic boundaries
+    
+    Args:
+        lat: Latitude 
+        lon: Longitude
+        
+    Returns:
+        Country code string for GDP lookup
+    """
+    
+    # North America
+    if lat >= 14 and -141 <= lon <= -52:
+        # Canada (prioritize northern latitudes)
+        if lat >= 49 and -141 <= lon <= -52:
+            return 'canada'
+        # United States (continental)  
+        elif lat >= 25 and lat <= 49 and -125 <= lon <= -66:
+            return 'united_states'
+        # Alaska (US)
+        elif lat >= 54 and lat <= 71 and -169 <= lon <= -130:
+            return 'united_states'
+        # Mexico
+        elif lat >= 14 and lat <= 32 and -118 <= lon <= -86:
+            return 'mexico'
+        # Default to US for overlapping areas
+        else:
+            return 'united_states'
+    
+    # Europe
+    elif lat >= 35 and -10 <= lon <= 50:
+        if lat >= 50 and lat <= 61 and -8 <= lon <= 2:
+            return 'united_kingdom' if lon > -3 else 'ireland'
+        elif lat >= 47 and lat <= 55 and 6 <= lon <= 15:
+            return 'germany'
+        elif lat >= 42 and lat <= 51 and -5 <= lon <= 8:
+            return 'france'
+        elif lat >= 36 and lat <= 44 and -10 <= lon <= 4:
+            return 'spain'
+        elif lat >= 36 and lat <= 47 and 6 <= lon <= 19:
+            return 'italy'
+        else:
+            return 'europe_average'
+    
+    # Asia-Pacific Developed
+    elif lat >= -50 and 110 <= lon <= 180:
+        if lat >= 24 and lat <= 46 and 123 <= lon <= 146:
+            return 'japan'
+        elif lat >= -44 and lat <= -10 and 113 <= lon <= 154:
+            return 'australia'
+        elif lat >= -47 and lat <= -34 and 166 <= lon <= 179:
+            return 'new_zealand'
+        elif lat >= 33 and lat <= 39 and 124 <= lon <= 132:
+            return 'south_korea'
+        elif lat >= 1 and lat <= 2 and 103 <= lon <= 104:
+            return 'singapore'
+    
+    # Asia Emerging  
+    elif lat >= -10 and 60 <= lon <= 140:
+        if lat >= 18 and lat <= 54 and 73 <= lon <= 135:
+            return 'china'
+        elif lat >= 8 and lat <= 37 and 68 <= lon <= 97:
+            return 'india'
+        elif lat >= -11 and lat <= 6 and 95 <= lon <= 141:
+            return 'indonesia'
+        elif lat >= 5 and lat <= 21 and 97 <= lon <= 106:
+            return 'thailand'
+        elif lat >= 8 and lat <= 24 and 102 <= lon <= 110:
+            return 'vietnam'
+        elif lat >= 1 and lat <= 7 and 100 <= lon <= 120:
+            return 'malaysia'
+        elif lat >= 5 and lat <= 21 and 116 <= lon <= 127:
+            return 'philippines'
+        else:
+            return 'china'  # Default for unmapped Asian areas
+    
+    # Latin America
+    elif lat >= -55 and -120 <= lon <= -30:
+        if lat >= -34 and lat <= 5 and -74 <= lon <= -32:
+            return 'brazil'
+        elif lat >= -55 and lat <= -22 and -74 <= lon <= -53:
+            return 'argentina'
+        elif lat >= -56 and lat <= -17 and -76 <= lon <= -66:
+            return 'chile'
+        elif lat >= -4 and lat <= 12 and -79 <= lon <= -67:
+            return 'colombia'
+        elif lat >= -18 and lat <= 0 and -81 <= lon <= -68:
+            return 'peru'
+    
+    # Sub-Saharan Africa
+    elif lat >= -35 and lat <= 15 and -20 <= lon <= 52:
+        if lat >= -35 and lat <= -22 and 16 <= lon <= 33:
+            return 'south_africa'
+        elif lat >= 4 and lat <= 14 and 3 <= lon <= 15:
+            return 'nigeria'
+        elif lat >= -5 and lat <= 5 and 34 <= lon <= 42:
+            return 'kenya'
+        elif lat >= 3 and lat <= 15 and 33 <= lon <= 48:
+            return 'ethiopia'
+    
+    # Default to global average
+    return 'global_average'
+
+
 class PrecomputedESVDCoefficients:
     """
-    Pre-calculated coefficients from authentic ESVD database
+    Pre-calculated coefficients from authentic ESVD database with country-specific GDP adjustments
     All values are medians from peer-reviewed studies in Int$/ha/year
     """
     
-    def __init__(self, income_elasticity: float = 0.25):
+    def __init__(self, income_elasticity: float = 0.6):
         # Pre-computed from 10,874 authentic ESVD records
         # Values represent median coefficients from multiple peer-reviewed studies
         self.income_elasticity = income_elasticity  # User-configurable regional variation factor
+        
         self.coefficients = {
             'forest': {
                 'climate': 235.24,      # From 167 studies
@@ -134,27 +240,13 @@ class PrecomputedESVDCoefficients:
             }
         }
         
-        # Regional GDP per capita data (World Bank, 2020)
-        # Source: World Bank World Development Indicators Database
-        # GDP per capita (current US$), 2020 regional averages
-        # Data vintage: 2020 (aligned with ESVD Int$ values baseline year)
-        self.regional_gdp_data = {
-            'north_america': 63543,      # World Bank North America region, 2020
-            'europe': 38420,             # World Bank Europe & Central Asia region, 2020
-            'asia_pacific_developed': 42156,  # Japan, Australia, NZ average, 2020
-            'asia_emerging': 7348,       # East Asia & Pacific (emerging), 2020
-            'latin_america': 7515,       # Latin America & Caribbean region, 2020
-            'africa': 1739,              # Sub-Saharan Africa region, 2020
-            'global_average': 11312      # World GDP per capita, World Bank 2020
-        }
+        # Import country-specific GDP data
+        from .country_gdp_2020 import COUNTRY_GDP_2020, get_country_gdp
+        self.country_gdp_data = COUNTRY_GDP_2020
+        self.get_country_gdp_lookup = get_country_gdp
         
-        # Data methodology notes:
-        # - Values in current US$ (nominal), not PPP-adjusted
-        # - Regional averages weighted by population 
-        # - COVID-19 pandemic impact reflected in 2020 figures
-        # - Source: https://data.worldbank.org/indicator/NY.GDP.PCAP.CD
-        
-        # Income elasticity is now set by user in constructor (see __init__)
+        # Global average for reference
+        self.global_gdp_average = 11312  # World Bank 2020
     
     def get_coefficient(self, ecosystem_type: str, service_type: str) -> float:
         """
@@ -170,56 +262,27 @@ class PrecomputedESVDCoefficients:
         ecosystem_coeffs = self.coefficients.get(ecosystem_type, self.coefficients['forest'])
         return ecosystem_coeffs.get(service_type, 100.0)  # Default fallback
     
-    def get_regional_gdp(self, coordinates: tuple | None = None) -> float:
+    def get_country_gdp(self, coordinates: tuple | None = None) -> float:
         """
-        Get regional GDP per capita based on coordinates
-        Adapted from the previous working method
+        Get country-specific GDP per capita based on coordinates
         
         Args:
             coordinates: (latitude, longitude) tuple
             
         Returns:
-            GDP per capita for the region
+            GDP per capita for the country (2020 World Bank data)
         """
         if not coordinates or len(coordinates) < 2:
-            return self.regional_gdp_data['global_average']
+            return self.global_gdp_average
         
         lat, lon = coordinates[0], coordinates[1]
+        country_code = get_country_from_coordinates(lat, lon)
         
-        # Regional GDP classification (adapted from previous method)
-        # North America
-        if lat > 25 and -130 <= lon <= -60:
-            return self.regional_gdp_data['north_america']
-            
-        # Europe  
-        elif lat > 35 and -10 <= lon <= 50:
-            return self.regional_gdp_data['europe']
-            
-        # Developed Asia-Pacific (Japan, Australia, NZ)
-        elif ((lat > 30 and 125 <= lon <= 145) or           # Japan
-              (lat < -25 and 110 <= lon <= 180)):           # Australia/NZ
-            return self.regional_gdp_data['asia_pacific_developed']
-            
-        # Emerging Asia (China, Southeast Asia, India)
-        elif lat > -10 and 60 <= lon <= 140:
-            return self.regional_gdp_data['asia_emerging']
-            
-        # Latin America
-        elif -35 <= lat <= 30 and -120 <= lon <= -30:
-            return self.regional_gdp_data['latin_america']
-            
-        # Africa
-        elif -35 <= lat <= 35 and -20 <= lon <= 55:
-            return self.regional_gdp_data['africa']
-            
-        # Default to global average
-        else:
-            return self.regional_gdp_data['global_average']
+        return self.get_country_gdp_lookup(country_code)
     
     def get_regional_factor(self, coordinates: tuple | None = None) -> float:
         """
-        Calculate regional adjustment factor using income elasticity (multiplier method)
-        Uses traditional economic approach where elasticity is a direct multiplier
+        Calculate regional adjustment factor using country-specific GDP and income elasticity
         
         Args:
             coordinates: (latitude, longitude) tuple
@@ -227,13 +290,12 @@ class PrecomputedESVDCoefficients:
         Returns:
             Regional adjustment factor
         """
-        regional_gdp = self.get_regional_gdp(coordinates)
-        global_gdp = self.regional_gdp_data['global_average']
+        country_gdp = self.get_country_gdp(coordinates)
+        global_gdp = self.global_gdp_average
         
-        # Calculate adjustment using income elasticity as multiplier
-        # Formula: 1 + (elasticity × (regional_gdp/global_gdp - 1))
-        # This represents responsiveness to income differences from global baseline
-        gdp_ratio = regional_gdp / global_gdp
+        # Calculate adjustment using income elasticity method
+        # Formula: 1 + (elasticity × (country_GDP/global_GDP - 1))
+        gdp_ratio = country_gdp / global_gdp
         adjustment_factor = 1 + (self.income_elasticity * (gdp_ratio - 1))
         
         # Apply reasonable bounds to prevent extreme values
@@ -242,12 +304,12 @@ class PrecomputedESVDCoefficients:
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple | None = None) -> dict:
         """
-        Calculate ecosystem service values using pre-computed coefficients
+        Calculate ecosystem service values using pre-computed coefficients with country-specific adjustment
         
         Args:
             ecosystem_type: Type of ecosystem
             area_hectares: Area in hectares  
-            coordinates: Optional coordinates for regional adjustment
+            coordinates: Optional coordinates for country-specific adjustment
             
         Returns:
             Dictionary with calculated values by service category
@@ -267,128 +329,14 @@ class PrecomputedESVDCoefficients:
                 category_services[service] = value
                 category_total += value
             
-            category_services['total'] = category_total
-            results[category] = category_services
+            results[category] = {
+                'services': category_services,
+                'total': category_total
+            }
             total_value += category_total
         
-        return {
-            'provisioning': results.get('provisioning', {}),
-            'regulating': results.get('regulating', {}),
-            'cultural': results.get('cultural', {}), 
-            'supporting': results.get('supporting', {}),
-            'total_annual_value': total_value,
-            'area_hectares': area_hectares,
-            'ecosystem_type': ecosystem_type,
-            'metadata': {
-                'data_source': 'Pre-computed from Authentic ESVD Database APR2024 V1.1',
-                'regional_adjustment': regional_factor,
-                'quality_factor': 1.0,  # Default quality factor
-                'database_version': 'ESVD APR2024V1.1',
-                'methodology': 'Static coefficients from 10,874+ peer-reviewed studies with regional deviation adjustments',
-                'performance_optimized': True,
-                'total_value': total_value,
-                'value_per_hectare': total_value / area_hectares if area_hectares > 0 else 0
-            }
-        }
-
-# Global singleton for efficient access
-_precomputed_coefficients = None
-
-def get_precomputed_coefficients(income_elasticity: float = 0.25):
-    """Get singleton instance with user's elasticity setting"""
-    global _precomputed_coefficients
-    if _precomputed_coefficients is None or _precomputed_coefficients.income_elasticity != income_elasticity:
-        _precomputed_coefficients = PrecomputedESVDCoefficients(income_elasticity)
-    return _precomputed_coefficients
-
-# Global function to get base coefficient
-def get_base_coefficient(ecosystem_type, category, service):
-    """Get base coefficient for a specific ecosystem, category, and service"""
-    coeffs = PrecomputedESVDCoefficients()
-    ecosystem_lower = ecosystem_type.lower().replace(' ', '_')
-    
-    # Map ecosystem types
-    if ecosystem_lower in ['forest', 'woodland', 'trees']:
-        ecosystem_key = 'forest'
-    elif ecosystem_lower in ['wetland', 'marsh', 'swamp']:
-        ecosystem_key = 'wetland'  
-    elif ecosystem_lower in ['grassland', 'prairie', 'meadow']:
-        ecosystem_key = 'grassland'
-    elif ecosystem_lower in ['agricultural', 'cropland', 'farmland']:
-        ecosystem_key = 'agricultural'
-    elif ecosystem_lower in ['coastal', 'marine']:
-        ecosystem_key = 'coastal'
-    else:
-        ecosystem_key = 'grassland'  # Default fallback
-    
-    if ecosystem_key in coeffs.coefficients:
-        return coeffs.coefficients[ecosystem_key].get(service, 0)
-    return 0
-
-# Main calculation functions for API compatibility
-def calculate_ecosystem_services_value(ecosystem_type: str, area_hectares: float, 
-                                     coordinates: tuple | None = None, sampling_points: int = 10) -> dict:
-    """Calculate ecosystem services value using pre-computed coefficients"""
-    # Use session state elasticity if available, else default
-    import streamlit as st
-    elasticity = st.session_state.get('income_elasticity', 0.25) if hasattr(st, 'session_state') else 0.25
-    coeffs = get_precomputed_coefficients(elasticity)
-    return coeffs.calculate_ecosystem_values(ecosystem_type, area_hectares, coordinates)
-
-def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_hectares: float,
-                                           coordinates: tuple | None = None, sampling_points: int = 10) -> dict:
-    """Calculate mixed ecosystem values with proper weighting"""
-    total_points = sum(data['count'] for data in ecosystem_distribution.values())
-    if total_points == 0:
-        return calculate_ecosystem_services_value('Grassland', area_hectares, coordinates)
-    
-    # Calculate weighted results
-    combined_results = {'provisioning': {}, 'regulating': {}, 'cultural': {}, 'supporting': {}}
-    total_value = 0
-    
-    for ecosystem_type, data in ecosystem_distribution.items():
-        weight = data['count'] / total_points
-        area_portion = area_hectares * weight
+        results['total_value'] = total_value
+        results['regional_adjustment_factor'] = regional_factor
+        results['country_gdp'] = self.get_country_gdp(coordinates) if coordinates else self.global_gdp_average
         
-        # Calculate values for this ecosystem type
-        eco_results = calculate_ecosystem_services_value(ecosystem_type, area_portion, coordinates)
-        
-        # Add to combined results
-        for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
-            if category not in combined_results:
-                combined_results[category] = {}
-            
-            if category in eco_results:
-                for service, value in eco_results[category].items():
-                    if service not in combined_results[category]:
-                        combined_results[category][service] = 0
-                    combined_results[category][service] += value
-        
-        total_value += eco_results.get('total_annual_value', 0)
-    
-    # Add totals for each category
-    for category in combined_results:
-        if 'total' not in combined_results[category]:
-            combined_results[category]['total'] = sum(v for k, v in combined_results[category].items() if k != 'total')
-    
-    return {
-        'provisioning': combined_results['provisioning'],
-        'regulating': combined_results['regulating'],
-        'cultural': combined_results['cultural'],
-        'supporting': combined_results['supporting'],
-        'total_annual_value': total_value,
-        'area_hectares': area_hectares,
-        'ecosystem_type': 'multi_ecosystem',
-        'ecosystem_results': {eco: calculate_ecosystem_services_value(eco, area_hectares * (data['count'] / total_points), coordinates) 
-                             for eco, data in ecosystem_distribution.items()},
-        'metadata': {
-            'data_source': 'Pre-computed from Authentic ESVD Database APR2024 V1.1',
-            'regional_adjustment': 1.0,
-            'quality_factor': 1.0,
-            'database_version': 'ESVD APR2024V1.1',
-            'methodology': 'Area-weighted calculation from multiple ecosystem types with regional adjustments',
-            'performance_optimized': True,
-            'total_value': total_value,
-            'value_per_hectare': total_value / area_hectares if area_hectares > 0 else 0
-        }
-    }
+        return results
