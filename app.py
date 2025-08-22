@@ -2044,7 +2044,13 @@ if st.session_state.analysis_results:
         st.markdown("### 🌿 Ecosystem Services Breakdown")
         esvd_data = results['esvd_results']
         
-        if 'provisioning' in esvd_data:
+        # Debug: Show what we have in esvd_data
+        st.write("Debug - ESVD data keys:", list(esvd_data.keys()))
+        
+        # Check if we have the expected categories
+        has_categories = any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting'])
+        
+        if has_categories:
             categories = ['provisioning', 'regulating', 'cultural', 'supporting']
             cols = st.columns(4)
             
@@ -2052,24 +2058,35 @@ if st.session_state.analysis_results:
                 if category in esvd_data:
                     total = esvd_data[category].get('total', 0)
                     with cols[i]:
-                        per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
+                        per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
                         st.metric(f"{category.title()} Services", "")
                         st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
-                        st.caption(f"${per_ha_category:.0f}/ha • {(total/results['total_value']*100):.0f}% of total" if results['total_value'] > 0 else f"${per_ha_category:.0f}/ha")
+                        
+                        # Use correct key for total value
+                        total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
+                        st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
                         
                         with st.expander(f"💡 {category.title()} services breakdown"):
                             st.markdown(f"**{category.title()} Services Calculation**")
                             
+                            # Debug: Show category structure
+                            st.write(f"Debug - {category} structure:", esvd_data[category])
+                            
                             # Show individual service calculations
                             if 'services' in esvd_data[category]:
                                 services_data = esvd_data[category]['services']
-                                if services_data:  # Check if services_data has content
+                                st.write(f"Debug - Services data type: {type(services_data)}, content: {services_data}")
+                                
+                                if services_data and isinstance(services_data, dict):  # Check if services_data has content
                                     for service, value in services_data.items():
                                         if isinstance(value, (int, float)) and value > 0:
                                             service_name = service.replace('_', ' ').title()
                                             st.markdown(f"**{service_name}**: ${value:,.0f}/year")
+                                    
+                                    if not any(isinstance(v, (int, float)) and v > 0 for v in services_data.values()):
+                                        st.info(f"All {category} service values are zero or invalid")
                                 else:
-                                    st.info(f"No detailed {category} services available for this area")
+                                    st.info(f"No detailed {category} services available - services data is empty or invalid type")
                             else:
                                 # Fallback - show total value for this category
                                 category_total = esvd_data[category].get('total', 0)
@@ -2077,6 +2094,7 @@ if st.session_state.analysis_results:
                                     st.markdown(f"**Total {category.title()} Services**: ${category_total:,.0f}/year")
                                 else:
                                     st.info(f"No {category} services detected for this ecosystem type")
+                                st.write(f"Debug - No 'services' key in {category}, available keys:", list(esvd_data[category].keys()))
                             
                             # Add methodology explanation
                             st.markdown(f"""
