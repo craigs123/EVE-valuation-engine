@@ -2057,32 +2057,20 @@ if st.session_state.analysis_results:
                             # Show individual service calculations
                             if 'services' in esvd_data[category]:
                                 services_data = esvd_data[category]['services']
-                                for service, value in services_data.items():
-                                    if isinstance(value, (int, float)) and value > 0:
-                                        service_name = service.replace('_', ' ').title()
-                                    
-                                        # Get the base coefficient from pre-computed ESVD data
-                                        try:
-                                            from utils.precomputed_esvd_coefficients import get_precomputed_coefficients
-                                            coefficients = get_precomputed_coefficients()
-                                            ecosystem_mapped = results['ecosystem_type'].lower()
-                                            
-                                            # Get coefficient based on service type
-                                            base_coeff = coefficients.get_coefficient(ecosystem_mapped, service)
-                                            regional_factor = results.get('regional_factor', 1.0)
-                                            area_ha = results['area_ha']
-                                            
-                                            st.markdown(f"""
-                                            **{service_name}**: ${value:,.0f}/year
-                                            - Pre-computed ESVD coefficient: ${base_coeff}/ha/year
-                                            - Area: {area_ha:,.0f} hectares
-                                            - Regional adjustment factor: {regional_factor:.2f}
-                                            - Calculation: ${base_coeff} × {area_ha:,.0f} ha × {regional_factor:.2f} = ${value:,.0f}/year
-                                            """)
-                                        except Exception:
+                                if services_data:  # Check if services_data has content
+                                    for service, value in services_data.items():
+                                        if isinstance(value, (int, float)) and value > 0:
+                                            service_name = service.replace('_', ' ').title()
                                             st.markdown(f"**{service_name}**: ${value:,.0f}/year")
+                                else:
+                                    st.info(f"No detailed {category} services available for this area")
                             else:
-                                st.info("Detailed service breakdown not available for this ecosystem type.")
+                                # Fallback - show total value for this category
+                                category_total = esvd_data[category].get('total', 0)
+                                if category_total > 0:
+                                    st.markdown(f"**Total {category.title()} Services**: ${category_total:,.0f}/year")
+                                else:
+                                    st.info(f"No {category} services detected for this ecosystem type")
                             
                             # Add methodology explanation
                             st.markdown(f"""

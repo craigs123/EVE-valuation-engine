@@ -154,6 +154,7 @@ class EcosystemServicesCalculator:
             
             return {
                 'current_value': float(current_value),
+                'total_annual_value': float(current_value),  # Add both keys for compatibility
                 'previous_value': float(previous_value),
                 'mean_value': float(mean_value),
                 'trend_slope': float(trend),
@@ -173,6 +174,12 @@ class EcosystemServicesCalculator:
                     'regulating_percent': float(latest_services.get('regulating', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
                     'cultural_percent': float(latest_services.get('cultural', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0,
                     'supporting_percent': float(latest_services.get('supporting', {}).get('total', 0) / current_value * 100) if current_value > 0 else 0
+                },
+                'esvd_results': {
+                    'provisioning': latest_services.get('provisioning', {}),
+                    'regulating': latest_services.get('regulating', {}),
+                    'cultural': latest_services.get('cultural', {}),
+                    'supporting': latest_services.get('supporting', {})
                 },
                 'valuation_summary': self._generate_valuation_summary(current_value, trend, ecosystem_type),
                 'data_source': 'ESVD (Ecosystem Services Valuation Database)',
@@ -308,8 +315,42 @@ class EcosystemServicesCalculator:
                 'homogeneity_index': multi_detection.get('homogeneity', 0)
             }
             
+            # Calculate combined services for multi-ecosystem areas
+            combined_services = {
+                'provisioning': {'total': 0, 'services': {}},
+                'regulating': {'total': 0, 'services': {}}, 
+                'cultural': {'total': 0, 'services': {}},
+                'supporting': {'total': 0, 'services': {}}
+            }
+            
+            # Aggregate services from all ecosystems
+            if combined_time_series:
+                latest_data = combined_time_series[-1]
+                for ecosystem_type in ecosystem_composition.keys():
+                    if ecosystem_type in ecosystem_results:
+                        # Get the latest ESVD results for this ecosystem
+                        ecosystem_area_ha = land_area_ha * (ecosystem_composition[ecosystem_type] / 100.0)
+                        coordinates = self._extract_coordinates(area_bounds)
+                        
+                        esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
+                            ecosystem_type, ecosystem_area_ha, coordinates
+                        )
+                        
+                        if 'error' not in esvd_results:
+                            for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
+                                if category in esvd_results:
+                                    combined_services[category]['total'] += esvd_results[category].get('total', 0)
+                                    # Aggregate individual services
+                                    if 'services' in esvd_results[category]:
+                                        for service, value in esvd_results[category]['services'].items():
+                                            if service in combined_services[category]['services']:
+                                                combined_services[category]['services'][service] += value
+                                            else:
+                                                combined_services[category]['services'][service] = value
+
             return {
                 'current_value': float(current_total),
+                'total_annual_value': float(current_total),  # Add both keys for compatibility
                 'previous_value': float(previous_total),
                 'value_change': float(current_total - previous_total),
                 'annual_change_usd': float(combined_trend * 365) if combined_trend != 0 else 0,
@@ -325,6 +366,7 @@ class EcosystemServicesCalculator:
                 'diversity_metrics': diversity_metrics,
                 'multi_ecosystem_detection': multi_detection,
                 'time_series': combined_time_series,
+                'esvd_results': combined_services,  # Add combined services breakdown
                 'valuation_summary': self._generate_multi_ecosystem_summary(ecosystem_composition, current_total, combined_trend),
                 'data_source': 'ESVD (Ecosystem Services Valuation Database) - Multi-ecosystem Analysis',
                 'calculation_method': 'spatial_composition_weighted_land_only'
