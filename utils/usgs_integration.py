@@ -541,5 +541,13 @@ class USGSEarthExplorerIntegrator:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    def test_authentication(self) -> Dict[str, Any]:
+        """Test USGS authentication with current credentials"""
+        return self.test_connection()
+    
+    def get_connection_status(self) -> Dict[str, Any]:
+        """Get current USGS connection status"""
+        return self.test_connection()
+
 # Global instance for easy access
 usgs_integrator = USGSEarthExplorerIntegrator()
