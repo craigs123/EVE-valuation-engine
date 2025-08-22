@@ -18,11 +18,13 @@ def get_database_modules():
     try:
         from database import (
             init_database, 
-            initialize_user_session
+            initialize_user_session,
+            SavedAreaDB
         )
         return {
             'init_database': init_database,
-            'initialize_user_session': initialize_user_session
+            'initialize_user_session': initialize_user_session,
+            'SavedAreaDB': SavedAreaDB
         }
     except ImportError:
         return None  # Graceful fallback
