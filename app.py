@@ -1402,7 +1402,11 @@ with col2:
             st.metric("Total Value", f"${total_value:,.0f} /year")
             
             # Display area information with water exclusion details
-            land_area = results.get('area_ha', results.get('area_hectares', 0))
+            # Use cached area for consistency, fallback to results if not available
+            if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha:
+                land_area = st.session_state.cached_area_ha
+            else:
+                land_area = results.get('area_ha', results.get('area_hectares', 0))
             total_area = results.get('total_area_hectares', land_area if land_area else 0)
             water_area = results.get('water_area_hectares', 0)
             
@@ -1488,7 +1492,11 @@ with col2:
             st.markdown("### 🧮 Total Value Calculation Breakdown")
             
             # Extract calculation components from results with safety checks
-            area_ha = results.get('area_ha', 0)
+            # Use cached area for consistency
+            if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha:
+                area_ha = st.session_state.cached_area_ha
+            else:
+                area_ha = results.get('area_ha', 0)
             ecosystem_type = results.get('ecosystem_type', 'Unknown')
             total_value = results.get('total_value', 0)
             regional_factor = results.get('regional_factor', 1.0)
