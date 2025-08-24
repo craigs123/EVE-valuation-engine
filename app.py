@@ -1292,17 +1292,12 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Set analyze_button for processing
-            analyze_button = True
+            # Store in session state to persist across reruns
+            st.session_state.start_analysis = True
             st.success("✅ BUTTON CLICKED - Processing...")
-            
-            # Debug what we have
-            st.write("**DEBUG INFO:**")
-            st.write(f"- selected_area: {st.session_state.get('selected_area')}")
-            st.write(f"- area_coordinates length: {len(st.session_state.get('area_coordinates', []))}")
-            st.write(f"- area_ready_for_analysis will be: {area_is_selected}")
-        else:
-            analyze_button = False
+            st.rerun()
+        
+        analyze_button = st.session_state.get('start_analysis', False)
             
     else:
         st.info("👆 First, draw an area on the map above")
@@ -1805,6 +1800,9 @@ if analyze_button and area_ready_for_analysis:
                 analysis_results['forest_classification'] = esvd_results['forest_classification']
             
             st.session_state.analysis_results = analysis_results
+            
+            # Clear the analysis trigger to prevent rerunning
+            st.session_state.start_analysis = False
             
             # Show final completion
             with analysis_progress_container.container():
