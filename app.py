@@ -1000,8 +1000,10 @@ Example: 100ha Forest
 # Initialize analyze_button as False
 analyze_button = False
 
-# Test area selection checkbox
-if st.checkbox("🧪 Select 1000 hectare test area (Northern Europe)", help="Automatically selects a standard 1000 hectare area in Sweden for testing"):
+# Test area selection checkbox (default unchecked)
+use_test_area = st.checkbox("🧪 Select 1000 hectare test area (Northern Europe)", value=False, help="Automatically selects a standard 1000 hectare area in Sweden for testing")
+
+if use_test_area:
     # Define exact 1000 hectare area in Northern Europe (Sweden)
     # Center: 60.0°N, 15.0°E - approximately 3.162 km x 3.162 km square
     test_coordinates = [
@@ -1015,6 +1017,7 @@ if st.checkbox("🧪 Select 1000 hectare test area (Northern Europe)", help="Aut
     # Set the test area coordinates
     st.session_state.area_coordinates = test_coordinates
     st.session_state.selected_area = True
+    st.session_state.use_test_area_zoom = True  # Flag to zoom map to test area
     
     # Clear any cached calculations to force recalculation
     st.session_state.cached_area_ha = None
@@ -1022,6 +1025,9 @@ if st.checkbox("🧪 Select 1000 hectare test area (Northern Europe)", help="Aut
     
     st.success("✅ **1000 hectare test area selected!** Located in central Sweden (60.0°N, 15.0°E)")
     st.caption("🌲 Expected: Boreal Forest detection | 📏 Area: ~1000 hectares")
+else:
+    # Clear test area flag when unchecked
+    st.session_state.use_test_area_zoom = False
 
 # Map and preview in columns
 col1, col2 = st.columns([3, 2])
@@ -1037,7 +1043,28 @@ with col1:
 
     
     # Create optimized interactive map - use cached calculations
-    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+    if st.session_state.get('use_test_area_zoom', False):
+        # Zoom to test area in Sweden
+        center_lat, center_lon = 60.0, 15.0  # Center of test area
+        zoom_level = 13  # Close zoom to show 1000 hectare area clearly
+        m = get_folium_map(center_lat, center_lon, zoom_level)
+        
+        # Add drawing tools for test area map
+        draw_tools = create_drawing_tools()
+        draw_tools.add_to(m)
+        
+        # Show test area polygon if coordinates are set
+        if st.session_state.get('area_coordinates'):
+            coords = st.session_state.area_coordinates
+            folium.Polygon(
+                locations=[(float(coord[1]), float(coord[0])) for coord in coords],
+                color='#28a745',
+                weight=2,
+                fillColor='#28a745',
+                fillOpacity=0.15,
+                popup="Test Area (1000 hectares)"
+            ).add_to(m)
+    elif st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
         
         # Calculate coords_array for all operations
