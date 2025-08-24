@@ -1282,6 +1282,7 @@ with col2:
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
             # Set analyze_button for processing
             analyze_button = True
+            st.info("🔄 Starting analysis...")
         else:
             analyze_button = False
             
@@ -1757,7 +1758,7 @@ if analyze_button and st.session_state.selected_area:
                 display_ecosystem_type = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_type)
             
             # Store comprehensive analysis results
-            st.session_state.analysis_results = {
+            analysis_results = {
                 'total_value': int(esvd_results.get('total_annual_value', esvd_results.get('current_value', 0))),
                 'area_ha': area_ha,
                 'ecosystem_type': display_ecosystem_type,
@@ -1767,6 +1768,12 @@ if analyze_button and st.session_state.selected_area:
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
                 'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
             }
+            
+            # Add forest classification if detected
+            if 'forest_classification' in esvd_results:
+                analysis_results['forest_classification'] = esvd_results['forest_classification']
+            
+            st.session_state.analysis_results = analysis_results
             
             # Show final completion
             with analysis_progress_container.container():
@@ -1783,6 +1790,9 @@ if analyze_button and st.session_state.selected_area:
                 
     except Exception as e:
         st.error(f"Error processing area: {e}")
+        st.error(f"Error details: {type(e).__name__}: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc(), language="python")
         st.info("Please try selecting the area again.")
 
 # Display results if available
