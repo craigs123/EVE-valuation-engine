@@ -140,7 +140,7 @@ def create_drawing_tools():
 
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
-    """Ultra-optimized area calculation with extended caching and error handling"""
+    """Ultra-optimized area calculation with latitude correction and error handling"""
     try:
         if not coordinates or len(coordinates) < 3:
             return 0.0
@@ -164,12 +164,27 @@ def calculate_area_optimized(coordinates):
         if coords_array.shape[1] < 2:
             raise ValueError("Insufficient coordinate dimensions")
         
-        # Ultra-fast vectorized shoelace formula
-        x, y = coords_array[:, 0], coords_array[:, 1]
-        area_deg2 = 0.5 * abs(np.sum(x * np.roll(y, -1) - y * np.roll(x, -1)))
+        # Get coordinates
+        lons = coords_array[:, 0]
+        lats = coords_array[:, 1]
         
-        # Pre-computed conversion to hectares (111.32 km per degree)²
-        return area_deg2 * 12392.6424
+        # Get average latitude for longitude correction
+        avg_lat = float(np.mean(lats))
+        
+        # Convert to approximate area in km² with latitude-corrected longitude
+        # 1° latitude ≈ 111.32 km everywhere
+        # 1° longitude ≈ 111.32 * cos(latitude) km
+        import math
+        lat_km_per_deg = 111.32
+        lon_km_per_deg = 111.32 * math.cos(math.radians(avg_lat))
+        
+        # Ultra-fast vectorized shoelace formula with latitude correction
+        area_km2 = 0.5 * abs(np.sum(lons * np.roll(lats, -1) - lats * np.roll(lons, -1))) * lat_km_per_deg * lon_km_per_deg
+        
+        # Convert to hectares
+        area_ha = area_km2 * 100
+        
+        return max(1.0, area_ha)  # Minimum 1 hectare
         
     except Exception as e:
         st.error(f"Error in area calculation: {e}")
