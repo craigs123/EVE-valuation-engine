@@ -1253,20 +1253,8 @@ with col1:
 with col2:
     st.subheader("📊 Step 2: Configure & Calculate")
     
-    # DEBUG FIRST - Show what we have
-    st.write("**SESSION STATE DEBUG:**")
-    st.write(f"- selected_area: {st.session_state.get('selected_area')}")
-    st.write(f"- area_coordinates: {st.session_state.get('area_coordinates', [])}")
-    st.write(f"- length of coordinates: {len(st.session_state.get('area_coordinates', []))}")
-    
     # Quick configuration in main area for better UX
-    area_is_selected = (st.session_state.get('selected_area') is not None and 
-                       st.session_state.get('area_coordinates') and 
-                       len(st.session_state.get('area_coordinates', [])) > 0)
-    
-    st.write(f"**area_is_selected: {area_is_selected}**")
-    
-    if area_is_selected:
+    if st.session_state.get('selected_area'):
         st.success("✅ Area Selected - Ready to analyze!")
         
         # Quick configuration options in main area
@@ -1292,76 +1280,68 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Store in session state to persist across reruns
-            st.session_state.start_analysis = True
-            st.success("✅ BUTTON CLICKED - Processing...")
-            st.rerun()
-        
+            # Set analyze_button for processing
+            analyze_button = True
+        else:
+            analyze_button = False
             
     else:
         st.info("👆 First, draw an area on the map above")
-        
-        # ALWAYS show a test button to see if buttons work at all
-        if st.button("🧪 TEST BUTTON", type="secondary", use_container_width=True):
-            st.success("✅ TEST BUTTON WORKS!")
-            st.write("The button mechanism is working, issue is with area selection logic")
-
-# Initialize analyze_button as False by default
-analyze_button = False
-
-# Results section
-if st.session_state.get('analysis_results'):
-    st.markdown("### 📈 Step 3: Results")
-    results = st.session_state.analysis_results
+        analyze_button = False
     
-    # Display data source status - show clearly which method was used
-    display_data_source_status(results.get('satellite_data'))
-    
-    # Key metrics display with water area exclusion information
-    col_metrics1, col_metrics2 = st.columns(2)
-    with col_metrics1:
-        st.metric("Total Value", f"${results['total_value']:,.0f} /year")
+    # Results section
+    if st.session_state.get('analysis_results'):
+        st.markdown("### 📈 Step 3: Results")
+        results = st.session_state.analysis_results
         
-        # Display area information with water exclusion details
-        land_area = results.get('area_ha', results.get('area_hectares', 0))
-        total_area = results.get('total_area_hectares', land_area)
-        water_area = results.get('water_area_hectares', 0)
+        # Display data source status - show clearly which method was used
+        display_data_source_status(results.get('satellite_data'))
         
-        if water_area > 0:
-            st.metric("Land Area Analyzed", f"{land_area:,.0f} hectares")
-            st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
-        else:
-            st.metric("Area Size", f"{land_area:,.0f} hectares")
+        # Key metrics display with water area exclusion information
+        col_metrics1, col_metrics2 = st.columns(2)
+        with col_metrics1:
+            st.metric("Total Value", f"${results['total_value']:,.0f} /year")
+            
+            # Display area information with water exclusion details
+            land_area = results.get('area_ha', results.get('area_hectares', 0))
+            total_area = results.get('total_area_hectares', land_area)
+            water_area = results.get('water_area_hectares', 0)
+            
+            if water_area > 0:
+                st.metric("Land Area Analyzed", f"{land_area:,.0f} hectares")
+                st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
+            else:
+                st.metric("Area Size", f"{land_area:,.0f} hectares")
         
-    with col_metrics2:
-        st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
+        with col_metrics2:
+            st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
+            
+            # Enhanced ecosystem type display with forest classification
+            if 'forest_classification' in results:
+                forest_info = results['forest_classification']
+                ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
+                st.metric("🌲 Forest Type", ecosystem_display)
+            else:
+                ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
+                st.metric("Ecosystem Type", ecosystem_display)
         
-        # Enhanced ecosystem type display with forest classification
+        # Enhanced forest type information section
         if 'forest_classification' in results:
             forest_info = results['forest_classification']
-            ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
-            st.metric("🌲 Forest Type", ecosystem_display)
-        else:
-            ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
-            st.metric("Ecosystem Type", ecosystem_display)
-        
-    # Enhanced forest type information section
-    if 'forest_classification' in results:
-        forest_info = results['forest_classification']
-        st.markdown("---")
-        st.markdown("### 🌲 Forest Type Classification")
-        
-        col_forest1, col_forest2 = st.columns([2, 1])
-        with col_forest1:
-            st.success(f"""
-            **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
+            st.markdown("---")
+            st.markdown("### 🌲 Forest Type Classification")
             
-            **Climate Zone**: {forest_info['climate_zone']}  
-            **Detection Method**: Geographic coordinate analysis  
-            **Confidence Level**: {forest_info['confidence']:.0%}
-            
-            *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
-            """)
+            col_forest1, col_forest2 = st.columns([2, 1])
+            with col_forest1:
+                st.success(f"""
+                **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
+                
+                **Climate Zone**: {forest_info['climate_zone']}  
+                **Detection Method**: Geographic coordinate analysis  
+                **Confidence Level**: {forest_info['confidence']:.0%}
+                
+                *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
+                """)
             
             with col_forest2:
                 # Show forest type characteristics
@@ -1520,16 +1500,8 @@ if st.session_state.get('analysis_results'):
     # Progress display container for analysis (will be updated during analysis)
     analysis_progress_container = st.empty()
 
-# Analysis with OpenLandMap ecosystem detection  
-area_ready_for_analysis = (st.session_state.get('selected_area') is not None and 
-                          st.session_state.get('area_coordinates') and 
-                          len(st.session_state.get('area_coordinates', [])) > 0)
-
-should_start_analysis = st.session_state.get('start_analysis', False)
-st.write(f"**ANALYSIS CHECK:** should_start_analysis={should_start_analysis}, area_ready={area_ready_for_analysis}")
-
-if should_start_analysis and area_ready_for_analysis:
-    st.success("🎯 ANALYSIS STARTING!")
+# Analysis with OpenLandMap ecosystem detection
+if analyze_button and st.session_state.selected_area:
     try:
         # Use cached area calculation if available
         if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
@@ -1785,7 +1757,7 @@ if should_start_analysis and area_ready_for_analysis:
                 display_ecosystem_type = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_type)
             
             # Store comprehensive analysis results
-            analysis_results = {
+            st.session_state.analysis_results = {
                 'total_value': int(esvd_results.get('total_annual_value', esvd_results.get('current_value', 0))),
                 'area_ha': area_ha,
                 'ecosystem_type': display_ecosystem_type,
@@ -1795,15 +1767,6 @@ if should_start_analysis and area_ready_for_analysis:
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
                 'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
             }
-            
-            # Add forest classification if detected
-            if 'forest_classification' in esvd_results:
-                analysis_results['forest_classification'] = esvd_results['forest_classification']
-            
-            st.session_state.analysis_results = analysis_results
-            
-            # Clear the analysis trigger to prevent rerunning
-            st.session_state.start_analysis = False
             
             # Show final completion
             with analysis_progress_container.container():
@@ -1820,9 +1783,6 @@ if should_start_analysis and area_ready_for_analysis:
                 
     except Exception as e:
         st.error(f"Error processing area: {e}")
-        st.error(f"Error details: {type(e).__name__}: {str(e)}")
-        import traceback
-        st.code(traceback.format_exc(), language="python")
         st.info("Please try selecting the area again.")
 
 # Display results if available
