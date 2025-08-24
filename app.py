@@ -1548,7 +1548,11 @@ with col2:
             st.session_state.cached_area_ha = area_ha
             st.session_state.area_coords_cache = coords
         
-        st.metric("Area Size", f"{st.session_state.cached_area_ha:.0f} hectares")
+        area_ha = st.session_state.get('cached_area_ha', 0)
+        if area_ha and area_ha > 0:
+            st.metric("Area Size", f"{area_ha:.0f} hectares")
+        else:
+            st.metric("Area Size", "Calculating...")
         
         # Show ecosystem detection status with composition
         if st.session_state.ecosystem_override == "Auto-detect":
