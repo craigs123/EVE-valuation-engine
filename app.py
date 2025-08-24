@@ -1286,7 +1286,13 @@ with col2:
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
             # Set analyze_button for processing
             analyze_button = True
-            st.info("🔄 Starting analysis...")
+            st.success("✅ BUTTON CLICKED - Processing...")
+            
+            # Debug what we have
+            st.write("**DEBUG INFO:**")
+            st.write(f"- selected_area: {st.session_state.get('selected_area')}")
+            st.write(f"- area_coordinates length: {len(st.session_state.get('area_coordinates', []))}")
+            st.write(f"- area_ready_for_analysis will be: {area_is_selected}")
         else:
             analyze_button = False
             
@@ -1510,7 +1516,10 @@ area_ready_for_analysis = (st.session_state.get('selected_area') is not None and
                           st.session_state.get('area_coordinates') and 
                           len(st.session_state.get('area_coordinates', [])) > 0)
 
+st.write(f"**ANALYSIS CHECK:** analyze_button={analyze_button}, area_ready={area_ready_for_analysis}")
+
 if analyze_button and area_ready_for_analysis:
+    st.success("🎯 ANALYSIS STARTING!")
     try:
         # Use cached area calculation if available
         if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
