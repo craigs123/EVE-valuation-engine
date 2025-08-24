@@ -1020,13 +1020,13 @@ use_test_area = st.checkbox("🧪 Select 1000 hectare test area (Northern Europe
 
 if use_test_area:
     # Define exact 1000 hectare area in Northern Europe (Sweden)
-    # Coordinates mathematically scaled by √(1000/983) = 1.008475 to achieve exactly 1000 hectares
+    # Coordinates fine-tuned to reduce from 1021ha to exactly 1000 hectares
     test_coordinates = [
-        [14.971612, 59.985678],  # SW
-        [15.028388, 59.985678],  # SE
-        [15.028388, 60.014322],  # NE
-        [14.971612, 60.014322],  # NW
-        [14.971612, 59.985678]   # Close
+        [14.971926, 59.985826],  # SW
+        [15.028074, 59.985826],  # SE
+        [15.028074, 60.014174],  # NE
+        [14.971926, 60.014174],  # NW
+        [14.971926, 59.985826]   # Close
     ]
     
     # Clear all cached values first to ensure clean state
