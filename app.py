@@ -1308,60 +1308,60 @@ with col2:
 
 # Initialize analyze_button as False by default
 analyze_button = False
+
+# Results section
+if st.session_state.get('analysis_results'):
+    st.markdown("### 📈 Step 3: Results")
+    results = st.session_state.analysis_results
     
-    # Results section
-    if st.session_state.get('analysis_results'):
-        st.markdown("### 📈 Step 3: Results")
-        results = st.session_state.analysis_results
+    # Display data source status - show clearly which method was used
+    display_data_source_status(results.get('satellite_data'))
+    
+    # Key metrics display with water area exclusion information
+    col_metrics1, col_metrics2 = st.columns(2)
+    with col_metrics1:
+        st.metric("Total Value", f"${results['total_value']:,.0f} /year")
         
-        # Display data source status - show clearly which method was used
-        display_data_source_status(results.get('satellite_data'))
+        # Display area information with water exclusion details
+        land_area = results.get('area_ha', results.get('area_hectares', 0))
+        total_area = results.get('total_area_hectares', land_area)
+        water_area = results.get('water_area_hectares', 0)
         
-        # Key metrics display with water area exclusion information
-        col_metrics1, col_metrics2 = st.columns(2)
-        with col_metrics1:
-            st.metric("Total Value", f"${results['total_value']:,.0f} /year")
-            
-            # Display area information with water exclusion details
-            land_area = results.get('area_ha', results.get('area_hectares', 0))
-            total_area = results.get('total_area_hectares', land_area)
-            water_area = results.get('water_area_hectares', 0)
-            
-            if water_area > 0:
-                st.metric("Land Area Analyzed", f"{land_area:,.0f} hectares")
-                st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
-            else:
-                st.metric("Area Size", f"{land_area:,.0f} hectares")
+        if water_area > 0:
+            st.metric("Land Area Analyzed", f"{land_area:,.0f} hectares")
+            st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
+        else:
+            st.metric("Area Size", f"{land_area:,.0f} hectares")
         
-        with col_metrics2:
-            st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
-            
-            # Enhanced ecosystem type display with forest classification
-            if 'forest_classification' in results:
-                forest_info = results['forest_classification']
-                ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
-                st.metric("🌲 Forest Type", ecosystem_display)
-            else:
-                ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
-                st.metric("Ecosystem Type", ecosystem_display)
+    with col_metrics2:
+        st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
         
-        # Enhanced forest type information section
+        # Enhanced ecosystem type display with forest classification
         if 'forest_classification' in results:
             forest_info = results['forest_classification']
-            st.markdown("---")
-            st.markdown("### 🌲 Forest Type Classification")
+            ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
+            st.metric("🌲 Forest Type", ecosystem_display)
+        else:
+            ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
+            st.metric("Ecosystem Type", ecosystem_display)
+        
+    # Enhanced forest type information section
+    if 'forest_classification' in results:
+        forest_info = results['forest_classification']
+        st.markdown("---")
+        st.markdown("### 🌲 Forest Type Classification")
+        
+        col_forest1, col_forest2 = st.columns([2, 1])
+        with col_forest1:
+            st.success(f"""
+            **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
             
-            col_forest1, col_forest2 = st.columns([2, 1])
-            with col_forest1:
-                st.success(f"""
-                **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
-                
-                **Climate Zone**: {forest_info['climate_zone']}  
-                **Detection Method**: Geographic coordinate analysis  
-                **Confidence Level**: {forest_info['confidence']:.0%}
-                
-                *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
-                """)
+            **Climate Zone**: {forest_info['climate_zone']}  
+            **Detection Method**: Geographic coordinate analysis  
+            **Confidence Level**: {forest_info['confidence']:.0%}
+            
+            *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
+            """)
             
             with col_forest2:
                 # Show forest type characteristics
