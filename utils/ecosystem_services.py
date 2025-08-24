@@ -485,13 +485,22 @@ class EcosystemServicesCalculator:
         if len(coords) < 3:
             return 100.0
         
-        # Simple area calculation using shoelace formula
+        # Corrected area calculation using shoelace formula with latitude correction
         lats = [coord[1] for coord in coords]
         lons = [coord[0] for coord in coords]
         
-        # Convert to approximate area in km²
+        # Get average latitude for longitude correction
+        avg_lat = sum(lats) / len(lats)
+        
+        # Convert to approximate area in km² with latitude-corrected longitude
+        # 1° latitude ≈ 111.32 km everywhere
+        # 1° longitude ≈ 111.32 * cos(latitude) km
+        import math
+        lat_km_per_deg = 111.32
+        lon_km_per_deg = 111.32 * math.cos(math.radians(avg_lat))
+        
         area_km2 = abs(sum((lons[i] * lats[i+1] - lons[i+1] * lats[i]) 
-                          for i in range(-1, len(lons)-1))) * 111.32 * 111.32 / 2
+                          for i in range(-1, len(lons)-1))) * lat_km_per_deg * lon_km_per_deg / 2
         
         # Convert to hectares
         area_ha = area_km2 * 100
