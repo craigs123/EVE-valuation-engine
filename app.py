@@ -1315,14 +1315,69 @@ with col2:
         
         with col_metrics2:
             st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
-            ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
-            st.metric("Ecosystem Type", ecosystem_display)
             
-            # Display forest type classification if detected
+            # Enhanced ecosystem type display with forest classification
             if 'forest_classification' in results:
                 forest_info = results['forest_classification']
-                st.info(f"""🌲 **{forest_info['detected_type'].replace('_', ' ').title()}** detected  
-                Climate Zone: {forest_info['climate_zone']} | Confidence: {forest_info['confidence']:.0%}""", icon="🌲")
+                ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
+                st.metric("🌲 Forest Type", ecosystem_display)
+            else:
+                ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
+                st.metric("Ecosystem Type", ecosystem_display)
+        
+        # Enhanced forest type information section
+        if 'forest_classification' in results:
+            forest_info = results['forest_classification']
+            st.markdown("---")
+            st.markdown("### 🌲 Forest Type Classification")
+            
+            col_forest1, col_forest2 = st.columns([2, 1])
+            with col_forest1:
+                st.success(f"""
+                **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
+                
+                **Climate Zone**: {forest_info['climate_zone']}  
+                **Detection Method**: Geographic coordinate analysis  
+                **Confidence Level**: {forest_info['confidence']:.0%}
+                
+                *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
+                """)
+            
+            with col_forest2:
+                # Show forest type characteristics
+                forest_type = forest_info['detected_type']
+                if forest_type == 'tropical_forest':
+                    st.markdown("""
+                    **🌿 Tropical Forest**
+                    - Highest biodiversity
+                    - Maximum carbon storage
+                    - Premium ecotourism value
+                    - Dense canopy cover
+                    """)
+                elif forest_type == 'temperate_forest':
+                    st.markdown("""
+                    **🍂 Temperate Forest**
+                    - Highest timber value
+                    - Seasonal recreation
+                    - Mixed species diversity
+                    - Moderate carbon storage
+                    """)
+                elif forest_type == 'boreal_forest':
+                    st.markdown("""
+                    **❄️ Boreal Forest**
+                    - Maximum soil carbon
+                    - Pulp/paper timber
+                    - Wildlife habitat value
+                    - Cold climate adapted
+                    """)
+                elif forest_type == 'mediterranean_forest':
+                    st.markdown("""
+                    **☀️ Mediterranean Forest**
+                    - Drought adaptation
+                    - High recreation value
+                    - Fire-resistant species
+                    - Erosion control focus
+                    """)
         
         # Add calculation breakdown button
         if st.button("🧮 Show Calculation Breakdown", use_container_width=True, help="See how the total value was calculated step by step"):
