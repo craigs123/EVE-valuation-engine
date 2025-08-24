@@ -1000,12 +1000,35 @@ Example: 100ha Forest
 # Initialize analyze_button as False
 analyze_button = False
 
+# Test area selection checkbox
+if st.checkbox("🧪 Select 1000 hectare test area (Northern Europe)", help="Automatically selects a standard 1000 hectare area in Sweden for testing"):
+    # Define exact 1000 hectare area in Northern Europe (Sweden)
+    # Center: 60.0°N, 15.0°E - approximately 3.162 km x 3.162 km square
+    test_coordinates = [
+        [14.9715, 59.9858],  # Southwest corner
+        [15.0285, 59.9858],  # Southeast corner  
+        [15.0285, 60.0142],  # Northeast corner
+        [14.9715, 60.0142],  # Northwest corner
+        [14.9715, 59.9858]   # Close the polygon
+    ]
+    
+    # Set the test area coordinates
+    st.session_state.area_coordinates = test_coordinates
+    st.session_state.selected_area = True
+    
+    # Clear any cached calculations to force recalculation
+    st.session_state.cached_area_ha = None
+    st.session_state.cached_bbox = None
+    
+    st.success("✅ **1000 hectare test area selected!** Located in central Sweden (60.0°N, 15.0°E)")
+    st.caption("🌲 Expected: Boreal Forest detection | 📏 Area: ~1000 hectares")
+
 # Map and preview in columns
 col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Step 1: Select Your Area")
-    st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area")
+    st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area, or use the test area checkbox above")
     
     # Performance-optimized sampling display  
     current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
