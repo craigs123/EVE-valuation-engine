@@ -1020,15 +1020,14 @@ use_test_area = st.checkbox("🧪 Select 1000 hectare test area (Northern Europe
 
 if use_test_area:
     # Define exact 1000 hectare area in Northern Europe (Sweden)
-    # For 1000 hectares at 60°N: 10 km² = √10 km sides = 3.162 km each side
-    # Latitude: 3.162 km / 111.32 km/° = 0.0284°
-    # Longitude: 3.162 km / 55.66 km/° = 0.0568° (accounting for cos(60°) = 0.5)
+    # Calculated coordinates for exactly 1000 hectares at 60°N latitude
+    # Longitude span adjusted to 0.056828° for precise 1000 hectare area
     test_coordinates = [
-        [14.9716, 59.9858],  # Southwest corner
-        [15.0284, 59.9858],  # Southeast corner  
-        [15.0284, 60.0142],  # Northeast corner
-        [14.9716, 60.0142],  # Northwest corner
-        [14.9716, 59.9858]   # Close the polygon
+        [14.971586, 59.985800],  # Southwest corner
+        [15.028414, 59.985800],  # Southeast corner  
+        [15.028414, 60.014200],  # Northeast corner
+        [14.971586, 60.014200],  # Northwest corner
+        [14.971586, 59.985800]   # Close the polygon
     ]
     
     # Set the test area coordinates
