@@ -1795,17 +1795,41 @@ if st.session_state.analysis_results:
             st.markdown("### 🌿 Ecosystem Services Breakdown")
             esvd_data = results['esvd_results']
             
-            # Temporary debug - show what's in esvd_data
-            st.write("DEBUG - ESVD data keys:", list(esvd_data.keys()) if isinstance(esvd_data, dict) else "Not a dict")
+            # Check if we have service category data directly or in mixed ecosystem structure
+            has_direct_categories = any(category in esvd_data for category in ['provisioning', 'regulating', 'cultural', 'supporting'])
+            has_mixed_ecosystem = 'ecosystem_breakdown' in esvd_data or 'ecosystem_results' in esvd_data
             
-            # Check if we have service category data
-            if any(category in esvd_data for category in ['provisioning', 'regulating', 'cultural', 'supporting']):
+            if has_direct_categories:
                 categories = ['provisioning', 'regulating', 'cultural', 'supporting']
                 cols = st.columns(4)
                 
                 for i, category in enumerate(categories):
                     if category in esvd_data and isinstance(esvd_data[category], dict):
                         total = esvd_data[category].get('total', 0)
+                        with cols[i]:
+                            per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
+                            percentage = (total/results['total_value']*100) if results['total_value'] > 0 else 0
+                            st.metric(f"{category.title()}", f"${total:,.0f}/year")
+                            st.caption(f"${per_ha_category:.0f}/ha • {percentage:.0f}% of total")
+            elif has_mixed_ecosystem:
+                # Handle mixed ecosystem structure for summary view
+                ecosystem_data = esvd_data.get('ecosystem_breakdown', esvd_data.get('ecosystem_results', {}))
+                
+                # Aggregate categories from all ecosystems
+                categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                aggregated_categories = {cat: 0 for cat in categories}
+                
+                # Sum up values from all ecosystem types
+                for ecosystem_type, ecosystem_result in ecosystem_data.items():
+                    for category in categories:
+                        if category in ecosystem_result:
+                            aggregated_categories[category] += ecosystem_result[category].get('total', 0)
+                
+                # Display aggregated categories
+                cols = st.columns(4)
+                for i, category in enumerate(categories):
+                    total = aggregated_categories[category]
+                    if total > 0:
                         with cols[i]:
                             per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
                             percentage = (total/results['total_value']*100) if results['total_value'] > 0 else 0
@@ -2164,11 +2188,11 @@ if st.session_state.analysis_results:
         st.markdown("### 🌿 Ecosystem Services Breakdown")
         esvd_data = results['esvd_results']
         
-        # Temporary debug - show what's in esvd_data
-        st.write("DEBUG - ESVD data keys (detailed):", list(esvd_data.keys()) if isinstance(esvd_data, dict) else "Not a dict")
-        
-        # Check if we have the expected categories
+        # Check if we have the expected categories directly
         has_categories = any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting'])
+        
+        # Check for mixed ecosystem structure where categories are nested
+        has_mixed_ecosystem = 'ecosystem_breakdown' in esvd_data or 'ecosystem_results' in esvd_data
         
         # Also check for alternative data structures
         has_services_data = 'services_data' in esvd_data
@@ -2228,6 +2252,62 @@ if st.session_state.analysis_results:
                             - **Standardization**: All values in 2020 International dollars per hectare per year
                             - **Performance Optimized**: Static calculations provide 238,270x speed improvement
                             """)
+        elif has_mixed_ecosystem:
+            # Handle mixed ecosystem structure where categories are nested
+            ecosystem_data = esvd_data.get('ecosystem_breakdown', esvd_data.get('ecosystem_results', {}))
+            
+            # Aggregate categories from all ecosystems
+            categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+            aggregated_categories = {cat: {'total': 0, 'services': {}} for cat in categories}
+            
+            # Sum up values from all ecosystem types
+            for ecosystem_type, ecosystem_result in ecosystem_data.items():
+                for category in categories:
+                    if category in ecosystem_result:
+                        category_data = ecosystem_result[category]
+                        aggregated_categories[category]['total'] += category_data.get('total', 0)
+                        
+                        # Merge services
+                        if 'services' in category_data:
+                            for service, value in category_data['services'].items():
+                                if service in aggregated_categories[category]['services']:
+                                    aggregated_categories[category]['services'][service] += value
+                                else:
+                                    aggregated_categories[category]['services'][service] = value
+            
+            # Display aggregated categories
+            cols = st.columns(4)
+            for i, category in enumerate(categories):
+                total = aggregated_categories[category]['total']
+                if total > 0:
+                    with cols[i]:
+                        per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
+                        st.metric(f"{category.title()} Services", "")
+                        st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
+                        
+                        total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
+                        st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
+                        
+                        with st.expander(f"💡 {category.title()} services breakdown"):
+                            st.markdown(f"**{category.title()} Services Calculation**")
+                            
+                            # Show individual service calculations
+                            services_data = aggregated_categories[category]['services']
+                            if services_data and any(isinstance(v, (int, float)) and v > 0 for v in services_data.values()):
+                                for service, value in services_data.items():
+                                    if isinstance(value, (int, float)) and value > 0:
+                                        service_name = service.replace('_', ' ').title()
+                                        st.markdown(f"**{service_name}**: ${value:,.0f}/year")
+                            else:
+                                st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
+                            
+                            st.markdown(f"""
+                            **Methodology for {category.title()} Services:**
+                            
+                            These values use pre-computed coefficients from the ESVD (Ecosystem Services Valuation Database) 
+                            APR2024 V1.1, containing 10,874+ peer-reviewed value estimates from 1,100+ scientific studies. 
+                            Values are aggregated across all ecosystem types in your selected area.
+                            """)
         elif has_services_data:
             # Alternative display for services_data structure
             st.markdown("**Individual Services Breakdown:**")
@@ -2250,15 +2330,27 @@ if st.session_state.analysis_results:
             else:
                 st.info("No individual service data available to display")
         else:
-            # Final fallback - show whatever data is available
-            st.info("**Available Data:**")
-            if esvd_data:
-                for key, value in esvd_data.items():
-                    if isinstance(value, (int, float)) and value > 0:
-                        clean_key = key.replace('_', ' ').title()
-                        st.markdown(f"• **{clean_key}**: ${value:,.0f}")
+            # Improved fallback - try to create service categories from available data
+            st.markdown("**Service Value Summary:**")
+            
+            # Check if we have a total value to display
+            total_val = esvd_data.get('total_value', esvd_data.get('total_annual_value', 0))
+            if total_val > 0:
+                area_ha = results.get('area_ha', results.get('area_hectares', 1))
+                per_ha = total_val / area_ha if area_ha > 0 else 0
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Total Ecosystem Services", f"${total_val:,.0f}/year")
+                    st.caption(f"${per_ha:.0f} per hectare annually")
+                with col2:
+                    regional_factor = esvd_data.get('regional_adjustment_factor', 1.0)
+                    st.metric("Regional Adjustment", f"{regional_factor:.2f}x")
+                    st.caption("Economic adjustment factor applied")
+                
+                st.info("💡 Service category breakdown not available in current data structure. Total value shown above represents the combined economic value of all ecosystem services.")
             else:
-                st.warning("No ecosystem services breakdown data available")
+                st.warning("No ecosystem services value data available to display")
     
     # Show individual ecosystem calculations for mixed ecosystems
     if 'esvd_results' in results and results.get('ecosystem_type') == 'multi_ecosystem':
