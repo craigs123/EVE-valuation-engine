@@ -434,7 +434,20 @@ with st.sidebar:
     # Cache ecosystem options to avoid recreation
     @st.cache_data
     def get_ecosystem_options():
-        return ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban", "Desert"]
+        return [
+            "Auto-detect", 
+            "Forest", 
+            "Tropical Forest", 
+            "Temperate Forest", 
+            "Boreal Forest", 
+            "Mediterranean Forest",
+            "Grassland", 
+            "Wetland", 
+            "Agricultural", 
+            "Coastal", 
+            "Urban", 
+            "Desert"
+        ]
     
     # Basic Settings (always visible)
     with st.expander("🌿 **Ecosystem Detection**", expanded=True):
@@ -1263,8 +1276,20 @@ with col2:
         with col_config1:
             quick_ecosystem = st.selectbox(
                 "Ecosystem Type:",
-                ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Urban"],
-                help="Auto-detect uses satellite analysis",
+                [
+                    "Auto-detect", 
+                    "Forest", 
+                    "Tropical Forest", 
+                    "Temperate Forest", 
+                    "Boreal Forest", 
+                    "Mediterranean Forest",
+                    "Grassland", 
+                    "Wetland", 
+                    "Agricultural", 
+                    "Coastal", 
+                    "Urban"
+                ],
+                help="Auto-detect uses satellite analysis, or choose specific forest type",
                 key="quick_ecosystem"
             )
             st.session_state.ecosystem_override = quick_ecosystem
@@ -1337,7 +1362,7 @@ with col2:
                 **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
                 
                 **Climate Zone**: {forest_info['climate_zone']}  
-                **Detection Method**: Geographic coordinate analysis  
+                **Detection Method**: {forest_info.get('selection_method', 'Geographic coordinate analysis')}  
                 **Confidence Level**: {forest_info['confidence']:.0%}
                 
                 *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
@@ -1522,8 +1547,29 @@ if analyze_button and st.session_state.selected_area:
             st.info("🔍 Starting ecosystem analysis - this may take a few moments...")
         
         with st.spinner("Please wait - Analyzing ecosystem and calculating values..."):
-            # Detect ecosystem type if auto-detection is enabled
+            # Detect ecosystem type if auto-detection is enabled or convert manual selection
             ecosystem_type = st.session_state.ecosystem_override
+            
+            # Convert display names to internal forest type names
+            forest_type_mapping = {
+                "Tropical Forest": "tropical_forest",
+                "Temperate Forest": "temperate_forest", 
+                "Boreal Forest": "boreal_forest",
+                "Mediterranean Forest": "mediterranean_forest"
+            }
+            
+            # Handle manual forest type selection
+            manual_forest_selection = None
+            if ecosystem_type in forest_type_mapping:
+                manual_forest_selection = {
+                    'original_type': 'Forest',
+                    'detected_type': forest_type_mapping[ecosystem_type],
+                    'climate_zone': ecosystem_type.replace(' Forest', ''),
+                    'coordinates': None,  # Will be set later
+                    'confidence': 1.0,  # High confidence for manual selection
+                    'selection_method': 'Manual'
+                }
+                ecosystem_type = forest_type_mapping[ecosystem_type]
             
             if st.session_state.ecosystem_override == "Auto-detect":
                 try:
@@ -1805,9 +1851,13 @@ if analyze_button and st.session_state.selected_area:
                 'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
             }
             
-            # Add forest classification if detected
+            # Add forest classification if detected or manually selected
             if forest_classification:
                 analysis_results['forest_classification'] = forest_classification
+            elif manual_forest_selection:
+                # Update coordinates for manual selection
+                manual_forest_selection['coordinates'] = (center_lat, center_lon)
+                analysis_results['forest_classification'] = manual_forest_selection
             
             st.session_state.analysis_results = analysis_results
             
