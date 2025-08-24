@@ -1731,6 +1731,17 @@ if analyze_button and st.session_state.selected_area:
                     total_value += eco_result['total_value']
                     mixed_results[eco_type] = eco_result
                 
+                # Check if any forest types were detected in mixed results
+                forest_types_detected = []
+                for eco_type, eco_result in mixed_results.items():
+                    if 'forest_classification' in eco_result:
+                        forest_types_detected.append(eco_result['forest_classification'])
+                    elif 'forest' in eco_result.get('ecosystem_type', '').lower():
+                        forest_types_detected.append({
+                            'detected_type': eco_result.get('ecosystem_type', eco_type),
+                            'proportion': data['count'] / total_points
+                        })
+                
                 # Create combined results
                 esvd_results = {
                     'total_value': total_value,
@@ -1742,6 +1753,10 @@ if analyze_button and st.session_state.selected_area:
                         'ecosystem_count': len(ecosystem_distribution)
                     }
                 }
+                
+                # Add forest classification info if detected
+                if forest_types_detected:
+                    esvd_results['mixed_forest_types'] = forest_types_detected
             else:
                 # Single ecosystem calculation with forest type detection
                 coeffs = get_precomputed_coefficients()
@@ -1756,17 +1771,45 @@ if analyze_button and st.session_state.selected_area:
             if st.session_state.ecosystem_override == "Auto-detect" and st.session_state.get('detected_ecosystem'):
                 display_ecosystem_type = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_type)
             
+            # Determine the final ecosystem type for display - use specific forest type if detected
+            final_ecosystem_type = display_ecosystem_type
+            forest_classification = None
+            
+            # Check if forest type detection occurred in ESVD results
+            if 'forest_classification' in esvd_results:
+                forest_classification = esvd_results['forest_classification']
+                final_ecosystem_type = forest_classification['detected_type']
+            elif 'ecosystem_type' in esvd_results and esvd_results['ecosystem_type'] != display_ecosystem_type:
+                # Use the specific forest type from ESVD calculation
+                final_ecosystem_type = esvd_results['ecosystem_type']
+                
+                # Create forest classification info if it's a forest type
+                if 'forest' in final_ecosystem_type.lower():
+                    forest_classification = {
+                        'original_type': display_ecosystem_type,
+                        'detected_type': final_ecosystem_type,
+                        'climate_zone': final_ecosystem_type.replace('_forest', '').title(),
+                        'coordinates': (center_lat, center_lon),
+                        'confidence': 0.9
+                    }
+            
             # Store comprehensive analysis results
-            st.session_state.analysis_results = {
+            analysis_results = {
                 'total_value': int(esvd_results.get('total_annual_value', esvd_results.get('current_value', 0))),
                 'area_ha': area_ha,
-                'ecosystem_type': display_ecosystem_type,
+                'ecosystem_type': final_ecosystem_type,
                 'esvd_results': esvd_results,
                 'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
                 'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
             }
+            
+            # Add forest classification if detected
+            if forest_classification:
+                analysis_results['forest_classification'] = forest_classification
+            
+            st.session_state.analysis_results = analysis_results
             
             # Show final completion
             with analysis_progress_container.container():
