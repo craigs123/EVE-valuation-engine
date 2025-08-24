@@ -158,8 +158,8 @@ def calculate_area_optimized(coordinates):
             return 0.0
         
         
-        # Convert to NumPy array once with float32 for memory efficiency
-        coords_array = np.array(coords, dtype=np.float32)
+        # Convert to NumPy array with float64 for precision in area calculations
+        coords_array = np.array(coords, dtype=np.float64)
         
         # Validate array shape
         if coords_array.shape[1] < 2:
@@ -1021,7 +1021,7 @@ use_test_area = st.checkbox("🧪 Select 1000 hectare test area (Northern Europe
 
 if use_test_area:
     # Define coordinates that mathematically produce exactly 1000 hectares
-    # Precisely calculated and verified to produce exactly 1000ha at 60°N latitude
+    # Calculated for high precision with float64 arithmetic
     test_coordinates = [
         [14.97991315, 59.97991315],  # SW
         [15.02008685, 59.97991315],  # SE
