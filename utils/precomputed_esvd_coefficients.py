@@ -337,6 +337,10 @@ class PrecomputedESVDCoefficients:
         # Default fallback
         return 'temperate_forest'
 
+    def get_ecosystem_coefficients(self, ecosystem_type: str) -> dict:
+        """Get all coefficients for a specific ecosystem type"""
+        return self.coefficients.get(ecosystem_type, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
+
     def get_coefficient(self, ecosystem_type: str, service_type: str, coordinates: tuple = None) -> float:
         """
         Get pre-computed coefficient for ecosystem service with forest type detection
