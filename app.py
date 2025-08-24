@@ -1254,7 +1254,11 @@ with col2:
     st.subheader("📊 Step 2: Configure & Calculate")
     
     # Quick configuration in main area for better UX
-    if st.session_state.get('selected_area'):
+    area_is_selected = (st.session_state.get('selected_area') is not None and 
+                       st.session_state.get('area_coordinates') and 
+                       len(st.session_state.get('area_coordinates', [])) > 0)
+    
+    if area_is_selected:
         st.success("✅ Area Selected - Ready to analyze!")
         
         # Quick configuration options in main area
@@ -1501,8 +1505,12 @@ with col2:
     # Progress display container for analysis (will be updated during analysis)
     analysis_progress_container = st.empty()
 
-# Analysis with OpenLandMap ecosystem detection
-if analyze_button and st.session_state.selected_area:
+# Analysis with OpenLandMap ecosystem detection  
+area_ready_for_analysis = (st.session_state.get('selected_area') is not None and 
+                          st.session_state.get('area_coordinates') and 
+                          len(st.session_state.get('area_coordinates', [])) > 0)
+
+if analyze_button and area_ready_for_analysis:
     try:
         # Use cached area calculation if available
         if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
