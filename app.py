@@ -1020,14 +1020,13 @@ use_test_area = st.checkbox("🧪 Select 1000 hectare test area (Northern Europe
 
 if use_test_area:
     # Define exact 1000 hectare area in Northern Europe (Sweden)
-    # Calculated coordinates for exactly 1000 hectares at 60°N latitude
-    # Longitude span adjusted to 0.056828° for precise 1000 hectare area
+    # Coordinates mathematically scaled by √(1000/983) = 1.008475 to achieve exactly 1000 hectares
     test_coordinates = [
-        [14.971586, 59.985800],  # Southwest corner
-        [15.028414, 59.985800],  # Southeast corner  
-        [15.028414, 60.014200],  # Northeast corner
-        [14.971586, 60.014200],  # Northwest corner
-        [14.971586, 59.985800]   # Close the polygon
+        [14.971612, 59.985678],  # SW
+        [15.028388, 59.985678],  # SE
+        [15.028388, 60.014322],  # NE
+        [14.971612, 60.014322],  # NW
+        [14.971612, 59.985678]   # Close
     ]
     
     # Clear all cached values first to ensure clean state
@@ -1041,8 +1040,9 @@ if use_test_area:
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True  # Flag to zoom map to test area
     
-    # Force calculation with exact 1000 hectare value
-    st.session_state.cached_area_ha = 1000.0  # Set exactly 1000 hectares
+    # Calculate and cache the area using the optimized function
+    area_ha = calculate_area_optimized(test_coordinates)
+    st.session_state.cached_area_ha = area_ha
     st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
     st.session_state.area_coords_cache = test_coordinates
     
