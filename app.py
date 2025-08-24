@@ -1671,7 +1671,7 @@ if analyze_button and st.session_state.selected_area:
                 progress_text.info("💰 **Please wait** - Calculating ecosystem service values using pre-computed ESVD coefficients...")
             
             # Calculate authentic ecosystem values using pre-computed ESVD coefficients
-            from utils.precomputed_esvd_coefficients import calculate_ecosystem_services_value, calculate_mixed_ecosystem_services_value
+            from utils.precomputed_esvd_coefficients import get_precomputed_coefficients
             
             # Get center coordinates for regional adjustment (optimized)
             coords_array = np.array(st.session_state.area_coordinates[:-1], dtype=np.float32)
@@ -1710,14 +1710,42 @@ if analyze_button and st.session_state.selected_area:
                 st.markdown('\n'.join(composition_lines))
                 st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                 
-                esvd_results = calculate_mixed_ecosystem_services_value(
-                    ecosystem_distribution=ecosystem_distribution,
-                    area_hectares=area_ha,
-                    coordinates=(center_lat, center_lon)
-                )
+                # Initialize the calculator
+                coeffs = get_precomputed_coefficients()
+                
+                # Calculate weighted values for mixed ecosystem
+                total_value = 0
+                mixed_results = {}
+                
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_points
+                    eco_area = area_ha * proportion
+                    
+                    # Calculate value for this ecosystem type with forest type detection
+                    eco_result = coeffs.calculate_ecosystem_values(
+                        ecosystem_type=eco_type,
+                        area_hectares=eco_area,
+                        coordinates=(center_lat, center_lon)
+                    )
+                    
+                    total_value += eco_result['total_value']
+                    mixed_results[eco_type] = eco_result
+                
+                # Create combined results
+                esvd_results = {
+                    'total_value': total_value,
+                    'total_annual_value': total_value,
+                    'current_value': total_value,
+                    'ecosystem_results': mixed_results,
+                    'metadata': {
+                        'calculation_method': 'Mixed ecosystem with forest type detection',
+                        'ecosystem_count': len(ecosystem_distribution)
+                    }
+                }
             else:
-                # Single ecosystem calculation
-                esvd_results = calculate_ecosystem_services_value(
+                # Single ecosystem calculation with forest type detection
+                coeffs = get_precomputed_coefficients()
+                esvd_results = coeffs.calculate_ecosystem_values(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
                     coordinates=(center_lat, center_lon)
