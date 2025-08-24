@@ -1368,35 +1368,48 @@ with col2:
         st.markdown("### 📈 Step 3: Results")
         results = st.session_state.analysis_results
         
+        # Safety check - ensure results is not None
+        if results is None:
+            st.error("Analysis results are not available. Please run the analysis again.")
+            st.stop()
+        
         # Display data source status - show clearly which method was used
-        display_data_source_status(results.get('satellite_data'))
+        satellite_data = results.get('satellite_data')
+        if satellite_data:
+            display_data_source_status(satellite_data)
         
         # Key metrics display with water area exclusion information
         col_metrics1, col_metrics2 = st.columns(2)
         with col_metrics1:
-            st.metric("Total Value", f"${results['total_value']:,.0f} /year")
+            total_value = results.get('total_value', 0)
+            st.metric("Total Value", f"${total_value:,.0f} /year")
             
             # Display area information with water exclusion details
             land_area = results.get('area_ha', results.get('area_hectares', 0))
-            total_area = results.get('total_area_hectares', land_area)
+            total_area = results.get('total_area_hectares', land_area if land_area else 0)
             water_area = results.get('water_area_hectares', 0)
             
-            if water_area > 0:
+            if water_area and water_area > 0 and total_area > 0:
                 st.metric("Land Area Analyzed", f"{land_area:,.0f} hectares")
                 st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
             else:
                 st.metric("Area Size", f"{land_area:,.0f} hectares")
         
         with col_metrics2:
-            st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
+            value_per_ha = results.get('value_per_ha', 0)
+            st.metric("Value per Hectare", f"${value_per_ha:,.0f} /ha/year")
             
             # Enhanced ecosystem type display with forest classification
-            if 'forest_classification' in results:
+            if results.get('forest_classification'):
                 forest_info = results['forest_classification']
-                ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
-                st.metric("🌲 Forest Type", ecosystem_display)
+                if forest_info and forest_info.get('detected_type'):
+                    ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
+                    st.metric("🌲 Forest Type", ecosystem_display)
+                else:
+                    st.metric("Ecosystem Type", "Classification Pending")
             else:
-                ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
+                ecosystem_type = results.get('ecosystem_type', 'Unknown')
+                ecosystem_display = ecosystem_type.replace('_', ' ').title()
                 st.metric("Ecosystem Type", ecosystem_display)
         
         # Enhanced forest type information section
@@ -1457,10 +1470,10 @@ with col2:
         if st.button("🧮 Show Calculation Breakdown", use_container_width=True, help="See how the total value was calculated step by step"):
             st.markdown("### 🧮 Total Value Calculation Breakdown")
             
-            # Extract calculation components from results
-            area_ha = results['area_ha']
-            ecosystem_type = results['ecosystem_type']
-            total_value = results['total_value']
+            # Extract calculation components from results with safety checks
+            area_ha = results.get('area_ha', 0)
+            ecosystem_type = results.get('ecosystem_type', 'Unknown')
+            total_value = results.get('total_value', 0)
             regional_factor = results.get('regional_factor', 1.0)
             quality_factor = results.get('quality_factor', 1.0)
             
@@ -1995,15 +2008,25 @@ if st.session_state.analysis_results:
         # Check if there's an existing baseline for this area
         baseline_info = None
         if st.session_state.get('current_area_id'):
-            db_modules = get_database_modules()
-            NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
-            baseline_info = NaturalCapitalBaselineDB.get_area_baseline(st.session_state.current_area_id)
+            try:
+                db_modules = get_database_modules()
+                if db_modules and 'NaturalCapitalBaselineDB' in db_modules:
+                    NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
+                    baseline_info = NaturalCapitalBaselineDB.get_area_baseline(st.session_state.current_area_id)
+            except Exception:
+                baseline_info = None
         
         # Show baseline comparison if available
         if baseline_info:
-            db_modules = get_database_modules()
-            NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
-            comparison = NaturalCapitalBaselineDB.compare_to_baseline(results, baseline_info['id'])
+            try:
+                db_modules = get_database_modules()
+                if db_modules and 'NaturalCapitalBaselineDB' in db_modules:
+                    NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
+                    comparison = NaturalCapitalBaselineDB.compare_to_baseline(results, baseline_info['id'])
+                else:
+                    comparison = None
+            except Exception:
+                comparison = None
             if comparison:
                 st.markdown("### 📊 Baseline Comparison")
                 
@@ -2131,16 +2154,22 @@ if st.session_state.analysis_results:
                 baseline_exists = baseline_info is not None
                 baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
                 if st.button(baseline_text, type="secondary"):
-                    db_modules = get_database_modules()
-                    NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
-                    baseline_id = NaturalCapitalBaselineDB.create_baseline(
-                        coordinates=st.session_state.area_coordinates,
-                        area_hectares=results['area_ha'],
-                        ecosystem_type=results['ecosystem_type'],
-                        analysis_results=results,
-                        sampling_points=st.session_state.get('max_sampling_limit', 10),
-                        area_id=st.session_state.get('current_area_id')
-                    )
+                    try:
+                        db_modules = get_database_modules()
+                        if db_modules and 'NaturalCapitalBaselineDB' in db_modules:
+                            NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
+                            baseline_id = NaturalCapitalBaselineDB.create_baseline(
+                                coordinates=st.session_state.area_coordinates,
+                                area_hectares=results.get('area_ha', 0),
+                                ecosystem_type=results.get('ecosystem_type', 'Unknown'),
+                                analysis_results=results,
+                                sampling_points=st.session_state.get('max_sampling_limit', 10),
+                                area_id=st.session_state.get('current_area_id')
+                            )
+                        else:
+                            baseline_id = None
+                    except Exception:
+                        baseline_id = None
                     if baseline_id:
                         action_text = "updated" if baseline_exists else "established"
                         st.success(f"Natural capital baseline {action_text}!")
@@ -2172,33 +2201,46 @@ if st.session_state.analysis_results:
                         
                         if save_analysis_btn and analysis_name:
                             # Check if we've already saved this analysis to prevent duplicates
-                            results = st.session_state.analysis_results
-                            save_key = f"saved_analysis_{hash(str(results))}"
-                            
-                            if save_key not in st.session_state:
-                                db_modules = get_database_modules()
-                                EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
-                                analysis_id = EcosystemAnalysisDB.save_analysis(
-                                    coordinates=st.session_state.area_coordinates,
-                                    area_hectares=results['area_ha'],
-                                    ecosystem_type=results['ecosystem_type'],
-                                    total_value=results['total_value'],
-                                    value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
-                                    analysis_results=results,
-                                    sampling_points=st.session_state.get('max_sampling_limit', 10),
-                                    area_name=analysis_name,
-                                    user_session_id=st.session_state.get('user_id'),
-                                    sustainability_responses=st.session_state.get('sustainability_responses')
-                                )
-                                if analysis_id:
-                                    st.session_state[save_key] = analysis_id
-                                    st.success(f"Analysis saved successfully!")
-                                    st.session_state['show_save_options'] = False
-                                    st.rerun()
-                                else:
-                                    st.error("Failed to save analysis")
+                            results = st.session_state.get('analysis_results')
+                            if results is None:
+                                st.error("No analysis results to save.")
                             else:
-                                st.info("This analysis has already been saved!")
+                                save_key = f"saved_analysis_{hash(str(results))}"
+                                
+                                if save_key not in st.session_state:
+                                    try:
+                                        db_modules = get_database_modules()
+                                        if db_modules and 'EcosystemAnalysisDB' in db_modules:
+                                            EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
+                                        else:
+                                            EcosystemAnalysisDB = None
+                                    except Exception:
+                                        EcosystemAnalysisDB = None
+                                    
+                                    if EcosystemAnalysisDB:
+                                        analysis_id = EcosystemAnalysisDB.save_analysis(
+                                            coordinates=st.session_state.area_coordinates,
+                                            area_hectares=results.get('area_ha', 0),
+                                            ecosystem_type=results.get('ecosystem_type', 'Unknown'),
+                                            total_value=results.get('total_value', 0),
+                                            value_per_hectare=results.get('value_per_ha', results.get('total_value', 0)/max(results.get('area_ha', 1), 1)),
+                                            analysis_results=results,
+                                            sampling_points=st.session_state.get('max_sampling_limit', 10),
+                                            area_name=analysis_name,
+                                            user_session_id=st.session_state.get('user_id'),
+                                            sustainability_responses=st.session_state.get('sustainability_responses')
+                                        )
+                                        if analysis_id:
+                                            st.session_state[save_key] = analysis_id
+                                            st.success(f"Analysis saved successfully!")
+                                            st.session_state['show_save_options'] = False
+                                            st.rerun()
+                                        else:
+                                            st.error("Failed to save analysis")
+                                    else:
+                                        st.error("Database not available")
+                                else:
+                                    st.info("This analysis has already been saved!")
                         
                         if cancel_analysis_btn:
                             st.session_state['show_save_options'] = False
@@ -2853,32 +2895,45 @@ if st.session_state.analysis_results:
                     
                     if save_analysis_btn and analysis_name:
                         # Check if we've already saved this analysis to prevent duplicates
-                        results = st.session_state.analysis_results
-                        save_key = f"saved_analysis_{hash(str(results))}"
-                        
-                        if save_key not in st.session_state:
-                            db_modules = get_database_modules()
-                            EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
-                            analysis_id = EcosystemAnalysisDB.save_analysis(
-                                coordinates=st.session_state.area_coordinates,
-                                area_hectares=results['area_ha'],
-                                ecosystem_type=results['ecosystem_type'],
-                                total_value=results['total_value'],
-                                value_per_hectare=results.get('value_per_ha', results['total_value']/results['area_ha']),
-                                analysis_results=results,
-                                sampling_points=st.session_state.get('max_sampling_limit', 10),
-                                area_name=analysis_name,
-                                user_session_id=st.session_state.get('user_id'),
-                                sustainability_responses=st.session_state.get('sustainability_responses')
-                            )
-                            if analysis_id:
-                                st.session_state[save_key] = analysis_id
-                                st.success(f"Analysis saved successfully!")
-                                st.rerun()
-                            else:
-                                st.error("Failed to save analysis")
+                        results = st.session_state.get('analysis_results')
+                        if results is None:
+                            st.error("No analysis results to save.")
                         else:
-                            st.info("This analysis has already been saved!")
+                            save_key = f"saved_analysis_{hash(str(results))}"
+                            
+                            if save_key not in st.session_state:
+                                try:
+                                    db_modules = get_database_modules()
+                                    if db_modules and 'EcosystemAnalysisDB' in db_modules:
+                                        EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
+                                    else:
+                                        EcosystemAnalysisDB = None
+                                except Exception:
+                                    EcosystemAnalysisDB = None
+                                
+                                if EcosystemAnalysisDB:
+                                    analysis_id = EcosystemAnalysisDB.save_analysis(
+                                        coordinates=st.session_state.area_coordinates,
+                                        area_hectares=results.get('area_ha', 0),
+                                        ecosystem_type=results.get('ecosystem_type', 'Unknown'),
+                                        total_value=results.get('total_value', 0),
+                                        value_per_hectare=results.get('value_per_ha', results.get('total_value', 0)/max(results.get('area_ha', 1), 1)),
+                                        analysis_results=results,
+                                        sampling_points=st.session_state.get('max_sampling_limit', 10),
+                                        area_name=analysis_name,
+                                        user_session_id=st.session_state.get('user_id'),
+                                        sustainability_responses=st.session_state.get('sustainability_responses')
+                                    )
+                                    if analysis_id:
+                                        st.session_state[save_key] = analysis_id
+                                        st.success(f"Analysis saved successfully!")
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to save analysis")
+                                else:
+                                    st.error("Database not available")
+                            else:
+                                st.info("This analysis has already been saved!")
                     
                     if cancel_analysis_btn:
                         st.info("Save cancelled")
