@@ -1537,15 +1537,29 @@ with col2:
     elif st.session_state.get('selected_area'):
         coords = st.session_state.area_coordinates
         
-        # Calculate area in hectares (cached)
+        # Calculate area in hectares (cached) with latitude correction
         if 'cached_area_ha' not in st.session_state or st.session_state.get('area_coords_cache') != coords:
             # Only recalculate if coordinates changed
             lats = [coord[1] for coord in coords[:-1]]
             lons = [coord[0] for coord in coords[:-1]]
-            lat_range = max(lats) - min(lats)
-            lon_range = max(lons) - min(lons)
-            area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
-            st.session_state.cached_area_ha = area_ha
+            
+            # Get average latitude for longitude correction
+            avg_lat = sum(lats) / len(lats)
+            
+            # Convert to approximate area in km² with latitude-corrected longitude
+            # 1° latitude ≈ 111.32 km everywhere
+            # 1° longitude ≈ 111.32 * cos(latitude) km
+            import math
+            lat_km_per_deg = 111.32
+            lon_km_per_deg = 111.32 * math.cos(math.radians(avg_lat))
+            
+            # Use shoelace formula for accurate area calculation
+            area_km2 = abs(sum((lons[i] * lats[i+1] - lons[i+1] * lats[i]) 
+                              for i in range(-1, len(lons)-1))) * lat_km_per_deg * lon_km_per_deg / 2
+            
+            # Convert to hectares
+            area_ha = area_km2 * 100
+            st.session_state.cached_area_ha = max(1.0, area_ha)  # Minimum 1 hectare
             st.session_state.area_coords_cache = coords
         
         area_ha = st.session_state.get('cached_area_ha', 0)
