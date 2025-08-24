@@ -485,22 +485,42 @@ class EcosystemServicesCalculator:
         if len(coords) < 3:
             return 100.0
         
-        # Corrected area calculation using shoelace formula with latitude correction
-        lats = [coord[1] for coord in coords]
-        lons = [coord[0] for coord in coords]
+        # First check if we have a cached area from the main app (for consistency)
+        try:
+            import streamlit as st
+            if hasattr(st, 'session_state') and 'cached_area_ha' in st.session_state:
+                cached_area = st.session_state.cached_area_ha
+                if cached_area and cached_area > 0:
+                    return cached_area
+        except:
+            pass  # Fall back to calculation if streamlit not available
+        
+        # Fallback: use same calculation as main app for consistency
+        import numpy as np
+        import math
+        
+        # Skip the last coordinate if it duplicates the first (polygon closure)
+        coords = coords[:-1] if len(coords) > 1 and coords[-1] == coords[0] else coords
+        
+        if len(coords) < 3:
+            return 100.0
+        
+        # Convert to NumPy array for consistency with main calculation
+        coords_array = np.array(coords, dtype=np.float32)
+        lons = coords_array[:, 0]
+        lats = coords_array[:, 1]
         
         # Get average latitude for longitude correction
-        avg_lat = sum(lats) / len(lats)
+        avg_lat = float(np.mean(lats))
         
-        # Convert to approximate area in km² with latitude-corrected longitude
+        # Convert to approximate area in km² with latitude-corrected longitude  
         # 1° latitude ≈ 111.32 km everywhere
         # 1° longitude ≈ 111.32 * cos(latitude) km
-        import math
         lat_km_per_deg = 111.32
         lon_km_per_deg = 111.32 * math.cos(math.radians(avg_lat))
         
-        area_km2 = abs(sum((lons[i] * lats[i+1] - lons[i+1] * lats[i]) 
-                          for i in range(-1, len(lons)-1))) * lat_km_per_deg * lon_km_per_deg / 2
+        # Use same vectorized shoelace formula as main app
+        area_km2 = 0.5 * abs(np.sum(lons * np.roll(lats, -1) - lats * np.roll(lons, -1))) * lat_km_per_deg * lon_km_per_deg
         
         # Convert to hectares
         area_ha = area_km2 * 100
