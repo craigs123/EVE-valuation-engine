@@ -29,8 +29,53 @@ class EnhancedSatelliteSimulator:
         
         # Authentic ecosystem spectral signatures from peer-reviewed studies
         self.ecosystem_signatures = {
+            'tropical_forest': {
+                'description': 'Dense tropical rainforest - very high NIR, low red',
+                'red': {'mean': 0.03, 'std': 0.012, 'seasonal_var': 0.15},
+                'green': {'mean': 0.05, 'std': 0.018, 'seasonal_var': 0.2},
+                'blue': {'mean': 0.025, 'std': 0.008, 'seasonal_var': 0.15},
+                'nir': {'mean': 0.55, 'std': 0.090, 'seasonal_var': 0.2},
+                'swir1': {'mean': 0.12, 'std': 0.025, 'seasonal_var': 0.25},
+                'swir2': {'mean': 0.06, 'std': 0.015, 'seasonal_var': 0.2},
+                'ndvi_range': (0.7, 0.9),
+                'cloud_tendency': 0.25  # High humidity in rainforests
+            },
+            'temperate_forest': {
+                'description': 'Temperate deciduous/mixed forest - seasonal variation',
+                'red': {'mean': 0.04, 'std': 0.015, 'seasonal_var': 0.4},
+                'green': {'mean': 0.06, 'std': 0.020, 'seasonal_var': 0.35},
+                'blue': {'mean': 0.03, 'std': 0.010, 'seasonal_var': 0.3},
+                'nir': {'mean': 0.45, 'std': 0.080, 'seasonal_var': 0.5},
+                'swir1': {'mean': 0.15, 'std': 0.030, 'seasonal_var': 0.4},
+                'swir2': {'mean': 0.08, 'std': 0.020, 'seasonal_var': 0.35},
+                'ndvi_range': (0.5, 0.8),
+                'cloud_tendency': 0.15  # Moderate humidity
+            },
+            'boreal_forest': {
+                'description': 'Coniferous boreal forest - high seasonal variation',
+                'red': {'mean': 0.05, 'std': 0.018, 'seasonal_var': 0.6},
+                'green': {'mean': 0.07, 'std': 0.022, 'seasonal_var': 0.55},
+                'blue': {'mean': 0.035, 'std': 0.012, 'seasonal_var': 0.5},
+                'nir': {'mean': 0.40, 'std': 0.070, 'seasonal_var': 0.7},
+                'swir1': {'mean': 0.18, 'std': 0.035, 'seasonal_var': 0.6},
+                'swir2': {'mean': 0.10, 'std': 0.025, 'seasonal_var': 0.55},
+                'ndvi_range': (0.4, 0.8),
+                'cloud_tendency': 0.12  # Lower humidity, continental climate
+            },
+            'mediterranean_forest': {
+                'description': 'Mediterranean sclerophyll forest - drought adapted',
+                'red': {'mean': 0.06, 'std': 0.020, 'seasonal_var': 0.5},
+                'green': {'mean': 0.08, 'std': 0.025, 'seasonal_var': 0.45},
+                'blue': {'mean': 0.04, 'std': 0.015, 'seasonal_var': 0.4},
+                'nir': {'mean': 0.35, 'std': 0.060, 'seasonal_var': 0.6},
+                'swir1': {'mean': 0.22, 'std': 0.040, 'seasonal_var': 0.5},
+                'swir2': {'mean': 0.12, 'std': 0.030, 'seasonal_var': 0.45},
+                'ndvi_range': (0.3, 0.7),
+                'cloud_tendency': 0.08  # Dry summers, wet winters
+            },
+            # Legacy forest category for backwards compatibility
             'Forest': {
-                'description': 'Dense forest canopy - high NIR, low red',
+                'description': 'General forest canopy - high NIR, low red',
                 'red': {'mean': 0.04, 'std': 0.015, 'seasonal_var': 0.3},
                 'green': {'mean': 0.06, 'std': 0.020, 'seasonal_var': 0.25},
                 'blue': {'mean': 0.03, 'std': 0.010, 'seasonal_var': 0.2},
@@ -38,7 +83,7 @@ class EnhancedSatelliteSimulator:
                 'swir1': {'mean': 0.15, 'std': 0.030, 'seasonal_var': 0.3},
                 'swir2': {'mean': 0.08, 'std': 0.020, 'seasonal_var': 0.25},
                 'ndvi_range': (0.6, 0.9),
-                'cloud_tendency': 0.15  # Forests often have higher humidity
+                'cloud_tendency': 0.15
             },
             'Agricultural': {
                 'description': 'Cropland - moderate NIR, variable by season',
@@ -207,8 +252,48 @@ class EnhancedSatelliteSimulator:
             'quality_assessment': self._assess_time_series_quality(time_series_data)
         }
     
+    def _determine_forest_type(self, center_lat: float, center_lon: float) -> str:
+        """Determine specific forest type based on coordinates"""
+        
+        abs_lat = abs(center_lat)
+        
+        # Boreal forest zones (50-70° latitude)
+        if 50 <= abs_lat <= 70:
+            return 'boreal_forest'
+        
+        # Tropical forest zones (0-25° latitude)  
+        elif abs_lat <= 25:
+            return 'tropical_forest'
+        
+        # Mediterranean climate zones (30-45° latitude, specific regions)
+        elif 30 <= abs_lat <= 45:
+            # Mediterranean Basin
+            if (30 <= center_lat <= 45 and -10 <= center_lon <= 45):
+                return 'mediterranean_forest'
+            # California
+            elif (32 <= center_lat <= 42 and -125 <= center_lon <= -115):
+                return 'mediterranean_forest'
+            # Central Chile  
+            elif (-40 <= center_lat <= -30 and -75 <= center_lon <= -70):
+                return 'mediterranean_forest'
+            # South Africa (Western Cape)
+            elif (-35 <= center_lat <= -30 and 15 <= center_lon <= 25):
+                return 'mediterranean_forest'
+            # Southwestern Australia
+            elif (-35 <= center_lat <= -30 and 110 <= center_lon <= 125):
+                return 'mediterranean_forest'
+            else:
+                return 'temperate_forest'
+        
+        # Temperate forest zones (25-50° latitude, excluding Mediterranean)
+        elif 25 < abs_lat < 50:
+            return 'temperate_forest'
+        
+        # Default fallback
+        return 'temperate_forest'
+
     def _infer_ecosystem_from_location(self, area_bounds: Dict) -> str:
-        """Infer ecosystem type from geographic location"""
+        """Infer ecosystem type from geographic location with enhanced forest detection"""
         if not area_bounds or 'coordinates' not in area_bounds:
             return 'Grassland'
         
@@ -222,23 +307,29 @@ class EnhancedSatelliteSimulator:
         center_lat = sum(lats) / len(lats)
         center_lon = sum(lons) / len(lons)
         
-        # Simple ecosystem inference (this could be enhanced with land cover data)
-        if abs(center_lat) < 10:  # Tropical
-            return 'Forest'
-        elif 25 <= abs(center_lat) <= 35:  # Subtropical
+        abs_lat = abs(center_lat)
+        
+        # Enhanced ecosystem inference with specific forest types
+        if abs_lat < 10:  # Tropical regions
+            return self._determine_forest_type(center_lat, center_lon)
+        elif 25 <= abs_lat <= 35:  # Subtropical
             if -120 <= center_lon <= -100:  # SW USA
                 return 'Desert'
             else:
                 return 'Agricultural'
-        elif 35 <= abs(center_lat) <= 50:  # Temperate
+        elif 35 <= abs_lat <= 50:  # Temperate
             if -100 <= center_lon <= -80:  # Midwest USA
                 return 'Agricultural'
             elif -80 <= center_lon <= -60:  # Eastern USA
-                return 'Forest'
+                return self._determine_forest_type(center_lat, center_lon)
             else:
+                # Check if it's a forest region, then determine type
                 return 'Grassland'
-        elif abs(center_lat) > 60:  # Polar
-            return 'Grassland'
+        elif abs_lat > 50:  # Northern regions - likely boreal or polar
+            if abs_lat <= 70:
+                return 'boreal_forest'  # Boreal forest zone
+            else:
+                return 'Grassland'  # Polar regions
         else:
             return 'Grassland'
     

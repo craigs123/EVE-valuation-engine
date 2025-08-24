@@ -1315,7 +1315,14 @@ with col2:
         
         with col_metrics2:
             st.metric("Value per Hectare", f"${results.get('value_per_ha', 0):,.0f} /ha/year")
-            st.metric("Ecosystem Type", results['ecosystem_type'])
+            ecosystem_display = results['ecosystem_type'].replace('_', ' ').title()
+            st.metric("Ecosystem Type", ecosystem_display)
+            
+            # Display forest type classification if detected
+            if 'forest_classification' in results:
+                forest_info = results['forest_classification']
+                st.info(f"""🌲 **{forest_info['detected_type'].replace('_', ' ').title()}** detected  
+                Climate Zone: {forest_info['climate_zone']} | Confidence: {forest_info['confidence']:.0%}""", icon="🌲")
         
         # Add calculation breakdown button
         if st.button("🧮 Show Calculation Breakdown", use_container_width=True, help="See how the total value was calculated step by step"):
