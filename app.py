@@ -1253,10 +1253,18 @@ with col1:
 with col2:
     st.subheader("📊 Step 2: Configure & Calculate")
     
+    # DEBUG FIRST - Show what we have
+    st.write("**SESSION STATE DEBUG:**")
+    st.write(f"- selected_area: {st.session_state.get('selected_area')}")
+    st.write(f"- area_coordinates: {st.session_state.get('area_coordinates', [])}")
+    st.write(f"- length of coordinates: {len(st.session_state.get('area_coordinates', []))}")
+    
     # Quick configuration in main area for better UX
     area_is_selected = (st.session_state.get('selected_area') is not None and 
                        st.session_state.get('area_coordinates') and 
                        len(st.session_state.get('area_coordinates', [])) > 0)
+    
+    st.write(f"**area_is_selected: {area_is_selected}**")
     
     if area_is_selected:
         st.success("✅ Area Selected - Ready to analyze!")
@@ -1298,6 +1306,12 @@ with col2:
             
     else:
         st.info("👆 First, draw an area on the map above")
+        
+        # ALWAYS show a test button to see if buttons work at all
+        if st.button("🧪 TEST BUTTON", type="secondary", use_container_width=True):
+            st.success("✅ TEST BUTTON WORKS!")
+            st.write("The button mechanism is working, issue is with area selection logic")
+        
         analyze_button = False
     
     # Results section
