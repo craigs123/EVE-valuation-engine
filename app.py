@@ -1035,9 +1035,10 @@ if use_test_area:
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True  # Flag to zoom map to test area
     
-    # Clear any cached calculations to force recalculation
-    st.session_state.cached_area_ha = None
-    st.session_state.cached_bbox = None
+    # Pre-calculate and cache the area for this test coordinates
+    area_ha = calculate_area_optimized(test_coordinates)
+    st.session_state.cached_area_ha = area_ha
+    st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
     
     st.success("✅ **1000 hectare test area selected!** Located in central Sweden (60.0°N, 15.0°E)")
     st.caption("🌲 Expected: Boreal Forest detection | 📏 Area: ~1000 hectares")
@@ -1623,13 +1624,12 @@ with col2:
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
     try:
-        # Use cached area calculation if available
+        # Use cached area calculation if available, otherwise calculate with latitude correction
         if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha is not None:
             area_ha = st.session_state.cached_area_ha
         else:
-            coords = np.array(st.session_state.area_coordinates)
-            area_km2 = abs(np.sum((coords[:-1, 0] * coords[1:, 1]) - (coords[1:, 0] * coords[:-1, 1]))) * 111.32 * 111.32 / 2
-            area_ha = area_km2 * 100
+            coords = st.session_state.area_coordinates
+            area_ha = calculate_area_optimized(coords)
             # Cache the calculated area
             st.session_state.cached_area_ha = area_ha
         
