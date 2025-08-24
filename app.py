@@ -1297,7 +1297,6 @@ with col2:
             st.success("✅ BUTTON CLICKED - Processing...")
             st.rerun()
         
-        analyze_button = st.session_state.get('start_analysis', False)
             
     else:
         st.info("👆 First, draw an area on the map above")
@@ -1306,8 +1305,9 @@ with col2:
         if st.button("🧪 TEST BUTTON", type="secondary", use_container_width=True):
             st.success("✅ TEST BUTTON WORKS!")
             st.write("The button mechanism is working, issue is with area selection logic")
-        
-        analyze_button = False
+
+# Initialize analyze_button as False by default
+analyze_button = False
     
     # Results section
     if st.session_state.get('analysis_results'):
@@ -1525,9 +1525,10 @@ area_ready_for_analysis = (st.session_state.get('selected_area') is not None and
                           st.session_state.get('area_coordinates') and 
                           len(st.session_state.get('area_coordinates', [])) > 0)
 
-st.write(f"**ANALYSIS CHECK:** analyze_button={analyze_button}, area_ready={area_ready_for_analysis}")
+should_start_analysis = st.session_state.get('start_analysis', False)
+st.write(f"**ANALYSIS CHECK:** should_start_analysis={should_start_analysis}, area_ready={area_ready_for_analysis}")
 
-if analyze_button and area_ready_for_analysis:
+if should_start_analysis and area_ready_for_analysis:
     st.success("🎯 ANALYSIS STARTING!")
     try:
         # Use cached area calculation if available
