@@ -436,7 +436,6 @@ with st.sidebar:
     def get_ecosystem_options():
         return [
             "Auto-detect", 
-            "Forest", 
             "Tropical Forest", 
             "Temperate Forest", 
             "Boreal Forest", 
@@ -1278,7 +1277,6 @@ with col2:
                 "Ecosystem Type:",
                 [
                     "Auto-detect", 
-                    "Forest", 
                     "Tropical Forest", 
                     "Temperate Forest", 
                     "Boreal Forest", 
