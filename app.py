@@ -1795,6 +1795,9 @@ if st.session_state.analysis_results:
             st.markdown("### 🌿 Ecosystem Services Breakdown")
             esvd_data = results['esvd_results']
             
+            # Temporary debug - show what's in esvd_data
+            st.write("DEBUG - ESVD data keys:", list(esvd_data.keys()) if isinstance(esvd_data, dict) else "Not a dict")
+            
             # Check if we have service category data
             if any(category in esvd_data for category in ['provisioning', 'regulating', 'cultural', 'supporting']):
                 categories = ['provisioning', 'regulating', 'cultural', 'supporting']
@@ -2160,6 +2163,9 @@ if st.session_state.analysis_results:
     if 'esvd_results' in results:
         st.markdown("### 🌿 Ecosystem Services Breakdown")
         esvd_data = results['esvd_results']
+        
+        # Temporary debug - show what's in esvd_data
+        st.write("DEBUG - ESVD data keys (detailed):", list(esvd_data.keys()) if isinstance(esvd_data, dict) else "Not a dict")
         
         # Check if we have the expected categories
         has_categories = any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting'])
