@@ -2494,7 +2494,8 @@ if st.session_state.analysis_results:
         has_categories = any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting'])
         
         # Check for mixed ecosystem structure where categories are nested
-        has_mixed_ecosystem = 'ecosystem_breakdown' in esvd_data or 'ecosystem_results' in esvd_data
+        has_mixed_ecosystem = ('ecosystem_breakdown' in esvd_data or 'ecosystem_results' in esvd_data or 
+                              results.get('ecosystem_type') == 'multi_ecosystem')
         
         # Also check for alternative data structures
         has_services_data = 'services_data' in esvd_data
@@ -2558,50 +2559,104 @@ if st.session_state.analysis_results:
             # Handle mixed ecosystem structure where categories are nested
             ecosystem_data = esvd_data.get('ecosystem_breakdown', esvd_data.get('ecosystem_results', {}))
             
-            # Aggregate categories from all ecosystems
-            categories = ['provisioning', 'regulating', 'cultural', 'supporting']
-            aggregated_categories = {cat: {'total': 0, 'services': {}} for cat in categories}
-            
-            # Sum up values from all ecosystem types
-            for ecosystem_type, ecosystem_result in ecosystem_data.items():
-                for category in categories:
-                    if category in ecosystem_result:
-                        category_data = ecosystem_result[category]
-                        aggregated_categories[category]['total'] += category_data.get('total', 0)
-                        
-                        # Merge services
-                        if 'services' in category_data:
-                            for service, value in category_data['services'].items():
-                                if service in aggregated_categories[category]['services']:
-                                    aggregated_categories[category]['services'][service] += value
-                                else:
-                                    aggregated_categories[category]['services'][service] = value
-            
-            # Display aggregated categories
-            cols = st.columns(4)
-            for i, category in enumerate(categories):
-                total = aggregated_categories[category]['total']
-                if total > 0:
-                    with cols[i]:
-                        per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
-                        st.metric(f"{category.title()} Services", "")
-                        st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
-                        
-                        total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
-                        st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
-                        
-                        with st.expander(f"💡 {category.title()} services breakdown"):
-                            st.markdown(f"**{category.title()} Services Calculation**")
+            # If the data is in the top level for multi-ecosystem, use it directly
+            if not ecosystem_data and results.get('ecosystem_type') == 'multi_ecosystem':
+                # For multi-ecosystem, the services might be aggregated at the top level
+                if any(cat in esvd_data for cat in ['provisioning', 'regulating', 'cultural', 'supporting']):
+                    has_categories = True
+                    categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                    cols = st.columns(4)
+                    
+                    for i, category in enumerate(categories):
+                        if category in esvd_data:
+                            total = esvd_data[category].get('total', 0)
+                            with cols[i]:
+                                per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
+                                st.metric(f"{category.title()} Services", "")
+                                st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
+                                
+                                total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
+                                st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
+                                
+                                with st.expander(f"💡 {category.title()} services breakdown"):
+                                    st.markdown(f"**{category.title()} Services Calculation** (Multi-Ecosystem)")
+                                    
+                                    # Show individual service calculations
+                                    if 'services' in esvd_data[category]:
+                                        services_data = esvd_data[category]['services']
+                                        
+                                        if services_data and isinstance(services_data, dict):
+                                            for service, value in services_data.items():
+                                                if isinstance(value, (int, float)) and value > 0:
+                                                    service_name = service.replace('_', ' ').title()
+                                                    st.markdown(f"**{service_name}**: ${value:,.0f}/year")
+                                        else:
+                                            st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
+                                    else:
+                                        st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
+                                    
+                                    st.markdown(f"""
+                                    **Multi-Ecosystem {category.title()} Services:**
+                                    
+                                    This value represents the combined {category} services from all ecosystem types 
+                                    detected in your area. The calculation aggregates contributions from each ecosystem 
+                                    type based on their spatial coverage and applies area-weighted valuations.
+                                    """)
+                else:
+                    st.info("📊 Multi-ecosystem area detected, but ecosystem services breakdown is not available in the current data format.")
+            else:
+                # Original logic for ecosystem_data structure
+                # Aggregate categories from all ecosystems
+                categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+                aggregated_categories = {cat: {'total': 0, 'services': {}} for cat in categories}
+                
+                # Sum up values from all ecosystem types
+                for ecosystem_type, ecosystem_result in ecosystem_data.items():
+                    for category in categories:
+                        if category in ecosystem_result:
+                            category_data = ecosystem_result[category]
+                            aggregated_categories[category]['total'] += category_data.get('total', 0)
                             
-                            # Show individual service calculations
-                            services_data = aggregated_categories[category]['services']
-                            if services_data and any(isinstance(v, (int, float)) and v > 0 for v in services_data.values()):
-                                for service, value in services_data.items():
-                                    if isinstance(value, (int, float)) and value > 0:
-                                        service_name = service.replace('_', ' ').title()
-                                        st.markdown(f"**{service_name}**: ${value:,.0f}/year")
-                            else:
-                                st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
+                            # Merge services
+                            if 'services' in category_data:
+                                for service, value in category_data['services'].items():
+                                    if service in aggregated_categories[category]['services']:
+                                        aggregated_categories[category]['services'][service] += value
+                                    else:
+                                        aggregated_categories[category]['services'][service] = value
+            
+                # Display aggregated categories
+                cols = st.columns(4)
+                for i, category in enumerate(categories):
+                    total = aggregated_categories[category]['total']
+                    if total > 0:
+                        with cols[i]:
+                            per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
+                            st.metric(f"{category.title()} Services", "")
+                            st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
+                            
+                            total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
+                            st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
+                            
+                            with st.expander(f"💡 {category.title()} services breakdown"):
+                                st.markdown(f"**{category.title()} Services Calculation** (Aggregated from Multiple Ecosystems)")
+                                
+                                # Show individual service calculations
+                                services_data = aggregated_categories[category]['services']
+                                if services_data and any(isinstance(v, (int, float)) and v > 0 for v in services_data.values()):
+                                    for service, value in services_data.items():
+                                        if isinstance(value, (int, float)) and value > 0:
+                                            service_name = service.replace('_', ' ').title()
+                                            st.markdown(f"**{service_name}**: ${value:,.0f}/year")
+                                else:
+                                    st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
+                                
+                                st.markdown(f"""
+                                **Aggregated {category.title()} Services:**
+                                
+                                This value represents the combined {category} services from all ecosystem types 
+                                detected in your area, aggregated proportionally based on spatial coverage.
+                                """)
                             
                             st.markdown(f"""
                             **Methodology for {category.title()} Services:**
