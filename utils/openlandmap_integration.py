@@ -392,24 +392,27 @@ class OpenLandMapIntegrator:
         if urban_result:
             return urban_result
             
-        # Priority 2: Wetland areas (specific ecosystems)
+        # Priority 2: Global ecosystem patterns (primary method for worldwide coverage)
+        global_result = self._detect_global_ecosystems(lat, lon)
+        
+        # Priority 3: Wetland areas (specific ecosystems that override global patterns)
         wetland_result = self._detect_wetland_areas(lat, lon)
         if wetland_result:
             return wetland_result
             
-        # Priority 3: Coastal areas
+        # Priority 4: Coastal areas (only for actual coastal regions)
         coastal_result = self._detect_coastal_areas(lat, lon)
         if coastal_result:
             return coastal_result
             
-        # Priority 4: US-specific ecosystem detection (higher confidence)
+        # Priority 5: Enhanced US-specific detection (optional refinement)
         if -180 <= lon <= -65 and 15 <= lat <= 75:  # US bounds
             us_result = self._enhanced_us_ecosystem_detection(lat, lon)
-            if us_result:
+            if us_result and us_result.get('confidence', 0) > global_result.get('confidence', 0):
                 return us_result
         
-        # Priority 5: Global ecosystem patterns
-        return self._detect_global_ecosystems(lat, lon)
+        # Return global result as primary detection
+        return global_result
     
     def _detect_urban_areas(self, lat: float, lon: float) -> Optional[Dict]:
         """Detect urban areas with high precision - global coverage"""
@@ -598,8 +601,9 @@ class OpenLandMapIntegrator:
         return None
     
     def _detect_global_ecosystems(self, lat: float, lon: float) -> Dict:
-        """Global ecosystem detection patterns"""
-        # Tropical forests
+        """Enhanced global ecosystem detection patterns with regional specificity"""
+        
+        # Tropical forests (equatorial regions)
         if abs(lat) < 25:
             if -90 <= lon <= -30:  # Central/South America
                 return {'landcover_class': 2, 'ecosystem_type': "Forest", 'confidence': 0.70, 'source': 'Tropical Americas'}
@@ -607,22 +611,46 @@ class OpenLandMapIntegrator:
                 return {'landcover_class': 2, 'ecosystem_type': "Forest", 'confidence': 0.65, 'source': 'African Tropics'}
             elif 90 <= lon <= 150:  # Southeast Asia
                 return {'landcover_class': 2, 'ecosystem_type': "Forest", 'confidence': 0.68, 'source': 'Southeast Asian Tropics'}
+            else:
+                return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'confidence': 0.60, 'source': 'Tropical Grasslands'}
         
-        # Northern forests
-        if lat > 50:
+        # Boreal forests (high latitudes)
+        if lat > 55 or lat < -45:
             return {'landcover_class': 1, 'ecosystem_type': "Forest", 'confidence': 0.75, 'source': 'Boreal Forest'}
-        elif lat > 40:
-            return {'landcover_class': 4, 'ecosystem_type': "Forest", 'confidence': 0.70, 'source': 'Temperate Forest'}
         
-        # Arid regions
-        if (20 <= lat <= 35 and -10 <= lon <= 60) or (15 <= lat <= 30 and -125 <= lon <= -100):
+        # Temperate regions (40-55°N and 30-45°S) - mixed ecosystems likely
+        if (40 <= lat <= 55) or (-45 <= lat <= -30):
+            # Agricultural/mixed regions (like Michigan)
+            if -100 <= lon <= -70 and 35 <= lat <= 50:  # North American agricultural belt
+                return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'confidence': 0.75, 'source': 'North American Agricultural Belt'}
+            elif -10 <= lon <= 40 and 40 <= lat <= 55:  # European agricultural belt
+                return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'confidence': 0.70, 'source': 'European Agricultural Belt'}
+            else:
+                return {'landcover_class': 4, 'ecosystem_type': "Forest", 'confidence': 0.65, 'source': 'Temperate Forest'}
+        
+        # Mediterranean climates
+        if ((30 <= lat <= 40 and -10 <= lon <= 45) or  # Mediterranean Sea
+            (30 <= lat <= 40 and -125 <= lon <= -115) or  # California
+            (-35 <= lat <= -30 and 15 <= lon <= 25) or  # South Africa
+            (-35 <= lat <= -30 and 135 <= lon <= 150)):  # Australia
+            return {'landcover_class': 6, 'ecosystem_type': "Shrubland", 'confidence': 0.70, 'source': 'Mediterranean Climate'}
+        
+        # Arid regions (deserts)
+        if ((20 <= lat <= 35 and -10 <= lon <= 60) or  # Sahara and Middle East
+            (15 <= lat <= 30 and -125 <= lon <= -100) or  # Southwestern US/Mexico
+            (-30 <= lat <= -15 and -70 <= lon <= -60) or  # Atacama
+            (-30 <= lat <= -20 and 115 <= lon <= 140)):  # Australian deserts
             return {'landcover_class': 16, 'ecosystem_type': "Desert", 'confidence': 0.75, 'source': 'Arid Regions'}
         
-        # Default: Grassland for temperate regions
+        # Subtropical regions (25-40°)
+        if 25 <= lat <= 40 or -40 <= lat <= -25:
+            return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'confidence': 0.65, 'source': 'Subtropical Grasslands'}
+        
+        # Default: Mixed temperate (most common for populated regions)
         return {
             'landcover_class': 10,
             'ecosystem_type': "Grassland", 
-            'confidence': 0.65,
+            'confidence': 0.60,
             'source': 'Global Temperate Regions'
         }
     
