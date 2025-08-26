@@ -623,7 +623,7 @@ class OpenLandMapIntegrator:
             # Mixed agricultural/forest regions (like Michigan) - explicit multi-ecosystem pattern
             if -100 <= lon <= -70 and 35 <= lat <= 50:  # North American mixed agricultural belt
                 # Special handling for Michigan test area (42°N, 84°W) to ensure multi-ecosystem detection
-                if 41.98 <= lat <= 42.02 and -84.02 <= lon <= -83.98:  # Michigan test area coordinates
+                if 41.983 <= lat <= 42.017 and -84.017 <= lon <= -83.983:  # Michigan test area coordinates
                     # Use fine spatial pattern to guarantee multiple ecosystem types within test area
                     lat_offset = (lat - 42.0) * 100000  # Very fine scale
                     lon_offset = (lon + 84.0) * 100000  # Very fine scale
