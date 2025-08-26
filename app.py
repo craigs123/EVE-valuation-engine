@@ -1016,12 +1016,27 @@ Example: 100ha Forest
 # Initialize analyze_button as False
 analyze_button = False
 
-# Test area selection checkbox (default unchecked)
-use_test_area = st.checkbox("🧪 Select 1000 hectare test area (Northern Europe)", value=False, help="Automatically selects a standard 1000 hectare area in Sweden for testing")
+# Test area selection checkboxes (mutually exclusive)
+st.markdown("**🧪 Test Areas (1000 hectares each)**")
+col_test1, col_test2 = st.columns(2)
 
-if use_test_area:
-    # Define coordinates that mathematically produce exactly 1000 hectares
-    # Calculated for high precision with float64 arithmetic
+with col_test1:
+    use_test_area_single = st.checkbox("🌲 Single Ecosystem Test Area", value=False, help="Boreal Forest in Sweden - single ecosystem type")
+
+with col_test2:
+    use_test_area_multi = st.checkbox("🌍 Multi-Ecosystem Test Area", value=False, help="Mixed ecosystems in Colorado - forest, grassland, and agricultural land")
+
+# Ensure only one test area can be selected at a time
+if use_test_area_single and use_test_area_multi:
+    st.warning("⚠️ Please select only one test area at a time")
+    use_test_area_single = False
+    use_test_area_multi = False
+
+use_test_area = use_test_area_single or use_test_area_multi
+
+if use_test_area_single:
+    # Define coordinates for single ecosystem test area (Boreal Forest in Sweden)
+    # Precisely calculated to produce exactly 1000ha at 60°N latitude
     test_coordinates = [
         [14.97991315, 59.97991315],  # SW
         [15.02008685, 59.97991315],  # SE
@@ -1044,8 +1059,41 @@ if use_test_area:
     st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
     st.session_state.area_coords_cache = test_coordinates
     
-    st.success("✅ **1000 hectare test area selected!** Located in central Sweden (60.0°N, 15.0°E)")
-    st.caption("🌲 Expected: Boreal Forest detection | 📏 Area: ~1000 hectares")
+    st.success("✅ **Single Ecosystem Test Area Selected!**")
+    st.caption("🌲 Boreal Forest in Sweden (60.0°N, 15.0°E) | Expected: Single ecosystem type")
+
+elif use_test_area_multi:
+    # Define coordinates for multi-ecosystem test area (Colorado Front Range)
+    # Area spanning forest-grassland transition zone, calculated for exactly 1000ha at 40°N latitude
+    # Using latitude correction factor for 40°N: cos(40°) ≈ 0.766
+    lat_center, lon_center = 40.0, -105.0
+    # Side length precisely calculated for exactly 1000ha at 40°N
+    half_side = 0.01622818
+    
+    test_coordinates = [
+        [lon_center - half_side, lat_center - half_side],  # SW
+        [lon_center + half_side, lat_center - half_side],  # SE
+        [lon_center + half_side, lat_center + half_side],  # NE
+        [lon_center - half_side, lat_center + half_side],  # NW
+        [lon_center - half_side, lat_center - half_side]   # Close
+    ]
+    
+    # Clear all cached values first to ensure clean state
+    clear_analysis_cache()
+    
+    # Set the test area coordinates
+    st.session_state.area_coordinates = test_coordinates
+    st.session_state.selected_area = True
+    st.session_state.use_test_area_zoom = True
+    
+    # Calculate area using the actual formula (should be exactly 1000ha)
+    area_ha = calculate_area_optimized(test_coordinates)
+    st.session_state.cached_area_ha = area_ha
+    st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
+    st.session_state.area_coords_cache = test_coordinates
+    
+    st.success("✅ **Multi-Ecosystem Test Area Selected!**")
+    st.caption("🌍 Colorado Front Range (40.0°N, 105.0°W) | Expected: Forest, Grassland, and Agricultural ecosystems")
 else:
     # Clear test area flag when unchecked
     st.session_state.use_test_area_zoom = False
@@ -1065,9 +1113,20 @@ with col1:
     
     # Create optimized interactive map - use cached calculations
     if st.session_state.get('use_test_area_zoom', False):
-        # Zoom to test area in Sweden
-        center_lat, center_lon = 60.0, 15.0  # Center of test area
-        zoom_level = 13  # Close zoom to show 1000 hectare area clearly
+        # Zoom to the appropriate test area
+        if use_test_area_single:
+            # Zoom to Sweden test area
+            center_lat, center_lon = 60.0, 15.0
+            zoom_level = 13
+        elif use_test_area_multi:
+            # Zoom to Colorado test area
+            center_lat, center_lon = 40.0, -105.0
+            zoom_level = 13
+        else:
+            # Default to Sweden if no specific area selected
+            center_lat, center_lon = 60.0, 15.0
+            zoom_level = 13
+        
         m = get_folium_map(center_lat, center_lon, zoom_level)
         
         # Add drawing tools for test area map
@@ -1077,13 +1136,23 @@ with col1:
         # Show test area polygon if coordinates are set
         if st.session_state.get('area_coordinates'):
             coords = st.session_state.area_coordinates
+            if use_test_area_single:
+                popup_text = "Single Ecosystem Test Area (1000 hectares)"
+                color = '#28a745'  # Green for single ecosystem
+            elif use_test_area_multi:
+                popup_text = "Multi-Ecosystem Test Area (1000 hectares)"
+                color = '#17a2b8'  # Blue for multi-ecosystem
+            else:
+                popup_text = "Test Area (1000 hectares)"
+                color = '#28a745'
+            
             folium.Polygon(
                 locations=[(float(coord[1]), float(coord[0])) for coord in coords],
-                color='#28a745',
+                color=color,
                 weight=2,
-                fillColor='#28a745',
+                fillColor=color,
                 fillOpacity=0.15,
-                popup="Test Area (1000 hectares)"
+                popup=popup_text
             ).add_to(m)
     elif st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         coords = st.session_state.area_coordinates
