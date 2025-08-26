@@ -1024,7 +1024,7 @@ with col_test1:
     use_test_area_single = st.checkbox("🌲 Single Ecosystem Test Area", value=False, help="Boreal Forest in Sweden - single ecosystem type")
 
 with col_test2:
-    use_test_area_multi = st.checkbox("🌍 Multi-Ecosystem Test Area", value=False, help="Mixed ecosystems in Colorado - forest, grassland, and agricultural land")
+    use_test_area_multi = st.checkbox("🌍 Multi-Ecosystem Test Area", value=False, help="Mixed ecosystems in Michigan - agricultural, forest, and grassland transition zone")
 
 # Ensure only one test area can be selected at a time
 if use_test_area_single and use_test_area_multi:
@@ -1063,12 +1063,12 @@ if use_test_area_single:
     st.caption("🌲 Boreal Forest in Sweden (60.0°N, 15.0°E) | Expected: Single ecosystem type")
 
 elif use_test_area_multi:
-    # Define coordinates for multi-ecosystem test area (Colorado Front Range)
-    # Area spanning forest-grassland transition zone, calculated for exactly 1000ha at 40°N latitude
-    # Using latitude correction factor for 40°N: cos(40°) ≈ 0.766
-    lat_center, lon_center = 40.0, -105.0
-    # Side length precisely calculated for exactly 1000ha at 40°N
-    half_side = 0.01622818
+    # Define coordinates for multi-ecosystem test area (Michigan agricultural-forest transition)
+    # Area spanning agricultural-forest-grassland transition zone, calculated for exactly 1000ha at 42°N latitude
+    # Using latitude correction factor for 42°N: cos(42°) ≈ 0.743
+    lat_center, lon_center = 42.0, -84.0
+    # Side length precisely calculated for exactly 1000ha at 42°N
+    half_side = 0.01647631
     
     test_coordinates = [
         [lon_center - half_side, lat_center - half_side],  # SW
@@ -1093,7 +1093,7 @@ elif use_test_area_multi:
     st.session_state.area_coords_cache = test_coordinates
     
     st.success("✅ **Multi-Ecosystem Test Area Selected!**")
-    st.caption("🌍 Colorado Front Range (40.0°N, 105.0°W) | Expected: Forest, Grassland, and Agricultural ecosystems")
+    st.caption("🌍 Michigan Transition Zone (42.0°N, 84.0°W) | Expected: Agricultural, Forest, and Grassland ecosystems")
 else:
     # Clear test area flag when unchecked
     st.session_state.use_test_area_zoom = False
@@ -1119,8 +1119,8 @@ with col1:
             center_lat, center_lon = 60.0, 15.0
             zoom_level = 13
         elif use_test_area_multi:
-            # Zoom to Colorado test area
-            center_lat, center_lon = 40.0, -105.0
+            # Zoom to Michigan test area
+            center_lat, center_lon = 42.0, -84.0
             zoom_level = 13
         else:
             # Default to Sweden if no specific area selected
