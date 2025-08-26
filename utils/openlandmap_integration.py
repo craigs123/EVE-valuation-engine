@@ -540,23 +540,54 @@ class OpenLandMapIntegrator:
         return None
     
     def _detect_coastal_areas(self, lat: float, lon: float) -> Optional[Dict]:
-        """Detect coastal ecosystems"""
-        coastal_regions = [
-            # East Coast
-            {"lat_min": 25, "lat_max": 45, "lon_min": -85, "lon_max": -65, "name": "Atlantic Coast"},
-            # West Coast  
-            {"lat_min": 32, "lat_max": 49, "lon_min": -125, "lon_max": -117, "name": "Pacific Coast"},
-            # Gulf Coast
-            {"lat_min": 25, "lat_max": 31, "lon_min": -98, "lon_max": -80, "name": "Gulf Coast"},
-            # Great Lakes
-            {"lat_min": 41, "lat_max": 49, "lon_min": -93, "lon_max": -76, "name": "Great Lakes Coast"}
+        """Detect coastal ecosystems with precise coastal proximity checks"""
+        # Only detect actual coastal areas, not just regions near water bodies
+        actual_coastal_areas = [
+            # Atlantic Coast (narrow coastal strip)
+            {"lat_min": 25, "lat_max": 45, "lon_min": -82, "lon_max": -65, "name": "Atlantic Coast"},
+            # West Coast (narrow coastal strip)
+            {"lat_min": 32, "lat_max": 49, "lon_min": -125, "lon_max": -120, "name": "Pacific Coast"},
+            # Gulf Coast (narrow coastal strip)
+            {"lat_min": 25, "lat_max": 31, "lon_min": -98, "lon_max": -82, "name": "Gulf Coast"},
+            # Great Lakes - only very close to actual lake shores (much more precise)
+            {"lat_min": 41.3, "lat_max": 48.5, "lon_min": -90.5, "lon_max": -76.5, "name": "Great Lakes Coast", "distance_check": True}
         ]
         
-        for coast in coastal_regions:
+        for coast in actual_coastal_areas:
             if (coast["lat_min"] <= lat <= coast["lat_max"] and 
                 coast["lon_min"] <= lon <= coast["lon_max"]):
-                # Check if close to actual coastline (simplified)
-                if (abs(lon) > 65 and lat < 50) or (abs(lat - 45) < 8 and -93 <= lon <= -76):
+                
+                # Special handling for Great Lakes - require very close proximity
+                if coast.get("distance_check"):
+                    # Only detect as coastal if very close to actual Great Lakes shores
+                    # These are much more restrictive coordinates for actual lake proximity
+                    great_lakes_shores = [
+                        # Lake Superior shore
+                        {"lat_min": 46.4, "lat_max": 48.0, "lon_min": -90.5, "lon_max": -84.5},
+                        # Lake Michigan shore  
+                        {"lat_min": 41.6, "lat_max": 46.0, "lon_min": -87.8, "lon_max": -84.8},
+                        # Lake Huron shore
+                        {"lat_min": 43.0, "lat_max": 46.2, "lon_min": -84.5, "lon_max": -82.0},
+                        # Lake Erie shore
+                        {"lat_min": 41.3, "lat_max": 42.9, "lon_min": -83.5, "lon_max": -78.8},
+                        # Lake Ontario shore
+                        {"lat_min": 43.2, "lat_max": 44.4, "lon_min": -79.8, "lon_max": -76.5}
+                    ]
+                    
+                    # Check if actually close to a Great Lake shore
+                    for shore in great_lakes_shores:
+                        if (shore["lat_min"] <= lat <= shore["lat_max"] and 
+                            shore["lon_min"] <= lon <= shore["lon_max"]):
+                            return {
+                                'landcover_class': 95,
+                                'ecosystem_type': "Coastal",
+                                'confidence': 0.78,
+                                'source': f'{coast["name"]}'
+                            }
+                    # If not close to actual shore, don't classify as coastal
+                    return None
+                else:
+                    # For ocean coasts, use the broader check
                     return {
                         'landcover_class': 95,
                         'ecosystem_type': "Coastal",
