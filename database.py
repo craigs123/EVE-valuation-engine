@@ -8,11 +8,28 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import json
 import psycopg2
+import numpy as np
 from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import UUID
 import streamlit as st
+
+def convert_numpy_types(obj):
+    """Recursively convert numpy types to native Python types for JSON serialization"""
+    if isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy_types(item) for item in obj)
+    return obj
 
 # Database configuration
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -222,18 +239,26 @@ class EcosystemAnalysisDB:
             except:
                 pass  # No session state available
             
+            # Convert numpy types to native Python types
+            clean_coordinates = convert_numpy_types(coordinates)
+            clean_analysis_results = convert_numpy_types(analysis_results)
+            clean_sustainability_responses = convert_numpy_types(sustainability_responses) if sustainability_responses else None
+            clean_area_hectares = float(area_hectares) if isinstance(area_hectares, np.floating) else area_hectares
+            clean_total_value = float(total_value) if isinstance(total_value, np.floating) else total_value
+            clean_value_per_hectare = float(value_per_hectare) if isinstance(value_per_hectare, np.floating) else value_per_hectare
+            
             analysis = EcosystemAnalysis(
                 user_session_id=user_session_id or session_user_id,
                 area_name=area_name,
-                coordinates=coordinates,
-                area_hectares=area_hectares,
+                coordinates=clean_coordinates,
+                area_hectares=clean_area_hectares,
                 ecosystem_type=ecosystem_type,
-                total_value=total_value,
-                value_per_hectare=value_per_hectare,
-                analysis_results=analysis_results,
-                sustainability_responses=sustainability_responses,
+                total_value=clean_total_value,
+                value_per_hectare=clean_value_per_hectare,
+                analysis_results=clean_analysis_results,
+                sustainability_responses=clean_sustainability_responses,
                 sampling_points=sampling_points,
-                data_source=analysis_results.get('data_source', 'ESVD/TEEB Database')
+                data_source=clean_analysis_results.get('data_source', 'ESVD/TEEB Database')
             )
             
             db.add(analysis)
