@@ -21,7 +21,6 @@ def get_database_modules():
             initialize_user_session,
             SavedAreaDB,
             EcosystemAnalysisDB,
-            NaturalCapitalTrendDB,
             NaturalCapitalBaselineDB
         )
         return {
@@ -29,7 +28,6 @@ def get_database_modules():
             'initialize_user_session': initialize_user_session,
             'SavedAreaDB': SavedAreaDB,
             'EcosystemAnalysisDB': EcosystemAnalysisDB,
-            'NaturalCapitalTrendDB': NaturalCapitalTrendDB,
             'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
         }
     except ImportError:
