@@ -1016,7 +1016,7 @@ analyze_button = False
 
 # Test area selection checkboxes (mutually exclusive)
 st.markdown("**🧪 Test Areas (1000 hectares each)**")
-col_test1, col_test2 = st.columns(2)
+col_test1, col_test2, col_test3 = st.columns(3)
 
 with col_test1:
     use_test_area_single = st.checkbox("🌲 Single Ecosystem Test Area", value=False, help="Boreal Forest in Sweden - single ecosystem type")
@@ -1024,13 +1024,18 @@ with col_test1:
 with col_test2:
     use_test_area_multi = st.checkbox("🌍 Multi-Ecosystem Test Area", value=False, help="Mixed ecosystems in Michigan - agricultural, forest, and grassland transition zone")
 
+with col_test3:
+    use_test_area_random = st.checkbox("🎲 Random Global Test Area", value=False, help="Randomly selected 1000ha land area anywhere in the world")
+
 # Ensure only one test area can be selected at a time
-if use_test_area_single and use_test_area_multi:
+selected_areas = sum([use_test_area_single, use_test_area_multi, use_test_area_random])
+if selected_areas > 1:
     st.warning("⚠️ Please select only one test area at a time")
     use_test_area_single = False
     use_test_area_multi = False
+    use_test_area_random = False
 
-use_test_area = use_test_area_single or use_test_area_multi
+use_test_area = use_test_area_single or use_test_area_multi or use_test_area_random
 
 if use_test_area_single:
     # Define coordinates for single ecosystem test area (Boreal Forest in Sweden)
@@ -1092,6 +1097,86 @@ elif use_test_area_multi:
     
     st.success("✅ **Multi-Ecosystem Test Area Selected!**")
     st.caption("🌍 Michigan Transition Zone (42.0°N, 84.0°W) | Expected: Agricultural, Forest, and Grassland ecosystems")
+
+elif use_test_area_random:
+    # Generate random global coordinates for 1000ha test area
+    import random
+    import math
+    
+    # Define global land coordinate ranges (avoiding oceans and Antarctica)
+    land_regions = [
+        # North America
+        (-130, -60, 25, 70),   # (min_lon, max_lon, min_lat, max_lat)
+        # South America  
+        (-80, -35, -55, 15),
+        # Europe
+        (-10, 40, 35, 70),
+        # Africa
+        (-20, 50, -35, 35),
+        # Asia
+        (25, 180, -10, 70),
+        # Australia/Oceania
+        (110, 155, -45, -10)
+    ]
+    
+    # Randomly select a land region
+    selected_region = random.choice(land_regions)
+    min_lon, max_lon, min_lat, max_lat = selected_region
+    
+    # Generate random center coordinates within the region
+    # Avoid extreme latitudes where longitude corrections become problematic
+    lat_center = random.uniform(max(min_lat, -60), min(max_lat, 70))
+    lon_center = random.uniform(min_lon, max_lon)
+    
+    # Calculate side length for exactly 1000ha at the selected latitude
+    # 1° latitude ≈ 111.32 km everywhere
+    # 1° longitude ≈ 111.32 * cos(latitude) km
+    lat_km_per_deg = 111.32
+    lon_km_per_deg = 111.32 * math.cos(math.radians(abs(lat_center)))
+    
+    # Area = side_length_km^2, need 10 km^2 for 1000ha
+    target_area_km2 = 10.0
+    side_length_km = math.sqrt(target_area_km2)
+    
+    # Convert to degrees
+    lat_half_side = (side_length_km / 2) / lat_km_per_deg
+    lon_half_side = (side_length_km / 2) / lon_km_per_deg
+    
+    test_coordinates = [
+        [lon_center - lon_half_side, lat_center - lat_half_side],  # SW
+        [lon_center + lon_half_side, lat_center - lat_half_side],  # SE
+        [lon_center + lon_half_side, lat_center + lat_half_side],  # NE
+        [lon_center - lon_half_side, lat_center + lat_half_side],  # NW
+        [lon_center - lon_half_side, lat_center - lat_half_side]   # Close
+    ]
+    
+    # Clear all cached values first to ensure clean state
+    clear_analysis_cache()
+    
+    # Set the test area coordinates
+    st.session_state.area_coordinates = test_coordinates
+    st.session_state.selected_area = True
+    st.session_state.use_test_area_zoom = True
+    
+    # Calculate area using the actual formula (should be close to 1000ha)
+    area_ha = calculate_area_optimized(test_coordinates)
+    st.session_state.cached_area_ha = area_ha
+    st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
+    st.session_state.area_coords_cache = test_coordinates
+    
+    # Determine region name for display
+    region_names = {
+        (-130, -60, 25, 70): "North America",
+        (-80, -35, -55, 15): "South America", 
+        (-10, 40, 35, 70): "Europe",
+        (-20, 50, -35, 35): "Africa",
+        (25, 180, -10, 70): "Asia",
+        (110, 155, -45, -10): "Australia/Oceania"
+    }
+    region_name = region_names.get(selected_region, "Unknown Region")
+    
+    st.success("✅ **Random Global Test Area Selected!**")
+    st.caption(f"🎲 Random location in {region_name} ({lat_center:.2f}°N, {lon_center:.2f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
 else:
     # Clear test area flag when unchecked
     st.session_state.use_test_area_zoom = False
@@ -1120,6 +1205,17 @@ with col1:
             # Zoom to Michigan test area
             center_lat, center_lon = 42.0, -84.0
             zoom_level = 13
+        elif use_test_area_random:
+            # Zoom to random global test area
+            if st.session_state.get('cached_bbox'):
+                bbox = st.session_state.cached_bbox
+                center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
+                center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
+                zoom_level = 13
+            else:
+                # Fallback if bbox not available
+                center_lat, center_lon = 0, 0
+                zoom_level = 2
         else:
             # Default to Sweden if no specific area selected
             center_lat, center_lon = 60.0, 15.0
@@ -1140,6 +1236,9 @@ with col1:
             elif use_test_area_multi:
                 popup_text = "Multi-Ecosystem Test Area (1000 hectares)"
                 color = '#17a2b8'  # Blue for multi-ecosystem
+            elif use_test_area_random:
+                popup_text = "Random Global Test Area (1000 hectares)"
+                color = '#ff6b35'  # Orange for random global
             else:
                 popup_text = "Test Area (1000 hectares)"
                 color = '#28a745'
