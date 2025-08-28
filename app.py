@@ -724,112 +724,180 @@ Example: 100ha Forest
         
         st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
     
-    # USGS Data Source Configuration
-    with st.expander("🛰️ **USGS Data Source Configuration**"):
-        st.markdown("**Choose Your Satellite Data Source:**")
+    # OpenLandMap Configuration
+    with st.expander("🌍 **OpenLandMap Settings**"):
+        st.markdown("**Landcover to Ecosystem Mapping Configuration**")
+        st.info("Customize how OpenLandMap landcover codes map to ESVD ecosystem types")
         
-        # User selection for USGS approach
-        usgs_mode = st.radio(
-            "Select data source approach:",
-            [
-                "Enhanced Simulation (Recommended)",
-                "Try Updated USGS Library"
-            ],
-            index=0,  # Default to enhanced simulation
-            help="Enhanced simulation provides equivalent scientific accuracy using peer-reviewed ecosystem parameters"
-        )
+        # All possible ESVD ecosystem types
+        esvd_ecosystem_types = [
+            "Forest", "Grassland", "Agricultural", "Urban", "Desert", 
+            "Wetland", "Coastal", "Shrubland"
+        ]
         
-        st.session_state.usgs_mode = usgs_mode
+        # Default mapping (from OpenLandMapSTAC)
+        default_landcover_mapping = {
+            10: "Agricultural",      # Cropland
+            20: "Forest",           # Forest (deciduous broadleaved)
+            30: "Forest",           # Forest (deciduous needleleaved) 
+            40: "Forest",           # Forest (evergreen broadleaved)
+            50: "Forest",           # Forest (evergreen needleleaved)
+            60: "Forest",           # Forest (mixed)
+            61: "Forest",           # Tree Cover
+            62: "Forest",           # Forest (flooded fresh/brackish)
+            70: "Grassland",        # Grassland
+            71: "Grassland",        # Herbaceous cover
+            80: "Urban",            # Urban areas
+            90: "Forest",           # Shrubland (mapped as Forest)
+            100: "Grassland",       # Herbaceous cover (flooded)
+            110: "Forest",          # Shrubland (flooded)
+            120: "Grassland",       # Grassland
+            121: "Grassland",       # Sparse vegetation
+            122: "Grassland",       # Sparse herbaceous
+            130: "Grassland",       # Grassland
+            140: "Grassland",       # Lichens and mosses
+            150: "Desert",          # Sparse vegetation
+            152: "Desert",          # Bare areas
+            153: "Desert",          # Bare rock
+            160: "Desert",          # Bare soil
+            180: "Wetland",         # Permanent water bodies
+            190: "Wetland",         # Herbaceous wetland
+            200: "Desert",          # Snow and ice
+            210: "Wetland",         # Water bodies
+            220: "Desert",          # Snow/Ice
+        }
         
-        if usgs_mode == "Enhanced Simulation (Recommended)":
-            st.success("📊 **ENHANCED SIMULATION ACTIVE**")
-            st.info("🔬 Using peer-reviewed spectral signatures for ecosystem analysis")
-            st.info("✅ Maintains full scientific accuracy for valuation")
+        # Initialize session state for custom mapping
+        if 'custom_landcover_mapping' not in st.session_state:
+            st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
+        
+        st.markdown("**Landcover Code Mapping Table:**")
+        st.caption("Modify the dropdown selections to customize ecosystem detection")
+        
+        # Create mapping table with dropdowns
+        col1, col2, col3 = st.columns([1, 2, 3])
+        
+        with col1:
+            st.markdown("**Code**")
+        with col2:
+            st.markdown("**Current Mapping**")
+        with col3:
+            st.markdown("**Description**")
+        
+        # Landcover descriptions
+        landcover_descriptions = {
+            10: "Cropland",
+            20: "Forest (deciduous broadleaved)", 
+            30: "Forest (deciduous needleleaved)",
+            40: "Forest (evergreen broadleaved)",
+            50: "Forest (evergreen needleleaved)",
+            60: "Forest (mixed)",
+            61: "Tree Cover",
+            62: "Forest (flooded fresh/brackish)",
+            70: "Grassland", 
+            71: "Herbaceous cover",
+            80: "Urban areas",
+            90: "Shrubland",
+            100: "Herbaceous cover (flooded)",
+            110: "Shrubland (flooded)",
+            120: "Grassland",
+            121: "Sparse vegetation",
+            122: "Sparse herbaceous", 
+            130: "Grassland",
+            140: "Lichens and mosses",
+            150: "Sparse vegetation",
+            152: "Bare areas",
+            153: "Bare rock",
+            160: "Bare soil",
+            180: "Permanent water bodies",
+            190: "Herbaceous wetland",
+            200: "Snow and ice",
+            210: "Water bodies",
+            220: "Snow/Ice"
+        }
+        
+        # Display mapping table with dropdowns
+        for code in sorted(default_landcover_mapping.keys()):
+            col1, col2, col3 = st.columns([1, 2, 3])
             
-            with st.expander("Simulation Details"):
-                col_s1, col_s2 = st.columns(2)
+            with col1:
+                st.markdown(f"**{code}**")
+            
+            with col2:
+                current_mapping = st.session_state.custom_landcover_mapping.get(code, "Grassland")
+                current_index = esvd_ecosystem_types.index(current_mapping) if current_mapping in esvd_ecosystem_types else 0
                 
-                with col_s1:
-                    st.markdown("**Data Sources:**")
-                    st.info("🔬 Peer-reviewed spectral signatures")
-                    st.info("🌍 Geographic accuracy")
-                    st.info("📊 Realistic NDVI calculations")
-                    
-                with col_s2:
-                    st.markdown("**Quality Features:**")
-                    st.info("🌡️ Seasonal variations")
-                    st.info("☁️ Realistic cloud coverage")
-                    st.info("📈 Authentic quality factors")
+                new_mapping = st.selectbox(
+                    f"Ecosystem for code {code}",
+                    esvd_ecosystem_types,
+                    index=current_index,
+                    key=f"landcover_mapping_{code}",
+                    label_visibility="collapsed"
+                )
                 
-                st.markdown("**Why Simulation:**")
-                st.markdown("""
-                - USGS API endpoints changed August 30, 2024
-                - Enhanced simulation uses authentic ecosystem research
-                - Equivalent scientific accuracy for ESVD calculations
-                - No dependency on external API availability
-                """)
+                # Update session state when user changes selection
+                st.session_state.custom_landcover_mapping[code] = new_mapping
+            
+            with col3:
+                st.caption(landcover_descriptions.get(code, "Unknown landcover type"))
         
-        else:  # Try Updated USGS Library
-            st.warning("⚠️ **EXPERIMENTAL**: Updated USGS Library")
-            st.info("This will attempt to install a community-fixed USGS library")
+        st.markdown("---")
+        
+        # Action buttons
+        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        
+        with col_btn1:
+            if st.button("🔄 Reset to Defaults", help="Reset all mappings to default values"):
+                st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
+                st.success("✅ Mappings reset to defaults")
+                st.rerun()
+        
+        with col_btn2:
+            # Show current status
+            changes_count = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() 
+                               if v != default_landcover_mapping.get(k))
+            if changes_count > 0:
+                st.info(f"📝 {changes_count} custom mappings active")
+            else:
+                st.success("✅ Using default mappings")
+        
+        with col_btn3:
+            if st.button("💾 Export Mapping", help="Export current mapping as JSON"):
+                import json
+                mapping_json = json.dumps(st.session_state.custom_landcover_mapping, indent=2)
+                st.download_button(
+                    "Download mapping.json",
+                    mapping_json,
+                    file_name="openlandmap_ecosystem_mapping.json",
+                    mime="application/json"
+                )
+        
+        # Update the OpenLandMap STAC API instance with custom mapping
+        try:
+            from utils.openlandmap_stac_api import openlandmap_stac
+            openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
+        except Exception as e:
+            st.warning(f"Could not update STAC API mapping: {e}")
+        
+        # Status information
+        with st.expander("📊 OpenLandMap Data Source Info"):
+            st.markdown("**🌍 OpenLandMap STAC API Status:**")
+            st.success("✅ **Active Data Source**: OpenLandMap STAC Collections")
+            st.info("🛰️ Global landcover data from ESA CCI Land Cover")
+            st.info("🌱 Real-time ecosystem detection worldwide")
+            st.info("📡 No authentication required - direct API access")
             
-            st.info("⚠️ **Manual Installation Required**")
-            st.markdown("""
-            To try the updated USGS library that fixes the August 2024 endpoint issues:
+            st.markdown("**Key Collections Queried:**")
+            collections_info = {
+                "Land Cover": "ESA CCI Land Cover classification",
+                "Soil Organic Carbon": "Soil carbon content (g/kg)", 
+                "Vegetation Index": "Enhanced Vegetation Index (EVI)",
+                "Photosynthetic Activity": "Fraction of absorbed PAR",
+                "Terrain Elevation": "Digital terrain model (m)"
+            }
             
-            1. **Stop the application** 
-            2. **Run in terminal**:
-               ```bash
-               pip uninstall -y landsatxplore
-               pip install git+https://github.com/mankoff/landsatxplore_fix.git
-               ```
-            3. **Restart the application**
-            4. **Return to this section** to test the connection
-            
-            **Note**: This is experimental and may not work in all environments.
-            """)
-            
-            if st.button("Test Current USGS Connection", type="secondary"):
-                with st.spinner("Testing USGS connection..."):
-                    try:
-                        # Force refresh of USGS status
-                        st.cache_data.clear()
-                        usgs_status = preload_usgs_status()
-                        if usgs_status['authentication_success']:
-                            st.success("✅ USGS authentication successful!")
-                            st.balloons()
-                        else:
-                            st.warning("❌ USGS authentication still failing")
-                    except Exception as e:
-                        st.error(f"Test failed: {e}")
-            
-            # Show current USGS status
-            try:
-                usgs_status = preload_usgs_status()
-                
-                if usgs_status['authentication_success']:
-                    st.success("🛰️ **AUTHENTIC LANDSAT IMAGERY ACTIVE**")
-                    st.success("✅ Real satellite bands for quality factors")
-                    if usgs_status.get('sample_scenes_found', 0) > 0:
-                        st.info(f"🔍 Found {usgs_status['sample_scenes_found']} test scenes")
-                else:
-                    st.warning("📡 USGS authentication failed")
-                    col_s1, col_s2 = st.columns(2)
-                    
-                    with col_s1:
-                        st.info(f"Libraries: {'✅' if usgs_status['usgs_available'] else '❌'}")
-                        st.info(f"Credentials: {'✅' if usgs_status['credentials_provided'] else '❌'}")
-                        
-                    with col_s2:
-                        if usgs_status.get('error'):
-                            st.caption(f"Error: {usgs_status['error']}")
-                        
-                    if not usgs_status['credentials_provided']:
-                        st.info("💡 Add USGS_USERNAME and USGS_PASSWORD to environment")
-            
-            except Exception as e:
-                st.warning("Could not check USGS status")
-                st.caption(f"Error: {e}")
+            for collection, description in collections_info.items():
+                st.markdown(f"• **{collection}**: {description}")
     
     st.markdown("---")
     
