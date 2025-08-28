@@ -2089,7 +2089,7 @@ with col2:
                 
                 # Show service category breakdown if available
                 if 'provisioning' in results or 'regulating' in results or 'cultural' in results or 'supporting' in results:
-                    st.markdown("\n**Service Category Totals:**")
+                    st.markdown("\n**Service Category Totals (after all adjustments):**")
                     category_totals = {}
                     
                     for category in ['provisioning', 'regulating', 'cultural', 'supporting']:
@@ -2099,17 +2099,25 @@ with col2:
                             st.markdown(f"- **{category.title()}**: ${category_value:,.0f}/year")
                     
                     category_sum = sum(category_totals.values())
-                    st.markdown(f"\n**📊 Calculation Steps:**")
-                    st.markdown(f"1. **Base Service Total**: ${category_sum:,.0f}/year")
                     
-                    if regional_factor != 1.0:
-                        st.markdown(f"2. **Regional Adjustment**: Applied factor of {regional_factor:.2f}")
+                    # Check if there's a difference between category sum and actual total (indicating quality factor was applied)
+                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
                     
-                    if quality_factor != 1.0:
-                        st.markdown(f"3. **Intactness Adjustment**: Applied factor of {quality_factor:.2f}")
+                    st.markdown(f"\n**📊 Complete Calculation Flow:**")
                     
-                    st.markdown(f"4. **Additional Adjustments**: Vegetation health and ecosystem condition factors")
-                    st.markdown(f"5. **Final Total**: **${actual_total:,.0f}/year**")
+                    # Calculate what the total would be before user quality factor
+                    if user_quality_factor != 1.0 and actual_total != 0:
+                        pre_quality_total = actual_total / user_quality_factor
+                        st.markdown(f"1. **Base Service Calculation**: ${pre_quality_total:,.0f}/year")
+                        st.markdown(f"   - Includes: ESVD coefficients × area × regional factor × vegetation health")
+                        st.markdown(f"2. **User Intactness Factor**: ${pre_quality_total:,.0f} × {user_quality_factor:.2f} = **${actual_total:,.0f}/year**")
+                    else:
+                        st.markdown(f"1. **Total Service Value**: ${actual_total:,.0f}/year")
+                        st.markdown(f"   - Includes: ESVD coefficients × area × regional factor × vegetation health")
+                        if user_quality_factor == 1.0:
+                            st.markdown(f"2. **User Intactness Factor**: No adjustment (100% intactness)")
+                    
+                    st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")
                     
                 else:
                     # Fallback calculation display
