@@ -5,7 +5,8 @@ from utils.ecosystem_services import detect_ecosystem_type_enhanced, get_ecosyst
 from datetime import datetime
 
 def test_ecosystem_functions():
-    test_coords = [[-114.873047,38.822591],[-114.873047,40.780541],[-113.291016,40.780541],[-113.291016,38.822591]]
+    # Great Plains Grassland - Nebraska (1000 hectares, homogeneous grassland)
+    test_coords = [[-99.037, 40.014], [-99.037, 40.042], [-99.000, 40.042], [-99.000, 40.014], [-99.037, 40.014]]
     
     print('Testing ecosystem detection...')
     ecosystem_result = detect_ecosystem_type_enhanced(test_coords, num_samples=3)
