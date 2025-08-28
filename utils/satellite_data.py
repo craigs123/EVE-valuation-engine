@@ -37,32 +37,13 @@ class SatelliteDataProcessor:
             area_bounds: Dictionary containing area geometry
             start_date: Start date for analysis
             end_date: End date for analysis
-            use_authentic: Whether to attempt authentic USGS data first
+            use_authentic: Whether to use enhanced simulation (legacy parameter)
             
         Returns:
             Dictionary containing processed satellite data
         """
         try:
-            # Priority 1: Check user preference and try authentic USGS data if requested
-            user_wants_usgs = True  # Default to trying USGS first
-            try:
-                # Check if user selected enhanced simulation in UI
-                import streamlit as st
-                if hasattr(st, 'session_state') and hasattr(st.session_state, 'usgs_mode'):
-                    user_wants_usgs = st.session_state.usgs_mode == "Try Updated USGS Library"
-            except:
-                user_wants_usgs = True  # Default to trying USGS
-            
-            if use_authentic and user_wants_usgs:
-                try:
-                    from .usgs_integration import usgs_integrator
-                    usgs_data = usgs_integrator.get_landsat_data(area_bounds, start_date, end_date)
-                    if usgs_data and usgs_data.get('metadata', {}).get('authentic_data'):
-                        return usgs_data
-                except Exception as usgs_error:
-                    pass  # Fall through to enhanced simulation
-            
-            # Priority 2: Enhanced simulation with authentic Landsat characteristics
+            # Priority 1: Enhanced simulation with authentic Landsat characteristics
             try:
                 from .enhanced_satellite_simulator import enhanced_satellite_simulator
                 enhanced_data = enhanced_satellite_simulator.generate_authentic_satellite_data(
@@ -73,7 +54,7 @@ class SatelliteDataProcessor:
             except Exception as enhanced_error:
                 pass  # Fall through to basic simulation
             
-            # Priority 3: Basic simulation (existing implementation)
+            # Priority 2: Basic simulation (existing implementation)
             
             # Extract bounding box from area coordinates (optimized)
             if area_bounds and 'coordinates' in area_bounds:

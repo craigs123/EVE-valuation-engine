@@ -829,9 +829,9 @@ def get_ecosystem_service_values(ecosystem_type: str, coordinates: List,
         # Create area bounds from coordinates
         area_bounds = {'coordinates': coordinates}
         
-        # Get satellite data
-        from .usgs_integration import usgs_integrator
-        satellite_data = usgs_integrator.get_landsat_data(
+        # Get satellite data using enhanced simulation
+        from .satellite_data import satellite_data_processor
+        satellite_data = satellite_data_processor.get_time_series_data(
             area_bounds, start_date, end_date
         )
         
