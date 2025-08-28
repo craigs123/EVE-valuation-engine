@@ -2270,15 +2270,33 @@ if analyze_button and st.session_state.selected_area:
                             'proportion': data['count'] / total_points
                         })
                 
+                # Create ecosystem composition for display
+                ecosystem_composition = {}
+                individual_ecosystem_results = {}
+                
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_points
+                    ecosystem_composition[eco_type] = proportion
+                    
+                    # Format individual results for display
+                    eco_result = mixed_results[eco_type]
+                    individual_ecosystem_results[eco_type] = {
+                        'total_value': eco_result['total_value'],
+                        'area_hectares': area_ha * proportion,
+                        'value_per_hectare': eco_result['total_value'] / (area_ha * proportion) if area_ha * proportion > 0 else 0
+                    }
+                
                 # Create combined results
                 esvd_results = {
                     'total_value': total_value,
                     'total_annual_value': total_value,
                     'current_value': total_value,
                     'ecosystem_results': mixed_results,
+                    'individual_ecosystem_results': individual_ecosystem_results,  # Add for display
                     'metadata': {
                         'calculation_method': 'Mixed ecosystem with forest type detection',
-                        'ecosystem_count': len(ecosystem_distribution)
+                        'ecosystem_count': len(ecosystem_distribution),
+                        'ecosystem_composition': ecosystem_composition  # Add for display
                     }
                 }
                 
