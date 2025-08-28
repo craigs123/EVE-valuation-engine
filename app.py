@@ -667,29 +667,85 @@ with st.sidebar:
         else:
             st.caption("Select an area to see sampling estimation")
     
-    # Quality Factor Settings (expandable)
+    # Quality Factor Settings (expandable) - Enhanced with EII Option
     with st.expander("📊 **Quality Factor**"):
-        quality_factor = st.slider(
-            "Ecosystem Quality Multiplier",
-            min_value=0.4,
-            max_value=2.0,
-            value=st.session_state.get('quality_factor', 1.0),
-            step=0.1,
-            help="Adjusts ecosystem service values based on ecosystem condition. 1.0 = average health, <1.0 = degraded, >1.0 = excellent."
+        # Quality method selection
+        quality_method = st.radio(
+            "Quality Assessment Method:",
+            ["👤 User Control", "🔬 EII (Ecosystem Integrity Index)", "🔄 Compare Both"],
+            help="Choose how to assess ecosystem quality for valuation"
         )
-        st.session_state.quality_factor = quality_factor
         
-        # Quality factor explanation
-        if quality_factor < 0.7:
-            st.caption("🔴 Degraded ecosystem condition")
-        elif quality_factor < 0.9:
-            st.caption("🟡 Below average ecosystem health")
-        elif quality_factor <= 1.1:
-            st.caption("🟢 Average ecosystem health")
-        elif quality_factor <= 1.5:
-            st.caption("🌟 Good ecosystem condition")
-        else:
-            st.caption("💚 Excellent ecosystem health")
+        if quality_method == "👤 User Control":
+            # Original user-controlled slider
+            quality_factor = st.slider(
+                "Ecosystem Quality Multiplier",
+                min_value=0.4,
+                max_value=2.0,
+                value=st.session_state.get('quality_factor', 1.0),
+                step=0.1,
+                help="Adjusts ecosystem service values based on ecosystem condition. 1.0 = average health, <1.0 = degraded, >1.0 = excellent."
+            )
+            st.session_state.quality_factor = quality_factor
+            st.session_state.quality_method = 'user'
+            
+            # Quality factor explanation
+            if quality_factor < 0.7:
+                st.caption("🔴 Degraded ecosystem condition")
+            elif quality_factor < 0.9:
+                st.caption("🟡 Below average ecosystem health")
+            elif quality_factor <= 1.1:
+                st.caption("🟢 Average ecosystem health")
+            elif quality_factor <= 1.5:
+                st.caption("🌟 Good ecosystem condition")
+            else:
+                st.caption("💚 Excellent ecosystem health")
+                
+        elif quality_method == "🔬 EII (Ecosystem Integrity Index)":
+            st.session_state.quality_method = 'eii'
+            st.info("🔬 **EII Assessment**: Quality factor calculated from satellite-based ecosystem integrity data")
+            
+            with st.expander("📖 About EII Quality Assessment"):
+                st.markdown("""
+                **Ecosystem Integrity Index (EII)** uses satellite data to assess:
+                - **🏗️ Structure**: Forest connectivity, fragmentation patterns
+                - **🦋 Composition**: Biodiversity richness, species intactness  
+                - **⚡ Function**: Primary productivity, ecological processes
+                
+                **Advantages:**
+                - Objective satellite-based assessment
+                - Consistent methodology globally
+                - Based on peer-reviewed research (Single.Earth)
+                - Eliminates user bias and subjectivity
+                
+                **Quality Factor Range**: 0.4x (degraded) to 2.0x (pristine)
+                """)
+            
+            # EII will be calculated during analysis
+            st.session_state.quality_factor = 1.0  # Placeholder
+            
+        else:  # Compare Both
+            st.session_state.quality_method = 'both'
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**👤 User Assessment**")
+                user_quality = st.slider(
+                    "Your Quality Factor",
+                    min_value=0.4,
+                    max_value=2.0,
+                    value=st.session_state.get('quality_factor', 1.0),
+                    step=0.1,
+                    key="user_quality"
+                )
+                
+            with col2:
+                st.markdown("**🔬 EII Assessment**")
+                st.info("Will be calculated from satellite data during analysis")
+            
+            st.session_state.quality_factor = user_quality
+            st.info("💡 Both assessments will be shown in results for comparison")
     
 
     
@@ -2332,9 +2388,55 @@ if analyze_button and st.session_state.selected_area:
                         coordinates=(center_lat, center_lon)
                     )
                     
-                    # Apply user-defined quality factor
-                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
-                    eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
+                    # Apply quality factor based on selected method
+                    quality_method = st.session_state.get('quality_method', 'user')
+                    
+                    if quality_method == 'eii':
+                        # Use EII-calculated quality factor
+                        try:
+                            from utils.ecosystem_integrity_integration import get_eii_quality_factor
+                            eii_result = get_eii_quality_factor(
+                                coordinates=(center_lat, center_lon),
+                                area_hectares=eco_area,
+                                ecosystem_type=eco_type
+                            )
+                            eii_quality_factor = eii_result['quality_factor']
+                            eco_result['total_value'] = eco_result['total_value'] * eii_quality_factor
+                            eco_result['eii_assessment'] = eii_result
+                            st.success(f"🔬 EII Quality Factor for {eco_type}: {eii_quality_factor}x ({eii_result['interpretation']})")
+                        except Exception as e:
+                            st.warning(f"EII calculation failed for {eco_type}, using user factor")
+                            user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                            eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
+                    elif quality_method == 'both':
+                        # Show both assessments
+                        user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                        try:
+                            from utils.ecosystem_integrity_integration import get_eii_quality_factor
+                            eii_result = get_eii_quality_factor(
+                                coordinates=(center_lat, center_lon),
+                                area_hectares=eco_area,
+                                ecosystem_type=eco_type
+                            )
+                            eii_quality_factor = eii_result['quality_factor']
+                            eco_result['eii_assessment'] = eii_result
+                            
+                            # Use user factor for calculation, store EII for comparison
+                            eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
+                            eco_result['eii_alternative_value'] = eco_result.get('current_value', 0) * eii_quality_factor
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.info(f"👤 User Factor ({eco_type}): {user_quality_factor}x")
+                            with col2:
+                                st.success(f"🔬 EII Factor ({eco_type}): {eii_quality_factor}x")
+                        except Exception as e:
+                            st.warning(f"EII calculation failed for {eco_type}")
+                            eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
+                    else:
+                        # Use user-defined quality factor
+                        user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                        eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
                     
                     total_value += eco_result['total_value']
                     mixed_results[eco_type] = eco_result
