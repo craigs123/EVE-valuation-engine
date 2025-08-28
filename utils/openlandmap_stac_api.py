@@ -165,8 +165,12 @@ class OpenLandMapSTAC:
         """
         Predict land cover class based on geographic location using global patterns
         """
+        # Open ocean areas (areas far from major landmasses)
+        if self._is_likely_ocean(lat, lon):
+            return random.choice([180, 210])  # Permanent water bodies / Water bodies
+        
         # Tropical forests (Amazon, Congo, Southeast Asia)
-        if ((-10 <= lat <= 10) and 
+        elif ((-10 <= lat <= 10) and 
             ((-80 <= lon <= -40) or  # Amazon
              (10 <= lon <= 50) or    # Central Africa  
              (90 <= lon <= 150))):   # Southeast Asia
@@ -252,6 +256,46 @@ class OpenLandMapSTAC:
             return random.randint(1000, 4000)
         else:
             return random.randint(0, 800)  # General terrain
+    
+    def _is_likely_ocean(self, lat: float, lon: float) -> bool:
+        """
+        Determine if coordinates are likely in open ocean based on major landmass proximity
+        """
+        # Major ocean areas far from landmasses
+        
+        # Pacific Ocean regions
+        if ((-60 <= lat <= 60) and 
+            ((-180 <= lon <= -120) or    # Eastern Pacific  
+             (140 <= lon <= 180))):      # Western Pacific
+            # Exclude coastal areas and island chains
+            if not ((-10 <= lat <= 10 and 140 <= lon <= 180) or  # Indonesia/Philippines
+                    (20 <= lat <= 50 and -140 <= lon <= -120)):   # US West Coast
+                return True
+        
+        # Atlantic Ocean regions  
+        elif ((-60 <= lat <= 60) and (-60 <= lon <= 20)):
+            # Exclude coastal areas
+            if not ((-35 <= lat <= 70 and -20 <= lon <= 20) or   # Europe/Africa coast
+                    (-60 <= lat <= 50 and -60 <= lon <= -30)):   # Americas coast
+                return True
+        
+        # Indian Ocean regions
+        elif ((-60 <= lat <= 30) and (20 <= lon <= 120)):
+            # Exclude coastal areas and landmasses
+            if not ((20 <= lat <= 30 and 30 <= lon <= 80) or    # Middle East/India
+                    (-40 <= lat <= -20 and 20 <= lon <= 50) or   # South Africa  
+                    (-25 <= lat <= 10 and 90 <= lon <= 120)):    # Southeast Asia
+                return True
+        
+        # Southern Ocean
+        elif lat < -45:
+            return True
+            
+        # Arctic Ocean  
+        elif lat > 70:
+            return True
+            
+        return False
     
     def process_stac_data(self, lat: float, lon: float, stac_results: List[Dict]) -> Dict[str, Any]:
         """
