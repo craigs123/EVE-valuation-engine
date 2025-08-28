@@ -1313,6 +1313,10 @@ if use_load_saved_area:
                 st.session_state.selected_area = True
                 st.session_state.use_test_area_zoom = True
                 
+                # Reset default area name for loaded area
+                if 'default_area_name' in st.session_state:
+                    del st.session_state['default_area_name']
+                
                 # Calculate and cache area data
                 area_ha = selected_area_data['area_hectares']
                 st.session_state.cached_area_ha = area_ha
@@ -1392,6 +1396,10 @@ elif use_test_area_single:
         st.session_state.selected_area = True
         st.session_state.use_test_area_zoom = True
         
+        # Reset default area name for test area
+        if 'default_area_name' in st.session_state:
+            del st.session_state['default_area_name']
+        
         # Calculate area using the actual formula (should be exactly 1000ha)
         area_ha = calculate_area_optimized(test_coordinates)
         st.session_state.cached_area_ha = area_ha
@@ -1424,6 +1432,10 @@ elif use_test_area_multi:
     st.session_state.area_coordinates = test_coordinates
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True
+    
+    # Reset default area name for test area
+    if 'default_area_name' in st.session_state:
+        del st.session_state['default_area_name']
     
     # Calculate area using the actual formula (should be exactly 1000ha)
     area_ha = calculate_area_optimized(test_coordinates)
@@ -1493,6 +1505,10 @@ elif use_test_area_random:
     st.session_state.area_coordinates = test_coordinates
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True
+    
+    # Reset default area name for test area
+    if 'default_area_name' in st.session_state:
+        del st.session_state['default_area_name']
     
     # Calculate area using the actual formula (should be close to 1000ha)
     area_ha = calculate_area_optimized(test_coordinates)
@@ -1720,6 +1736,10 @@ with col1:
                     'cached_area_ha': None,
                     'cached_ecosystem_results': None
                 })
+                
+                # Reset default area name for new area selection
+                if 'default_area_name' in st.session_state:
+                    del st.session_state['default_area_name']
                 
                 # Quick area display using optimized calculation (cached)
                 if len(coordinates) > 2:
@@ -2873,10 +2893,15 @@ if st.session_state.analysis_results:
             with col_save2:
                 with st.container():
                     st.markdown("**📍 Save Area**")
-                    # Use unique form key to prevent double-click issues
-                    area_form_key = f"save_area_summary_{hash(str(st.session_state.get('area_coordinates', [])))}"
+                    # Use stable form key to preserve user inputs
+                    area_form_key = "save_area_form"
+                    
+                    # Initialize default area name once for this session
+                    if 'default_area_name' not in st.session_state:
+                        st.session_state['default_area_name'] = f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                    
                     with st.form(area_form_key):
-                        area_name = st.text_input("Area Name", value=f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                        area_name = st.text_input("Area Name", value=st.session_state['default_area_name'])
                         description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
                         
                         col1, col2 = st.columns(2)
@@ -2888,6 +2913,10 @@ if st.session_state.analysis_results:
                         if save_area_btn and area_name:
                             # Check if we've already saved this area to prevent duplicates
                             coordinates_key = f"saved_area_{hash(str(st.session_state.get('area_coordinates', [])))}"
+                            
+                            # Reset default name for next area after successful save
+                            if 'default_area_name' in st.session_state:
+                                del st.session_state['default_area_name']
                             
                             if coordinates_key not in st.session_state:
                                 results = st.session_state.analysis_results
