@@ -2339,7 +2339,7 @@ if analyze_button and st.session_state.selected_area:
                         coordinates=(center_lat, center_lon)
                     )
                     
-                    # Apply ecosystem intactness factor
+                    # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
                     user_quality_factor = st.session_state.get('quality_factor', 1.0)  # Default to 100% intactness
                     eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
                     
@@ -2373,7 +2373,11 @@ if analyze_button and st.session_state.selected_area:
                         'value_per_hectare': eco_result['total_value'] / (area_ha * proportion) if area_ha * proportion > 0 else 0
                     }
                 
-                # Create combined results
+                # Extract regional factor from the first ecosystem result for mixed display
+                first_ecosystem_result = list(mixed_results.values())[0] if mixed_results else {}
+                regional_adjustment = first_ecosystem_result.get('metadata', {}).get('regional_adjustment', 1.0)
+                
+                # Create combined results  
                 esvd_results = {
                     'total_value': total_value,
                     'total_annual_value': total_value,
@@ -2383,7 +2387,8 @@ if analyze_button and st.session_state.selected_area:
                     'metadata': {
                         'calculation_method': 'Mixed ecosystem with forest type detection',
                         'ecosystem_count': len(ecosystem_distribution),
-                        'ecosystem_composition': ecosystem_composition  # Add for display
+                        'ecosystem_composition': ecosystem_composition,  # Add for display
+                        'regional_adjustment': regional_adjustment  # Include regional factor
                     }
                 }
                 
@@ -2399,7 +2404,7 @@ if analyze_button and st.session_state.selected_area:
                     coordinates=(center_lat, center_lon)
                 )
                 
-                # Apply user-defined quality factor
+                # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
                 user_quality_factor = st.session_state.get('quality_factor', 1.0)
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
