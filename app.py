@@ -1522,6 +1522,7 @@ with col1:
         
         # Show test area polygon if coordinates are set
         if st.session_state.get('area_coordinates'):
+            import folium
             coords = st.session_state.area_coordinates
             if use_test_area_single:
                 popup_text = f"{selected_test_area} (1000 hectares)"
