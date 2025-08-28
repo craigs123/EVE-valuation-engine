@@ -571,7 +571,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and header  
-st.title("🌱 Ecosystem Valuation Engine v2.0.0")
+st.title("🌱 Ecosystem Valuation Engine v2.1.0")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
 # Initialize session state
@@ -811,16 +811,13 @@ $498.85/ha/year (median from 580 studies)
         except Exception:
             st.info("Using pre-computed coefficients from 10,874+ peer-reviewed studies")
     
-    # Methodology and Sources section
-    st.header("📚 Methodology and Sources")
-    
-    st.markdown("""
-    **Ecosystem Valuation Engine (EVE)** combines satellite remote sensing with the world's largest ecosystem service valuation database to measure natural capital in economic terms.
-    
-    EVE tracks four categories of ecosystem services: **provisioning** (food, water, timber), **regulating** (climate, water regulation, erosion control), **cultural** (recreation, spiritual value), and **supporting** (soil formation, nutrient cycling).
-    """)
-    
+    # Scientific Methodology section
     with st.expander("🔬 Scientific Methodology"):
+        st.markdown("""
+        **Ecosystem Valuation Engine (EVE)** combines satellite remote sensing with the world's largest ecosystem service valuation database to measure natural capital in economic terms.
+        
+        EVE tracks four categories of ecosystem services: **provisioning** (food, water, timber), **regulating** (climate, water regulation, erosion control), **cultural** (recreation, spiritual value), and **supporting** (soil formation, nutrient cycling).
+        """)
         st.markdown("""
         **Data Sources:**
         - **ESVD Database**: 10,874 peer-reviewed ecosystem service values from 1,354+ scientific studies
@@ -1078,7 +1075,8 @@ Example: 100ha Forest
             else:
                 st.warning("🟡 Database connection issue")
         except Exception as e:
-            st.error("🔴 Database error")
+            st.warning("⚠️ Database temporarily unavailable")
+            st.caption("Analysis functionality remains available")
         
         # Tabs for different data views
         tab1, tab2, tab3, tab4 = st.tabs(["Recent Analyses", "Saved Areas", "Baselines", "Sustainability"])
@@ -1227,7 +1225,8 @@ Example: 100ha Forest
             else:
                 st.info("No sustainability assessment completed yet.")
     else:
-        st.error("🔴 Database unavailable")
+        st.info("💡 Database features disabled")
+        st.caption("Core analysis functionality remains available")
     
     st.markdown("---")
     
