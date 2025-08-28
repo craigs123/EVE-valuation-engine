@@ -1223,41 +1223,29 @@ Example: 100ha Forest
 # Initialize analyze_button as False
 analyze_button = False
 
-# Test area selection checkboxes (mutually exclusive)
+# Test area selection dropdown
 st.markdown("**🧪 Test Areas (1000 hectares each)**")
-col_test1, col_test2, col_test3 = st.columns(3)
+test_area_options = [
+    "None - Draw your own area",
+    "🌾 Test area (Agricultural)",
+    "🌱 Test area (Grassland)", 
+    "🌲 Test area (Boreal Forest)",
+    "🏜️ Test area (Desert)",
+    "🌍 Test area (Multi-Ecosystem)",
+    "🎲 Test area (Random Global)"
+]
 
-with col_test1:
-    single_ecosystem_options = [
-        "None",
-        "🌾 Test area (Agricultural)", 
-        "🌱 Test area (Grassland)",
-        "🌲 Test area (Boreal Forest)",
-        "🏜️ Test area (Desert)"
-    ]
-    selected_single_ecosystem = st.selectbox(
-        "Single Ecosystem Areas",
-        single_ecosystem_options,
-        index=0,
-        help="Choose from different single ecosystem test areas"
-    )
-    use_test_area_single = selected_single_ecosystem != "None"
+selected_test_area = st.selectbox(
+    "Choose a test area or draw your own:",
+    test_area_options,
+    index=0,
+    help="Select a predefined test area or choose 'None' to draw your own area on the map"
+)
 
-with col_test2:
-    use_test_area_multi = st.checkbox("🌍 Multi-Ecosystem Test Area", value=False, help="Mixed ecosystems in Michigan - agricultural, forest, and grassland transition zone")
-
-with col_test3:
-    use_test_area_random = st.checkbox("🎲 Random Global Test Area", value=False, help="Randomly selected 1000ha land area anywhere in the world")
-
-# Ensure only one test area can be selected at a time
-selected_areas = sum([use_test_area_single, use_test_area_multi, use_test_area_random])
-if selected_areas > 1:
-    st.warning("⚠️ Please select only one test area at a time")
-    use_test_area_single = False
-    use_test_area_multi = False
-    use_test_area_random = False
-
-use_test_area = use_test_area_single or use_test_area_multi or use_test_area_random
+use_test_area = selected_test_area != "None - Draw your own area"
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🏜️ Test area (Desert)"]
+use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
+use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
 if use_test_area_single:
     # Define coordinates for different single ecosystem test areas (all exactly 1000 hectares)
@@ -1284,8 +1272,8 @@ if use_test_area_single:
         }
     }
     
-    if selected_single_ecosystem in single_ecosystem_areas:
-        area_data = single_ecosystem_areas[selected_single_ecosystem]
+    if selected_test_area in single_ecosystem_areas:
+        area_data = single_ecosystem_areas[selected_test_area]
         test_coordinates = area_data["coords"]
         
         # Clear all cached values first to ensure clean state
@@ -1302,7 +1290,7 @@ if use_test_area_single:
         st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
         st.session_state.area_coords_cache = test_coordinates
         
-        st.success(f"✅ **{selected_single_ecosystem} Selected!**")
+        st.success(f"✅ **{selected_test_area} Selected!**")
         st.caption(area_data["description"])
 
 elif use_test_area_multi:
@@ -1445,8 +1433,8 @@ with col1:
                 "🌲 Test area (Boreal Forest)": (55.014, -104.9815), # Canada
                 "🏜️ Test area (Desert)": (33.514, -112.4815)      # Arizona
             }
-            if selected_single_ecosystem in ecosystem_zoom_coords:
-                center_lat, center_lon = ecosystem_zoom_coords[selected_single_ecosystem]
+            if selected_test_area in ecosystem_zoom_coords:
+                center_lat, center_lon = ecosystem_zoom_coords[selected_test_area]
             else:
                 # Default fallback
                 center_lat, center_lon = 40.028, -99.0185
@@ -1481,7 +1469,7 @@ with col1:
         if st.session_state.get('area_coordinates'):
             coords = st.session_state.area_coordinates
             if use_test_area_single:
-                popup_text = f"{selected_single_ecosystem} (1000 hectares)"
+                popup_text = f"{selected_test_area} (1000 hectares)"
                 color = '#28a745'  # Green for single ecosystem
             elif use_test_area_multi:
                 popup_text = "Multi-Ecosystem Test Area (1000 hectares)"
