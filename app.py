@@ -2106,17 +2106,28 @@ with col2:
                     
                     st.markdown(f"\n**📊 Complete Calculation Flow:**")
                     
-                    # Calculate what the total would be before user quality factor
+                    # Get the regional factor for proper breakdown
+                    regional_factor = results.get('regional_adjustment_factor', 1.0)
+                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                    
+                    # Calculate the correct step-by-step breakdown
                     if user_quality_factor != 1.0 and actual_total != 0:
-                        pre_quality_total = actual_total / user_quality_factor
-                        st.markdown(f"1. **Base Service Calculation**: ${pre_quality_total:,.0f}/year")
-                        st.markdown(f"   - Formula: ESVD coefficients × area × regional factor")
-                        st.markdown(f"2. **User Intactness Factor**: ${pre_quality_total:,.0f} × {user_quality_factor:.2f} = **${actual_total:,.0f}/year**")
+                        # Work backwards to show the correct flow
+                        regionally_adjusted_total = actual_total / user_quality_factor
+                        base_total = regionally_adjusted_total / regional_factor if regional_factor != 0 else 0
+                        
+                        st.markdown(f"1. **Base ESVD Services**: ${base_total:,.0f}/year")
+                        st.markdown(f"   - Formula: ESVD coefficients × area = ${base_total:,.0f}")
+                        st.markdown(f"2. **Regional Economic Adjustment**: ${base_total:,.0f} × {regional_factor:.2f} = ${regionally_adjusted_total:,.0f}/year")
+                        st.markdown(f"3. **User Intactness Factor**: ${regionally_adjusted_total:,.0f} × {user_quality_factor:.2f} = **${actual_total:,.0f}/year**")
                     else:
-                        st.markdown(f"1. **Total Service Value**: ${actual_total:,.0f}/year")
-                        st.markdown(f"   - Formula: ESVD coefficients × area × regional factor")
+                        # When user factor is 1.0, just show the two main steps
+                        base_total = actual_total / regional_factor if regional_factor != 0 else actual_total
+                        st.markdown(f"1. **Base ESVD Services**: ${base_total:,.0f}/year")
+                        st.markdown(f"   - Formula: ESVD coefficients × area = ${base_total:,.0f}")
+                        st.markdown(f"2. **Regional Economic Adjustment**: ${base_total:,.0f} × {regional_factor:.2f} = **${actual_total:,.0f}/year**")
                         if user_quality_factor == 1.0:
-                            st.markdown(f"2. **User Intactness Factor**: No adjustment (100% intactness)")
+                            st.markdown(f"3. **User Intactness Factor**: No adjustment (100% intactness)")
                     
                     st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")
                     
