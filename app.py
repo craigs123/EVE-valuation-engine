@@ -2086,16 +2086,32 @@ with col2:
                 
                 if eco_coeffs:
                     st.markdown("**Service Type Coefficients:**")
+                    service_totals = {}
                     for service, value in eco_coeffs.items():
                         if value > 0:
                             base_service_value = value * area_ha
-                            service_total = value * area_ha * regional_factor * quality_factor
-                            st.markdown(f"- **{service.replace('_', ' ').title()}**: ${value}/ha/year × {area_ha:,.0f} ha = ${base_service_value:,.0f}/year (base)")
-                            if regional_factor != 1.0 or quality_factor != 1.0:
-                                st.markdown(f"  - *With adjustments*: ${base_service_value:,.0f} × {regional_factor:.2f} regional × {quality_factor:.2f} quality = **${service_total:,.0f}/year**")
+                            service_totals[service] = base_service_value
+                            st.markdown(f"- **{service.replace('_', ' ').title()}**: ${value}/ha/year × {area_ha:,.0f} ha = ${base_service_value:,.0f}/year")
                     
-                    base_value = sum(eco_coeffs.values()) * area_ha
-                    st.markdown(f"\n**Base Value**: ${base_value:,.0f}/year")
+                    base_total = sum(service_totals.values())
+                    st.markdown(f"\n**📊 Calculation Steps:**")
+                    st.markdown(f"1. **Base Total**: ${base_total:,.0f}/year")
+                    
+                    if regional_factor != 1.0:
+                        regional_adjusted = base_total * regional_factor
+                        st.markdown(f"2. **Regional Adjustment**: ${base_total:,.0f} × {regional_factor:.2f} = ${regional_adjusted:,.0f}/year")
+                    else:
+                        regional_adjusted = base_total
+                        st.markdown(f"2. **Regional Adjustment**: No adjustment (factor = 1.0)")
+                    
+                    if quality_factor != 1.0:
+                        final_total = regional_adjusted * quality_factor
+                        st.markdown(f"3. **Intactness Adjustment**: ${regional_adjusted:,.0f} × {quality_factor:.2f} = **${final_total:,.0f}/year**")
+                    else:
+                        final_total = regional_adjusted
+                        st.markdown(f"3. **Intactness Adjustment**: No adjustment (factor = 1.0)")
+                    
+                    st.markdown(f"\n**Final Total**: **${final_total:,.0f}/year**")
                 else:
                     st.warning("Coefficient details not available for display")
                     
