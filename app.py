@@ -2563,16 +2563,15 @@ if analyze_button and st.session_state.selected_area:
                 user_quality_factor = st.session_state.get('quality_factor', 1.0)
                 
                 # Debug print to ensure we're applying the factors
-                if user_quality_factor != 1.0:
-                    print(f"DEBUG: Applying intactness factor {user_quality_factor} to agriculture result")
-                    print(f"DEBUG: Before: ${esvd_results.get('total_value', 0):,.0f}")
+                print(f"DEBUG: User intactness factor={user_quality_factor}")
+                print(f"DEBUG: Before intactness: ${esvd_results.get('total_value', 0):,.0f}")
                 
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
                 esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
                 
-                if user_quality_factor != 1.0:
-                    print(f"DEBUG: After: ${esvd_results.get('total_value', 0):,.0f}")
+                print(f"DEBUG: After intactness: ${esvd_results.get('total_value', 0):,.0f}")
+                print(f"DEBUG: Final total_annual_value: ${esvd_results.get('total_annual_value', 0):,.0f}")
             
             # Determine the actual ecosystem type for display
             display_ecosystem_type = ecosystem_type
