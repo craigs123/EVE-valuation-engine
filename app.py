@@ -2555,9 +2555,18 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
                 user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                
+                # Debug print to ensure we're applying the factors
+                if user_quality_factor != 1.0:
+                    print(f"DEBUG: Applying intactness factor {user_quality_factor} to agriculture result")
+                    print(f"DEBUG: Before: ${esvd_results.get('total_value', 0):,.0f}")
+                
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
                 esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
+                
+                if user_quality_factor != 1.0:
+                    print(f"DEBUG: After: ${esvd_results.get('total_value', 0):,.0f}")
             
             # Determine the actual ecosystem type for display
             display_ecosystem_type = ecosystem_type
