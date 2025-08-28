@@ -2088,8 +2088,11 @@ with col2:
                     st.markdown("**Service Type Coefficients:**")
                     for service, value in eco_coeffs.items():
                         if value > 0:
+                            base_service_value = value * area_ha
                             service_total = value * area_ha * regional_factor * quality_factor
-                            st.markdown(f"- **{service.replace('_', ' ').title()}**: ${value}/ha/year × {area_ha:,.0f} ha = ${service_total:,.0f}/year")
+                            st.markdown(f"- **{service.replace('_', ' ').title()}**: ${value}/ha/year × {area_ha:,.0f} ha = ${base_service_value:,.0f}/year (base)")
+                            if regional_factor != 1.0 or quality_factor != 1.0:
+                                st.markdown(f"  - *With adjustments*: ${base_service_value:,.0f} × {regional_factor:.2f} regional × {quality_factor:.2f} quality = **${service_total:,.0f}/year**")
                     
                     base_value = sum(eco_coeffs.values()) * area_ha
                     st.markdown(f"\n**Base Value**: ${base_value:,.0f}/year")
