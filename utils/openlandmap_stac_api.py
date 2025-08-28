@@ -359,9 +359,15 @@ class OpenLandMapSTAC:
                 ecosystem_type = fallback_type
             confidence = 0.70  # Lower confidence for geographic fallback
         
+        # Extract landcover_class from the processed land cover data
+        landcover_class = 0
+        if land_cover and len(land_cover) > 0:
+            landcover_class = land_cover[0].get("code", 0)
+        
         return {
             "ecosystem_type": ecosystem_type,
             "confidence": confidence,
+            "landcover_class": landcover_class,  # Add the landcover code for integration
             "coordinates": {"lat": lat, "lon": lon},
             "climate": climate if climate else None,
             "landCover": land_cover if land_cover else None, 
