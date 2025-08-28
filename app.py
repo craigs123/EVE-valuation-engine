@@ -46,6 +46,34 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
+# Custom CSS to make sidebar 50% wider
+st.markdown("""
+    <style>
+        /* Make sidebar 50% wider */
+        .css-1d391kg, .css-1lcbmhc, .css-12oz5g7, .css-17eq0hr {
+            width: 450px !important;
+            min-width: 450px !important;
+        }
+        
+        /* Adjust main content area to account for wider sidebar */
+        .css-1rs6os, .css-17eq0hr {
+            margin-left: 450px !important;
+        }
+        
+        /* Ensure sidebar content fits properly */
+        .css-1d391kg .block-container, .css-1lcbmhc .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            max-width: none !important;
+        }
+        
+        /* Make sidebar scrollable if content overflows */
+        .css-1d391kg, .css-1lcbmhc {
+            overflow-y: auto !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Production-optimized map caching with extended TTL
 @st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
