@@ -769,19 +769,8 @@ def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> 
                 continue
         
         if not ecosystem_results:
-            # Fallback to center point detection
-            center_lat = (min_lat + max_lat) / 2
-            center_lon = (min_lon + max_lon) / 2
-            fallback_result = openlandmap_stac._geographic_fallback_detection(center_lat, center_lon)
-            
-            return {
-                'primary_ecosystem': fallback_result,
-                'confidence': 0.65,
-                'successful_queries': 0,
-                'ecosystem_distribution': {fallback_result: {'count': 1, 'confidence': 0.65}},
-                'error': 'STAC API queries failed, used geographic fallback',
-                'stac_data': []
-            }
+            # Raise error instead of fallback single-point detection
+            raise RuntimeError("All STAC API queries failed for ecosystem detection. No valid ecosystem data could be retrieved from any sample points.")
         
         # Count ecosystem types
         ecosystem_counts = {}

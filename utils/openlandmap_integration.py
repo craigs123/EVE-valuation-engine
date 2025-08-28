@@ -94,8 +94,11 @@ class OpenLandMapIntegrator:
                 except Exception:
                     continue
             
-            # Return the best available result
-            return enhanced_result or self._default_ecosystem_result()
+            # Return the best available result or raise error if none found
+            if enhanced_result:
+                return enhanced_result
+            else:
+                raise RuntimeError("No ecosystem data available from any source (USGS, ESA, or geographic detection). Coordinates may be invalid or APIs unavailable.")
             
         except:
             return self._enhanced_geographic_detection(lat, lon)
@@ -780,11 +783,11 @@ class OpenLandMapIntegrator:
                     'source': source
                 }
             
-            # Return default ecosystem result if no valid data found
-            return self._default_ecosystem_result()
+            # Raise error if no valid data found
+            raise ValueError(f"No valid landcover data found for coordinates. API response contained no usable classification data.")
             
-        except:
-            return self._default_ecosystem_result()
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse landcover response: {str(e)}")
     
     def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None) -> Dict:
         """
@@ -797,7 +800,7 @@ class OpenLandMapIntegrator:
         """
         try:
             if not coordinates or len(coordinates) < 3:
-                return self._default_ecosystem_result()
+                raise ValueError("Insufficient coordinates provided. At least 3 coordinate pairs are required for polygon analysis.")
             
             # Use user-defined sample limit directly (simplified approach)
             num_points = max_sampling_limit
@@ -822,7 +825,7 @@ class OpenLandMapIntegrator:
                 # Development optimization: no delays for faster sampling
             
             if not ecosystem_results:
-                return self._default_ecosystem_result()
+                raise RuntimeError("No valid ecosystem data retrieved from any sample points. OpenLandMap API may be unavailable or coordinates may be invalid.")
             
             # Determine dominant ecosystem type (optimized)
             ecosystem_counts = {}
@@ -865,8 +868,8 @@ class OpenLandMapIntegrator:
                 'source': 'OpenLandMap'
             }
             
-        except:
-            return self._default_ecosystem_result()
+        except Exception as e:
+            raise RuntimeError(f"Ecosystem analysis failed: {str(e)}. Unable to complete area-based ecosystem detection.")
     
     def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 4) -> List[Tuple[float, float]]:
         """
@@ -901,11 +904,9 @@ class OpenLandMapIntegrator:
             
             return points
             
-        except:
-            # Fallback: return center point
-            center_lat = np.mean([coord[1] for coord in coordinates[:-1]])
-            center_lon = np.mean([coord[0] for coord in coordinates[:-1]])
-            return [(float(center_lat), float(center_lon))]
+        except Exception as e:
+            # Return error instead of fallback single point sampling
+            raise ValueError(f"Failed to generate sample points: {str(e)}. Area coordinates may be invalid or insufficient for grid sampling.")
     
     def _calculate_area_km2(self, coordinates: List[List[float]]) -> float:
         """
@@ -948,19 +949,6 @@ class OpenLandMapIntegrator:
             return min(max(4, actual_points), 50)  # Cap at 50 points for dev speed
         return max(4, actual_points)  # Ensure minimum of 4 points
     
-    def _default_ecosystem_result(self) -> Dict:
-        """
-        Return default ecosystem result when OpenLandMap is unavailable
-        """
-        return {
-            'primary_ecosystem': "Grassland",
-            'confidence': 0.5,
-            'coverage_percentage': 100.0,
-            'successful_queries': 0,
-            'total_samples': 1,
-            'ecosystem_distribution': {"Grassland": {"count": 1, "confidence": 0.5}},
-            'source': 'Default (OpenLandMap unavailable)'
-        }
 
 def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None) -> Dict:
     """
