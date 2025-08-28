@@ -667,29 +667,36 @@ with st.sidebar:
         else:
             st.caption("Select an area to see sampling estimation")
     
-    # Quality Factor Settings (expandable)
-    with st.expander("📊 **Quality Factor**"):
-        quality_factor = st.slider(
-            "Ecosystem Quality Multiplier",
-            min_value=0.4,
-            max_value=2.0,
-            value=st.session_state.get('quality_factor', 1.0),
-            step=0.1,
-            help="Adjusts ecosystem service values based on ecosystem condition. 1.0 = average health, <1.0 = degraded, >1.0 = excellent."
+    # Ecosystem Intactness Settings (expandable)
+    with st.expander("🌿 **Ecosystem Intactness**"):
+        intactness_percentage = st.slider(
+            "Ecosystem Intactness (%)",
+            min_value=0,
+            max_value=100,
+            value=st.session_state.get('intactness_percentage', 100),
+            step=5,
+            help="Assess ecosystem condition: 100% = totally intact ecosystem, 50% = moderately degraded, 0% = totally unproductive ecosystem."
         )
+        st.session_state.intactness_percentage = intactness_percentage
+        
+        # Convert percentage to multiplier for calculations (0% = 0.1x, 100% = 2.0x)
+        quality_factor = 0.1 + (intactness_percentage / 100) * 1.9
         st.session_state.quality_factor = quality_factor
         
-        # Quality factor explanation
-        if quality_factor < 0.7:
-            st.caption("🔴 Degraded ecosystem condition")
-        elif quality_factor < 0.9:
-            st.caption("🟡 Below average ecosystem health")
-        elif quality_factor <= 1.1:
-            st.caption("🟢 Average ecosystem health")
-        elif quality_factor <= 1.5:
-            st.caption("🌟 Good ecosystem condition")
+        # Intactness explanation
+        if intactness_percentage <= 20:
+            st.caption("🔴 Severely degraded ecosystem (0-20%)")
+        elif intactness_percentage <= 40:
+            st.caption("🟠 Poor ecosystem condition (21-40%)")
+        elif intactness_percentage <= 60:
+            st.caption("🟡 Moderate ecosystem health (41-60%)")
+        elif intactness_percentage <= 80:
+            st.caption("🟢 Good ecosystem condition (61-80%)")
         else:
-            st.caption("💚 Excellent ecosystem health")
+            st.caption("💚 Excellent ecosystem intactness (81-100%)")
+        
+        # Show the multiplier for transparency
+        st.caption(f"📊 Calculation multiplier: {quality_factor:.2f}x")
     
 
     
@@ -822,7 +829,7 @@ $498.85/ha/year (median from 580 studies)
         **Data Sources:**
         - **ESVD Database**: 10,874 peer-reviewed ecosystem service values from 1,354+ scientific studies
         - **Ecosystem Detection**: OpenLandMap STAC API for global land cover classification
-        - **Quality Factors**: Geographic analysis and land cover confidence assessment
+        - **Ecosystem Intactness**: User assessment of ecosystem condition and health
         
         **Economic Valuation:**
         - All values standardized to 2020 International dollars per hectare per year
@@ -845,8 +852,8 @@ Example: 100ha Forest
 • Total Value: $141,653/year (authentic data only)
         """, language="text")
         
-        # Quality Factor Details
-        st.markdown("**Quality Factor Derivation (Satellite-Based):**")
+        # Ecosystem Intactness Assessment Details
+        st.markdown("**Ecosystem Intactness Assessment:**")
         col_q1, col_q2 = st.columns(2)
         
         with col_q1:
@@ -2002,7 +2009,7 @@ with col2:
             
             **5. Final Calculation**
             ```
-            Total Value = Base Coefficients × Area × Regional Factor × Quality Factor
+            Total Value = Base Coefficients × Area × Regional Factor × Intactness Factor
             Total Value = [Service Values] × {area_ha:,.0f} ha × {regional_factor:.2f} × {quality_factor:.2f}
             Total Value = ${total_value:,.0f}/year
             ```
@@ -2332,8 +2339,8 @@ if analyze_button and st.session_state.selected_area:
                         coordinates=(center_lat, center_lon)
                     )
                     
-                    # Apply user-defined quality factor
-                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                    # Apply ecosystem intactness factor
+                    user_quality_factor = st.session_state.get('quality_factor', 2.0)  # Default to 100% intactness
                     eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
                     
                     total_value += eco_result['total_value']
@@ -2434,7 +2441,8 @@ if analyze_button and st.session_state.selected_area:
                 'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
-                'quality_factor': st.session_state.get('quality_factor', 1.0)
+                'quality_factor': st.session_state.get('quality_factor', 2.0),  # Default to 100% intactness
+                'intactness_percentage': st.session_state.get('intactness_percentage', 100)
             }
             
             # Add forest classification if detected or manually selected
