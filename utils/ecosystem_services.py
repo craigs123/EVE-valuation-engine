@@ -35,7 +35,7 @@ class EcosystemServicesCalculator:
         }
     
     def calculate_ecosystem_services_value(self, satellite_data: Dict, area_bounds: Dict, 
-                                         ecosystem_type: str = "forest") -> Dict[str, Any]:
+                                         ecosystem_type: str = "forest", quality_factor: float = 1.0) -> Dict[str, Any]:
         """
         Calculate total ecosystem services value using ESVD coefficients and track changes over time
         
@@ -43,6 +43,7 @@ class EcosystemServicesCalculator:
             satellite_data: Satellite data dictionary
             area_bounds: Area boundary information
             ecosystem_type: Type of ecosystem (forest, grassland, wetland, agricultural, coastal)
+            quality_factor: User-defined quality multiplier (default 1.0)
             
         Returns:
             Dictionary containing ecosystem services valuation results with ESVD data
@@ -78,7 +79,7 @@ class EcosystemServicesCalculator:
                 multi_detection = satellite_data.get('multi_ecosystem_detection', {})
                 if multi_detection.get('diversity_index', 1) > 1:
                     # Multiple ecosystems detected - use multi-ecosystem calculation
-                    return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection)
+                    return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection, quality_factor)
                 else:
                     # Single ecosystem - use primary detected type
                     ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
@@ -101,9 +102,9 @@ class EcosystemServicesCalculator:
             total_values = []
             
             for data_point in time_series:
-                # Determine ecosystem health quality from satellite indicators
-                quality = self._assess_ecosystem_quality(data_point)
-                quality_multiplier = self.quality_multipliers[quality]
+                # Use user-defined quality factor instead of calculating from satellite data
+                quality_multiplier = quality_factor
+                quality = "user_defined"  # No longer calculated
                 
                 # Apply ESVD values with quality adjustments
                 provisioning_value = self._apply_esvd_values(
@@ -191,7 +192,7 @@ class EcosystemServicesCalculator:
 
     
     def _calculate_multi_ecosystem_values(self, satellite_data: Dict, area_bounds: Dict, 
-                                        multi_detection: Dict) -> Dict[str, Any]:
+                                        multi_detection: Dict, quality_factor: float = 1.0) -> Dict[str, Any]:
         """
         Calculate ecosystem services values for areas with multiple ecosystem types
         
@@ -199,6 +200,7 @@ class EcosystemServicesCalculator:
             satellite_data: Satellite data dictionary
             area_bounds: Area boundary information
             multi_detection: Multi-ecosystem detection results
+            quality_factor: User-defined quality multiplier (default 1.0)
             
         Returns:
             Dictionary containing multi-ecosystem valuation results
@@ -251,8 +253,9 @@ class EcosystemServicesCalculator:
                 ecosystem_values = []
                 
                 for i, data_point in enumerate(time_series):
-                    quality = self._assess_ecosystem_quality(data_point)
-                    quality_multiplier = self.quality_multipliers[quality]
+                    # Use user-defined quality factor
+                    quality_multiplier = quality_factor
+                    quality = "user_defined"  # No longer calculated
                     
                     # Apply ESVD values with quality adjustments
                     provisioning_value = self._apply_esvd_values(
@@ -417,66 +420,6 @@ class EcosystemServicesCalculator:
     # Legacy methods removed - now using pre-computed ESVD coefficients
 
     
-    def _assess_ecosystem_quality(self, data_point: Dict) -> str:
-        """Assess ecosystem quality based on satellite indicators"""
-        red = data_point.get('red_mean', 0)
-        nir = data_point.get('nir_mean', 0)
-        cloud_coverage = data_point.get('cloud_coverage', 0)
-        data_quality = data_point.get('data_quality', 'unknown')
-        
-        # Calculate NDVI
-        ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
-        
-        # Quality assessment based on multiple factors
-        quality_score = 0
-        
-        # NDVI contribution (40% weight)
-        if ndvi > 0.7:
-            quality_score += 40
-        elif ndvi > 0.5:
-            quality_score += 30
-        elif ndvi > 0.3:
-            quality_score += 20
-        elif ndvi > 0.1:
-            quality_score += 10
-        
-        # Data quality contribution (30% weight)
-        if data_quality == 'good':
-            quality_score += 30
-        elif data_quality == 'fair':
-            quality_score += 20
-        else:
-            quality_score += 10
-        
-        # Cloud coverage contribution (20% weight)
-        if cloud_coverage < 10:
-            quality_score += 20
-        elif cloud_coverage < 20:
-            quality_score += 15
-        elif cloud_coverage < 30:
-            quality_score += 10
-        else:
-            quality_score += 5
-        
-        # Spectral health contribution (10% weight)
-        if nir > 0.3:  # Healthy vegetation
-            quality_score += 10
-        elif nir > 0.2:
-            quality_score += 7
-        else:
-            quality_score += 3
-        
-        # Convert score to quality category
-        if quality_score >= 85:
-            return 'excellent'
-        elif quality_score >= 70:
-            return 'good'
-        elif quality_score >= 55:
-            return 'fair'
-        elif quality_score >= 40:
-            return 'poor'
-        else:
-            return 'degraded'
     
     def _calculate_area_hectares(self, area_bounds: Dict) -> float:
         """Calculate area in hectares from coordinates"""
@@ -633,7 +576,7 @@ class EcosystemServicesCalculator:
         result['total'] = sum(result.values())
         return result
     
-    def _calculate_legacy_values(self, satellite_data: Dict, area_bounds: Dict, ecosystem_type: str) -> Dict[str, Any]:
+    def _calculate_legacy_values(self, satellite_data: Dict, area_bounds: Dict, ecosystem_type: str, quality_factor: float = 1.0) -> Dict[str, Any]:
         """
         Fallback calculation using legacy coefficients when ESVD fails
         """
@@ -646,8 +589,9 @@ class EcosystemServicesCalculator:
             total_values = []
             
             for data_point in time_series:
-                quality = self._assess_ecosystem_quality(data_point)
-                quality_multiplier = self.quality_multipliers[quality]
+                # Use user-defined quality factor
+                quality_multiplier = quality_factor
+                quality = "user_defined"  # No longer calculated
                 
                 # Use simplified legacy values for fallback
                 base_value_per_ha = 2000  # Base ecosystem value per hectare

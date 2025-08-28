@@ -667,6 +667,30 @@ with st.sidebar:
         else:
             st.caption("Select an area to see sampling estimation")
     
+    # Quality Factor Settings (expandable)
+    with st.expander("📊 **Quality Factor**"):
+        quality_factor = st.slider(
+            "Ecosystem Quality Multiplier",
+            min_value=0.4,
+            max_value=2.0,
+            value=st.session_state.get('quality_factor', 1.0),
+            step=0.1,
+            help="Adjusts ecosystem service values based on ecosystem condition. 1.0 = average health, <1.0 = degraded, >1.0 = excellent."
+        )
+        st.session_state.quality_factor = quality_factor
+        
+        # Quality factor explanation
+        if quality_factor < 0.7:
+            st.caption("🔴 Degraded ecosystem condition")
+        elif quality_factor < 0.9:
+            st.caption("🟡 Below average ecosystem health")
+        elif quality_factor <= 1.1:
+            st.caption("🟢 Average ecosystem health")
+        elif quality_factor <= 1.5:
+            st.caption("🌟 Good ecosystem condition")
+        else:
+            st.caption("💚 Excellent ecosystem health")
+    
 
     
     # Regional Adjustment Settings (expandable)
@@ -2309,6 +2333,10 @@ if analyze_button and st.session_state.selected_area:
                         coordinates=(center_lat, center_lon)
                     )
                     
+                    # Apply user-defined quality factor
+                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                    eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
+                    
                     total_value += eco_result['total_value']
                     mixed_results[eco_type] = eco_result
                 
@@ -2364,6 +2392,12 @@ if analyze_button and st.session_state.selected_area:
                     area_hectares=area_ha,
                     coordinates=(center_lat, center_lon)
                 )
+                
+                # Apply user-defined quality factor
+                user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
+                esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
+                esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
             
             # Determine the actual ecosystem type for display
             display_ecosystem_type = ecosystem_type
@@ -2401,7 +2435,7 @@ if analyze_button and st.session_state.selected_area:
                 'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
-                'quality_factor': esvd_results.get('metadata', {}).get('quality_factor', 1.0)
+                'quality_factor': st.session_state.get('quality_factor', 1.0)
             }
             
             # Add forest classification if detected or manually selected
