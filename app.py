@@ -1258,6 +1258,7 @@ analyze_button = False
 st.markdown("**🧪 Test Areas (1000 hectares each)**")
 test_area_options = [
     "None - Draw your own area",
+    "📁 Load Saved Area",
     "🌾 Test area (Agricultural)",
     "🌱 Test area (Grassland)", 
     "🌲 Test area (Boreal Forest)",
@@ -1267,18 +1268,70 @@ test_area_options = [
 ]
 
 selected_test_area = st.selectbox(
-    "Choose a test area or draw your own:",
+    "Choose a test area, load saved area, or draw your own:",
     test_area_options,
     index=0,
-    help="Select a predefined test area or choose 'None' to draw your own area on the map"
+    help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
 )
 
-use_test_area = selected_test_area != "None - Draw your own area"
+use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
+use_load_saved_area = selected_test_area == "📁 Load Saved Area"
 use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🏜️ Test area (Desert)"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
-if use_test_area_single:
+# Handle load saved area functionality
+if use_load_saved_area:
+    from database import SavedAreaDB
+    
+    # Get saved areas for the user
+    try:
+        saved_areas = SavedAreaDB.get_user_saved_areas()
+        
+        if saved_areas:
+            # Create options for saved area selection
+            saved_area_names = [f"{area['name']} ({area['area_hectares']:.1f} ha)" for area in saved_areas]
+            saved_area_names.insert(0, "Select a saved area...")
+            
+            selected_saved_area = st.selectbox(
+                "Choose a saved area to load:",
+                saved_area_names,
+                key="saved_area_selector",
+                help="Select a previously saved area to load onto the map"
+            )
+            
+            # Load selected saved area
+            if selected_saved_area != "Select a saved area...":
+                selected_index = saved_area_names.index(selected_saved_area) - 1  # Subtract 1 for the placeholder
+                selected_area_data = saved_areas[selected_index]
+                
+                # Clear all cached values first to ensure clean state
+                clear_analysis_cache()
+                
+                # Set the loaded area coordinates
+                st.session_state.area_coordinates = selected_area_data['coordinates']
+                st.session_state.selected_area = True
+                st.session_state.use_test_area_zoom = True
+                
+                # Calculate and cache area data
+                area_ha = selected_area_data['area_hectares']
+                st.session_state.cached_area_ha = area_ha
+                st.session_state.cached_bbox = calculate_bbox_optimized(selected_area_data['coordinates'])
+                st.session_state.area_coords_cache = selected_area_data['coordinates']
+                
+                st.success(f"✅ **Loaded: {selected_area_data['name']}**")
+                st.caption(f"📍 Area: {area_ha:.1f} hectares")
+                if selected_area_data.get('description'):
+                    st.caption(f"💬 {selected_area_data['description']}")
+        else:
+            st.info("No saved areas found. Save an area first by drawing on the map and using the save functionality.")
+            st.caption("Draw an area on the map below to get started, then save it for future use.")
+            
+    except Exception as e:
+        st.error(f"Error loading saved areas: {str(e)}")
+        st.caption("Please check your database connection.")
+
+elif use_test_area_single:
     # Define coordinates for different single ecosystem test areas (all exactly 1000 hectares)
     # Precisely calculated using latitude correction factors for each location
     import math
