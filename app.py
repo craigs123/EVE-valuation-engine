@@ -2148,16 +2148,16 @@ if analyze_button and st.session_state.selected_area:
                         progress_bar = st.progress(0)
                         progress_text.info("🔍 **Please wait** - Detecting ecosystem type using satellite data...")
                     
-                    # Ultra-optimized progress callback with minimal updates
+                    # Enhanced progress callback with sample count and percentage
                     def update_progress(current_point, total_points):
                         # Update progress every 25% or final point for maximum performance
                         if current_point % max(1, total_points // 4) == 0 or current_point == total_points:
                             progress = current_point / total_points
                             progress_bar.progress(progress)
                             if current_point == total_points:
-                                progress_text.success(f"✅ Analysis complete: {total_points} points sampled")
+                                progress_text.success(f"✅ Analysis complete: {current_point}/{total_points} samples ({progress:.0%})")
                             else:
-                                progress_text.info(f"🔍 Progress: {progress:.0%}")
+                                progress_text.info(f"🔍 Sampling progress: {current_point}/{total_points} samples ({progress:.0%})")
                     
                     ecosystem_info = detect_ecosystem_type(
                         st.session_state.area_coordinates, 
@@ -2186,7 +2186,7 @@ if analyze_button and st.session_state.selected_area:
                         st.markdown("### 🔄 Analysis in Progress")
                         progress_text = st.empty()
                         progress_bar = st.progress(1.0)
-                        progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']} sample points")
+                        progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']}/{ecosystem_info['total_samples']} samples (100%)")
                     
                     # Brief pause to show completion (reduced for performance)
                     import time
