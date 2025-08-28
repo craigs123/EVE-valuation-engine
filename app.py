@@ -757,9 +757,10 @@ Example: 100ha Forest
         st.markdown("**Landcover to Ecosystem Mapping Configuration**")
         st.info("Customize how OpenLandMap landcover codes map to ESVD ecosystem types")
         
-        # All possible ESVD ecosystem types
+        # All possible ESVD ecosystem types (including forest subtypes)
         esvd_ecosystem_types = [
-            "Forest", "Grassland", "Agricultural", "Urban", "Desert", 
+            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest", "Mediterranean Forest",
+            "Grassland", "Agricultural", "Urban", "Desert", 
             "Wetland", "Coastal", "Shrubland"
         ]
         

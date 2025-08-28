@@ -277,7 +277,14 @@ class OpenLandMapSTAC:
             elif result["category"] == "landcover":
                 # Convert land cover code to ESVD ecosystem type
                 land_cover_code = result["value"]
-                ecosystem_type = self.landcover_to_esvd.get(land_cover_code, "Grassland")
+                base_ecosystem_type = self.landcover_to_esvd.get(land_cover_code, "Grassland")
+                
+                # If mapped to Forest, determine specific forest type based on geography
+                if base_ecosystem_type == "Forest":
+                    ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
+                else:
+                    ecosystem_type = base_ecosystem_type
+                    
                 confidence = 0.90  # High confidence from STAC API
                 
                 # Add readable land cover type
@@ -300,7 +307,12 @@ class OpenLandMapSTAC:
         
         # Fallback ecosystem detection if no land cover found
         if not ecosystem_type:
-            ecosystem_type = self._geographic_fallback_detection(lat, lon)
+            fallback_type = self._geographic_fallback_detection(lat, lon)
+            # Apply forest subtyping to fallback as well
+            if fallback_type == "Forest":
+                ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
+            else:
+                ecosystem_type = fallback_type
             confidence = 0.70  # Lower confidence for geographic fallback
         
         return {
@@ -314,23 +326,72 @@ class OpenLandMapSTAC:
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
     
+    def _determine_forest_type_from_coordinates(self, lat: float, lon: float) -> str:
+        """
+        Determine specific forest type based on coordinates using ESVD methodology
+        """
+        abs_lat = abs(lat)
+        
+        # Boreal forest zones (50-70° latitude)
+        if 50 <= abs_lat <= 70:
+            return 'boreal_forest'
+        
+        # Tropical forest zones (0-25° latitude)  
+        elif abs_lat <= 25:
+            return 'tropical_forest'
+        
+        # Mediterranean climate zones (30-45° latitude, specific regions)
+        elif 30 <= abs_lat <= 45:
+            # Mediterranean Basin
+            if (30 <= lat <= 45 and -10 <= lon <= 45):
+                return 'mediterranean_forest'
+            # California
+            elif (32 <= lat <= 42 and -125 <= lon <= -115):
+                return 'mediterranean_forest'
+            # Central Chile  
+            elif (-40 <= lat <= -30 and -75 <= lon <= -70):
+                return 'mediterranean_forest'
+            # South Africa (Western Cape)
+            elif (-35 <= lat <= -30 and 15 <= lon <= 25):
+                return 'mediterranean_forest'
+            # Southwestern Australia
+            elif (-35 <= lat <= -30 and 110 <= lon <= 125):
+                return 'mediterranean_forest'
+            else:
+                return 'temperate_forest'
+        
+        # Temperate forest zones (25-50° latitude, excluding Mediterranean)
+        elif 25 < abs_lat < 50:
+            return 'temperate_forest'
+        
+        # Default fallback
+        return 'temperate_forest'
+    
     def _geographic_fallback_detection(self, lat: float, lon: float) -> str:
         """
         Geographic fallback for ecosystem detection when STAC data unavailable
         """
-        # Tropical forests
+        # Forest regions - will be refined by _determine_forest_type_from_coordinates
         if -10 <= lat <= 10:
-            return "Forest"
-        # Boreal forests  
+            return "Forest"  # Tropical
         elif 50 <= lat <= 70:
-            return "Forest"
-        # Temperate grasslands
-        elif 25 <= abs(lat) <= 45:
+            return "Forest"  # Boreal
+        elif 25 <= abs(lat) <= 50:
+            return "Forest"  # Temperate/Mediterranean
+        # Grasslands
+        elif 15 <= abs(lat) <= 30:
             return "Grassland" 
         # Desert regions
         elif 15 <= abs(lat) <= 35:
-            return "Desert"
-        # Arctic
+            # Check for major desert regions
+            if (20 <= abs(lat) <= 30 and 
+                ((-15 <= lon <= 50) or  # Sahara/Arabian
+                 (-120 <= lon <= -100) or  # Southwestern US
+                 (110 <= lon <= 140))):  # Australian outback
+                return "Desert"
+            else:
+                return "Grassland"
+        # Arctic tundra
         elif abs(lat) > 60:
             return "Grassland"  # Tundra mapped to grassland
         else:
