@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import json
 import base64
+import numpy as np
 
 # Ultra-fast lazy loading for production performance
 @st.cache_resource(show_spinner=False, ttl=3600)
@@ -165,7 +166,7 @@ def create_drawing_tools():
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
     """Ultra-optimized area calculation with latitude correction and error handling"""
-    import numpy as np
+
     try:
         if not coordinates or len(coordinates) < 3:
             return 0.0
@@ -219,7 +220,7 @@ def calculate_area_optimized(coordinates):
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)
 def calculate_bbox_optimized(coordinates):
     """Ultra-fast bounding box calculation with extended caching and error handling"""
-    import numpy as np
+
     try:
         if not coordinates or len(coordinates) < 3:
             return {}
@@ -658,7 +659,7 @@ with st.sidebar:
         
         # Optimized sampling info display - only show when needed
         if st.session_state.get('area_coordinates') and st.session_state.get('cached_area_ha'):
-            import numpy as np
+        
             area_ha = st.session_state.cached_area_ha
             grid_size = int(np.sqrt(max_sampling_limit))
             actual_final = grid_size ** 2
@@ -1632,7 +1633,7 @@ with col1:
             ).add_to(m)
     elif st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
         import folium
-        import numpy as np
+    
         coords = st.session_state.area_coordinates
         
         # Calculate coords_array for all operations
