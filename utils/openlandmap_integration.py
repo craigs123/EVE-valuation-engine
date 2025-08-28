@@ -63,22 +63,29 @@ class OpenLandMapIntegrator:
     
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
         """
-        Get land cover information for a specific point using USGS Earth Explorer as primary global source with fallback APIs
+        Get land cover information for a specific point using OpenLandMap STAC API as primary source
         """
         try:
-            # Priority 1: Try USGS Earth Explorer API (global satellite data coverage)
-            usgs_result = self._try_usgs_nlcd_api(lat, lon)  # Note: This should be renamed to _try_usgs_earth_explorer
+            # Priority 1: OpenLandMap STAC API (primary global satellite data source)
+            try:
+                from .openlandmap_stac_api import openlandmap_stac
+                stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
+                if stac_result and stac_result.get('ecosystem_type'):
+                    return {
+                        'ecosystem_type': stac_result['ecosystem_type'],
+                        'confidence': stac_result.get('confidence', 0.85),
+                        'source': 'OpenLandMap STAC',
+                        'landcover_class': stac_result.get('landcover_class', 0)
+                    }
+            except Exception as e:
+                print(f"STAC API query failed for ({lat}, {lon}): {e}")
+            
+            # Priority 2: Try USGS Earth Explorer API for US locations
+            usgs_result = self._try_usgs_nlcd_api(lat, lon)
             if usgs_result and usgs_result.get('confidence', 0) >= 0.90:
                 return usgs_result
             
-            # Priority 2: Enhanced geographic detection for high-confidence cases
-            enhanced_result = self._enhanced_geographic_detection(lat, lon)
-            if enhanced_result:
-                if (enhanced_result.get('ecosystem_type') == 'Urban' or 
-                    enhanced_result.get('confidence', 0) >= 0.85):
-                    return enhanced_result
-            
-            # Priority 3: Other external APIs for validation (including ESA as fallback)
+            # Priority 3: Other external APIs for validation (including ESA)
             apis_to_try = [
                 self._try_esa_worldcover if EE_AVAILABLE else None,
                 self._try_copernicus_land_service,
@@ -94,13 +101,15 @@ class OpenLandMapIntegrator:
                 except Exception:
                     continue
             
-            # Return the best available result or raise error if none found
+            # Priority 4: Enhanced geographic detection as final fallback
+            enhanced_result = self._enhanced_geographic_detection(lat, lon)
             if enhanced_result:
                 return enhanced_result
             else:
-                raise RuntimeError("No ecosystem data available from any source (USGS, ESA, or geographic detection). Coordinates may be invalid or APIs unavailable.")
+                raise RuntimeError("No ecosystem data available from any source (STAC, USGS, ESA, or geographic detection). Coordinates may be invalid or APIs unavailable.")
             
-        except:
+        except Exception as e:
+            # Final fallback to geographic detection
             return self._enhanced_geographic_detection(lat, lon)
     
     def _try_esa_worldcover(self, lat: float, lon: float) -> Optional[Dict]:
@@ -865,7 +874,8 @@ class OpenLandMapIntegrator:
                 'successful_queries': successful_queries,
                 'total_samples': len(sample_points),
                 'ecosystem_distribution': ecosystem_counts,
-                'source': 'OpenLandMap'
+                'source': 'OpenLandMap',
+                'sample_results': ecosystem_results  # Include individual sample results for landcover display
             }
             
         except Exception as e:
