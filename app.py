@@ -1285,9 +1285,9 @@ if use_test_area_single:
             "location": "Montana/Wyoming Great Plains"
         },
         "🌲 Test area (Boreal Forest)": {
-            "coords": calculate_1000ha_coordinates(55.0, -105.0),
-            "description": "Canadian Boreal Forest (55.0°N, 105.0°W) | Expected: Boreal Forest ecosystem",
-            "location": "Northern Canada boreal forest"
+            "coords": calculate_1000ha_coordinates(50.5, -85.0),
+            "description": "Canadian Boreal Forest (50.5°N, 85.0°W) | Expected: Boreal Forest ecosystem",
+            "location": "Northern Ontario boreal forest"
         },
         "🏜️ Test area (Desert)": {
             "coords": calculate_1000ha_coordinates(33.5, -112.5),
@@ -1454,7 +1454,7 @@ with col1:
             ecosystem_zoom_coords = {
                 "🌾 Test area (Agricultural)": (40.0, -99.0),      # Nebraska
                 "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
-                "🌲 Test area (Boreal Forest)": (55.0, -105.0),    # Canada
+                "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
                 "🏜️ Test area (Desert)": (33.5, -112.5)           # Arizona
             }
             if selected_test_area in ecosystem_zoom_coords:
