@@ -801,19 +801,17 @@ Example: 100ha Forest
             st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
         
         st.markdown("**Landcover Code Mapping Table:**")
-        st.caption("Modify the dropdown selections to customize ecosystem detection")
+        st.caption("Modify the dropdown selections to customize ecosystem detection. Hover over codes for descriptions.")
         
-        # Create mapping table with dropdowns
-        col1, col2, col3 = st.columns([1, 2, 3])
+        # Create compact mapping table with tooltips
+        col1, col2 = st.columns([1, 2])
         
         with col1:
             st.markdown("**Code**")
         with col2:
             st.markdown("**Current Mapping**")
-        with col3:
-            st.markdown("**Description**")
         
-        # Landcover descriptions
+        # Landcover descriptions for tooltips
         landcover_descriptions = {
             10: "Cropland",
             20: "Forest (deciduous broadleaved)", 
@@ -845,12 +843,16 @@ Example: 100ha Forest
             220: "Snow/Ice"
         }
         
-        # Display mapping table with dropdowns
+        # Display compact mapping table with tooltips
         for code in sorted(default_landcover_mapping.keys()):
-            col1, col2, col3 = st.columns([1, 2, 3])
+            col1, col2 = st.columns([1, 2])
             
             with col1:
-                st.markdown(f"**{code}**")
+                # Use help parameter to show description on hover
+                st.markdown(
+                    f"**{code}**", 
+                    help=landcover_descriptions.get(code, "Unknown landcover type")
+                )
             
             with col2:
                 current_mapping = st.session_state.custom_landcover_mapping.get(code, "Grassland")
@@ -866,9 +868,6 @@ Example: 100ha Forest
                 
                 # Update session state when user changes selection
                 st.session_state.custom_landcover_mapping[code] = new_mapping
-            
-            with col3:
-                st.caption(landcover_descriptions.get(code, "Unknown landcover type"))
         
         st.markdown("---")
         
