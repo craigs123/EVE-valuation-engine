@@ -606,7 +606,7 @@ with st.sidebar:
     # Basic Settings (always visible)
     with st.expander("🌿 **Ecosystem Detection**", expanded=True):
         ecosystem_override = st.selectbox(
-            "Predominant Ecosystem Type",
+            "Ecosystem Type",
             options=get_ecosystem_options(),
             help="Auto-detection uses geographic analysis for ecosystem classification"
         )
@@ -1773,7 +1773,7 @@ with col2:
         
         with col_config1:
             quick_ecosystem = st.selectbox(
-                "Predominant Ecosystem Type:",
+                "Ecosystem Type:",
                 [
                     "Auto-detect", 
                     "Tropical Forest", 
