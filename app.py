@@ -572,7 +572,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and header  
-st.title("🌱 Ecosystem Valuation Engine v2.3.0")
+st.title("🌱 Ecosystem Valuation Engine v2.3.1")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
 # Initialize session state
@@ -2555,25 +2555,14 @@ if analyze_button and st.session_state.selected_area:
                     coordinates=(center_lat, center_lon)
                 )
                 
-                # Debug regional factor application
-                regional_factor = esvd_results.get('metadata', {}).get('regional_adjustment', 1.0)
-                print(f"DEBUG Agriculture: Coordinates=({center_lat}, {center_lon})")
-                print(f"DEBUG Agriculture: Regional factor={regional_factor}")
-                print(f"DEBUG Agriculture: Base total from ESVD=${esvd_results.get('total_value', 0):,.0f}")
                 
                 # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
                 user_quality_factor = st.session_state.get('quality_factor', 1.0)
                 
-                # Debug print to ensure we're applying the factors
-                print(f"DEBUG: User intactness factor={user_quality_factor}")
-                print(f"DEBUG: Before intactness: ${esvd_results.get('total_value', 0):,.0f}")
-                
+                # Apply user intactness factor
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
                 esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
-                
-                print(f"DEBUG: After intactness: ${esvd_results.get('total_value', 0):,.0f}")
-                print(f"DEBUG: Final total_annual_value: ${esvd_results.get('total_annual_value', 0):,.0f}")
             
             # Determine the actual ecosystem type for display
             display_ecosystem_type = ecosystem_type
