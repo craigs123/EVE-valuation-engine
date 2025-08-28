@@ -800,8 +800,8 @@ $498.85/ha/year (median from 580 studies)
         st.markdown("""
         **Data Sources:**
         - **ESVD Database**: 10,874 peer-reviewed ecosystem service values from 1,354+ scientific studies
-        - **Satellite Data**: USGS Landsat imagery for ecosystem health assessment
-        - **Quality Factors**: NDVI, cloud coverage, and spectral health indicators
+        - **Ecosystem Detection**: OpenLandMap STAC API for global land cover classification
+        - **Quality Factors**: Geographic analysis and land cover confidence assessment
         
         **Economic Valuation:**
         - All values standardized to 2020 International dollars per hectare per year
@@ -1920,9 +1920,9 @@ with col2:
             - Regional factor: **{regional_factor:.2f}**
             - Adjusts for local income levels and cost of living
             
-            **4. Quality Assessment (USGS Satellite Data)**
+            **4. Quality Assessment (OpenLandMap Detection)**
             - Quality multiplier: **{quality_factor:.2f}**
-            - Based on NDVI, cloud coverage, and spectral health
+            - Based on detection confidence and land cover accuracy
             
             **5. Final Calculation**
             ```
@@ -1933,7 +1933,7 @@ with col2:
             
             **Data Sources:**
             - **ESVD Database**: 10,874+ peer-reviewed ecosystem service values
-            - **USGS Landsat**: Authentic satellite imagery for quality assessment
+            - **OpenLandMap**: Global land cover classification for ecosystem detection
             - **Regional Data**: Income and cost-of-living adjustments
             """)
             
