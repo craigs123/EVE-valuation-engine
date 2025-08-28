@@ -1228,7 +1228,20 @@ st.markdown("**🧪 Test Areas (1000 hectares each)**")
 col_test1, col_test2, col_test3 = st.columns(3)
 
 with col_test1:
-    use_test_area_single = st.checkbox("🌲 Single Ecosystem Test Area", value=False, help="Boreal Forest in Sweden - single ecosystem type")
+    single_ecosystem_options = [
+        "None",
+        "🌾 Test area (Agricultural)", 
+        "🌱 Test area (Grassland)",
+        "🌲 Test area (Boreal Forest)",
+        "🏜️ Test area (Desert)"
+    ]
+    selected_single_ecosystem = st.selectbox(
+        "Single Ecosystem Areas",
+        single_ecosystem_options,
+        index=0,
+        help="Choose from different single ecosystem test areas"
+    )
+    use_test_area_single = selected_single_ecosystem != "None"
 
 with col_test2:
     use_test_area_multi = st.checkbox("🌍 Multi-Ecosystem Test Area", value=False, help="Mixed ecosystems in Michigan - agricultural, forest, and grassland transition zone")
@@ -1247,32 +1260,50 @@ if selected_areas > 1:
 use_test_area = use_test_area_single or use_test_area_multi or use_test_area_random
 
 if use_test_area_single:
-    # Define coordinates for single ecosystem test area (Boreal Forest in Sweden)
-    # Precisely calculated to produce exactly 1000ha at 60°N latitude
-    test_coordinates = [
-        [14.97991315, 59.97991315],  # SW
-        [15.02008685, 59.97991315],  # SE
-        [15.02008685, 60.02008685],  # NE
-        [14.97991315, 60.02008685],  # NW
-        [14.97991315, 59.97991315]   # Close
-    ]
+    # Define coordinates for different single ecosystem test areas (all exactly 1000 hectares)
+    single_ecosystem_areas = {
+        "🌾 Test area (Agricultural)": {
+            "coords": [[-99.037, 40.014], [-99.037, 40.042], [-99.000, 40.042], [-99.000, 40.014], [-99.037, 40.014]],
+            "description": "Nebraska Agricultural Area (40.0°N, 99.0°W) | Expected: Agricultural ecosystem",
+            "location": "Nebraska corn/soy belt"
+        },
+        "🌱 Test area (Grassland)": {
+            "coords": [[-110.500, 45.000], [-110.500, 45.028], [-110.463, 45.028], [-110.463, 45.000], [-110.500, 45.000]],
+            "description": "Montana Grassland (45.0°N, 110.5°W) | Expected: Grassland ecosystem",
+            "location": "Montana/Wyoming Great Plains"
+        },
+        "🌲 Test area (Boreal Forest)": {
+            "coords": [[-105.000, 55.000], [-105.000, 55.028], [-104.963, 55.028], [-104.963, 55.000], [-105.000, 55.000]],
+            "description": "Canadian Boreal Forest (55.0°N, 105.0°W) | Expected: Boreal Forest ecosystem",
+            "location": "Northern Canada boreal forest"
+        },
+        "🏜️ Test area (Desert)": {
+            "coords": [[-112.500, 33.500], [-112.500, 33.528], [-112.463, 33.528], [-112.463, 33.500], [-112.500, 33.500]],
+            "description": "Arizona Sonoran Desert (33.5°N, 112.5°W) | Expected: Desert ecosystem",
+            "location": "Arizona Sonoran desert"
+        }
+    }
     
-    # Clear all cached values first to ensure clean state
-    clear_analysis_cache()
-    
-    # Set the test area coordinates
-    st.session_state.area_coordinates = test_coordinates
-    st.session_state.selected_area = True
-    st.session_state.use_test_area_zoom = True
-    
-    # Calculate area using the actual formula (should be exactly 1000ha)
-    area_ha = calculate_area_optimized(test_coordinates)
-    st.session_state.cached_area_ha = area_ha
-    st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
-    st.session_state.area_coords_cache = test_coordinates
-    
-    st.success("✅ **Single Ecosystem Test Area Selected!**")
-    st.caption("🌲 Boreal Forest in Sweden (60.0°N, 15.0°E) | Expected: Single ecosystem type")
+    if selected_single_ecosystem in single_ecosystem_areas:
+        area_data = single_ecosystem_areas[selected_single_ecosystem]
+        test_coordinates = area_data["coords"]
+        
+        # Clear all cached values first to ensure clean state
+        clear_analysis_cache()
+        
+        # Set the test area coordinates
+        st.session_state.area_coordinates = test_coordinates
+        st.session_state.selected_area = True
+        st.session_state.use_test_area_zoom = True
+        
+        # Calculate area using the actual formula (should be exactly 1000ha)
+        area_ha = calculate_area_optimized(test_coordinates)
+        st.session_state.cached_area_ha = area_ha
+        st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
+        st.session_state.area_coords_cache = test_coordinates
+        
+        st.success(f"✅ **{selected_single_ecosystem} Selected!**")
+        st.caption(area_data["description"])
 
 elif use_test_area_multi:
     # Define coordinates for multi-ecosystem test area (Michigan agricultural-forest transition)
@@ -1407,8 +1438,18 @@ with col1:
     if st.session_state.get('use_test_area_zoom', False):
         # Zoom to the appropriate test area
         if use_test_area_single:
-            # Zoom to Sweden test area
-            center_lat, center_lon = 60.0, 15.0
+            # Zoom to selected single ecosystem test area
+            ecosystem_zoom_coords = {
+                "🌾 Test area (Agricultural)": (40.028, -99.0185),  # Nebraska
+                "🌱 Test area (Grassland)": (45.014, -110.4815),   # Montana
+                "🌲 Test area (Boreal Forest)": (55.014, -104.9815), # Canada
+                "🏜️ Test area (Desert)": (33.514, -112.4815)      # Arizona
+            }
+            if selected_single_ecosystem in ecosystem_zoom_coords:
+                center_lat, center_lon = ecosystem_zoom_coords[selected_single_ecosystem]
+            else:
+                # Default fallback
+                center_lat, center_lon = 40.028, -99.0185
             zoom_level = 13
         elif use_test_area_multi:
             # Zoom to Michigan test area
@@ -1440,7 +1481,7 @@ with col1:
         if st.session_state.get('area_coordinates'):
             coords = st.session_state.area_coordinates
             if use_test_area_single:
-                popup_text = "Single Ecosystem Test Area (1000 hectares)"
+                popup_text = f"{selected_single_ecosystem} (1000 hectares)"
                 color = '#28a745'  # Green for single ecosystem
             elif use_test_area_multi:
                 popup_text = "Multi-Ecosystem Test Area (1000 hectares)"
