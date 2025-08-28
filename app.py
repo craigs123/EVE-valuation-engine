@@ -2553,6 +2553,12 @@ if analyze_button and st.session_state.selected_area:
                     coordinates=(center_lat, center_lon)
                 )
                 
+                # Debug regional factor application
+                regional_factor = esvd_results.get('metadata', {}).get('regional_adjustment', 1.0)
+                print(f"DEBUG Agriculture: Coordinates=({center_lat}, {center_lon})")
+                print(f"DEBUG Agriculture: Regional factor={regional_factor}")
+                print(f"DEBUG Agriculture: Base total from ESVD=${esvd_results.get('total_value', 0):,.0f}")
+                
                 # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
                 user_quality_factor = st.session_state.get('quality_factor', 1.0)
                 
