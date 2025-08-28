@@ -2766,7 +2766,7 @@ if st.session_state.analysis_results:
                                     if EcosystemAnalysisDB:
                                         analysis_id = EcosystemAnalysisDB.save_analysis(
                                             coordinates=st.session_state.area_coordinates,
-                                            area_hectares=results.get('area_ha', 0),
+                                            area_hectares=float(results.get('area_ha', 0)),
                                             ecosystem_type=results.get('ecosystem_type', 'Unknown'),
                                             total_value=results.get('total_value', 0),
                                             value_per_hectare=results.get('value_per_ha', results.get('total_value', 0)/max(results.get('area_ha', 1), 1)),
@@ -2818,7 +2818,7 @@ if st.session_state.analysis_results:
                                 area_id = SavedAreaDB.save_area(
                                     name=area_name,
                                     coordinates=st.session_state.area_coordinates,
-                                    area_hectares=results['area_ha'],
+                                    area_hectares=float(results['area_ha']),
                                     description=description if description else None,
                                     user_session_id=st.session_state.get('user_id')
                                 )
@@ -3464,7 +3464,7 @@ if st.session_state.analysis_results:
                     NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
                     baseline_id = NaturalCapitalBaselineDB.create_baseline(
                         coordinates=st.session_state.area_coordinates,
-                        area_hectares=results['area_ha'],
+                        area_hectares=float(results['area_ha']),
                         ecosystem_type=results['ecosystem_type'],
                         analysis_results=results,
                         sampling_points=st.session_state.get('max_sampling_limit', 10),
@@ -3519,7 +3519,7 @@ if st.session_state.analysis_results:
                                 if EcosystemAnalysisDB:
                                     analysis_id = EcosystemAnalysisDB.save_analysis(
                                         coordinates=st.session_state.area_coordinates,
-                                        area_hectares=results.get('area_ha', 0),
+                                        area_hectares=float(results.get('area_ha', 0)),
                                         ecosystem_type=results.get('ecosystem_type', 'Unknown'),
                                         total_value=results.get('total_value', 0),
                                         value_per_hectare=results.get('value_per_ha', results.get('total_value', 0)/max(results.get('area_ha', 1), 1)),
@@ -3644,7 +3644,7 @@ if st.session_state.analysis_results:
                             area_id = SavedAreaDB.save_area(
                                 name=area_name,
                                 coordinates=st.session_state.area_coordinates,
-                                area_hectares=results['area_ha'],
+                                area_hectares=float(results['area_ha']),
                                 description=description if description else None,
                                 user_session_id=st.session_state.get('user_id')
                             )
