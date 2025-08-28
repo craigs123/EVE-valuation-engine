@@ -1562,6 +1562,17 @@ with col1:
                 # Fallback if bbox not available
                 center_lat, center_lon = 0, 0
                 zoom_level = 2
+        elif use_load_saved_area:
+            # Zoom to loaded saved area
+            if st.session_state.get('cached_bbox'):
+                bbox = st.session_state.cached_bbox
+                center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
+                center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
+                zoom_level = 13
+            else:
+                # Fallback if bbox not available
+                center_lat, center_lon = 40.0, -100.0
+                zoom_level = 5
         else:
             # Default to Sweden if no specific area selected
             center_lat, center_lon = 60.0, 15.0
@@ -1586,6 +1597,11 @@ with col1:
             elif use_test_area_random:
                 popup_text = "Random Global Test Area (1000 hectares)"
                 color = '#ff6b35'  # Orange for random global
+            elif use_load_saved_area:
+                # Handle loaded saved area
+                area_ha = st.session_state.get('cached_area_ha', 0)
+                popup_text = f"Loaded Area ({area_ha:.1f} hectares)"
+                color = '#6f42c1'  # Purple for loaded areas
             else:
                 popup_text = "Test Area (1000 hectares)"
                 color = '#28a745'
