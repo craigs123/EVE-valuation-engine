@@ -3,9 +3,6 @@ Ecosystem Valuation Engine - Clean Map Implementation
 """
 
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
-import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import json
@@ -78,6 +75,7 @@ st.markdown("""
 @st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
 def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
     """Create and cache folium map with maximum performance optimizations"""
+    import folium
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom,
@@ -167,6 +165,7 @@ def create_drawing_tools():
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
     """Ultra-optimized area calculation with latitude correction and error handling"""
+    import numpy as np
     try:
         if not coordinates or len(coordinates) < 3:
             return 0.0
@@ -220,6 +219,7 @@ def calculate_area_optimized(coordinates):
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)
 def calculate_bbox_optimized(coordinates):
     """Ultra-fast bounding box calculation with extended caching and error handling"""
+    import numpy as np
     try:
         if not coordinates or len(coordinates) < 3:
             return {}
@@ -658,6 +658,7 @@ with st.sidebar:
         
         # Optimized sampling info display - only show when needed
         if st.session_state.get('area_coordinates') and st.session_state.get('cached_area_ha'):
+            import numpy as np
             area_ha = st.session_state.cached_area_ha
             grid_size = int(np.sqrt(max_sampling_limit))
             actual_final = grid_size ** 2
@@ -1544,6 +1545,8 @@ with col1:
                 popup=popup_text
             ).add_to(m)
     elif st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+        import folium
+        import numpy as np
         coords = st.session_state.area_coordinates
         
         # Calculate coords_array for all operations
@@ -1598,6 +1601,7 @@ with col1:
         draw_tools.add_to(m)
     
     # Ultra-optimized map display with performance settings
+    from streamlit_folium import st_folium
     map_data = st_folium(
         m, 
         width=700, 
