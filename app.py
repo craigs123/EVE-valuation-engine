@@ -2086,7 +2086,7 @@ if analyze_button and st.session_state.selected_area:
                         for i, result in enumerate(ecosystem_info['sample_results']):
                             if result and 'landcover_class' in result:
                                 landcover_codes[f'point_{i}'] = result['landcover_class']
-                                if result.get('source') == 'OpenLandMap':
+                                if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
                                     data_source = 'openlandmap'
                     
                     # Store landcover information for display
