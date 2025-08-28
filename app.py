@@ -679,8 +679,8 @@ with st.sidebar:
         )
         st.session_state.intactness_percentage = intactness_percentage
         
-        # Convert percentage to multiplier for calculations (0% = 0.1x, 100% = 2.0x)
-        quality_factor = 0.1 + (intactness_percentage / 100) * 1.9
+        # Convert percentage to multiplier for calculations (0% = 0.0x, 100% = 1.0x)
+        quality_factor = intactness_percentage / 100.0
         st.session_state.quality_factor = quality_factor
         
         # Intactness explanation
@@ -2340,7 +2340,7 @@ if analyze_button and st.session_state.selected_area:
                     )
                     
                     # Apply ecosystem intactness factor
-                    user_quality_factor = st.session_state.get('quality_factor', 2.0)  # Default to 100% intactness
+                    user_quality_factor = st.session_state.get('quality_factor', 1.0)  # Default to 100% intactness
                     eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
                     
                     total_value += eco_result['total_value']
@@ -2441,7 +2441,7 @@ if analyze_button and st.session_state.selected_area:
                 'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
-                'quality_factor': st.session_state.get('quality_factor', 2.0),  # Default to 100% intactness
+                'quality_factor': st.session_state.get('quality_factor', 1.0),  # Default to 100% intactness
                 'intactness_percentage': st.session_state.get('intactness_percentage', 100)
             }
             
