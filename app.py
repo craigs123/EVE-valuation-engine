@@ -764,7 +764,7 @@ Example: 100ha Forest
             "Wetland", "Coastal", "Shrubland"
         ]
         
-        # Default mapping (from OpenLandMapSTAC)
+        # Updated default mapping with improved ecosystem type accuracy
         default_landcover_mapping = {
             10: "Agricultural",      # Cropland
             20: "Forest",           # Forest (deciduous broadleaved)
@@ -777,9 +777,9 @@ Example: 100ha Forest
             70: "Grassland",        # Grassland
             71: "Grassland",        # Herbaceous cover
             80: "Urban",            # Urban areas
-            90: "Forest",           # Shrubland (mapped as Forest)
+            90: "Shrubland",        # Shrubland - now properly mapped
             100: "Grassland",       # Herbaceous cover (flooded)
-            110: "Forest",          # Shrubland (flooded)
+            110: "Shrubland",       # Shrubland (flooded) - now properly mapped
             120: "Grassland",       # Grassland
             121: "Grassland",       # Sparse vegetation
             122: "Grassland",       # Sparse herbaceous
