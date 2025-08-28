@@ -1648,14 +1648,23 @@ with col1:
         draw_tools = create_drawing_tools()
         draw_tools.add_to(m)
         
-        # Optimized polygon rendering
+        # Optimized polygon rendering with appropriate colors
+        # Check if this is a loaded saved area
+        if use_load_saved_area and selected_test_area == "📁 Load Saved Area":
+            area_ha = st.session_state.get('cached_area_ha', 0)
+            popup_text = f"Loaded Area ({area_ha:.1f} hectares)"
+            color = '#6f42c1'  # Purple for loaded areas
+        else:
+            popup_text = "Selected Area"
+            color = '#28a745'  # Green for regular selected areas
+            
         folium.Polygon(
             locations=[(float(coord[1]), float(coord[0])) for coord in coords],
-            color='#28a745',  # Use hex for faster rendering
+            color=color,  # Use appropriate color
             weight=2,  # Reduced weight for performance
-            fillColor='#28a745',
+            fillColor=color,
             fillOpacity=0.15,  # Reduced opacity for speed
-            popup="Selected Area"
+            popup=popup_text
         ).add_to(m)
         
         # Pre-computed bounds for faster fitting
