@@ -606,7 +606,7 @@ with st.sidebar:
     # Basic Settings (always visible)
     with st.expander("🌿 **Ecosystem Detection**", expanded=True):
         ecosystem_override = st.selectbox(
-            "Ecosystem Type",
+            "Predominant Ecosystem Type",
             options=get_ecosystem_options(),
             help="Auto-detection uses geographic analysis for ecosystem classification"
         )
@@ -753,7 +753,7 @@ with st.sidebar:
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.markdown("**Ecosystem Type Mapping:**")
+                    st.markdown("**Predominant Ecosystem Type Mapping:**")
                     st.markdown("""
                     - **Forest**: 1,848 records
                     - **Wetland**: 1,845 records  
@@ -1773,7 +1773,7 @@ with col2:
         
         with col_config1:
             quick_ecosystem = st.selectbox(
-                "Ecosystem Type:",
+                "Predominant Ecosystem Type:",
                 [
                     "Auto-detect", 
                     "Tropical Forest", 
@@ -1860,11 +1860,11 @@ with col2:
                     ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
                     st.metric("🌲 Forest Type", ecosystem_display)
                 else:
-                    st.metric("Ecosystem Type", "Classification Pending")
+                    st.metric("Predominant Ecosystem Type", "Classification Pending")
             else:
                 ecosystem_type = results.get('ecosystem_type', 'Unknown')
                 ecosystem_display = ecosystem_type.replace('_', ' ').title()
-                st.metric("Ecosystem Type", ecosystem_display)
+                st.metric("Predominant Ecosystem Type", ecosystem_display)
         
         # Enhanced forest type information section
         if 'forest_classification' in results:
@@ -2491,14 +2491,14 @@ if st.session_state.analysis_results:
                 ecosystem_display = results['ecosystem_type']
                 if ecosystem_display == "Auto-detect" and st.session_state.get('detected_ecosystem'):
                     ecosystem_display = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_display)
-                st.info(f"**🌱 Ecosystem Type**: {ecosystem_display} (100% coverage)")
+                st.info(f"**🌱 Predominant Ecosystem Type**: {ecosystem_display} (100% coverage)")
                 st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         else:
             # Handle ecosystem type display for other cases
             ecosystem_display = results['ecosystem_type']
             if ecosystem_display == "Auto-detect" and st.session_state.get('detected_ecosystem'):
                 ecosystem_display = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_display)
-            st.info(f"**Ecosystem Type**: {ecosystem_display} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+            st.info(f"**Predominant Ecosystem Type**: {ecosystem_display} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
         
         # Check if there's an existing baseline for this area
         baseline_info = None
@@ -2866,7 +2866,7 @@ if st.session_state.analysis_results:
                 st.metric("Primary Ecosystem", f"{dominant_type}")
                 st.caption(f"Mixed area: {len(composition)} ecosystem types")
             else:
-                st.metric("Ecosystem Type", results['ecosystem_type'])
+                st.metric("Predominant Ecosystem Type", results['ecosystem_type'])
             with st.expander("💡 Ecosystem detection method"):
                 # Handle both single and mixed ecosystem displays
                 if 'ecosystem_composition' in results.get('metadata', {}):
@@ -2884,7 +2884,7 @@ if st.session_state.analysis_results:
                             st.markdown(f"- {ecosystem}: ${data['total_value']:,.0f}/year ({data['area_hectares']:.0f} ha)")
                 else:
                     st.markdown(f"""
-                    **Detected Ecosystem Type**: {results['ecosystem_type']}
+                    **Detected Predominant Ecosystem Type**: {results['ecosystem_type']}
                     """)
                 
                 st.markdown("**Detection Method**:")
@@ -3201,7 +3201,7 @@ if st.session_state.analysis_results:
             
             with col_total3:
                 num_ecosystems = len(ecosystem_results)
-                st.metric("Ecosystem Types Detected", str(num_ecosystems))
+                st.metric("Predominant Ecosystem Types Detected", str(num_ecosystems))
                 st.caption("Different ecosystem types in this area")
             
             # Show total composition breakdown
@@ -3306,7 +3306,7 @@ if st.session_state.analysis_results:
                 contribution_pct = (eco_value / total_value * 100) if total_value > 0 else 0
                 
                 comparison_data.append({
-                    'Ecosystem Type': ecosystem_type.title(),
+                    'Predominant Ecosystem Type': ecosystem_type.title(),
                     'Area (ha)': f"{eco_data.get('area_hectares', 0):.1f}",
                     'Area (%)': f"{eco_data.get('area_percentage', 0):.1f}%",
                     'Total Value ($/year)': f"${eco_value:,.0f}",
