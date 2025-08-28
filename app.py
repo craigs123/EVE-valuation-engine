@@ -789,10 +789,10 @@ Example: 100ha Forest
             152: "Desert",          # Bare areas
             153: "Desert",          # Bare rock
             160: "Desert",          # Bare soil
-            180: "Wetland",         # Permanent water bodies
+            180: "Coastal",         # Permanent water bodies
             190: "Wetland",         # Herbaceous wetland
             200: "Desert",          # Snow and ice
-            210: "Wetland",         # Water bodies
+            210: "Coastal",         # Water bodies
             220: "Desert",          # Snow/Ice
         }
         
