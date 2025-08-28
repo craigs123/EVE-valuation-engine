@@ -311,6 +311,61 @@ def get_landcover_code_description(code: int) -> str:
     }
     return descriptions.get(code, f"Unknown Landcover (Code {code})")
 
+def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
+    """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping"""
+    # Default landcover to ESVD mapping
+    default_landcover_mapping = {
+        10: "Agricultural",      # Cropland
+        20: "Forest",           # Forest (deciduous broadleaved)
+        30: "Forest",           # Forest (deciduous needleleaved) 
+        40: "Forest",           # Forest (evergreen broadleaved)
+        50: "Forest",           # Forest (evergreen needleleaved)
+        60: "Forest",           # Forest (mixed)
+        61: "Forest",           # Tree Cover
+        62: "Forest",           # Forest (flooded fresh/brackish)
+        70: "Grassland",        # Grassland
+        71: "Grassland",        # Herbaceous cover
+        80: "Urban",            # Urban areas
+        90: "Shrubland",        # Shrubland - now properly mapped
+        100: "Grassland",       # Herbaceous cover (flooded)
+        110: "Shrubland",       # Shrubland (flooded) - now properly mapped
+        120: "Grassland",       # Grassland
+        121: "Grassland",       # Sparse vegetation
+        122: "Grassland",       # Sparse herbaceous
+        130: "Grassland",       # Grassland
+        140: "Grassland",       # Lichens and mosses
+        150: "Desert",          # Sparse vegetation
+        152: "Desert",          # Bare areas
+        153: "Desert",          # Bare rock
+        160: "Desert",          # Bare soil
+        180: "Coastal",         # Permanent water bodies
+        190: "Wetland",         # Herbaceous wetland
+        200: "Desert",          # Snow and ice
+        210: "Coastal",         # Water bodies
+        220: "Desert",          # Snow/Ice
+    }
+    
+    base_ecosystem = default_landcover_mapping.get(code, "Unknown")
+    
+    # For forests, determine the specific subtype based on detected ecosystem results
+    if base_ecosystem == "Forest":
+        # Check if we have analysis results with detected ecosystem information
+        if analysis_results:
+            detected_ecosystem = st.session_state.get('detected_ecosystem', {})
+            if 'forest_classification' in st.session_state.get('analysis_results', {}):
+                forest_info = st.session_state['analysis_results']['forest_classification']
+                if forest_info and forest_info.get('detected_type'):
+                    return forest_info['detected_type'].replace('_', ' ').title()
+            
+            # Check for forest type in detected ecosystem info
+            primary_ecosystem = detected_ecosystem.get('primary_ecosystem', '')
+            if 'forest' in primary_ecosystem.lower():
+                return primary_ecosystem.replace('_', ' ').title()
+            
+        return "Forest"  # Default if no specific forest type detected
+    
+    return base_ecosystem
+
 @st.cache_data(ttl=1800, show_spinner=False) 
 def preload_openlandmap_status():
     """Preload OpenLandMap STAC API status for instant display"""
@@ -377,9 +432,10 @@ def display_data_source_status(analysis_results: Dict = None):
                         code_counts[code] = code_counts.get(code, 0) + 1
                     
                     for code, count in sorted(code_counts.items()):
-                        ecosystem_type = get_landcover_code_description(code)
+                        openlandmap_description = get_landcover_code_description(code)
+                        esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                         percentage = (count / len(landcover_codes)) * 100
-                        st.write(f"  • Code {code}: {ecosystem_type} ({count} points, {percentage:.1f}%)")
+                        st.write(f"  • **{code}**: {openlandmap_description} → **{esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
                 else:
                     st.markdown("**🧪 Geographic Estimation Data:**")
                     st.write(f"• Based on: Geographic location and global land use patterns")
