@@ -2109,11 +2109,11 @@ with col2:
                     if user_quality_factor != 1.0 and actual_total != 0:
                         pre_quality_total = actual_total / user_quality_factor
                         st.markdown(f"1. **Base Service Calculation**: ${pre_quality_total:,.0f}/year")
-                        st.markdown(f"   - Includes: ESVD coefficients × area × regional factor × vegetation health")
+                        st.markdown(f"   - Formula: ESVD coefficients × area × regional factor")
                         st.markdown(f"2. **User Intactness Factor**: ${pre_quality_total:,.0f} × {user_quality_factor:.2f} = **${actual_total:,.0f}/year**")
                     else:
                         st.markdown(f"1. **Total Service Value**: ${actual_total:,.0f}/year")
-                        st.markdown(f"   - Includes: ESVD coefficients × area × regional factor × vegetation health")
+                        st.markdown(f"   - Formula: ESVD coefficients × area × regional factor")
                         if user_quality_factor == 1.0:
                             st.markdown(f"2. **User Intactness Factor**: No adjustment (100% intactness)")
                     
@@ -2128,7 +2128,7 @@ with col2:
                     st.markdown(f"- **Regional Factor**: {regional_factor:.2f}")
                     st.markdown(f"- **Quality Factor**: {quality_factor:.2f}")
                 
-                st.info("💡 **Note**: This calculation includes ecosystem health adjustments based on vegetation indices (NDVI) and other environmental factors, which may cause slight differences from simple coefficient × area calculations.")
+                st.info("💡 **Note**: This calculation uses pre-computed ESVD coefficients with regional economic adjustments and user-defined ecosystem intactness factors.")
                     
             except Exception as e:
                 st.info("Using standard calculation method")
