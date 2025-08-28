@@ -571,7 +571,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and header  
-st.title("🌱 Ecosystem Valuation Engine v2.2.1")
+st.title("🌱 Ecosystem Valuation Engine v2.2.2")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
 # Initialize session state
