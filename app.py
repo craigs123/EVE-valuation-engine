@@ -1249,24 +1249,48 @@ use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
 if use_test_area_single:
     # Define coordinates for different single ecosystem test areas (all exactly 1000 hectares)
+    # Precisely calculated using latitude correction factors for each location
+    import math
+    
+    def calculate_1000ha_coordinates(center_lat, center_lon):
+        """Calculate coordinates for exactly 1000 hectares at given latitude"""
+        # Side length for 1000 hectares = 3.16228 km
+        side_length_km = 3.16228
+        
+        # Conversion factors
+        lat_km_per_deg = 111.32
+        lon_km_per_deg = 111.32 * math.cos(math.radians(center_lat))
+        
+        # Half-side in degrees
+        lat_half_side = (side_length_km / 2) / lat_km_per_deg
+        lon_half_side = (side_length_km / 2) / lon_km_per_deg
+        
+        return [
+            [center_lon - lon_half_side, center_lat - lat_half_side],  # SW
+            [center_lon + lon_half_side, center_lat - lat_half_side],  # SE
+            [center_lon + lon_half_side, center_lat + lat_half_side],  # NE
+            [center_lon - lon_half_side, center_lat + lat_half_side],  # NW
+            [center_lon - lon_half_side, center_lat - lat_half_side]   # Close
+        ]
+    
     single_ecosystem_areas = {
         "🌾 Test area (Agricultural)": {
-            "coords": [[-99.037, 40.014], [-99.037, 40.042], [-99.000, 40.042], [-99.000, 40.014], [-99.037, 40.014]],
+            "coords": calculate_1000ha_coordinates(40.0, -99.0),
             "description": "Nebraska Agricultural Area (40.0°N, 99.0°W) | Expected: Agricultural ecosystem",
             "location": "Nebraska corn/soy belt"
         },
         "🌱 Test area (Grassland)": {
-            "coords": [[-110.500, 45.000], [-110.500, 45.028], [-110.463, 45.028], [-110.463, 45.000], [-110.500, 45.000]],
+            "coords": calculate_1000ha_coordinates(45.0, -110.5),
             "description": "Montana Grassland (45.0°N, 110.5°W) | Expected: Grassland ecosystem",
             "location": "Montana/Wyoming Great Plains"
         },
         "🌲 Test area (Boreal Forest)": {
-            "coords": [[-105.000, 55.000], [-105.000, 55.028], [-104.963, 55.028], [-104.963, 55.000], [-105.000, 55.000]],
+            "coords": calculate_1000ha_coordinates(55.0, -105.0),
             "description": "Canadian Boreal Forest (55.0°N, 105.0°W) | Expected: Boreal Forest ecosystem",
             "location": "Northern Canada boreal forest"
         },
         "🏜️ Test area (Desert)": {
-            "coords": [[-112.500, 33.500], [-112.500, 33.528], [-112.463, 33.528], [-112.463, 33.500], [-112.500, 33.500]],
+            "coords": calculate_1000ha_coordinates(33.5, -112.5),
             "description": "Arizona Sonoran Desert (33.5°N, 112.5°W) | Expected: Desert ecosystem",
             "location": "Arizona Sonoran desert"
         }
@@ -1428,10 +1452,10 @@ with col1:
         if use_test_area_single:
             # Zoom to selected single ecosystem test area
             ecosystem_zoom_coords = {
-                "🌾 Test area (Agricultural)": (40.028, -99.0185),  # Nebraska
-                "🌱 Test area (Grassland)": (45.014, -110.4815),   # Montana
-                "🌲 Test area (Boreal Forest)": (55.014, -104.9815), # Canada
-                "🏜️ Test area (Desert)": (33.514, -112.4815)      # Arizona
+                "🌾 Test area (Agricultural)": (40.0, -99.0),      # Nebraska
+                "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
+                "🌲 Test area (Boreal Forest)": (55.0, -105.0),    # Canada
+                "🏜️ Test area (Desert)": (33.5, -112.5)           # Arizona
             }
             if selected_test_area in ecosystem_zoom_coords:
                 center_lat, center_lon = ecosystem_zoom_coords[selected_test_area]
