@@ -2,6 +2,7 @@
 Ecosystem Services Valuation Module
 Calculates monetary values for provisioning, regulating, cultural and supporting ecosystem services
 Now integrated with ESVD (Ecosystem Services Valuation Database) for authentic coefficients
+Uses OpenLandMap STAC API for reliable global ecosystem detection
 """
 
 import numpy as np
@@ -10,6 +11,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Tuple, Optional
 import math
 from .precomputed_esvd_coefficients import get_precomputed_coefficients
+from .openlandmap_stac_api import openlandmap_stac
 
 class EcosystemServicesCalculator:
     """
@@ -709,13 +711,9 @@ class EcosystemServicesCalculator:
 # Main ecosystem detection function that should be imported by app.py
 def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> Dict[str, Any]:
     """
-    Enhanced ecosystem detection function using multiple data sources
+    Enhanced ecosystem detection using OpenLandMap STAC API - replaces USGS integration
     """
     try:
-        from .openlandmap_integration import OpenLandMapIntegrator
-        
-        integrator = OpenLandMapIntegrator()
-        
         if not coordinates or len(coordinates) < 3:
             return {
                 'primary_ecosystem': 'Grassland',
@@ -748,26 +746,41 @@ def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> 
             lon = min_lon + (max_lon - min_lon) * np.random.random()
             sample_points.append((lat, lon))
         
-        # Query ecosystem types
+        # Query ecosystem types using OpenLandMap STAC API
         ecosystem_results = []
         successful_queries = 0
+        stac_data_collected = []
         
         for lat, lon in sample_points:
             try:
-                result = integrator.get_land_cover_point(lat, lon)
-                if result:
-                    ecosystem_results.append(result)
+                # Use new OpenLandMap STAC API instead of USGS
+                stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
+                if stac_result and stac_result.get('ecosystem_type'):
+                    ecosystem_results.append({
+                        'ecosystem_type': stac_result['ecosystem_type'],
+                        'confidence': stac_result.get('confidence', 0.7),
+                        'source': stac_result.get('data_source', 'OpenLandMap STAC'),
+                        'coordinates': stac_result.get('coordinates', {'lat': lat, 'lon': lon})
+                    })
+                    stac_data_collected.append(stac_result)
                     successful_queries += 1
-            except Exception:
+            except Exception as e:
+                print(f"STAC query failed for ({lat}, {lon}): {e}")
                 continue
         
         if not ecosystem_results:
+            # Fallback to center point detection
+            center_lat = (min_lat + max_lat) / 2
+            center_lon = (min_lon + max_lon) / 2
+            fallback_result = openlandmap_stac._geographic_fallback_detection(center_lat, center_lon)
+            
             return {
-                'primary_ecosystem': 'Grassland',
-                'confidence': 0.6,
+                'primary_ecosystem': fallback_result,
+                'confidence': 0.65,
                 'successful_queries': 0,
-                'ecosystem_distribution': {'Grassland': {'count': 1, 'confidence': 0.6}},
-                'error': 'No successful ecosystem queries'
+                'ecosystem_distribution': {fallback_result: {'count': 1, 'confidence': 0.65}},
+                'error': 'STAC API queries failed, used geographic fallback',
+                'stac_data': []
             }
         
         # Count ecosystem types
@@ -800,7 +813,8 @@ def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> 
             'successful_queries': successful_queries,
             'ecosystem_distribution': ecosystem_counts,
             'sample_points': len(sample_points),
-            'detection_method': 'Enhanced multi-source detection'
+            'detection_method': 'OpenLandMap STAC API',
+            'stac_data': stac_data_collected  # Include raw STAC data for transparency
         }
         
     except Exception as e:
@@ -809,7 +823,8 @@ def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> 
             'confidence': 0.5,
             'successful_queries': 0,
             'ecosystem_distribution': {'Grassland': {'count': 1, 'confidence': 0.5}},
-            'error': f'Detection failed: {str(e)}'
+            'error': f'Detection failed: {str(e)}',
+            'stac_data': []
         }
 
 def get_ecosystem_service_values(ecosystem_type: str, coordinates: List, 
