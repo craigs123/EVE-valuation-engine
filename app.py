@@ -1966,7 +1966,7 @@ with col2:
         col_metrics1, col_metrics2 = st.columns(2)
         with col_metrics1:
             total_value = results.get('total_value', 0)
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Total Value:</strong> ${total_value:,.0f} /year</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Value:</strong> ${total_value:,.0f} /year</p>', unsafe_allow_html=True)
             
             # Display area information with water exclusion details
             # Use cached area for consistency, fallback to results if not available
@@ -1978,27 +1978,27 @@ with col2:
             water_area = results.get('water_area_hectares', 0)
             
             if water_area and water_area > 0 and total_area > 0:
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Land Area Analyzed:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Land Area Analyzed:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
                 st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
             else:
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Area Size:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Area Size:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
         
         with col_metrics2:
             value_per_ha = results.get('value_per_ha', 0)
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Value per Hectare:</strong> ${value_per_ha:,.0f} /ha/year</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Value per Hectare:</strong> ${value_per_ha:,.0f} /ha/year</p>', unsafe_allow_html=True)
             
             # Enhanced ecosystem type display with forest classification
             if results.get('forest_classification'):
                 forest_info = results['forest_classification']
                 if forest_info and forest_info.get('detected_type'):
                     ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
-                    st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>🌲 Forest Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>🌲 Forest Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
                 else:
-                    st.markdown('<p style="font-size:14px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> Classification Pending</p>', unsafe_allow_html=True)
+                    st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> Classification Pending</p>', unsafe_allow_html=True)
             else:
                 ecosystem_type = results.get('ecosystem_type', 'Unknown')
                 ecosystem_display = ecosystem_type.replace('_', ' ').title()
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
         
         # Enhanced forest type information section
         if 'forest_classification' in results:
@@ -2186,9 +2186,9 @@ with col2:
         
         area_ha = st.session_state.get('cached_area_ha', 0)
         if area_ha and area_ha > 0:
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.0f} hectares</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.0f} hectares</p>', unsafe_allow_html=True)
         else:
-            st.markdown('<p style="font-size:14px; margin:2px 0;"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
         
         # Show ecosystem detection status with composition
         if st.session_state.ecosystem_override == "Auto-detect":
@@ -3072,10 +3072,10 @@ if st.session_state.analysis_results:
             if 'ecosystem_composition' in results.get('metadata', {}):
                 composition = results['metadata']['ecosystem_composition']
                 dominant_type = max(composition.keys(), key=lambda k: composition[k])
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Primary Ecosystem:</strong> {dominant_type}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Primary Ecosystem:</strong> {dominant_type}</p>', unsafe_allow_html=True)
                 st.caption(f"Mixed area: {len(composition)} ecosystem types")
             else:
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {results["ecosystem_type"]}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {results["ecosystem_type"]}</p>', unsafe_allow_html=True)
             with st.expander("💡 Ecosystem detection method"):
                 # Handle both single and mixed ecosystem displays
                 if 'ecosystem_composition' in results.get('metadata', {}):
@@ -3378,11 +3378,11 @@ if st.session_state.analysis_results:
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Total Ecosystem Services:</strong> ${total_val:,.0f}/year</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Ecosystem Services:</strong> ${total_val:,.0f}/year</p>', unsafe_allow_html=True)
                     st.caption(f"${per_ha:.0f} per hectare annually")
                 with col2:
                     regional_factor = esvd_data.get('regional_adjustment_factor', 1.0)
-                    st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Regional Adjustment:</strong> {regional_factor:.2f}x</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Regional Adjustment:</strong> {regional_factor:.2f}x</p>', unsafe_allow_html=True)
                     st.caption("Economic adjustment factor applied")
                 
                 st.info("💡 Service category breakdown not available in current data structure. Total value shown above represents the combined economic value of all ecosystem services.")
@@ -3400,17 +3400,17 @@ if st.session_state.analysis_results:
             col_total1, col_total2, col_total3 = st.columns(3)
             
             with col_total1:
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Combined Total Value:</strong> ${results["total_value"]:,.0f}/year</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Combined Total Value:</strong> ${results["total_value"]:,.0f}/year</p>', unsafe_allow_html=True)
                 st.caption("Sum of all ecosystem contributions")
             
             with col_total2:
                 combined_per_ha = results['total_value'] / results['area_ha'] if results['area_ha'] > 0 else 0
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Combined Value per Hectare:</strong> ${combined_per_ha:,.0f}/ha/year</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Combined Value per Hectare:</strong> ${combined_per_ha:,.0f}/ha/year</p>', unsafe_allow_html=True)
                 st.caption("Weighted average across all ecosystems")
             
             with col_total3:
                 num_ecosystems = len(ecosystem_results)
-                st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Predominant Ecosystem Types Detected:</strong> {str(num_ecosystems)}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Types Detected:</strong> {str(num_ecosystems)}</p>', unsafe_allow_html=True)
                 st.caption("Different ecosystem types in this area")
             
             # Show total composition breakdown

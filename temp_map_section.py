@@ -86,11 +86,11 @@ with col1:
         
         col_bounds1, col_bounds2 = st.columns(2)
         with col_bounds1:
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Min Latitude:</strong> {min(lats):.6f}</p>', unsafe_allow_html=True)
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Min Longitude:</strong> {min(lons):.6f}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Min Latitude:</strong> {min(lats):.6f}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Min Longitude:</strong> {min(lons):.6f}</p>', unsafe_allow_html=True)
         with col_bounds2:
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Max Latitude:</strong> {max(lats):.6f}</p>', unsafe_allow_html=True)
-            st.markdown(f'<p style="font-size:14px; margin:2px 0;"><strong>Max Longitude:</strong> {max(lons):.6f}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Max Latitude:</strong> {max(lats):.6f}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Max Longitude:</strong> {max(lons):.6f}</p>', unsafe_allow_html=True)
         
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):

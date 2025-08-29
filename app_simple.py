@@ -127,10 +127,10 @@ with col_results:
         results = st.session_state.analysis_results
         
         # Clean results display with very small font
-        st.markdown('<p style="font-size:14px; margin:2px 0;"><strong>Area:</strong> {:,.0f} hectares</p>'.format(results['area_ha']), unsafe_allow_html=True)
-        st.markdown('<p style="font-size:14px; margin:2px 0;"><strong>Ecosystem:</strong> {}</p>'.format(results['ecosystem_type']), unsafe_allow_html=True)
-        st.markdown('<p style="font-size:14px; margin:2px 0;"><strong>Total Value:</strong> ${:,.0f} /year</p>'.format(results['total_value']), unsafe_allow_html=True)
-        st.markdown('<p style="font-size:14px; margin:2px 0;"><strong>Value per Hectare:</strong> ${:,.0f} /ha/year</p>'.format(results['value_per_ha']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Area:</strong> {:,.0f} hectares</p>'.format(results['area_ha']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Ecosystem:</strong> {}</p>'.format(results['ecosystem_type']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Total Value:</strong> ${:,.0f} /year</p>'.format(results['total_value']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Value per Hectare:</strong> ${:,.0f} /ha/year</p>'.format(results['value_per_ha']), unsafe_allow_html=True)
         
         # Simple download
         if st.button("📥 Download Report"):
