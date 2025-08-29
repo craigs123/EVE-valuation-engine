@@ -788,30 +788,30 @@ class PrecomputedESVDCoefficients:
                 'fresh_water': 'water',                             # TEEB Service 2
                 'raw_materials': 'timber',                          # TEEB Service 3
                 'genetic_resources': 'genetic_resources',           # TEEB Service 4
-                'medicinal_resources': 'medicinal_resources',       # TEEB Service 5 - NEW
-                'ornamental_resources': 'ornamental_resources'      # TEEB Service 6 - NEW
+                'medicinal_resources': 'medicinal_resources',       # TEEB Service 5
+                'ornamental_resources': 'ornamental_resources'      # TEEB Service 6
             },
             'regulating': {
                 'air_quality': 'pollution',                         # TEEB Service 7
                 'climate_regulation': 'climate',                    # TEEB Service 8
-                'extreme_events': 'extreme_events',                 # TEEB Service 9 - NEW
+                'extreme_events': 'extreme_events',                 # TEEB Service 9
                 'water_flow_regulation': 'water_regulation',        # TEEB Service 10
-                'water_purification': 'water_purification',         # TEEB Service 11 - NEW
+                'water_purification': 'water_purification',         # TEEB Service 11
                 'erosion_prevention': 'erosion',                    # TEEB Service 12
                 'soil_fertility': 'nutrient_cycling',               # TEEB Service 13
-                'pollination': 'pollination',                       # TEEB Service 14 - NEW
-                'biological_control': 'biological_control'          # TEEB Service 15 - NEW
+                'pollination': 'pollination',                       # TEEB Service 14
+                'biological_control': 'biological_control'          # TEEB Service 15
             },
             'cultural': {
                 'recreation': 'recreation',                         # TEEB Service 16
-                'aesthetic_value': 'aesthetic_value',               # Cultural services
-                'spiritual_value': 'spiritual_value'                # Cultural services
+                'aesthetic_value': 'aesthetic_value',               # TEEB Service 17
+                'spiritual_value': 'spiritual_value'                # TEEB Service 18
             },
             'supporting': {
-                'nursery_services': 'nursery_services',             # TEEB Service 16 - NEW
-                'genetic_diversity': 'habitat',                     # TEEB Service 17
-                'soil_formation': 'soil_formation',                 # Supporting service
-                'primary_production': 'primary_production'          # Primary production - NEW
+                'nursery_services': 'nursery_services',             # TEEB Service 19
+                'genetic_diversity': 'habitat',                     # TEEB Service 20
+                'soil_formation': 'soil_formation',                 # TEEB Service 21
+                'primary_production': 'primary_production'          # TEEB Service 22
             }
         }
         
