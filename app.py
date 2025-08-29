@@ -1978,10 +1978,10 @@ with col2:
             water_area = results.get('water_area_hectares', 0)
             
             if water_area and water_area > 0 and total_area > 0:
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Land Area Analyzed:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Land Area Analyzed:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
                 st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
             else:
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Area Size:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
         
         with col_metrics2:
             value_per_ha = results.get('value_per_ha', 0)
@@ -2186,9 +2186,9 @@ with col2:
         
         area_ha = st.session_state.get('cached_area_ha', 0)
         if area_ha and area_ha > 0:
-            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.0f} hectares</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.0f} hectares</p>', unsafe_allow_html=True)
         else:
-            st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
         
         # Show ecosystem detection status with composition
         if st.session_state.ecosystem_override == "Auto-detect":
