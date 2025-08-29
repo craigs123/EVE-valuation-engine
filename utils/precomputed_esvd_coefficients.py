@@ -354,7 +354,7 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
     - Next update planned: When live database calculations are completed
 
 Last Updated: August 2025
-Methodology Version: 2.1
+Methodology Version: 2.4.0
 ESVD Database Version: APR2024 V1.1 (Target)
 ═══════════════════════════════════════════════════════════════════════════════
 """
