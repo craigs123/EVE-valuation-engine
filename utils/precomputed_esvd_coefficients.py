@@ -277,11 +277,81 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
    Final dataset: All 10 values retained
    Median calculation: 80.0 → Final coefficient: 80.00
 
-9. CURRENT STATUS
-   - Coefficients based on: Literature synthesis + ESVD database structure analysis
-   - Validation against: TEEB manual values, published meta-analyses, expert review
-   - Next update planned: When ESVD database query access is established
-   - Users requiring precise coefficients should follow derivation procedure above
+9. TOOLS AND RESOURCES FOR MANUAL REPLICATION
+
+   PRIMARY DATA SOURCES:
+   - ESVD Database: https://www.esvd.org/
+     * Registration required for full database access
+     * APR2024 V1.1 contains 10,874 valuation records
+     * Download format: CSV, Excel, or direct API access
+     * Query interface: Web-based search with biome/service filters
+   
+   - TEEB Database: http://www.teebweb.org/resources/ecosystem-service-valuation-database/
+     * Open access ecosystem service values
+     * Cross-reference for coefficient validation
+     * Download format: Excel spreadsheet
+   
+   - World Bank Open Data: https://data.worldbank.org/
+     * GDP per capita data (2020): https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.CD
+     * PPP conversion factors: https://data.worldbank.org/indicator/PA.NUS.PPP
+     * Country classification: https://datahelpdesk.worldbank.org/knowledgebase/articles/906519
+
+   ANALYSIS TOOLS:
+   - R Statistical Software: https://www.r-project.org/
+     * Packages needed: dplyr, ggplot2, readxl, tidyr
+     * ESVD analysis script templates: https://github.com/esvd/analysis-templates
+   
+   - Python Environment: https://www.anaconda.com/
+     * Packages needed: pandas, numpy, matplotlib, seaborn, scipy
+     * Jupyter notebooks for reproducible analysis
+   
+   - Database Tools:
+     * SQLite Browser: https://sqlitebrowser.org/ (for local analysis)
+     * PostgreSQL: https://www.postgresql.org/ (for large datasets)
+
+   VALIDATION RESOURCES:
+   - Ecosystem Services Valuation Literature:
+     * Costanza et al. (1997): https://doi.org/10.1038/387253a0
+     * de Groot et al. (2012): https://doi.org/10.1016/j.ecoser.2012.07.005
+     * Millennium Ecosystem Assessment: https://www.millenniumassessment.org/
+   
+   - Meta-Analysis Studies:
+     * Global wetland values: https://doi.org/10.1016/j.ecolecon.2007.12.024
+     * Forest ecosystem services: https://doi.org/10.1016/j.foreco.2017.05.019
+     * Agricultural ecosystem services: https://doi.org/10.1016/j.agsy.2007.09.001
+
+   STEP-BY-STEP REPLICATION WORKFLOW:
+   1. Register at https://www.esvd.org/ and request database access
+   2. Download APR2024 V1.1 database in CSV format
+   3. Set up R or Python analysis environment with required packages
+   4. Load and examine database structure using provided documentation
+   5. Apply biome and service filters as documented in examples above
+   6. Implement statistical processing (median, outlier removal, quality filters)
+   7. Cross-validate results with TEEB database values
+   8. Apply regional adjustment using World Bank GDP data
+   9. Document methodology and results for peer review
+
+   WEB INTERFACES FOR COEFFICIENT LOOKUP:
+   - ESVD Web Query Tool: https://www.esvd.org/query (requires account)
+   - InVEST Natural Capital Tool: https://naturalcapitalproject.stanford.edu/invest/
+   - ARIES Ecosystem Services Platform: https://aries.integratedmodelling.org/
+
+10. IMPORTANT DISCLOSURE
+    The coefficients in this file are research-based estimates derived from ecosystem 
+    services literature and theoretical ESVD database structure analysis. They were 
+    NOT calculated using actual ESVD database queries as documented in the examples above.
+    
+    For production-quality coefficients, users must:
+    1. Obtain actual ESVD database access
+    2. Follow the documented methodology with real data
+    3. Validate results through peer review
+    4. Update coefficients as new studies become available
+
+11. CURRENT STATUS
+    - Coefficients based on: Literature synthesis + ecosystem services theory
+    - Validation against: Published meta-analyses, TEEB framework alignment
+    - Replication status: Methodology documented, awaiting ESVD database access
+    - Next update planned: When live database calculations are completed
 
 Last Updated: August 2025
 Methodology Version: 2.1
