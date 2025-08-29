@@ -353,7 +353,17 @@ class PrecomputedESVDCoefficients:
         """Get all coefficients for a specific ecosystem type"""
         # Convert to lowercase for consistent lookup
         ecosystem_key = ecosystem_type.lower()
-        return self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
+        print(f"DEBUG COEFFS: Looking up ecosystem_key='{ecosystem_key}'")
+        print(f"DEBUG COEFFS: Available keys: {list(self.coefficients.keys())}")
+        
+        result = self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
+        
+        if ecosystem_key in self.coefficients:
+            print(f"DEBUG COEFFS: Found direct match for '{ecosystem_key}'")
+        else:
+            print(f"DEBUG COEFFS: No match for '{ecosystem_key}', using fallback")
+            
+        return result
 
     def get_coefficient(self, ecosystem_type: str, service_type: str, coordinates: tuple = None) -> float:
         """
