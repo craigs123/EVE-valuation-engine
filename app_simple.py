@@ -24,20 +24,6 @@ if 'area_coordinates' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
-# Custom CSS for smaller numerical results
-st.markdown("""
-<style>
-.small-results {
-    font-size: 12px !important;
-    line-height: 1.2 !important;
-}
-.small-results p {
-    font-size: 12px !important;
-    margin-bottom: 4px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # Clean header
 st.title("🌱 Ecosystem Valuation Engine")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
@@ -140,13 +126,11 @@ with col_results:
     if st.session_state.get('analysis_results'):
         results = st.session_state.analysis_results
         
-        # Clean results display with small font
-        st.markdown('<div class="small-results">', unsafe_allow_html=True)
-        st.markdown("**Area:** {:,.0f} hectares".format(results['area_ha']))
-        st.markdown("**Ecosystem:** {}".format(results['ecosystem_type']))
-        st.markdown("**Total Value:** ${:,.0f} /year".format(results['total_value']))
-        st.markdown("**Value per Hectare:** ${:,.0f} /ha/year".format(results['value_per_ha']))
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Clean results display with very small font
+        st.markdown('<p style="font-size:10px; margin:2px 0;"><strong>Area:</strong> {:,.0f} hectares</p>'.format(results['area_ha']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:10px; margin:2px 0;"><strong>Ecosystem:</strong> {}</p>'.format(results['ecosystem_type']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:10px; margin:2px 0;"><strong>Total Value:</strong> ${:,.0f} /year</p>'.format(results['total_value']), unsafe_allow_html=True)
+        st.markdown('<p style="font-size:10px; margin:2px 0;"><strong>Value per Hectare:</strong> ${:,.0f} /ha/year</p>'.format(results['value_per_ha']), unsafe_allow_html=True)
         
         # Simple download
         if st.button("📥 Download Report"):
