@@ -1,3 +1,17 @@
+# Custom CSS for smaller coordinate displays
+st.markdown("""
+<style>
+.small-coordinates {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+}
+.small-coordinates p {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Clean map selection implementation
 with col1:
     st.subheader("🗺️ Select Your Area")
@@ -85,12 +99,14 @@ with col1:
         lons = [coord[0] for coord in coords[:-1]]
         
         col_bounds1, col_bounds2 = st.columns(2)
+        st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         with col_bounds1:
-            st.caption(f"**Min Latitude:** {min(lats):.6f}")
-            st.caption(f"**Min Longitude:** {min(lons):.6f}")
+            st.markdown(f"**Min Latitude:** {min(lats):.6f}")
+            st.markdown(f"**Min Longitude:** {min(lons):.6f}")
         with col_bounds2:
-            st.caption(f"**Max Latitude:** {max(lats):.6f}")
-            st.caption(f"**Max Longitude:** {max(lons):.6f}")
+            st.markdown(f"**Max Latitude:** {max(lats):.6f}")
+            st.markdown(f"**Max Longitude:** {max(lons):.6f}")
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):
