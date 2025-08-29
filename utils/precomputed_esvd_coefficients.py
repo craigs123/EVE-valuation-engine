@@ -351,7 +351,9 @@ class PrecomputedESVDCoefficients:
 
     def get_ecosystem_coefficients(self, ecosystem_type: str) -> dict:
         """Get all coefficients for a specific ecosystem type"""
-        return self.coefficients.get(ecosystem_type, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
+        # Convert to lowercase for consistent lookup
+        ecosystem_key = ecosystem_type.lower()
+        return self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
 
     def get_coefficient(self, ecosystem_type: str, service_type: str, coordinates: tuple = None) -> float:
         """
@@ -370,7 +372,9 @@ class PrecomputedESVDCoefficients:
             center_lat, center_lon = coordinates[0], coordinates[1]
             ecosystem_type = self._determine_forest_type(center_lat, center_lon)
         
-        ecosystem_coeffs = self.coefficients.get(ecosystem_type, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
+        # Convert to lowercase for consistent lookup
+        ecosystem_key = ecosystem_type.lower()
+        ecosystem_coeffs = self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
         return ecosystem_coeffs.get(service_type, 100.0)  # Default fallback
     
     def get_country_gdp(self, coordinates: tuple | None = None) -> float:

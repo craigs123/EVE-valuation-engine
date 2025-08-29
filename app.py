@@ -2556,10 +2556,6 @@ if analyze_button and st.session_state.selected_area:
                 )
                 
                 
-                # Debug: Check what ecosystem type is actually being used
-                print(f"DEBUG: Ecosystem type passed to ESVD calculation: '{ecosystem_type}'")
-                print(f"DEBUG: Test area coordinates: ({center_lat}, {center_lon})")
-                
                 # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
                 user_quality_factor = st.session_state.get('quality_factor', 1.0)
                 
