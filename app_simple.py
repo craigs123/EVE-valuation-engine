@@ -127,10 +127,10 @@ with col_results:
         results = st.session_state.analysis_results
         
         # Clean results display
-        st.write("**Area:** {:,.0f} hectares".format(results['area_ha']))
-        st.write("**Ecosystem:** {}".format(results['ecosystem_type']))
-        st.write("**Total Value:** ${:,.0f} /year".format(results['total_value']))
-        st.write("**Value per Hectare:** ${:,.0f} /ha/year".format(results['value_per_ha']))
+        st.caption("**Area:** {:,.0f} hectares".format(results['area_ha']))
+        st.caption("**Ecosystem:** {}".format(results['ecosystem_type']))
+        st.caption("**Total Value:** ${:,.0f} /year".format(results['total_value']))
+        st.caption("**Value per Hectare:** ${:,.0f} /ha/year".format(results['value_per_ha']))
         
         # Simple download
         if st.button("📥 Download Report"):

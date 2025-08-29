@@ -86,11 +86,11 @@ with col1:
         
         col_bounds1, col_bounds2 = st.columns(2)
         with col_bounds1:
-            st.write(f"**Min Latitude:** {min(lats):.6f}")
-            st.write(f"**Min Longitude:** {min(lons):.6f}")
+            st.caption(f"**Min Latitude:** {min(lats):.6f}")
+            st.caption(f"**Min Longitude:** {min(lons):.6f}")
         with col_bounds2:
-            st.write(f"**Max Latitude:** {max(lats):.6f}")
-            st.write(f"**Max Longitude:** {max(lons):.6f}")
+            st.caption(f"**Max Latitude:** {max(lats):.6f}")
+            st.caption(f"**Max Longitude:** {max(lons):.6f}")
         
         # Show all coordinates in expandable section
         with st.expander("All Coordinates"):
