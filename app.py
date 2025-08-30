@@ -2740,69 +2740,6 @@ if st.session_state.analysis_results:
                 
                 st.caption(f"Baseline established: {baseline_info['baseline_date'].strftime('%Y-%m-%d %H:%M')}")
         
-        # Add ecosystem services breakdown to summary view
-        if 'esvd_results' in results:
-            st.markdown("### 🌿 Ecosystem Services Breakdown")
-            esvd_data = results['esvd_results']
-            
-            # Check if we have service category data directly or in mixed ecosystem structure
-            has_direct_categories = any(category in esvd_data for category in ['provisioning', 'regulating', 'cultural', 'supporting'])
-            has_mixed_ecosystem = 'ecosystem_breakdown' in esvd_data or 'ecosystem_results' in esvd_data
-            
-            if has_direct_categories:
-                categories = ['provisioning', 'regulating', 'cultural', 'supporting']
-                cols = st.columns(4)
-                
-                for i, category in enumerate(categories):
-                    if category in esvd_data and isinstance(esvd_data[category], dict):
-                        total = esvd_data[category].get('total', 0)
-                        with cols[i]:
-                            per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
-                            percentage = (total/results['total_value']*100) if results['total_value'] > 0 else 0
-                            st.metric(f"{category.title()}", f"${total:,.0f}/year")
-                            st.caption(f"${per_ha_category:.0f}/ha • {percentage:.0f}% of total")
-            elif has_mixed_ecosystem:
-                # Handle mixed ecosystem structure for summary view
-                ecosystem_data = esvd_data.get('ecosystem_breakdown', esvd_data.get('ecosystem_results', {}))
-                
-                # Aggregate categories from all ecosystems
-                categories = ['provisioning', 'regulating', 'cultural', 'supporting']
-                aggregated_categories = {cat: 0 for cat in categories}
-                
-                # Sum up values from all ecosystem types
-                for ecosystem_type, ecosystem_result in ecosystem_data.items():
-                    for category in categories:
-                        if category in ecosystem_result:
-                            aggregated_categories[category] += ecosystem_result[category].get('total', 0)
-                
-                # Display aggregated categories
-                cols = st.columns(4)
-                for i, category in enumerate(categories):
-                    total = aggregated_categories[category]
-                    if total > 0:
-                        with cols[i]:
-                            per_ha_category = total / results['area_ha'] if results['area_ha'] > 0 else 0
-                            percentage = (total/results['total_value']*100) if results['total_value'] > 0 else 0
-                            st.metric(f"{category.title()}", f"${total:,.0f}/year")
-                            st.caption(f"${per_ha_category:.0f}/ha • {percentage:.0f}% of total")
-            else:
-                # Fallback - show basic service information if available
-                st.info("**Service Categories Overview:**")
-                if 'services_data' in esvd_data:
-                    services_data = esvd_data['services_data']
-                    # Show any available service data
-                    cols_fallback = st.columns(2)
-                    service_count = 0
-                    for service_name, service_value in services_data.items():
-                        if isinstance(service_value, (int, float)) and service_value > 0:
-                            with cols_fallback[service_count % 2]:
-                                st.markdown(f"**{service_name.replace('_', ' ').title()}**: ${service_value:,.0f}/year")
-                                service_count += 1
-                    
-                    if service_count == 0:
-                        st.caption("Service breakdown details available in Detailed Analysis view")
-                else:
-                    st.caption("Service breakdown details available in Detailed Analysis view")
         
         # Action buttons
         col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
