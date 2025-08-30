@@ -3222,19 +3222,6 @@ if st.session_state.analysis_results:
                                 else:
                                     st.info(f"No {category} services detected for this ecosystem type")
                             
-                            # Add methodology explanation
-                            st.markdown(f"""
-                            **Methodology for {category.title()} Services:**
-                            
-                            These values use pre-computed coefficients from the ESVD (Ecosystem Services Valuation Database) 
-                            APR2024 V1.1, containing 10,874+ peer-reviewed value estimates from 1,100+ scientific studies. 
-                            Each coefficient represents the median economic value of ecosystem services based on:
-                            
-                            - **Pre-computed Coefficients**: Static values from peer-reviewed ESVD/TEEB database analysis
-                            - **Regional Adjustment**: GDP-based adjustment for local economic conditions
-                            - **Standardization**: All values in 2020 International dollars per hectare per year
-                            - **Performance Optimized**: Static calculations provide 238,270x speed improvement
-                            """)
         elif has_mixed_ecosystem:
             # Handle mixed ecosystem structure where categories are nested
             ecosystem_data = esvd_data.get('ecosystem_breakdown', esvd_data.get('ecosystem_results', {}))
@@ -3275,13 +3262,6 @@ if st.session_state.analysis_results:
                                     else:
                                         st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
                                     
-                                    st.markdown(f"""
-                                    **Multi-Ecosystem {category.title()} Services:**
-                                    
-                                    This value represents the combined {category} services from all ecosystem types 
-                                    detected in your area. The calculation aggregates contributions from each ecosystem 
-                                    type based on their spatial coverage and applies area-weighted valuations.
-                                    """)
                 else:
                     st.info("📊 Multi-ecosystem area detected, but ecosystem services breakdown is not available in the current data format.")
             else:
@@ -3331,20 +3311,7 @@ if st.session_state.analysis_results:
                                 else:
                                     st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
                                 
-                                st.markdown(f"""
-                                **Aggregated {category.title()} Services:**
-                                
-                                This value represents the combined {category} services from all ecosystem types 
-                                detected in your area, aggregated proportionally based on spatial coverage.
-                                """)
                             
-                            st.markdown(f"""
-                            **Methodology for {category.title()} Services:**
-                            
-                            These values use pre-computed coefficients from the ESVD (Ecosystem Services Valuation Database) 
-                            APR2024 V1.1, containing 10,874+ peer-reviewed value estimates from 1,100+ scientific studies. 
-                            Values are aggregated across all ecosystem types in your selected area.
-                            """)
         elif has_services_data:
             # Alternative display for services_data structure
             st.markdown("**Individual Services Breakdown:**")
