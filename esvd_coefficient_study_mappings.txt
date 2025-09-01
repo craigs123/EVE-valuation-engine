@@ -1,0 +1,1795 @@
+ESVD COEFFICIENT STUDY ID MAPPINGS
+======================================================================
+
+This document shows which specific Study IDs (column B from the ESVD database)
+were used to derive each coefficient in the Ecosystem Valuation Engine.
+
+Database: ESVD APR2024 V1.1 (10,874 records)
+Total Study IDs: 1,354
+
+
+======================================================================
+TROPICAL FOREST ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $326.36/ha/year
+Studies Found: 129
+Median Value: $138.79/ha/year
+Value Range: $0 - $1328/ha/year
+Study IDs: 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1159, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 952, 948, 948, 860, 860, 841, 640, 541, 402, 175
+
+Freshwater Services
+----------------------------------------
+Coefficient: $45.00/ha/year
+Studies Found: 19
+Median Value: $45.92/ha/year
+Value Range: $1 - $3701/ha/year
+Study IDs: 1275, 1275, 1267, 1267, 1200, 1193, 952, 927, 927, 927, 927, 927, 912, 912, 855, 855, 651, 402, 175
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $243.75/ha/year
+Studies Found: 123
+Median Value: $39.25/ha/year
+Value Range: $0 - $4120/ha/year
+Study IDs: 1292, 1271, 1271, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1193, 1168, 1154, 1154, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1097, 964, 964, 964, 964, 964, 964, 964, 964, 964, 964, 964, 964, 952, 951, 951, 951, 948, 948, 947, 947, 947, 947, 934, 934, 934, 934, 933, 933, 931, 931, 928, 928, 927, 927, 927, 927, 927, 927, 927, 927, 927, 927, 924, 924, 924, 913, 913, 860, 845, 845, 770, 769, 768, 768, 768, 768, 767, 767, 767, 767, 767, 767, 767, 764, 764, 651, 640, 640, 640, 541, 541, 540, 540, 455, 175, 138, 123
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $12.50/ha/year
+Studies Found: 3
+Median Value: $16.23/ha/year
+Value Range: $15 - $28/ha/year
+Study IDs: 952, 764, 175
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $82.14/ha/year
+Studies Found: 1
+Median Value: $1.59/ha/year
+Value Range: $2 - $2/ha/year
+Study IDs: 769
+
+Air Quality Services
+----------------------------------------
+Coefficient: $456.25/ha/year
+Studies Found: 16
+Median Value: $11728.44/ha/year
+Value Range: $4686 - $14546/ha/year
+Study IDs: 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270, 1270
+
+Climate Services
+----------------------------------------
+Coefficient: $450.00/ha/year
+Studies Found: 45
+Median Value: $97.72/ha/year
+Value Range: $0 - $4120/ha/year
+Study IDs: 1258, 1159, 1159, 1138, 1138, 1138, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1093, 952, 948, 946, 946, 945, 945, 945, 945, 945, 933, 931, 928, 898, 898, 898, 898, 898, 898, 855, 855, 845, 845, 768, 768, 768, 764, 651, 541, 540, 175, 46
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $234.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 14
+Median Value: $91.13/ha/year
+Value Range: $1 - $1683/ha/year
+Study IDs: 1267, 1193, 1171, 1164, 1164, 1164, 1164, 952, 948, 855, 855, 764, 175, 49
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $320.00/ha/year
+Studies Found: 28
+Median Value: $38.40/ha/year
+Value Range: $6 - $236/ha/year
+Study IDs: 1272, 933, 931, 928, 855, 855, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766, 766
+
+Erosion Services
+----------------------------------------
+Coefficient: $245.30/ha/year
+Studies Found: 7
+Median Value: $110.54/ha/year
+Value Range: $1 - $457/ha/year
+Study IDs: 1271, 952, 948, 541, 541, 540, 175
+
+Soil Services
+----------------------------------------
+Coefficient: $189.45/ha/year
+Studies Found: 6
+Median Value: $40.64/ha/year
+Value Range: $2 - $346/ha/year
+Study IDs: 1258, 952, 952, 913, 175, 175
+
+Pollination Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 72
+Median Value: $33.56/ha/year
+Value Range: $0 - $1636/ha/year
+Study IDs: 1284, 1284, 1281, 1281, 1281, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 955, 952, 876, 876, 876, 876, 876, 876, 876, 876, 876, 876, 527, 526, 526, 526, 175
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 6
+Median Value: $836.23/ha/year
+Value Range: $14 - $4394/ha/year
+Study IDs: 1281, 1281, 1281, 1281, 952, 175
+
+Recreation Services
+----------------------------------------
+Coefficient: $235.00/ha/year
+Studies Found: 87
+Median Value: $0.19/ha/year
+Value Range: $0 - $423/ha/year
+Study IDs: 1308, 1308, 1308, 1202, 1202, 1097, 1093, 952, 948, 937, 937, 937, 933, 933, 931, 931, 928, 928, 924, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 845, 844, 844, 844, 837, 837, 837, 837, 769, 768, 768, 768, 768, 768, 768, 764, 764, 651, 442, 442, 424, 402, 175, 109, 109, 109, 46, 46
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $156.89/ha/year
+Studies Found: 1
+Median Value: $12.00/ha/year
+Value Range: $12 - $12/ha/year
+Study IDs: 175
+
+Spiritual Services
+----------------------------------------
+Coefficient: $78.45/ha/year
+Studies Found: 3
+Median Value: $12.00/ha/year
+Value Range: $1 - $11914/ha/year
+Study IDs: 769, 175, 49
+
+Nursery Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 3
+Median Value: $5.84/ha/year
+Value Range: $2 - $198/ha/year
+Study IDs: 1193, 952, 845
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $145.23/ha/year
+Studies Found: 68
+Median Value: $108.46/ha/year
+Value Range: $0 - $1948/ha/year
+Study IDs: 1316, 1316, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280, 1258, 1229, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1203, 1202, 1202, 1187, 1187, 1106, 1106, 933, 933, 931, 931, 928, 928, 917, 917, 780, 780, 780, 780, 780, 780, 764, 651, 540, 392, 383, 353, 346, 262, 175, 109, 109, 49
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 2
+Median Value: $22.06/ha/year
+Value Range: $2 - $42/ha/year
+Study IDs: 952, 175
+
+Primary Production Services
+----------------------------------------
+Coefficient: $289.34/ha/year
+Studies Found: 3
+Median Value: $1218.14/ha/year
+Value Range: $1050 - $1240/ha/year
+Study IDs: 780, 780, 780
+
+======================================================================
+TEMPERATE FOREST ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $245.67/ha/year
+Studies Found: 7
+Median Value: $1.72/ha/year
+Value Range: $0 - $467/ha/year
+Study IDs: 1012, 1012, 810, 740, 675, 161, 161
+
+Freshwater Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 3
+Median Value: $91.69/ha/year
+Value Range: $6 - $243/ha/year
+Study IDs: 1116, 912, 912
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $425.00/ha/year
+Studies Found: 96
+Median Value: $25.34/ha/year
+Value Range: $0 - $1686/ha/year
+Study IDs: 1346, 1346, 1346, 1234, 1233, 1232, 1231, 1231, 1228, 1228, 1228, 1199, 1199, 1140, 1140, 1131, 1131, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1124, 1124, 1120, 1116, 1116, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 951, 951, 951, 935, 935, 935, 935, 935, 923, 923, 923, 923, 913, 913, 818, 812, 811, 810, 799, 799, 770, 740, 733, 675, 482, 482, 472, 361, 75, 75, 73
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $23.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $134.78/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Air Quality Services
+----------------------------------------
+Coefficient: $378.90/ha/year
+Studies Found: 9
+Median Value: $5.89/ha/year
+Value Range: $0 - $857/ha/year
+Study IDs: 817, 361, 361, 361, 343, 343, 343, 343, 343
+
+Climate Services
+----------------------------------------
+Coefficient: $380.00/ha/year
+Studies Found: 41
+Median Value: $193.64/ha/year
+Value Range: $7 - $1141/ha/year
+Study IDs: 1350, 1234, 1228, 1228, 1228, 1228, 1212, 1212, 1179, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1124, 1124, 944, 943, 925, 925, 925, 818, 817, 812, 811, 810, 809, 799, 740, 733, 675, 472, 361, 219, 161, 159
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 2
+Median Value: $908.91/ha/year
+Value Range: $820 - $998/ha/year
+Study IDs: 482, 482
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $245.00/ha/year
+Studies Found: 5
+Median Value: $75.49/ha/year
+Value Range: $0 - $422/ha/year
+Study IDs: 1346, 1311, 681, 161, 159
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $267.45/ha/year
+Studies Found: 29
+Median Value: $337.62/ha/year
+Value Range: $18 - $774/ha/year
+Study IDs: 1212, 1212, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 959, 959, 922, 922, 818
+
+Erosion Services
+----------------------------------------
+Coefficient: $178.90/ha/year
+Studies Found: 3
+Median Value: $25.63/ha/year
+Value Range: $6 - $456/ha/year
+Study IDs: 1127, 681, 361
+
+Soil Services
+----------------------------------------
+Coefficient: $156.23/ha/year
+Studies Found: 10
+Median Value: $40.29/ha/year
+Value Range: $1 - $150/ha/year
+Study IDs: 922, 922, 913, 897, 897, 681, 681, 361, 361, 361
+
+Pollination Services
+----------------------------------------
+Coefficient: $89.67/ha/year
+Studies Found: 30
+Median Value: $2260.47/ha/year
+Value Range: $5 - $30512/ha/year
+Study IDs: 1219, 1212, 1212, 1212, 1212, 1212, 1212, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1059, 1059, 1047, 1047, 1046, 1046, 1046, 1046, 816, 816, 498
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $67.34/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Recreation Services
+----------------------------------------
+Coefficient: $480.00/ha/year
+Studies Found: 511
+Median Value: $532.85/ha/year
+Value Range: $0 - $194030/ha/year
+Study IDs: 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1296, 1238, 1238, 1238, 1238, 1238, 1231, 1231, 1228, 1228, 1228, 1228, 1212, 1212, 1212, 1131, 1131, 1127, 1127, 1127, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1126, 1125, 1124, 1124, 1120, 1116, 1102, 1102, 1102, 1102, 932, 932, 932, 932, 932, 932, 932, 932, 932, 932, 923, 922, 922, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 915, 913, 913, 897, 897, 818, 818, 817, 816, 816, 812, 811, 810, 733, 482, 361, 73, 46, 46
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 2
+Median Value: $95.80/ha/year
+Value Range: $1 - $191/ha/year
+Study IDs: 1012, 1012
+
+Spiritual Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 1
+Median Value: $37.81/ha/year
+Value Range: $38 - $38/ha/year
+Study IDs: 1120
+
+Nursery Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 40
+Median Value: $429.55/ha/year
+Value Range: $0 - $9568/ha/year
+Study IDs: 1350, 1350, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1233, 1233, 1232, 1232, 1229, 1228, 1228, 1228, 1228, 1216, 1216, 1216, 1012, 1012, 923, 923, 923, 922, 809, 780, 780, 780, 780, 780, 780, 637
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $134.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Primary Production Services
+----------------------------------------
+Coefficient: $267.89/ha/year
+Studies Found: 4
+Median Value: $855.18/ha/year
+Value Range: $70 - $1030/ha/year
+Study IDs: 780, 780, 780, 482
+
+======================================================================
+BOREAL FOREST ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 5
+Median Value: $5.99/ha/year
+Value Range: $0 - $11/ha/year
+Study IDs: 856, 856, 856, 856, 634
+
+Freshwater Services
+----------------------------------------
+Coefficient: $78.90/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $325.00/ha/year
+Studies Found: 5
+Median Value: $13.73/ha/year
+Value Range: $3 - $9018/ha/year
+Study IDs: 1124, 1124, 856, 856, 816
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $34.67/ha/year
+Studies Found: 1
+Median Value: $0.02/ha/year
+Value Range: $0 - $0/ha/year
+Study IDs: 634
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 1
+Median Value: $0.02/ha/year
+Value Range: $0 - $0/ha/year
+Study IDs: 634
+
+Air Quality Services
+----------------------------------------
+Coefficient: $289.34/ha/year
+Studies Found: 1
+Median Value: $1.34/ha/year
+Value Range: $1 - $1/ha/year
+Study IDs: 634
+
+Climate Services
+----------------------------------------
+Coefficient: $380.00/ha/year
+Studies Found: 5
+Median Value: $235.24/ha/year
+Value Range: $47 - $925/ha/year
+Study IDs: 1212, 1124, 1124, 856, 634
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $145.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $420.00/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 2
+Median Value: $4589.11/ha/year
+Value Range: $160 - $9018/ha/year
+Study IDs: 1212, 816
+
+Erosion Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Soil Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Pollination Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 1
+Median Value: $9017.87/ha/year
+Value Range: $9018 - $9018/ha/year
+Study IDs: 816
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $45.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Recreation Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 5
+Median Value: $115.97/ha/year
+Value Range: $3 - $925/ha/year
+Study IDs: 1124, 1124, 932, 856, 634
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $134.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Spiritual Services
+----------------------------------------
+Coefficient: $89.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Nursery Services
+----------------------------------------
+Coefficient: $145.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $167.56/ha/year
+Studies Found: 9
+Median Value: $130.62/ha/year
+Value Range: $29 - $230/ha/year
+Study IDs: 856, 780, 780, 780, 780, 780, 780, 780, 780
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $123.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Primary Production Services
+----------------------------------------
+Coefficient: $234.67/ha/year
+Studies Found: 4
+Median Value: $1022.48/ha/year
+Value Range: $818 - $1218/ha/year
+Study IDs: 780, 780, 780, 780
+
+======================================================================
+MEDITERRANEAN FOREST ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Freshwater Services
+----------------------------------------
+Coefficient: $56.78/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $267.89/ha/year
+Studies Found: 2
+Median Value: $1601.76/ha/year
+Value Range: $1301 - $1903/ha/year
+Study IDs: 1210, 1210
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $23.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $145.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Air Quality Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Climate Services
+----------------------------------------
+Coefficient: $290.12/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $234.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Erosion Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Soil Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Pollination Services
+----------------------------------------
+Coefficient: $89.34/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Recreation Services
+----------------------------------------
+Coefficient: $278.90/ha/year
+Studies Found: 4
+Median Value: $158.14/ha/year
+Value Range: $8 - $378/ha/year
+Study IDs: 1102, 1102, 1102, 1102
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Spiritual Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Nursery Services
+----------------------------------------
+Coefficient: $145.34/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $134.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Primary Production Services
+----------------------------------------
+Coefficient: $189.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+======================================================================
+WETLAND ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $456.78/ha/year
+Studies Found: 93
+Median Value: $177.35/ha/year
+Value Range: $0 - $7864/ha/year
+Study IDs: 1349, 1257, 1141, 1064, 1011, 1011, 1011, 1011, 952, 845, 842, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 817, 768, 640, 638, 638, 617, 614, 614, 604, 583, 583, 578, 575, 575, 572, 562, 516, 509, 460, 460, 450, 448, 438, 438, 436, 410, 406, 404, 391, 391, 391, 391, 356, 356, 355, 352, 352, 352, 327, 260, 226, 226, 226, 226, 226, 226, 226, 225, 198, 193, 193, 170, 161, 161, 161, 161, 161, 161, 161, 161, 161, 154, 151, 151, 138, 130, 111, 80, 80, 80, 80, 25
+
+Freshwater Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 37
+Median Value: $102.43/ha/year
+Value Range: $0 - $38198/ha/year
+Study IDs: 1036, 952, 638, 635, 635, 635, 599, 583, 572, 562, 556, 544, 509, 406, 397, 391, 391, 391, 391, 375, 375, 375, 375, 352, 352, 352, 347, 284, 245, 241, 226, 198, 151, 146, 146, 88, 53
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 94
+Median Value: $16.02/ha/year
+Value Range: $0 - $9931/ha/year
+Study IDs: 1369, 1369, 1257, 1257, 1228, 1228, 1228, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1064, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 952, 845, 826, 826, 816, 816, 816, 768, 583, 578, 572, 460, 460, 459, 450, 450, 404, 356, 352, 352, 352, 331, 329, 293, 293, 236, 236, 234, 226, 226, 198, 169, 104, 104, 53, 52, 12
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 5
+Median Value: $218.55/ha/year
+Value Range: $15 - $235/ha/year
+Study IDs: 952, 162, 162, 162, 162
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 2
+Median Value: $2.71/ha/year
+Value Range: $0 - $5/ha/year
+Study IDs: 575, 331
+
+Air Quality Services
+----------------------------------------
+Coefficient: $345.67/ha/year
+Studies Found: 5
+Median Value: $2.08/ha/year
+Value Range: $0 - $16/ha/year
+Study IDs: 343, 343, 343, 343, 343
+
+Climate Services
+----------------------------------------
+Coefficient: $407.07/ha/year
+Studies Found: 54
+Median Value: $402.60/ha/year
+Value Range: $0 - $9879/ha/year
+Study IDs: 1350, 1228, 1228, 1228, 1228, 1227, 1227, 1227, 1223, 1223, 1214, 1214, 1212, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 952, 845, 817, 816, 816, 816, 768, 562, 509, 462, 447, 404, 397, 356, 322, 193, 161, 161, 161, 161, 161, 159, 159, 159, 159
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $890.00/ha/year
+Studies Found: 24
+Median Value: $368.58/ha/year
+Value Range: $0 - $5876/ha/year
+Study IDs: 1011, 1011, 1011, 1011, 621, 621, 617, 599, 460, 397, 391, 391, 391, 391, 314, 284, 245, 198, 170, 101, 101, 101, 101, 58
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $567.89/ha/year
+Studies Found: 25
+Median Value: $48.41/ha/year
+Value Range: $0 - $417/ha/year
+Study IDs: 1214, 1214, 1086, 1086, 1086, 1011, 1011, 1011, 1011, 441, 404, 283, 161, 161, 161, 161, 161, 159, 159, 159, 159, 151, 151, 85, 85
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $1400.00/ha/year
+Studies Found: 73
+Median Value: $382.96/ha/year
+Value Range: $0 - $9684/ha/year
+Study IDs: 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1326, 1221, 1212, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 816, 816, 816, 635, 635, 635, 584, 355, 260, 234, 226, 225, 151, 111
+
+Erosion Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 5
+Median Value: $118.68/ha/year
+Value Range: $11 - $1430/ha/year
+Study IDs: 952, 509, 460, 404, 235
+
+Soil Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 22
+Median Value: $427.75/ha/year
+Value Range: $0 - $3698/ha/year
+Study IDs: 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 952, 952, 562, 404, 356, 234
+
+Pollination Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 4
+Median Value: $3760.98/ha/year
+Value Range: $23 - $4847/ha/year
+Study IDs: 952, 816, 816, 816
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 2
+Median Value: $65.60/ha/year
+Value Range: $21 - $110/ha/year
+Study IDs: 952, 509
+
+Recreation Services
+----------------------------------------
+Coefficient: $367.89/ha/year
+Studies Found: 195
+Median Value: $847.68/ha/year
+Value Range: $0 - $78026/ha/year
+Study IDs: 1349, 1349, 1349, 1238, 1228, 1228, 1228, 1228, 1224, 1221, 1212, 1212, 1207, 1141, 1011, 1011, 1011, 1011, 952, 932, 932, 932, 932, 857, 857, 857, 851, 851, 851, 842, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 817, 816, 816, 816, 768, 768, 697, 633, 631, 631, 631, 631, 631, 617, 615, 615, 604, 602, 579, 578, 562, 520, 520, 469, 450, 450, 438, 423, 423, 423, 407, 404, 404, 404, 403, 403, 397, 378, 375, 375, 375, 375, 365, 365, 365, 365, 364, 344, 338, 314, 306, 306, 259, 245, 236, 235, 235, 234, 233, 233, 226, 224, 198, 178, 172, 172, 172, 170, 169, 169, 169, 166, 166, 166, 166, 166, 166, 165, 165, 165, 165, 165, 165, 156, 154, 146, 146, 146, 146, 107, 101, 101, 101, 101, 88, 81, 81, 80, 80, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 64, 62, 58, 27, 27, 27
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 21
+Median Value: $29.44/ha/year
+Value Range: $0 - $45/ha/year
+Study IDs: 1224, 1011, 1011, 1011, 1011, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838
+
+Spiritual Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 19
+Median Value: $29.44/ha/year
+Value Range: $1 - $45/ha/year
+Study IDs: 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 838, 407, 331, 154
+
+Nursery Services
+----------------------------------------
+Coefficient: $235.00/ha/year
+Studies Found: 39
+Median Value: $198.17/ha/year
+Value Range: $0 - $23749/ha/year
+Study IDs: 1349, 1349, 1349, 1349, 1115, 1115, 1115, 1011, 1011, 1011, 1011, 952, 501, 497, 445, 397, 391, 391, 391, 391, 375, 375, 375, 375, 301, 295, 266, 266, 266, 266, 241, 102, 101, 101, 101, 101, 58, 44, 44
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $278.90/ha/year
+Studies Found: 88
+Median Value: $1731.81/ha/year
+Value Range: $0 - $74428/ha/year
+Study IDs: 1350, 1350, 1349, 1349, 1349, 1349, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1229, 1228, 1228, 1228, 1228, 1217, 1115, 1115, 1115, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 697, 683, 633, 621, 621, 617, 575, 562, 469, 441, 434, 404, 397, 375, 375, 375, 375, 348, 322, 306, 282, 245, 241, 235, 234, 224, 221, 154, 102, 93, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 30
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $167.45/ha/year
+Studies Found: 18
+Median Value: $430.08/ha/year
+Value Range: $42 - $3698/ha/year
+Study IDs: 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 952, 562
+
+Primary Production Services
+----------------------------------------
+Coefficient: $234.67/ha/year
+Studies Found: 17
+Median Value: $430.36/ha/year
+Value Range: $34 - $3698/ha/year
+Study IDs: 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 366
+
+======================================================================
+GRASSLAND ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 124
+Median Value: $243.06/ha/year
+Value Range: $0 - $56879/ha/year
+Study IDs: 1269, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1163, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1151, 1151, 1150, 1150, 1150, 1150, 1150, 1150, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1142, 1142, 1142, 1142, 1141, 1141, 1134, 1012, 1012, 996, 996, 952, 826, 482, 161, 161, 161, 161, 161, 161, 161, 161, 161
+
+Freshwater Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 14
+Median Value: $2163.94/ha/year
+Value Range: $0 - $24409/ha/year
+Study IDs: 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 952, 635, 447, 274, 274, 274
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 194
+Median Value: $260.20/ha/year
+Value Range: $0 - $24409/ha/year
+Study IDs: 1374, 1374, 1271, 1271, 1269, 1163, 1163, 1163, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1161, 1161, 1161, 1161, 1161, 1161, 1161, 1161, 1161, 1161, 1161, 1161, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1142, 1142, 1141, 1141, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1124, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 956, 952, 859, 859, 816, 777, 777, 777, 777, 777, 767, 767, 767, 767, 767, 767, 767
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $45.67/ha/year
+Studies Found: 2
+Median Value: $7.78/ha/year
+Value Range: $0 - $15/ha/year
+Study IDs: 1269, 952
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $134.78/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Air Quality Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 6
+Median Value: $2.58/ha/year
+Value Range: $0 - $24/ha/year
+Study IDs: 1269, 343, 343, 343, 343, 343
+
+Climate Services
+----------------------------------------
+Coefficient: $267.89/ha/year
+Studies Found: 111
+Median Value: $383.88/ha/year
+Value Range: $0 - $14690/ha/year
+Study IDs: 1374, 1350, 1269, 1227, 1223, 1212, 1165, 1165, 1165, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1147, 1147, 1147, 1147, 1147, 1147, 1141, 1141, 1138, 1138, 1138, 1138, 1138, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1134, 1124, 1124, 996, 996, 961, 952, 946, 946, 816, 447, 274, 274, 274, 274, 274, 274, 274, 161, 161, 161, 161, 161, 159, 159, 159, 159
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $145.23/ha/year
+Studies Found: 1
+Median Value: $300.62/ha/year
+Value Range: $301 - $301/ha/year
+Study IDs: 482
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $189.56/ha/year
+Studies Found: 28
+Median Value: $95.58/ha/year
+Value Range: $0 - $970/ha/year
+Study IDs: 1311, 1310, 1171, 1164, 1164, 1164, 1164, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1142, 952, 161, 161, 161, 161, 161, 159, 159, 159, 159
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $234.67/ha/year
+Studies Found: 32
+Median Value: $131.76/ha/year
+Value Range: $1 - $463/ha/year
+Study IDs: 1212, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 1136, 826, 826, 635
+
+Erosion Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 3
+Median Value: $110.54/ha/year
+Value Range: $6 - $119/ha/year
+Study IDs: 1271, 1269, 952
+
+Soil Services
+----------------------------------------
+Coefficient: $165.00/ha/year
+Studies Found: 39
+Median Value: $382.02/ha/year
+Value Range: $0 - $3698/ha/year
+Study IDs: 1269, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1142, 1142, 1142, 1142, 952, 952, 779
+
+Pollination Services
+----------------------------------------
+Coefficient: $280.00/ha/year
+Studies Found: 5
+Median Value: $71.23/ha/year
+Value Range: $23 - $96/ha/year
+Study IDs: 1059, 1059, 996, 996, 952
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 7
+Median Value: $19.40/ha/year
+Value Range: $7 - $674/ha/year
+Study IDs: 1150, 1150, 1150, 1150, 1150, 1150, 952
+
+Recreation Services
+----------------------------------------
+Coefficient: $180.00/ha/year
+Studies Found: 42
+Median Value: $19.37/ha/year
+Value Range: $0 - $13513/ha/year
+Study IDs: 1269, 1238, 1238, 1202, 1202, 1189, 1189, 1150, 1150, 1150, 1150, 1150, 1150, 1147, 1147, 1147, 1147, 1147, 1142, 1142, 1142, 1142, 1134, 1124, 996, 996, 952, 932, 932, 826, 826, 816, 768, 489, 160, 160, 160, 160, 160, 160, 46, 46
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 10
+Median Value: $18.59/ha/year
+Value Range: $1 - $674/ha/year
+Study IDs: 1269, 1163, 1150, 1150, 1150, 1150, 1150, 1150, 1012, 1012
+
+Spiritual Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 32
+Median Value: $2164.40/ha/year
+Value Range: $2 - $6113/ha/year
+Study IDs: 1374, 1269, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1162, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150
+
+Nursery Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 19
+Median Value: $5474.52/ha/year
+Value Range: $0 - $172070/ha/year
+Study IDs: 1189, 1189, 1150, 1150, 1150, 1150, 1150, 1150, 1115, 1115, 1115, 1115, 1003, 1003, 1003, 1003, 952, 44, 44
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $145.34/ha/year
+Studies Found: 103
+Median Value: $397.67/ha/year
+Value Range: $0 - $172070/ha/year
+Study IDs: 1350, 1350, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1229, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1202, 1202, 1187, 1187, 1167, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1115, 1115, 1115, 1115, 1012, 1012, 1005, 1003, 1003, 1003, 1003, 852, 852, 852, 826, 780, 780, 780, 780, 780, 780, 779, 779, 637, 637, 525
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 32
+Median Value: $413.97/ha/year
+Value Range: $1 - $3698/ha/year
+Study IDs: 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 952
+
+Primary Production Services
+----------------------------------------
+Coefficient: $189.45/ha/year
+Studies Found: 51
+Median Value: $420.86/ha/year
+Value Range: $1 - $14690/ha/year
+Study IDs: 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 780, 780, 780
+
+======================================================================
+AGRICULTURAL ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $326.36/ha/year
+Studies Found: 368
+Median Value: $1294.83/ha/year
+Value Range: $0 - $193424/ha/year
+Study IDs: 1292, 1292, 1292, 1292, 1292, 1292, 1292, 1292, 1292, 1292, 1292, 1292, 1200, 1200, 1191, 1191, 1191, 1159, 1159, 1159, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1158, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1156, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1153, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1150, 1150, 1150, 1150, 1150, 1150, 1145, 1145, 1145, 1145, 1145, 1145, 1144, 1144, 1142, 1142, 1142, 1142, 1141, 1141, 1141, 1141, 1141, 1141, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1120, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1079, 1059, 1059, 1012, 1012, 1011, 1011, 1011, 1011, 936, 936, 923, 923, 923, 923, 856, 856, 856, 856, 856, 856, 856, 856, 845, 845, 826, 817, 817, 400, 400, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161
+
+Freshwater Services
+----------------------------------------
+Coefficient: $78.90/ha/year
+Studies Found: 5
+Median Value: $8.54/ha/year
+Value Range: $0 - $305/ha/year
+Study IDs: 1036, 400, 274, 274, 274
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 224
+Median Value: $646.11/ha/year
+Value Range: $0 - $231233/ha/year
+Study IDs: 1154, 1154, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1152, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1146, 1145, 1145, 1145, 1145, 1145, 1145, 1144, 1144, 1142, 1142, 1141, 1141, 1141, 1141, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1138, 1124, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1095, 1079, 1079, 1079, 1078, 1078, 1059, 1059, 941, 941, 941, 941, 941, 941, 941, 941, 941, 941, 941, 936, 936, 877, 877, 877, 877, 877, 877, 856, 856, 856, 856, 849, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 826, 816, 816, 816, 816, 816, 816, 777, 777, 777, 777, 777
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $34.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 6
+Median Value: $129790.35/ha/year
+Value Range: $0 - $1940325/ha/year
+Study IDs: 1095, 936, 936, 936, 936, 877
+
+Air Quality Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 7
+Median Value: $11.45/ha/year
+Value Range: $0 - $602/ha/year
+Study IDs: 1208, 817, 343, 343, 343, 343, 343
+
+Climate Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 143
+Median Value: $259.20/ha/year
+Value Range: $0 - $13453/ha/year
+Study IDs: 1350, 1214, 1214, 1212, 1212, 1159, 1159, 1159, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1146, 1145, 1145, 1145, 1145, 1145, 1145, 1144, 1144, 1141, 1141, 1141, 1141, 1141, 1141, 1138, 1138, 1138, 1138, 1138, 1124, 1124, 1124, 1124, 1124, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 943, 856, 856, 845, 817, 817, 816, 816, 816, 816, 816, 816, 274, 274, 274, 274, 274, 274, 274, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 159
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $134.67/ha/year
+Studies Found: 4
+Median Value: $0.61/ha/year
+Value Range: $0 - $3/ha/year
+Study IDs: 1011, 1011, 1011, 1011
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $145.23/ha/year
+Studies Found: 35
+Median Value: $7.18/ha/year
+Value Range: $0 - $463/ha/year
+Study IDs: 1311, 1214, 1214, 1171, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1142, 1086, 1086, 1086, 1059, 1059, 1011, 1011, 1011, 1011, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 159
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 22
+Median Value: $308.51/ha/year
+Value Range: $1 - $3680/ha/year
+Study IDs: 1359, 1359, 1359, 1359, 1212, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 826, 826, 816, 816, 816, 816, 816
+
+Erosion Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 19
+Median Value: $11.30/ha/year
+Value Range: $3 - $108/ha/year
+Study IDs: 1010, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007
+
+Soil Services
+----------------------------------------
+Coefficient: $180.00/ha/year
+Studies Found: 88
+Median Value: $346.34/ha/year
+Value Range: $0 - $3698/ha/year
+Study IDs: 1359, 1359, 1359, 1359, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1142, 1142, 1142, 1142, 1079, 1079, 1079, 1078, 1078, 1078, 1078, 1078, 1078, 1059, 1059, 1059, 1059, 1028, 1028, 1028, 1028, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 899, 899, 899, 899, 899, 899, 899, 899, 899, 899, 555, 555
+
+Pollination Services
+----------------------------------------
+Coefficient: $240.00/ha/year
+Studies Found: 65
+Median Value: $153.03/ha/year
+Value Range: $5 - $5380/ha/year
+Study IDs: 1373, 1373, 1373, 1373, 1281, 1281, 1281, 1281, 1200, 1200, 899, 899, 899, 899, 899, 899, 899, 899, 899, 899, 876, 816, 816, 816, 816, 816, 816, 598, 598, 598, 598, 598, 598, 526, 526, 526, 498, 467, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393, 393
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 73
+Median Value: $1077.99/ha/year
+Value Range: $1 - $7335/ha/year
+Study IDs: 1359, 1359, 1359, 1359, 1281, 1281, 1281, 1281, 1200, 1200, 1150, 1150, 1150, 1150, 1150, 1150, 1059, 1032, 1019, 1019, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 846, 695, 695, 694, 694, 694, 694, 694, 694, 694, 694, 694, 694, 693, 693, 693, 693, 693, 693, 555, 555, 181, 181, 181, 181, 181, 181, 181
+
+Recreation Services
+----------------------------------------
+Coefficient: $145.34/ha/year
+Studies Found: 466
+Median Value: $554.46/ha/year
+Value Range: $0 - $3680/ha/year
+Study IDs: 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1238, 1235, 1224, 1150, 1150, 1150, 1150, 1150, 1150, 1145, 1145, 1145, 1145, 1145, 1145, 1144, 1144, 1142, 1142, 1142, 1142, 1141, 1141, 1141, 1141, 1124, 1088, 1038, 1038, 1038, 1038, 1011, 1011, 1011, 1011, 1010, 932, 932, 932, 932, 856, 856, 844, 844, 844, 842, 817, 817, 816, 816, 816, 816, 816, 489, 400, 160, 160, 160, 160, 160, 160, 64, 64, 46, 46
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $89.56/ha/year
+Studies Found: 29
+Median Value: $19.40/ha/year
+Value Range: $0 - $742/ha/year
+Study IDs: 1249, 1249, 1224, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1144, 1144, 1141, 1141, 1059, 1059, 1027, 1027, 1027, 1027, 1012, 1012, 1011, 1011, 1011, 1011
+
+Spiritual Services
+----------------------------------------
+Coefficient: $67.78/ha/year
+Studies Found: 24
+Median Value: $956.61/ha/year
+Value Range: $24 - $4378/ha/year
+Study IDs: 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1000, 1000, 1000, 1000
+
+Nursery Services
+----------------------------------------
+Coefficient: $134.23/ha/year
+Studies Found: 9
+Median Value: $6.53/ha/year
+Value Range: $0 - $479/ha/year
+Study IDs: 1150, 1150, 1150, 1150, 1150, 1011, 1011, 1011, 1011
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $156.89/ha/year
+Studies Found: 90
+Median Value: $655.88/ha/year
+Value Range: $0 - $99308/ha/year
+Study IDs: 1350, 1350, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1249, 1249, 1229, 1217, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1013, 1012, 1012, 1010, 1009, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 1007, 856, 856, 780, 780, 780, 780, 780, 780, 780, 780, 780, 780, 94
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 38
+Median Value: $386.48/ha/year
+Value Range: $0 - $3698/ha/year
+Study IDs: 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1079, 1079, 1079, 1059, 1059, 555, 555
+
+Primary Production Services
+----------------------------------------
+Coefficient: $234.67/ha/year
+Studies Found: 55
+Median Value: $314.16/ha/year
+Value Range: $1 - $3698/ha/year
+Study IDs: 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1170, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1144, 1144, 780, 780, 780, 780, 780, 780, 780, 482
+
+======================================================================
+COASTAL ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $567.89/ha/year
+Studies Found: 295
+Median Value: $279.11/ha/year
+Value Range: $0 - $83987/ha/year
+Study IDs: 1362, 1309, 1256, 1256, 1256, 1185, 1177, 1150, 1150, 1150, 1150, 1150, 1150, 1141, 1091, 1074, 1074, 1074, 1074, 1074, 1065, 1065, 1065, 1065, 1065, 1065, 1064, 1060, 1044, 1021, 1021, 1011, 1011, 1011, 1011, 894, 894, 893, 892, 892, 892, 891, 889, 889, 888, 887, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 886, 885, 882, 882, 881, 880, 880, 880, 870, 867, 866, 865, 865, 864, 863, 862, 861, 861, 861, 861, 842, 841, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 825, 824, 824, 824, 806, 804, 804, 804, 802, 802, 800, 796, 796, 796, 795, 795, 795, 795, 793, 793, 793, 793, 792, 790, 790, 790, 790, 790, 790, 785, 768, 761, 761, 751, 710, 674, 674, 659, 653, 653, 653, 653, 653, 653, 653, 644, 644, 638, 638, 636, 627, 616, 616, 614, 614, 614, 614, 612, 611, 609, 605, 604, 603, 595, 593, 593, 589, 563, 562, 562, 558, 558, 557, 552, 537, 529, 518, 516, 509, 481, 481, 481, 481, 471, 464, 460, 460, 457, 438, 438, 430, 428, 410, 404, 396, 394, 377, 354, 340, 340, 335, 335, 334, 334, 334, 334, 324, 324, 321, 321, 321, 321, 321, 321, 321, 321, 319, 311, 281, 281, 257, 247, 237, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 227, 226, 226, 226, 226, 226, 226, 226, 202, 193, 193, 191, 191, 190, 182, 175, 173, 173, 170, 168, 167, 161, 161, 151, 149, 149, 140, 138, 137, 127, 125, 119, 91, 91, 90, 87, 86, 83, 80, 80, 80, 80, 77, 63, 60, 55, 54, 48, 39, 34, 34, 20, 20, 10, 3, 3, 3, 2
+
+Freshwater Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 12
+Median Value: $83.00/ha/year
+Value Range: $0 - $5876/ha/year
+Study IDs: 1021, 638, 635, 562, 562, 509, 245, 226, 202, 175, 88, 8
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 137
+Median Value: $142.40/ha/year
+Value Range: $0 - $26534/ha/year
+Study IDs: 1168, 1150, 1150, 1150, 1150, 1150, 1150, 1064, 1021, 893, 885, 866, 866, 865, 826, 826, 825, 816, 816, 816, 816, 804, 803, 793, 793, 793, 793, 768, 763, 761, 750, 749, 749, 749, 749, 664, 659, 653, 653, 653, 653, 653, 653, 653, 643, 641, 640, 636, 636, 625, 624, 558, 558, 546, 546, 518, 518, 518, 518, 518, 518, 518, 518, 518, 518, 518, 518, 518, 518, 518, 512, 512, 486, 486, 460, 460, 439, 439, 439, 433, 420, 420, 417, 377, 360, 351, 334, 333, 333, 333, 321, 321, 321, 321, 281, 279, 247, 236, 236, 227, 227, 227, 227, 227, 227, 227, 226, 226, 211, 202, 202, 189, 175, 169, 157, 157, 157, 157, 157, 157, 157, 129, 129, 129, 121, 86, 77, 63, 63, 55, 47, 47, 47, 47, 14, 8, 8
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 4
+Median Value: $187.90/ha/year
+Value Range: $12 - $2498/ha/year
+Study IDs: 234, 175, 149, 55
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $267.78/ha/year
+Studies Found: 5
+Median Value: $46.18/ha/year
+Value Range: $15 - $362/ha/year
+Study IDs: 749, 749, 433, 417, 334
+
+Air Quality Services
+----------------------------------------
+Coefficient: $345.67/ha/year
+Studies Found: 5
+Median Value: $4.68/ha/year
+Value Range: $0 - $37/ha/year
+Study IDs: 343, 343, 343, 343, 343
+
+Climate Services
+----------------------------------------
+Coefficient: $456.78/ha/year
+Studies Found: 79
+Median Value: $152.42/ha/year
+Value Range: $0 - $75149/ha/year
+Study IDs: 1319, 1319, 1319, 1256, 1256, 1256, 1256, 1177, 1150, 1150, 1150, 1150, 1150, 1150, 1093, 1074, 1074, 1074, 1074, 1074, 1072, 1072, 816, 816, 816, 816, 816, 816, 804, 790, 790, 768, 760, 750, 750, 748, 708, 708, 708, 662, 641, 562, 509, 486, 486, 421, 417, 404, 351, 334, 321, 321, 321, 321, 319, 292, 251, 251, 251, 251, 249, 249, 232, 232, 232, 193, 193, 191, 175, 161, 159, 159, 159, 159, 138, 133, 77, 39, 19
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $1200.00/ha/year
+Studies Found: 25
+Median Value: $976.93/ha/year
+Value Range: $0 - $21192/ha/year
+Study IDs: 1055, 1055, 1055, 1055, 1011, 1011, 1011, 1011, 789, 789, 749, 749, 746, 664, 512, 512, 512, 506, 506, 494, 460, 334, 245, 233, 170
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $378.90/ha/year
+Studies Found: 13
+Median Value: $35.31/ha/year
+Value Range: $0 - $135/ha/year
+Study IDs: 1171, 1011, 1011, 1011, 1011, 404, 175, 161, 159, 159, 159, 85, 85
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $567.89/ha/year
+Studies Found: 44
+Median Value: $1282.19/ha/year
+Value Range: $0 - $71474/ha/year
+Study IDs: 1055, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 816, 816, 816, 816, 816, 790, 790, 662, 635, 623, 609, 589, 435, 226, 126, 125, 63, 55, 45
+
+Erosion Services
+----------------------------------------
+Coefficient: $1800.00/ha/year
+Studies Found: 13
+Median Value: $103.46/ha/year
+Value Range: $0 - $3076/ha/year
+Study IDs: 1362, 804, 674, 609, 546, 512, 512, 512, 509, 460, 404, 281, 175
+
+Soil Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 8
+Median Value: $18.27/ha/year
+Value Range: $0 - $37373/ha/year
+Study IDs: 1177, 562, 562, 404, 319, 175, 175, 77
+
+Pollination Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 7
+Median Value: $10346.57/ha/year
+Value Range: $8 - $75149/ha/year
+Study IDs: 816, 816, 816, 816, 816, 816, 175
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 8
+Median Value: $18.59/ha/year
+Value Range: $7 - $674/ha/year
+Study IDs: 1150, 1150, 1150, 1150, 1150, 1150, 509, 175
+
+Recreation Services
+----------------------------------------
+Coefficient: $380.00/ha/year
+Studies Found: 605
+Median Value: $217.23/ha/year
+Value Range: $0 - $42140/ha/year
+Study IDs: 1362, 1312, 1289, 1289, 1289, 1287, 1256, 1256, 1256, 1256, 1238, 1185, 1174, 1174, 1174, 1174, 1174, 1174, 1174, 1174, 1150, 1150, 1150, 1150, 1150, 1150, 1141, 1093, 1093, 1091, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1080, 1074, 1074, 1074, 1074, 1066, 1066, 1065, 1065, 1065, 1060, 1060, 1044, 1044, 1011, 1011, 1011, 1011, 979, 979, 979, 972, 972, 972, 932, 932, 932, 893, 891, 891, 891, 888, 888, 887, 883, 882, 882, 879, 878, 870, 870, 870, 870, 870, 864, 863, 844, 844, 844, 842, 837, 837, 837, 837, 837, 837, 837, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 824, 816, 816, 816, 816, 813, 813, 813, 806, 805, 802, 802, 800, 800, 795, 795, 795, 795, 792, 790, 790, 790, 790, 790, 790, 789, 781, 781, 768, 768, 758, 756, 756, 750, 743, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 738, 737, 737, 737, 737, 737, 737, 737, 737, 735, 732, 732, 732, 732, 732, 732, 731, 730, 730, 730, 730, 730, 729, 728, 726, 726, 726, 726, 726, 726, 720, 718, 718, 715, 715, 715, 715, 715, 715, 715, 715, 715, 715, 715, 714, 714, 714, 714, 714, 714, 713, 713, 713, 713, 712, 712, 711, 711, 711, 711, 711, 711, 710, 706, 706, 705, 705, 702, 702, 702, 684, 684, 682, 682, 680, 680, 677, 677, 677, 671, 670, 670, 669, 669, 666, 659, 645, 645, 645, 644, 643, 625, 622, 616, 611, 610, 605, 604, 601, 601, 601, 601, 601, 595, 593, 593, 593, 589, 588, 588, 586, 570, 569, 569, 569, 562, 562, 557, 557, 557, 557, 557, 552, 523, 523, 522, 520, 520, 519, 499, 491, 491, 487, 487, 486, 480, 480, 480, 480, 438, 435, 435, 430, 426, 423, 423, 420, 407, 404, 404, 404, 394, 389, 389, 389, 389, 378, 371, 371, 371, 369, 369, 362, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 359, 351, 340, 334, 334, 332, 321, 321, 321, 321, 319, 313, 312, 311, 290, 279, 271, 258, 258, 258, 258, 258, 258, 258, 258, 257, 245, 240, 236, 234, 233, 233, 229, 227, 227, 227, 227, 227, 227, 226, 210, 210, 209, 209, 201, 201, 192, 191, 182, 177, 175, 173, 170, 169, 169, 169, 168, 167, 163, 163, 160, 160, 160, 160, 160, 160, 149, 147, 147, 147, 146, 146, 143, 143, 140, 140, 140, 137, 137, 132, 129, 129, 108, 98, 91, 88, 87, 87, 83, 82, 81, 81, 80, 80, 77, 55, 50, 48, 39, 38, 38, 35, 35, 35, 35, 35, 35, 35, 35, 20, 20, 20, 17, 17, 17, 17, 17, 17, 16, 15, 3, 3, 3, 3, 3, 3
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $289.23/ha/year
+Studies Found: 21
+Median Value: $12.00/ha/year
+Value Range: $0 - $911/ha/year
+Study IDs: 1289, 1256, 1256, 1256, 1150, 1150, 1150, 1150, 1150, 1150, 1011, 1011, 1011, 1011, 871, 756, 756, 714, 714, 714, 175
+
+Spiritual Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 6
+Median Value: $601.13/ha/year
+Value Range: $1 - $2970/ha/year
+Study IDs: 1256, 1256, 1256, 546, 404, 175
+
+Nursery Services
+----------------------------------------
+Coefficient: $450.00/ha/year
+Studies Found: 44
+Median Value: $421.05/ha/year
+Value Range: $0 - $10810/ha/year
+Study IDs: 1150, 1150, 1150, 1150, 1150, 1150, 1065, 1065, 1065, 1055, 1055, 1055, 1055, 1011, 1011, 1011, 1011, 870, 870, 870, 870, 759, 705, 705, 663, 558, 558, 553, 512, 512, 512, 445, 435, 340, 340, 334, 227, 227, 227, 227, 227, 227, 55, 55
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $345.67/ha/year
+Studies Found: 115
+Median Value: $657.17/ha/year
+Value Range: $0 - $81374/ha/year
+Study IDs: 1229, 1229, 1216, 1216, 1216, 1150, 1150, 1150, 1150, 1150, 1150, 1073, 1066, 1066, 1066, 1066, 1065, 1065, 1065, 1021, 1021, 983, 983, 983, 983, 983, 983, 983, 983, 983, 980, 980, 978, 976, 974, 972, 972, 972, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 826, 820, 820, 820, 820, 820, 820, 820, 820, 802, 759, 756, 756, 735, 735, 683, 669, 669, 649, 637, 625, 622, 611, 606, 605, 562, 562, 557, 546, 536, 536, 536, 536, 536, 536, 474, 427, 404, 348, 334, 307, 292, 282, 279, 245, 242, 234, 175, 173, 149, 129, 129, 55, 40, 40, 40, 40, 40, 40, 40, 40, 16
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $234.89/ha/year
+Studies Found: 3
+Median Value: $2.24/ha/year
+Value Range: $0 - $526/ha/year
+Study IDs: 562, 562, 175
+
+Primary Production Services
+----------------------------------------
+Coefficient: $378.90/ha/year
+Studies Found: 4
+Median Value: $1116.43/ha/year
+Value Range: $1 - $3728/ha/year
+Study IDs: 1021, 790, 790, 623
+
+======================================================================
+URBAN ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 7
+Median Value: $467.46/ha/year
+Value Range: $1 - $1482/ha/year
+Study IDs: 1012, 1012, 826, 826, 826, 817, 817
+
+Freshwater Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 2
+Median Value: $1455.72/ha/year
+Value Range: $581 - $2330/ha/year
+Study IDs: 1036, 1036
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 13
+Median Value: $333.14/ha/year
+Value Range: $2 - $5023/ha/year
+Study IDs: 1230, 908, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $23.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $78.90/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Air Quality Services
+----------------------------------------
+Coefficient: $320.00/ha/year
+Studies Found: 33
+Median Value: $127.73/ha/year
+Value Range: $1 - $1579/ha/year
+Study IDs: 1230, 817, 817, 551, 551, 551, 551, 551, 551, 550, 550, 550, 550, 550, 550, 549, 320, 320, 320, 320, 320, 204, 204, 204, 204, 204, 204, 203, 203, 203, 203, 203, 203
+
+Climate Services
+----------------------------------------
+Coefficient: $180.00/ha/year
+Studies Found: 36
+Median Value: $786.76/ha/year
+Value Range: $2 - $5403/ha/year
+Study IDs: 1239, 1239, 1230, 1212, 1184, 1124, 1124, 1124, 1124, 1124, 1124, 907, 817, 817, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 551, 551, 550, 550, 535, 320, 320, 204, 204, 203, 203
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $145.67/ha/year
+Studies Found: 2
+Median Value: $82.43/ha/year
+Value Range: $3 - $162/ha/year
+Study IDs: 1204, 1204
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 38
+Median Value: $331.27/ha/year
+Value Range: $3 - $5023/ha/year
+Study IDs: 1212, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 960, 826, 826, 826, 826, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816
+
+Erosion Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Soil Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Pollination Services
+----------------------------------------
+Coefficient: $67.78/ha/year
+Studies Found: 11
+Median Value: $333.14/ha/year
+Value Range: $66 - $5023/ha/year
+Study IDs: 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $56.34/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Recreation Services
+----------------------------------------
+Coefficient: $245.00/ha/year
+Studies Found: 446
+Median Value: $610.31/ha/year
+Value Range: $2 - $123234/ha/year
+Study IDs: 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1353, 1307, 1307, 1268, 1244, 1237, 1237, 1237, 1236, 1230, 1212, 1212, 1207, 1204, 1124, 1124, 1124, 1124, 1124, 914, 914, 914, 914, 914, 914, 908, 908, 908, 908, 826, 826, 817, 817, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 816, 24
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 4
+Median Value: $162.12/ha/year
+Value Range: $1 - $3704190/ha/year
+Study IDs: 1204, 1012, 1012, 902
+
+Spiritual Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 1
+Median Value: $89.57/ha/year
+Value Range: $90 - $90/ha/year
+Study IDs: 1192
+
+Nursery Services
+----------------------------------------
+Coefficient: $134.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 6
+Median Value: $424.11/ha/year
+Value Range: $0 - $5147/ha/year
+Study IDs: 1315, 1239, 1239, 1229, 1012, 1012
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $89.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Primary Production Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+======================================================================
+SHRUBLAND ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 32
+Median Value: $81.78/ha/year
+Value Range: $1 - $92641/ha/year
+Study IDs: 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1141, 1141, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1135, 1012, 1012, 860, 860, 860, 860, 817, 773, 161, 161, 161, 161
+
+Freshwater Services
+----------------------------------------
+Coefficient: $89.34/ha/year
+Studies Found: 1
+Median Value: $2.17/ha/year
+Value Range: $2 - $2/ha/year
+Study IDs: 1193
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 24
+Median Value: $4.83/ha/year
+Value Range: $0 - $7786/ha/year
+Study IDs: 1210, 1210, 1193, 1141, 1141, 1124, 877, 877, 877, 877, 877, 877, 860, 860, 859, 859, 859, 859, 859, 859, 818, 816, 775, 775
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $34.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $134.67/ha/year
+Studies Found: 1
+Median Value: $0.36/ha/year
+Value Range: $0 - $0/ha/year
+Study IDs: 877
+
+Air Quality Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 5
+Median Value: $2.78/ha/year
+Value Range: $0 - $19/ha/year
+Study IDs: 343, 343, 343, 343, 343
+
+Climate Services
+----------------------------------------
+Coefficient: $234.56/ha/year
+Studies Found: 12
+Median Value: $35.81/ha/year
+Value Range: $5 - $2353/ha/year
+Study IDs: 1212, 1141, 1141, 1124, 944, 944, 818, 817, 447, 161, 161, 159
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $145.78/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $167.89/ha/year
+Studies Found: 5
+Median Value: $46.88/ha/year
+Value Range: $1 - $119/ha/year
+Study IDs: 1193, 1171, 161, 161, 159
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $189.34/ha/year
+Studies Found: 3
+Median Value: $518.52/ha/year
+Value Range: $5 - $7786/ha/year
+Study IDs: 1212, 818, 816
+
+Erosion Services
+----------------------------------------
+Coefficient: $320.00/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Soil Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Pollination Services
+----------------------------------------
+Coefficient: $123.67/ha/year
+Studies Found: 14
+Median Value: $3154.84/ha/year
+Value Range: $1 - $11315/ha/year
+Study IDs: 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 1130, 860, 816, 498
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Recreation Services
+----------------------------------------
+Coefficient: $178.90/ha/year
+Studies Found: 11
+Median Value: $33.24/ha/year
+Value Range: $0 - $15611/ha/year
+Study IDs: 1212, 1202, 1202, 1124, 860, 818, 818, 817, 816, 773, 489
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $145.34/ha/year
+Studies Found: 3
+Median Value: $190.80/ha/year
+Value Range: $1 - $1502/ha/year
+Study IDs: 1218, 1012, 1012
+
+Spiritual Services
+----------------------------------------
+Coefficient: $123.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Nursery Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 1
+Median Value: $2.17/ha/year
+Value Range: $2 - $2/ha/year
+Study IDs: 1193
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $134.89/ha/year
+Studies Found: 47
+Median Value: $115.52/ha/year
+Value Range: $0 - $53364/ha/year
+Study IDs: 1350, 1350, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1339, 1216, 1216, 1216, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1205, 1202, 1202, 1012, 1012, 780, 780, 780, 780, 780, 637, 637
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Primary Production Services
+----------------------------------------
+Coefficient: $189.67/ha/year
+Studies Found: 4
+Median Value: $902.92/ha/year
+Value Range: $824 - $913/ha/year
+Study IDs: 780, 780, 780, 780
+
+======================================================================
+DESERT ECOSYSTEM
+======================================================================
+
+Food Services
+----------------------------------------
+Coefficient: $45.67/ha/year
+Studies Found: 29
+Median Value: $3323.53/ha/year
+Value Range: $0 - $24409/ha/year
+Study IDs: 1269, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1144, 1144, 1141, 1141, 1134, 562, 161, 161
+
+Freshwater Services
+----------------------------------------
+Coefficient: $23.45/ha/year
+Studies Found: 9
+Median Value: $6246.50/ha/year
+Value Range: $1 - $24409/ha/year
+Study IDs: 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 562
+
+Raw Materials Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 43
+Median Value: $81.33/ha/year
+Value Range: $1 - $14690/ha/year
+Study IDs: 1269, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1151, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1144, 1144, 1141, 1141, 1140, 1140, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 777, 777
+
+Genetic Resources Services
+----------------------------------------
+Coefficient: $34.56/ha/year
+Studies Found: 1
+Median Value: $0.15/ha/year
+Value Range: $0 - $0/ha/year
+Study IDs: 1269
+
+Medicinal Resources Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Air Quality Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 1
+Median Value: $1.96/ha/year
+Value Range: $2 - $2/ha/year
+Study IDs: 1269
+
+Climate Services
+----------------------------------------
+Coefficient: $156.78/ha/year
+Studies Found: 22
+Median Value: $299.72/ha/year
+Value Range: $0 - $24409/ha/year
+Study IDs: 1269, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1144, 1144, 1141, 1141, 1137, 1137, 1137, 1137, 1137, 1137, 1137, 1134, 562, 161
+
+Extreme Events Services
+----------------------------------------
+Coefficient: $89.34/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Water Regulation Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 1
+Median Value: $29.86/ha/year
+Value Range: $30 - $30/ha/year
+Study IDs: 161
+
+Water Treatment Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Erosion Services
+----------------------------------------
+Coefficient: $189.23/ha/year
+Studies Found: 1
+Median Value: $6.27/ha/year
+Value Range: $6 - $6/ha/year
+Study IDs: 1269
+
+Soil Services
+----------------------------------------
+Coefficient: $89.34/ha/year
+Studies Found: 3
+Median Value: $4.90/ha/year
+Value Range: $1 - $388/ha/year
+Study IDs: 1269, 779, 562
+
+Pollination Services
+----------------------------------------
+Coefficient: $56.78/ha/year
+Studies Found: 3
+Median Value: $718.90/ha/year
+Value Range: $396 - $3449/ha/year
+Study IDs: 1266, 1047, 1047
+
+Biocontrol Services
+----------------------------------------
+Coefficient: $45.67/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Recreation Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 15
+Median Value: $11.34/ha/year
+Value Range: $0 - $6246/ha/year
+Study IDs: 1269, 1147, 1147, 1147, 1147, 1144, 1144, 1134, 932, 932, 844, 844, 781, 781, 562
+
+Aesthetic Services
+----------------------------------------
+Coefficient: $134.56/ha/year
+Studies Found: 3
+Median Value: $4.51/ha/year
+Value Range: $2 - $11/ha/year
+Study IDs: 1269, 1144, 1144
+
+Spiritual Services
+----------------------------------------
+Coefficient: $80.00/ha/year
+Studies Found: 1
+Median Value: $1.79/ha/year
+Value Range: $2 - $2/ha/year
+Study IDs: 1269
+
+Nursery Services
+----------------------------------------
+Coefficient: $67.89/ha/year
+Studies Found: 0 (No matching studies in current database)
+Note: Coefficient may be based on literature meta-analysis or external sources
+
+Genetic Diversity Services
+----------------------------------------
+Coefficient: $89.23/ha/year
+Studies Found: 8
+Median Value: $545712663892.59/ha/year
+Value Range: $0 - $1846922005224/ha/year
+Study IDs: 1242, 1242, 1242, 1242, 779, 637, 637, 562
+
+Soil Formation Services
+----------------------------------------
+Coefficient: $56.78/ha/year
+Studies Found: 1
+Median Value: $388.01/ha/year
+Value Range: $388 - $388/ha/year
+Study IDs: 562
+
+Primary Production Services
+----------------------------------------
+Coefficient: $123.45/ha/year
+Studies Found: 18
+Median Value: $4.84/ha/year
+Value Range: $1 - $24409/ha/year
+Study IDs: 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1147, 1144, 1144
+
+======================================================================
+SUMMARY STATISTICS
+======================================================================
+Total Coefficients: 231
+Coefficients with Studies: 173
+Coefficients without Studies: 58
+Total Studies Used: 7315
+Average Studies per Coefficient: 42.3
+Coverage Rate: 74.9%
