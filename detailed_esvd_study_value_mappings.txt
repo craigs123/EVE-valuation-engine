@@ -1,0 +1,2897 @@
+DETAILED ESVD COEFFICIENT STUDY ID AND VALUE MAPPINGS
+================================================================================
+
+This document shows:
+1. Study IDs (column B from ESVD database)
+2. Specific values extracted from each study
+3. Step-by-step median calculation process
+4. Quality filtering applied (outlier removal)
+
+Database: ESVD APR2024 V1.1 (10,874 records)
+
+
+================================================================================
+TROPICAL FOREST ECOSYSTEM
+================================================================================
+
+Climate Services
+--------------------------------------------------
+Target Coefficient: $450.00/ha/year
+Studies Found: 45
+Calculated Median: $97.72/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1258: $372.91/ha/year
+Study 1159: $463.62/ha/year
+Study 1159: $63.74/ha/year
+Study 1138: $1903.04/ha/year
+Study 1138: $4119.98/ha/year
+Study 1138: $2021.53/ha/year
+Study 1137: $354.63/ha/year
+Study 1137: $97.72/ha/year
+Study 1137: $1149.84/ha/year
+Study 1137: $319.91/ha/year
+Study 1137: $1585.80/ha/year
+Study 1137: $483.81/ha/year
+Study 1137: $35.93/ha/year
+Study 1093: $334.01/ha/year
+Study 952: $83.78/ha/year
+Study 948: $294.09/ha/year
+Study 946: $227.26/ha/year
+Study 946: $52.60/ha/year
+Study 945: $0.00/ha/year
+Study 945: $0.00/ha/year
+Study 945: $77.71/ha/year
+Study 945: $77.71/ha/year
+Study 945: $2279.32/ha/year
+Study 933: $1380.13/ha/year
+Study 931: $1048.98/ha/year
+Study 928: $2669.91/ha/year
+Study 898: $9.10/ha/year
+Study 898: $28.20/ha/year
+Study 898: $90.97/ha/year
+Study 898: $4.85/ha/year
+Study 898: $14.10/ha/year
+Study 898: $45.49/ha/year
+Study 855: $24.81/ha/year
+Study 855: $45.92/ha/year
+Study 845: $312.56/ha/year
+Study 845: $392.89/ha/year
+Study 768: $0.09/ha/year
+Study 768: $0.07/ha/year
+Study 768: $8.02/ha/year
+Study 764: $119.35/ha/year
+Study 651: $7.49/ha/year
+Study 541: $2403.24/ha/year
+Study 540: $1947.08/ha/year
+Study 175: $15.11/ha/year
+Study 46: $84.58/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0006, 0.0017, 0.0653, 0.09, 4.8519, 7.4899, 8.0241, 9.0974, 14.1009, 15.1139, 24.8058, 28.2018, 35.9262, 45.4868, 45.917, 52.5993, 63.7384, 77.7098, 77.7098, 83.7763, 84.5785, 90.9736, 97.7235, 119.3463, 227.2564, 294.0946, 312.5605, 319.9111, 334.0136, 354.6348, 372.9118, 392.8915, 463.615, 483.8137, 1048.9812, 1149.8423, 1380.1339, 1585.7972, 1903.0445, 1947.079, 2021.5291, 2279.3185, 2403.2357, 2669.9073, 4119.9813]
+Step 2: n = 45 (odd number)
+Step 3: Middle position: 23
+Step 4: Median = 97.72
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 48
+Outliers removed: 3
+Final studies used: 45
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.00/ha/year
+Maximum: $4119.98/ha/year
+Mean: $601.15/ha/year
+Median: $97.72/ha/year
+Std Dev: $925.48/ha/year
+
+============================================================
+
+Recreation Services
+--------------------------------------------------
+Target Coefficient: $235.00/ha/year
+Studies Found: 87
+Calculated Median: $0.19/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1308: $1.87/ha/year
+Study 1308: $0.48/ha/year
+Study 1308: $1.25/ha/year
+Study 1202: $0.56/ha/year
+Study 1202: $0.56/ha/year
+Study 1097: $63.79/ha/year
+Study 1093: $27.36/ha/year
+Study 952: $294.55/ha/year
+Study 948: $71.12/ha/year
+Study 937: $1.93/ha/year
+Study 937: $3.28/ha/year
+Study 937: $3.28/ha/year
+Study 933: $3.49/ha/year
+Study 933: $6.28/ha/year
+Study 931: $16.84/ha/year
+Study 931: $4.96/ha/year
+Study 928: $2.96/ha/year
+Study 928: $1.56/ha/year
+Study 924: $0.09/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.05/ha/year
+Study 915: $0.07/ha/year
+Study 915: $0.39/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.15/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.18/ha/year
+Study 915: $0.12/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.05/ha/year
+Study 915: $0.08/ha/year
+Study 915: $0.45/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.17/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.21/ha/year
+Study 915: $0.14/ha/year
+Study 915: $0.03/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.01/ha/year
+Study 845: $0.88/ha/year
+Study 844: $4.80/ha/year
+Study 844: $1.11/ha/year
+Study 844: $1.81/ha/year
+Study 837: $22.43/ha/year
+Study 837: $27.08/ha/year
+Study 837: $14.64/ha/year
+Study 837: $30.26/ha/year
+Study 769: $221.07/ha/year
+Study 768: $0.67/ha/year
+Study 768: $0.42/ha/year
+Study 768: $0.15/ha/year
+Study 768: $0.82/ha/year
+Study 768: $0.09/ha/year
+Study 768: $0.55/ha/year
+Study 764: $0.96/ha/year
+Study 764: $0.19/ha/year
+Study 651: $31.01/ha/year
+Study 442: $1.69/ha/year
+Study 442: $17.28/ha/year
+Study 424: $0.50/ha/year
+Study 402: $423.24/ha/year
+Study 175: $5.56/ha/year
+Study 109: $0.00/ha/year
+Study 109: $0.00/ha/year
+Study 109: $0.00/ha/year
+Study 46: $1.91/ha/year
+Study 46: $4.80/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0, 0.0, 0.0002, 0.0002, 0.0002, 0.0003, 0.0003, 0.0003, 0.0004, 0.0005, 0.0006, 0.0008, 0.0009, 0.002, 0.0022, 0.0022, 0.0023, 0.0025, 0.0028, 0.0059, 0.0073, 0.0096, 0.011, 0.0131, 0.0154, 0.0187, 0.0188, 0.0198, 0.0219, 0.022, 0.0257, 0.0474, 0.0548, 0.0704, 0.0833, 0.0875, 0.0914, 0.1191, 0.1369, 0.1459, 0.1488, 0.1719, 0.1776, 0.1886, 0.2052, 0.3918, 0.4199, 0.4526, 0.4771, 0.4986, 0.5469, 0.5588, 0.5643, 0.6746, 0.8216, 0.8763, 0.961, 1.1133, 1.2466, 1.5644, 1.6861, 1.8063, 1.8673, 1.9148, 1.9294, 2.9566, 3.2803, 3.2803, 3.4865, 4.7985, 4.7997, 4.9636, 5.5565, 6.2826, 14.6376, 16.8433, 17.2782, 22.4282, 27.0815, 27.3611, 30.2591, 31.0084, 63.794, 71.1209, 221.0732, 294.5461, 423.2425]
+Step 2: n = 87 (odd number)
+Step 3: Middle position: 44
+Step 4: Median = 0.19
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 89
+Outliers removed: 2
+Final studies used: 87
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.00/ha/year
+Maximum: $423.24/ha/year
+Mean: $15.20/ha/year
+Median: $0.19/ha/year
+Std Dev: $59.56/ha/year
+
+============================================================
+
+Water Treatment Services
+--------------------------------------------------
+Target Coefficient: $320.00/ha/year
+Studies Found: 28
+Calculated Median: $38.40/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1272: $10.72/ha/year
+Study 933: $37.15/ha/year
+Study 931: $39.96/ha/year
+Study 928: $38.27/ha/year
+Study 855: $24.81/ha/year
+Study 855: $45.92/ha/year
+Study 766: $236.31/ha/year
+Study 766: $86.45/ha/year
+Study 766: $82.28/ha/year
+Study 766: $59.37/ha/year
+Study 766: $56.24/ha/year
+Study 766: $53.12/ha/year
+Study 766: $48.95/ha/year
+Study 766: $48.95/ha/year
+Study 766: $44.79/ha/year
+Study 766: $41.66/ha/year
+Study 766: $41.66/ha/year
+Study 766: $38.54/ha/year
+Study 766: $33.33/ha/year
+Study 766: $20.83/ha/year
+Study 766: $20.83/ha/year
+Study 766: $19.79/ha/year
+Study 766: $17.71/ha/year
+Study 766: $15.62/ha/year
+Study 766: $12.50/ha/year
+Study 766: $12.50/ha/year
+Study 766: $12.50/ha/year
+Study 766: $6.25/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [6.2492, 10.7197, 12.4984, 12.4984, 12.4984, 15.623, 17.7061, 19.7892, 20.8307, 20.8307, 24.8058, 33.3291, 37.1454, 38.271, 38.5368, 39.9595, 41.6614, 41.6614, 44.786, 45.917, 48.9522, 48.9522, 53.1183, 56.2429, 59.3675, 82.2813, 86.4475, 236.314]
+Step 2: n = 28 (even number)
+Step 3: Middle positions: 14 and 15
+Step 4: Middle values: 38.27 and 38.54
+Step 5: Median = (38.27 + 38.54) / 2 = 38.40
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 30
+Outliers removed: 2
+Final studies used: 28
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $6.25/ha/year
+Maximum: $236.31/ha/year
+Mean: $43.11/ha/year
+Median: $38.40/ha/year
+Std Dev: $42.27/ha/year
+
+============================================================
+
+Food Services
+--------------------------------------------------
+Target Coefficient: $326.36/ha/year
+Studies Found: 43
+Calculated Median: $175.13/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1205: $42.76/ha/year
+Study 1205: $49.01/ha/year
+Study 1205: $49.54/ha/year
+Study 1205: $75.53/ha/year
+Study 1205: $88.03/ha/year
+Study 1205: $101.61/ha/year
+Study 1205: $105.82/ha/year
+Study 1205: $111.11/ha/year
+Study 1205: $115.52/ha/year
+Study 1205: $13.57/ha/year
+Study 1158: $243.83/ha/year
+Study 1158: $211.32/ha/year
+Study 1158: $225.54/ha/year
+Study 1158: $298.00/ha/year
+Study 1158: $326.36/ha/year
+Study 1158: $346.24/ha/year
+Study 1158: $381.38/ha/year
+Study 1158: $405.40/ha/year
+Study 1158: $421.61/ha/year
+Study 1158: $164.27/ha/year
+Study 1158: $181.56/ha/year
+Study 1158: $193.60/ha/year
+Study 1158: $148.34/ha/year
+Study 1158: $164.05/ha/year
+Study 1158: $175.13/ha/year
+Study 1158: $479.11/ha/year
+Study 1158: $517.83/ha/year
+Study 1158: $545.18/ha/year
+Study 1158: $411.33/ha/year
+Study 1158: $438.43/ha/year
+Study 1158: $457.41/ha/year
+Study 1158: $223.33/ha/year
+Study 1158: $258.22/ha/year
+Study 1158: $191.00/ha/year
+Study 952: $99.95/ha/year
+Study 948: $251.81/ha/year
+Study 948: $142.24/ha/year
+Study 860: $32.18/ha/year
+Study 860: $12.57/ha/year
+Study 841: $135.43/ha/year
+Study 640: $0.68/ha/year
+Study 402: $16.19/ha/year
+Study 175: $5.34/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.6815, 5.3366, 12.5745, 13.5733, 16.193, 32.1815, 42.7558, 49.0091, 49.5424, 75.5255, 88.0323, 99.9477, 101.6055, 105.8229, 111.1068, 115.5181, 135.4336, 142.2418, 148.3378, 164.0532, 164.2695, 175.1302, 181.5622, 190.9969, 193.5964, 211.3205, 223.3348, 225.5377, 243.8258, 251.8065, 258.2196, 298.001, 326.3567, 346.2447, 381.3766, 405.399, 411.3296, 421.6106, 438.4284, 457.4128, 479.1092, 517.8341, 545.1801]
+Step 2: n = 43 (odd number)
+Step 3: Middle position: 22
+Step 4: Median = 175.13
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 45
+Outliers removed: 2
+Final studies used: 43
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.68/ha/year
+Maximum: $545.18/ha/year
+Mean: $205.99/ha/year
+Median: $175.13/ha/year
+Std Dev: $153.25/ha/year
+
+============================================================
+
+================================================================================
+TEMPERATE FOREST ECOSYSTEM
+================================================================================
+
+Recreation Services
+--------------------------------------------------
+Target Coefficient: $480.00/ha/year
+Studies Found: 511
+Calculated Median: $532.85/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1353: $1350.13/ha/year
+Study 1353: $177.17/ha/year
+Study 1353: $360.87/ha/year
+Study 1353: $1382.39/ha/year
+Study 1353: $419.66/ha/year
+Study 1353: $437.15/ha/year
+Study 1353: $656.96/ha/year
+Study 1353: $374.27/ha/year
+Study 1353: $468.55/ha/year
+Study 1353: $493.35/ha/year
+Study 1353: $779.61/ha/year
+Study 1353: $753.15/ha/year
+Study 1353: $533.58/ha/year
+Study 1353: $673.82/ha/year
+Study 1353: $342.67/ha/year
+Study 1353: $1428.68/ha/year
+Study 1353: $377.66/ha/year
+Study 1353: $1131.17/ha/year
+Study 1353: $597.51/ha/year
+Study 1353: $1240.96/ha/year
+Study 1353: $374.70/ha/year
+Study 1353: $516.81/ha/year
+Study 1353: $1214.56/ha/year
+Study 1353: $852.86/ha/year
+Study 1353: $593.98/ha/year
+Study 1353: $721.05/ha/year
+Study 1353: $1514.34/ha/year
+Study 1353: $763.55/ha/year
+Study 1353: $511.43/ha/year
+Study 1353: $478.13/ha/year
+Study 1353: $404.52/ha/year
+Study 1353: $374.70/ha/year
+Study 1353: $674.13/ha/year
+Study 1353: $1412.19/ha/year
+Study 1353: $215.94/ha/year
+Study 1353: $385.49/ha/year
+Study 1353: $853.80/ha/year
+Study 1353: $738.30/ha/year
+Study 1353: $883.51/ha/year
+Study 1353: $1132.43/ha/year
+Study 1353: $349.46/ha/year
+Study 1353: $527.80/ha/year
+Study 1353: $506.73/ha/year
+Study 1353: $521.93/ha/year
+Study 1353: $422.32/ha/year
+Study 1353: $426.05/ha/year
+Study 1353: $378.55/ha/year
+Study 1353: $431.32/ha/year
+Study 1353: $979.25/ha/year
+Study 1353: $1489.90/ha/year
+Study 1353: $546.05/ha/year
+Study 1353: $1470.91/ha/year
+Study 1353: $358.61/ha/year
+Study 1353: $427.56/ha/year
+Study 1353: $656.14/ha/year
+Study 1353: $244.73/ha/year
+Study 1353: $260.65/ha/year
+Study 1353: $1321.25/ha/year
+Study 1353: $546.28/ha/year
+Study 1353: $639.68/ha/year
+Study 1353: $557.21/ha/year
+Study 1353: $863.68/ha/year
+Study 1353: $621.92/ha/year
+Study 1353: $1117.42/ha/year
+Study 1353: $1399.55/ha/year
+Study 1353: $535.47/ha/year
+Study 1353: $1234.82/ha/year
+Study 1353: $1212.43/ha/year
+Study 1353: $1882.14/ha/year
+Study 1353: $796.64/ha/year
+Study 1353: $495.71/ha/year
+Study 1353: $651.96/ha/year
+Study 1353: $446.18/ha/year
+Study 1353: $268.35/ha/year
+Study 1353: $536.08/ha/year
+Study 1353: $1369.81/ha/year
+Study 1353: $454.02/ha/year
+Study 1353: $317.50/ha/year
+Study 1353: $588.49/ha/year
+Study 1353: $1287.57/ha/year
+Study 1353: $1157.09/ha/year
+Study 1353: $138.05/ha/year
+Study 1353: $650.33/ha/year
+Study 1353: $914.03/ha/year
+Study 1353: $518.16/ha/year
+Study 1353: $668.81/ha/year
+Study 1353: $631.03/ha/year
+Study 1353: $808.41/ha/year
+Study 1353: $911.33/ha/year
+Study 1353: $251.83/ha/year
+Study 1353: $490.79/ha/year
+Study 1353: $517.24/ha/year
+Study 1353: $731.02/ha/year
+Study 1353: $331.08/ha/year
+Study 1353: $463.79/ha/year
+Study 1353: $392.35/ha/year
+Study 1353: $1410.76/ha/year
+Study 1353: $619.56/ha/year
+Study 1353: $957.38/ha/year
+Study 1353: $796.29/ha/year
+Study 1353: $1887.16/ha/year
+Study 1353: $429.82/ha/year
+Study 1353: $543.39/ha/year
+Study 1353: $361.72/ha/year
+Study 1353: $493.34/ha/year
+Study 1353: $1486.45/ha/year
+Study 1353: $962.32/ha/year
+Study 1353: $1319.09/ha/year
+Study 1353: $448.10/ha/year
+Study 1353: $542.63/ha/year
+Study 1353: $331.08/ha/year
+Study 1353: $1539.65/ha/year
+Study 1353: $732.56/ha/year
+Study 1353: $385.03/ha/year
+Study 1353: $532.00/ha/year
+Study 1353: $263.85/ha/year
+Study 1353: $471.97/ha/year
+Study 1353: $274.66/ha/year
+Study 1353: $325.63/ha/year
+Study 1353: $677.58/ha/year
+Study 1353: $382.28/ha/year
+Study 1353: $2421.21/ha/year
+Study 1353: $1356.92/ha/year
+Study 1353: $727.17/ha/year
+Study 1353: $321.50/ha/year
+Study 1353: $523.03/ha/year
+Study 1353: $1207.36/ha/year
+Study 1353: $299.97/ha/year
+Study 1353: $696.95/ha/year
+Study 1353: $751.27/ha/year
+Study 1353: $350.20/ha/year
+Study 1353: $617.05/ha/year
+Study 1353: $965.42/ha/year
+Study 1353: $1070.71/ha/year
+Study 1353: $456.53/ha/year
+Study 1353: $479.88/ha/year
+Study 1353: $864.49/ha/year
+Study 1353: $576.62/ha/year
+Study 1353: $526.74/ha/year
+Study 1353: $410.23/ha/year
+Study 1353: $585.05/ha/year
+Study 1353: $697.26/ha/year
+Study 1353: $327.34/ha/year
+Study 1353: $887.95/ha/year
+Study 1353: $1067.89/ha/year
+Study 1353: $884.40/ha/year
+Study 1353: $1177.39/ha/year
+Study 1353: $335.01/ha/year
+Study 1353: $404.45/ha/year
+Study 1353: $590.15/ha/year
+Study 1353: $432.71/ha/year
+Study 1353: $1180.42/ha/year
+Study 1353: $811.29/ha/year
+Study 1353: $530.45/ha/year
+Study 1353: $327.46/ha/year
+Study 1353: $486.86/ha/year
+Study 1353: $434.48/ha/year
+Study 1353: $641.47/ha/year
+Study 1353: $934.40/ha/year
+Study 1353: $641.21/ha/year
+Study 1353: $998.03/ha/year
+Study 1353: $2051.47/ha/year
+Study 1353: $510.70/ha/year
+Study 1353: $611.10/ha/year
+Study 1353: $1449.01/ha/year
+Study 1353: $733.74/ha/year
+Study 1353: $927.24/ha/year
+Study 1353: $405.67/ha/year
+Study 1353: $403.44/ha/year
+Study 1353: $566.35/ha/year
+Study 1353: $748.86/ha/year
+Study 1353: $1136.70/ha/year
+Study 1353: $565.13/ha/year
+Study 1353: $1079.24/ha/year
+Study 1353: $1100.36/ha/year
+Study 1353: $1264.90/ha/year
+Study 1353: $1455.68/ha/year
+Study 1353: $330.25/ha/year
+Study 1353: $843.79/ha/year
+Study 1353: $984.63/ha/year
+Study 1353: $888.31/ha/year
+Study 1353: $1622.45/ha/year
+Study 1353: $733.03/ha/year
+Study 1353: $445.90/ha/year
+Study 1353: $154.20/ha/year
+Study 1353: $1969.54/ha/year
+Study 1353: $582.15/ha/year
+Study 1353: $909.56/ha/year
+Study 1353: $134.65/ha/year
+Study 1353: $553.76/ha/year
+Study 1353: $636.99/ha/year
+Study 1353: $443.54/ha/year
+Study 1353: $2118.37/ha/year
+Study 1353: $679.01/ha/year
+Study 1353: $690.78/ha/year
+Study 1353: $668.62/ha/year
+Study 1353: $647.62/ha/year
+Study 1353: $1452.50/ha/year
+Study 1353: $572.98/ha/year
+Study 1353: $1655.26/ha/year
+Study 1353: $552.56/ha/year
+Study 1353: $448.99/ha/year
+Study 1353: $482.77/ha/year
+Study 1353: $338.04/ha/year
+Study 1353: $339.32/ha/year
+Study 1353: $900.89/ha/year
+Study 1353: $1528.88/ha/year
+Study 1353: $695.18/ha/year
+Study 1353: $569.62/ha/year
+Study 1353: $608.19/ha/year
+Study 1353: $484.53/ha/year
+Study 1353: $524.32/ha/year
+Study 1353: $701.43/ha/year
+Study 1353: $1792.85/ha/year
+Study 1353: $491.19/ha/year
+Study 1353: $937.42/ha/year
+Study 1353: $377.79/ha/year
+Study 1353: $815.35/ha/year
+Study 1353: $651.12/ha/year
+Study 1353: $609.32/ha/year
+Study 1353: $150.14/ha/year
+Study 1353: $1020.10/ha/year
+Study 1353: $738.04/ha/year
+Study 1353: $278.62/ha/year
+Study 1353: $566.18/ha/year
+Study 1353: $730.35/ha/year
+Study 1353: $707.07/ha/year
+Study 1353: $1314.12/ha/year
+Study 1353: $752.94/ha/year
+Study 1353: $583.10/ha/year
+Study 1353: $408.65/ha/year
+Study 1353: $1695.96/ha/year
+Study 1353: $735.90/ha/year
+Study 1353: $690.24/ha/year
+Study 1353: $723.37/ha/year
+Study 1353: $666.40/ha/year
+Study 1353: $454.89/ha/year
+Study 1353: $524.84/ha/year
+Study 1353: $419.53/ha/year
+Study 1353: $377.61/ha/year
+Study 1353: $811.59/ha/year
+Study 1353: $262.61/ha/year
+Study 1353: $280.13/ha/year
+Study 1353: $517.27/ha/year
+Study 1353: $845.08/ha/year
+Study 1353: $1396.83/ha/year
+Study 1353: $772.53/ha/year
+Study 1353: $708.44/ha/year
+Study 1353: $599.38/ha/year
+Study 1353: $976.60/ha/year
+Study 1353: $713.31/ha/year
+Study 1353: $810.09/ha/year
+Study 1353: $594.39/ha/year
+Study 1353: $909.32/ha/year
+Study 1353: $534.70/ha/year
+Study 1353: $498.11/ha/year
+Study 1353: $799.70/ha/year
+Study 1353: $450.64/ha/year
+Study 1353: $401.81/ha/year
+Study 1353: $303.68/ha/year
+Study 1353: $1495.59/ha/year
+Study 1353: $678.96/ha/year
+Study 1353: $1483.85/ha/year
+Study 1353: $545.60/ha/year
+Study 1353: $730.25/ha/year
+Study 1353: $235.71/ha/year
+Study 1353: $423.70/ha/year
+Study 1353: $385.33/ha/year
+Study 1353: $540.64/ha/year
+Study 1353: $359.25/ha/year
+Study 1353: $609.51/ha/year
+Study 1353: $341.35/ha/year
+Study 1353: $2640.68/ha/year
+Study 1353: $1289.54/ha/year
+Study 1353: $730.12/ha/year
+Study 1353: $540.96/ha/year
+Study 1353: $387.47/ha/year
+Study 1353: $454.99/ha/year
+Study 1353: $290.26/ha/year
+Study 1353: $688.48/ha/year
+Study 1353: $510.90/ha/year
+Study 1353: $311.13/ha/year
+Study 1353: $809.81/ha/year
+Study 1353: $708.48/ha/year
+Study 1353: $444.99/ha/year
+Study 1353: $543.87/ha/year
+Study 1353: $386.33/ha/year
+Study 1353: $394.02/ha/year
+Study 1353: $483.16/ha/year
+Study 1353: $518.47/ha/year
+Study 1353: $484.54/ha/year
+Study 1353: $342.69/ha/year
+Study 1353: $784.50/ha/year
+Study 1353: $323.31/ha/year
+Study 1353: $367.61/ha/year
+Study 1353: $496.55/ha/year
+Study 1353: $614.56/ha/year
+Study 1353: $407.32/ha/year
+Study 1353: $347.80/ha/year
+Study 1353: $555.16/ha/year
+Study 1353: $194.59/ha/year
+Study 1353: $305.31/ha/year
+Study 1353: $209.06/ha/year
+Study 1353: $638.00/ha/year
+Study 1353: $466.84/ha/year
+Study 1353: $1757.12/ha/year
+Study 1353: $273.75/ha/year
+Study 1353: $390.12/ha/year
+Study 1353: $434.01/ha/year
+Study 1353: $601.06/ha/year
+Study 1353: $378.34/ha/year
+Study 1353: $2106.63/ha/year
+Study 1353: $1324.69/ha/year
+Study 1353: $671.43/ha/year
+Study 1353: $944.06/ha/year
+Study 1353: $1456.98/ha/year
+Study 1353: $1248.53/ha/year
+Study 1353: $820.35/ha/year
+Study 1353: $2831.81/ha/year
+Study 1353: $1558.64/ha/year
+Study 1353: $1043.75/ha/year
+Study 1353: $1190.54/ha/year
+Study 1353: $1069.63/ha/year
+Study 1353: $1846.08/ha/year
+Study 1353: $321.41/ha/year
+Study 1353: $718.41/ha/year
+Study 1353: $359.40/ha/year
+Study 1353: $339.42/ha/year
+Study 1353: $884.70/ha/year
+Study 1353: $609.53/ha/year
+Study 1353: $1144.31/ha/year
+Study 1353: $485.47/ha/year
+Study 1353: $241.44/ha/year
+Study 1353: $271.99/ha/year
+Study 1353: $725.25/ha/year
+Study 1353: $1710.63/ha/year
+Study 1353: $263.82/ha/year
+Study 1353: $652.42/ha/year
+Study 1353: $551.61/ha/year
+Study 1353: $701.90/ha/year
+Study 1353: $1526.30/ha/year
+Study 1353: $650.26/ha/year
+Study 1353: $471.56/ha/year
+Study 1353: $127.78/ha/year
+Study 1353: $169.91/ha/year
+Study 1353: $626.28/ha/year
+Study 1353: $401.58/ha/year
+Study 1353: $507.88/ha/year
+Study 1353: $997.11/ha/year
+Study 1353: $387.12/ha/year
+Study 1353: $582.86/ha/year
+Study 1353: $440.24/ha/year
+Study 1353: $232.98/ha/year
+Study 1353: $699.00/ha/year
+Study 1353: $967.77/ha/year
+Study 1353: $486.42/ha/year
+Study 1353: $1067.70/ha/year
+Study 1353: $2574.31/ha/year
+Study 1353: $267.60/ha/year
+Study 1353: $319.43/ha/year
+Study 1353: $1135.71/ha/year
+Study 1353: $228.62/ha/year
+Study 1353: $548.93/ha/year
+Study 1353: $560.81/ha/year
+Study 1353: $1071.97/ha/year
+Study 1353: $1073.92/ha/year
+Study 1353: $722.66/ha/year
+Study 1353: $857.53/ha/year
+Study 1353: $112.02/ha/year
+Study 1353: $826.19/ha/year
+Study 1353: $238.78/ha/year
+Study 1353: $361.40/ha/year
+Study 1353: $778.36/ha/year
+Study 1353: $1399.06/ha/year
+Study 1353: $730.80/ha/year
+Study 1353: $479.37/ha/year
+Study 1353: $781.13/ha/year
+Study 1353: $95.41/ha/year
+Study 1353: $450.97/ha/year
+Study 1353: $406.60/ha/year
+Study 1353: $452.93/ha/year
+Study 1353: $1847.50/ha/year
+Study 1353: $544.56/ha/year
+Study 1353: $1019.90/ha/year
+Study 1353: $846.95/ha/year
+Study 1353: $926.33/ha/year
+Study 1353: $361.86/ha/year
+Study 1353: $380.97/ha/year
+Study 1353: $374.51/ha/year
+Study 1353: $503.74/ha/year
+Study 1353: $521.53/ha/year
+Study 1353: $1317.74/ha/year
+Study 1353: $304.00/ha/year
+Study 1353: $2187.96/ha/year
+Study 1353: $433.02/ha/year
+Study 1353: $499.60/ha/year
+Study 1353: $748.99/ha/year
+Study 1353: $453.86/ha/year
+Study 1353: $626.07/ha/year
+Study 1353: $457.96/ha/year
+Study 1353: $599.41/ha/year
+Study 1296: $569.38/ha/year
+Study 1238: $540.89/ha/year
+Study 1238: $288.42/ha/year
+Study 1238: $447.87/ha/year
+Study 1238: $446.76/ha/year
+Study 1238: $750.31/ha/year
+Study 1231: $134.37/ha/year
+Study 1231: $61.34/ha/year
+Study 1228: $118.62/ha/year
+Study 1228: $160.49/ha/year
+Study 1228: $108.85/ha/year
+Study 1228: $100.48/ha/year
+Study 1212: $37285.10/ha/year
+Study 1212: $15611.33/ha/year
+Study 1212: $194030.39/ha/year
+Study 1131: $134.37/ha/year
+Study 1131: $61.34/ha/year
+Study 1127: $46.95/ha/year
+Study 1127: $21.78/ha/year
+Study 1127: $80.38/ha/year
+Study 1126: $26.75/ha/year
+Study 1126: $12.47/ha/year
+Study 1126: $13.01/ha/year
+Study 1126: $14.04/ha/year
+Study 1126: $15.01/ha/year
+Study 1126: $16.28/ha/year
+Study 1126: $28.68/ha/year
+Study 1126: $28.27/ha/year
+Study 1126: $27.48/ha/year
+Study 1126: $25.79/ha/year
+Study 1125: $11.34/ha/year
+Study 1124: $32.24/ha/year
+Study 1124: $925.20/ha/year
+Study 1120: $1437.93/ha/year
+Study 1116: $3160.88/ha/year
+Study 1102: $7.95/ha/year
+Study 1102: $8.02/ha/year
+Study 1102: $308.27/ha/year
+Study 1102: $378.30/ha/year
+Study 932: $2424.82/ha/year
+Study 932: $360.23/ha/year
+Study 932: $114.96/ha/year
+Study 932: $791.95/ha/year
+Study 932: $1659.86/ha/year
+Study 932: $433.12/ha/year
+Study 932: $396.81/ha/year
+Study 932: $334.66/ha/year
+Study 932: $852.31/ha/year
+Study 932: $7800.18/ha/year
+Study 923: $186201.77/ha/year
+Study 922: $14.72/ha/year
+Study 922: $36.59/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.05/ha/year
+Study 915: $0.07/ha/year
+Study 915: $0.39/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.15/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.18/ha/year
+Study 915: $0.12/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.01/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.05/ha/year
+Study 915: $0.08/ha/year
+Study 915: $0.45/ha/year
+Study 915: $0.02/ha/year
+Study 915: $0.17/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.21/ha/year
+Study 915: $0.14/ha/year
+Study 915: $0.03/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.00/ha/year
+Study 915: $0.01/ha/year
+Study 913: $9.44/ha/year
+Study 913: $2.40/ha/year
+Study 897: $230.90/ha/year
+Study 897: $532.85/ha/year
+Study 818: $1632.68/ha/year
+Study 818: $33.24/ha/year
+Study 817: $857.35/ha/year
+Study 816: $8502.09/ha/year
+Study 816: $8547.11/ha/year
+Study 812: $606.08/ha/year
+Study 811: $374.46/ha/year
+Study 810: $227.29/ha/year
+Study 733: $389.42/ha/year
+Study 482: $56.03/ha/year
+Study 361: $0.50/ha/year
+Study 73: $1601.39/ha/year
+Study 46: $1.91/ha/year
+Study 46: $4.80/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0, 0.0, 0.0002, 0.0003, 0.0003, 0.0003, 0.0005, 0.0006, 0.0008, 0.0009, 0.002, 0.0022, 0.0022, 0.0023, 0.0025, 0.0028, 0.0059, 0.0073, 0.0096, 0.011, 0.0131, 0.0154, 0.0187, 0.0188, 0.0198, 0.0219, 0.022, 0.0257, 0.0474, 0.0548, 0.0704, 0.0833, 0.1191, 0.1369, 0.1488, 0.1719, 0.1776, 0.2052, 0.3918, 0.4526, 0.5027, 1.9148, 2.3972, 4.7985, 7.947, 8.0155, 9.4389, 11.3434, 12.4682, 13.0063, 14.0387, 14.7211, 15.0051, 16.2784, 21.7826, 25.7932, 26.7531, 27.4798, 28.2676, 28.6808, 32.2426, 33.2385, 36.5948, 46.9545, 56.0309, 61.3437, 61.3437, 80.3786, 95.4114, 100.479, 108.8523, 112.0175, 114.9623, 118.6211, 127.7793, 134.3718, 134.3718, 134.6482, 138.0463, 150.1435, 154.2043, 160.4873, 169.9108, 177.1671, 194.594, 209.063, 215.9399, 227.2904, 228.6172, 230.9048, 232.9758, 235.7139, 238.7775, 241.4362, 244.7268, 251.8289, 260.6523, 262.6145, 263.8173, 263.8463, 267.5965, 268.3474, 271.9947, 273.753, 274.6594, 278.6189, 280.1306, 288.4151, 290.2583, 299.9706, 303.676, 304.0034, 305.3087, 308.2665, 311.1263, 317.4978, 319.4272, 321.4133, 321.4993, 323.3141, 325.6296, 327.3352, 327.4596, 330.2544, 331.0815, 331.0815, 334.6568, 335.0095, 338.0351, 339.321, 339.4202, 341.347, 342.6716, 342.6851, 347.7983, 349.4561, 350.1966, 358.6083, 359.2525, 359.4002, 360.2324, 360.8681, 361.3966, 361.7205, 361.8569, 367.6084, 374.2675, 374.4602, 374.5069, 374.697, 374.697, 377.6143, 377.663, 377.7905, 378.3021, 378.3437, 378.5455, 380.9678, 382.2759, 385.028, 385.3255, 385.4945, 386.3328, 387.1179, 387.4668, 389.4182, 390.1167, 392.3458, 394.0169, 396.8055, 401.5817, 401.8061, 403.4395, 404.4487, 404.5237, 405.6696, 406.5971, 407.3217, 408.6502, 410.2273, 419.528, 419.6607, 422.3227, 423.6963, 426.0507, 427.5592, 429.8183, 431.3179, 432.7102, 433.0176, 433.1228, 434.0061, 434.4756, 437.1465, 440.2405, 443.5372, 444.9854, 445.8955, 446.1801, 446.7646, 447.8694, 448.1026, 448.9939, 450.6356, 450.9724, 452.9265, 453.8584, 454.0172, 454.8869, 454.9893, 456.5274, 457.963, 463.7944, 466.8407, 468.5456, 471.5557, 471.9741, 478.126, 479.3659, 479.8751, 482.7664, 483.162, 484.53, 484.5413, 485.4726, 486.4215, 486.8571, 490.7917, 491.1894, 493.3358, 493.3511, 495.7132, 496.5497, 498.1092, 499.596, 503.7363, 506.7331, 507.8785, 510.6982, 510.8998, 511.4291, 516.8124, 517.2448, 517.2726, 518.1621, 518.4744, 521.5295, 521.9286, 523.0284, 524.3244, 524.8436, 526.739, 527.799, 530.4513, 532.0039, 532.8527, 533.5822, 534.7028, 535.4693, 536.0764, 540.6385, 540.8906, 540.9567, 542.6285, 543.3927, 543.8695, 544.5597, 545.5974, 546.0524, 546.2755, 548.9259, 551.6117, 552.5632, 553.7619, 555.1609, 557.2145, 560.8133, 565.1332, 566.1838, 566.3487, 569.3826, 569.6152, 572.9839, 576.6231, 582.1486, 582.8621, 583.0966, 585.0533, 588.4913, 590.1478, 593.9837, 594.3909, 597.5142, 599.377, 599.4118, 601.0595, 606.0778, 608.1878, 609.3204, 609.5072, 609.5344, 611.0953, 614.5637, 617.0507, 619.5648, 621.9231, 626.0727, 626.2754, 631.0257, 636.985, 637.9977, 639.6797, 641.2138, 641.4731, 647.6223, 650.2624, 650.3295, 651.1154, 651.9583, 652.4196, 656.1437, 656.9585, 666.4036, 668.6217, 668.8141, 671.432, 673.8249, 674.1298, 677.5771, 678.9568, 679.0122, 688.4795, 690.2407, 690.7822, 695.178, 696.9546, 697.2623, 698.9952, 701.4316, 701.9039, 707.0714, 708.4436, 708.4762, 713.3121, 718.408, 721.0516, 722.6638, 723.3734, 725.2539, 727.1675, 730.1204, 730.2458, 730.3508, 730.8032, 731.0181, 732.5589, 733.028, 733.7426, 735.8969, 738.0396, 738.3041, 748.8629, 748.9859, 750.3056, 751.273, 752.9436, 753.1464, 763.5474, 772.5305, 778.3562, 779.6116, 781.1307, 784.4988, 791.9485, 796.286, 796.6385, 799.7006, 808.4088, 809.8134, 810.0894, 811.2885, 811.5932, 815.352, 820.3508, 826.1923, 843.7911, 845.0789, 846.9537, 852.307, 852.8577, 853.8001, 857.3506, 857.5332, 863.6839, 864.4876, 883.5069, 884.4005, 884.7013, 887.9539, 888.3124, 900.8898, 909.3208, 909.5641, 911.3321, 914.0337, 925.1969, 926.3343, 927.235, 934.399, 937.4195, 944.0627, 957.3792, 962.3171, 965.4184, 967.7744, 976.604, 979.247, 984.6299, 997.1089, 998.032, 1019.9033, 1020.0995, 1043.7532, 1067.7033, 1067.8865, 1069.6269, 1070.711, 1071.9652, 1073.9195, 1079.241, 1100.3603, 1117.4217, 1131.1745, 1132.4303, 1135.7096, 1136.6956, 1144.306, 1157.0908, 1177.389, 1180.4181, 1190.5393, 1207.3571, 1212.4257, 1214.5553, 1234.8172, 1240.9609, 1248.5281, 1264.9008, 1287.5705, 1289.5417, 1314.119, 1317.7419, 1319.0875, 1321.2544, 1324.6865, 1350.1304, 1356.9168, 1369.8146, 1382.3857, 1396.8298, 1399.0641, 1399.5533, 1410.7641, 1412.19, 1428.6768, 1437.9282, 1449.0095, 1452.502, 1455.6814, 1456.978, 1470.9137, 1483.8481, 1486.4524, 1489.8985, 1495.5856, 1514.341, 1526.297, 1528.8843, 1539.6537, 1558.6356, 1601.3876, 1622.4485, 1632.6775, 1655.255, 1659.8566, 1695.9602, 1710.6334, 1757.1206, 1792.8542, 1846.0789, 1847.4995, 1882.1415, 1887.1646, 1969.5432, 2051.4663, 2106.63, 2118.3732, 2187.963, 2421.213, 2424.8229, 2574.3074, 2640.6831, 2831.8064, 3160.8846, 7800.1751, 8502.0879, 8547.1065, 15611.3317, 37285.0955, 186201.7652, 194030.3921]
+Step 2: n = 511 (odd number)
+Step 3: Middle position: 256
+Step 4: Median = 532.85
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 514
+Outliers removed: 3
+Final studies used: 511
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.00/ha/year
+Maximum: $194030.39/ha/year
+Mean: $1511.75/ha/year
+Median: $532.85/ha/year
+Std Dev: $11977.78/ha/year
+
+============================================================
+
+Climate Services
+--------------------------------------------------
+Target Coefficient: $380.00/ha/year
+Studies Found: 41
+Calculated Median: $193.64/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1350: $63.83/ha/year
+Study 1234: $230.08/ha/year
+Study 1228: $12.56/ha/year
+Study 1228: $9.77/ha/year
+Study 1228: $6.98/ha/year
+Study 1228: $13.96/ha/year
+Study 1212: $235.25/ha/year
+Study 1212: $235.25/ha/year
+Study 1179: $28.24/ha/year
+Study 1126: $8.94/ha/year
+Study 1126: $9.02/ha/year
+Study 1126: $9.08/ha/year
+Study 1126: $9.17/ha/year
+Study 1126: $9.67/ha/year
+Study 1126: $9.75/ha/year
+Study 1126: $9.88/ha/year
+Study 1126: $9.95/ha/year
+Study 1126: $9.86/ha/year
+Study 1126: $8.90/ha/year
+Study 1124: $204.14/ha/year
+Study 1124: $925.20/ha/year
+Study 944: $232.48/ha/year
+Study 943: $179.71/ha/year
+Study 925: $525.94/ha/year
+Study 925: $1141.40/ha/year
+Study 925: $609.41/ha/year
+Study 818: $8.72/ha/year
+Study 817: $857.35/ha/year
+Study 812: $614.01/ha/year
+Study 811: $682.08/ha/year
+Study 810: $569.86/ha/year
+Study 809: $193.64/ha/year
+Study 799: $437.88/ha/year
+Study 740: $992.35/ha/year
+Study 733: $462.16/ha/year
+Study 675: $958.12/ha/year
+Study 472: $485.83/ha/year
+Study 361: $159.61/ha/year
+Study 219: $210.40/ha/year
+Study 161: $121.66/ha/year
+Study 159: $210.74/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [6.9777, 8.7218, 8.9024, 8.9429, 9.0194, 9.0832, 9.1709, 9.6696, 9.7533, 9.7688, 9.8587, 9.877, 9.9453, 12.5599, 13.9554, 28.2431, 63.826, 121.6578, 159.6076, 179.7131, 193.6387, 204.1387, 210.399, 210.7414, 230.0771, 232.4752, 235.2454, 235.2454, 437.8786, 462.1571, 485.8313, 525.9367, 569.858, 609.4118, 614.0135, 682.0808, 857.3506, 925.1969, 958.1233, 992.3516, 1141.4032]
+Step 2: n = 41 (odd number)
+Step 3: Middle position: 21
+Step 4: Median = 193.64
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 44
+Outliers removed: 3
+Final studies used: 41
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $6.98/ha/year
+Maximum: $1141.40/ha/year
+Mean: $285.68/ha/year
+Median: $193.64/ha/year
+Std Dev: $326.52/ha/year
+
+============================================================
+
+Raw Materials Services
+--------------------------------------------------
+Target Coefficient: $425.00/ha/year
+Studies Found: 96
+Calculated Median: $25.34/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1346: $7.11/ha/year
+Study 1346: $6.52/ha/year
+Study 1346: $5.03/ha/year
+Study 1234: $796.43/ha/year
+Study 1233: $1332.52/ha/year
+Study 1232: $114.14/ha/year
+Study 1231: $134.37/ha/year
+Study 1231: $61.34/ha/year
+Study 1228: $87.92/ha/year
+Study 1228: $39.08/ha/year
+Study 1228: $34.89/ha/year
+Study 1199: $24.64/ha/year
+Study 1199: $2.76/ha/year
+Study 1140: $15.90/ha/year
+Study 1140: $26.00/ha/year
+Study 1131: $134.37/ha/year
+Study 1131: $61.34/ha/year
+Study 1126: $35.94/ha/year
+Study 1126: $36.09/ha/year
+Study 1126: $36.38/ha/year
+Study 1126: $36.68/ha/year
+Study 1126: $37.15/ha/year
+Study 1126: $35.96/ha/year
+Study 1126: $36.00/ha/year
+Study 1126: $36.15/ha/year
+Study 1126: $36.35/ha/year
+Study 1126: $36.70/ha/year
+Study 1124: $925.20/ha/year
+Study 1124: $2.75/ha/year
+Study 1120: $87.11/ha/year
+Study 1116: $16.56/ha/year
+Study 1116: $17.99/ha/year
+Study 956: $2.20/ha/year
+Study 956: $4.29/ha/year
+Study 956: $2.72/ha/year
+Study 956: $0.16/ha/year
+Study 956: $2.80/ha/year
+Study 956: $0.81/ha/year
+Study 956: $5.79/ha/year
+Study 956: $2.39/ha/year
+Study 956: $0.21/ha/year
+Study 956: $0.28/ha/year
+Study 956: $24.90/ha/year
+Study 956: $3.14/ha/year
+Study 956: $28.52/ha/year
+Study 956: $0.79/ha/year
+Study 956: $0.84/ha/year
+Study 956: $0.45/ha/year
+Study 956: $4.66/ha/year
+Study 956: $13.57/ha/year
+Study 956: $0.28/ha/year
+Study 956: $6.12/ha/year
+Study 956: $0.05/ha/year
+Study 956: $0.02/ha/year
+Study 956: $0.68/ha/year
+Study 956: $1.93/ha/year
+Study 956: $3.53/ha/year
+Study 956: $6.73/ha/year
+Study 956: $0.06/ha/year
+Study 956: $0.03/ha/year
+Study 956: $1.50/ha/year
+Study 956: $1.83/ha/year
+Study 956: $12.88/ha/year
+Study 956: $1.86/ha/year
+Study 956: $41.43/ha/year
+Study 951: $306.79/ha/year
+Study 951: $306.77/ha/year
+Study 951: $306.78/ha/year
+Study 935: $10.55/ha/year
+Study 935: $0.39/ha/year
+Study 935: $6.40/ha/year
+Study 935: $3.72/ha/year
+Study 935: $0.04/ha/year
+Study 923: $169.02/ha/year
+Study 923: $1686.01/ha/year
+Study 923: $282.43/ha/year
+Study 923: $492.22/ha/year
+Study 913: $452.47/ha/year
+Study 913: $549.85/ha/year
+Study 818: $220.03/ha/year
+Study 812: $29.26/ha/year
+Study 811: $38.78/ha/year
+Study 810: $24.77/ha/year
+Study 799: $104.71/ha/year
+Study 799: $23.80/ha/year
+Study 770: $382.64/ha/year
+Study 740: $82.14/ha/year
+Study 733: $8.04/ha/year
+Study 675: $77.37/ha/year
+Study 482: $597.00/ha/year
+Study 482: $326.02/ha/year
+Study 472: $105.69/ha/year
+Study 361: $580.80/ha/year
+Study 75: $106.37/ha/year
+Study 75: $25.79/ha/year
+Study 73: $1601.39/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0162, 0.0324, 0.0404, 0.0485, 0.0647, 0.1618, 0.2103, 0.275, 0.275, 0.3915, 0.453, 0.6795, 0.7927, 0.8089, 0.8412, 1.5045, 1.8281, 1.8604, 1.9251, 2.2001, 2.3943, 2.7178, 2.7451, 2.7592, 2.7987, 3.1384, 3.5267, 3.7232, 4.287, 4.6591, 5.0334, 5.7915, 6.1151, 6.3982, 6.5225, 6.7298, 7.1132, 8.0405, 10.5533, 12.8772, 13.5729, 15.8973, 16.5552, 17.9948, 23.7977, 24.6353, 24.7654, 24.8971, 25.7863, 26.0025, 28.5208, 29.2573, 34.8885, 35.9379, 35.9572, 36.003, 36.0857, 36.1477, 36.3501, 36.3797, 36.6811, 36.6951, 37.1536, 38.7801, 39.0752, 41.4304, 61.3437, 61.3437, 77.3656, 82.142, 87.1107, 87.9191, 104.7101, 105.6902, 106.3684, 114.1355, 134.3718, 134.3718, 169.0217, 220.0253, 282.4347, 306.7668, 306.781, 306.7852, 326.0235, 382.6371, 452.4681, 492.2233, 549.8537, 580.8041, 597.004, 796.4332, 925.1969, 1332.5218, 1601.3876, 1686.0086]
+Step 2: n = 96 (even number)
+Step 3: Middle positions: 48 and 49
+Step 4: Middle values: 24.90 and 25.79
+Step 5: Median = (24.90 + 25.79) / 2 = 25.34
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 99
+Outliers removed: 3
+Final studies used: 96
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.02/ha/year
+Maximum: $1686.01/ha/year
+Mean: $139.40/ha/year
+Median: $25.34/ha/year
+Std Dev: $307.66/ha/year
+
+============================================================
+
+================================================================================
+WETLAND ECOSYSTEM
+================================================================================
+
+Water Treatment Services
+--------------------------------------------------
+Target Coefficient: $1400.00/ha/year
+Studies Found: 41
+Calculated Median: $771.59/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1221: $629.06/ha/year
+Study 1212: $10.80/ha/year
+Study 826: $1282.19/ha/year
+Study 826: $382.96/ha/year
+Study 826: $3601.20/ha/year
+Study 826: $1282.19/ha/year
+Study 826: $382.96/ha/year
+Study 826: $3601.20/ha/year
+Study 826: $3601.20/ha/year
+Study 826: $1282.19/ha/year
+Study 826: $382.96/ha/year
+Study 826: $3601.20/ha/year
+Study 826: $382.96/ha/year
+Study 826: $1282.19/ha/year
+Study 826: $1282.19/ha/year
+Study 826: $382.96/ha/year
+Study 826: $3601.20/ha/year
+Study 826: $1039.65/ha/year
+Study 826: $306.36/ha/year
+Study 826: $51.06/ha/year
+Study 826: $3601.20/ha/year
+Study 826: $382.96/ha/year
+Study 826: $1282.19/ha/year
+Study 826: $771.59/ha/year
+Study 826: $306.36/ha/year
+Study 826: $218.43/ha/year
+Study 826: $19.86/ha/year
+Study 816: $4846.58/ha/year
+Study 816: $4072.26/ha/year
+Study 816: $3449.71/ha/year
+Study 635: $14.22/ha/year
+Study 635: $1.35/ha/year
+Study 635: $3.94/ha/year
+Study 449: $59087.38/ha/year
+Study 355: $37.63/ha/year
+Study 260: $53.13/ha/year
+Study 234: $64.81/ha/year
+Study 226: $3643.08/ha/year
+Study 225: $9683.59/ha/year
+Study 151: $1279.50/ha/year
+Study 111: $421.26/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [1.3507, 3.9429, 10.7968, 14.2157, 19.857, 37.6313, 51.0608, 53.1347, 64.8065, 218.4267, 306.3648, 306.3648, 382.9559, 382.9559, 382.9559, 382.9559, 382.9559, 382.9559, 421.2565, 629.0551, 771.5853, 1039.6545, 1279.496, 1282.1932, 1282.1932, 1282.1932, 1282.1932, 1282.1932, 1282.1932, 3449.7125, 3601.2042, 3601.2042, 3601.2042, 3601.2042, 3601.2042, 3601.2042, 3643.0812, 4072.2557, 4846.576, 9683.5881, 59087.3765]
+Step 2: n = 41 (odd number)
+Step 3: Middle position: 21
+Step 4: Median = 771.59
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 42
+Outliers removed: 1
+Final studies used: 41
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $1.35/ha/year
+Maximum: $59087.38/ha/year
+Mean: $2966.09/ha/year
+Median: $771.59/ha/year
+Std Dev: $9082.71/ha/year
+
+============================================================
+
+Climate Services
+--------------------------------------------------
+Target Coefficient: $407.07/ha/year
+Studies Found: 54
+Calculated Median: $402.60/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1350: $993.94/ha/year
+Study 1228: $12.56/ha/year
+Study 1228: $9.77/ha/year
+Study 1228: $6.98/ha/year
+Study 1228: $13.96/ha/year
+Study 1227: $507.68/ha/year
+Study 1227: $9879.35/ha/year
+Study 1227: $5184.33/ha/year
+Study 1223: $508.75/ha/year
+Study 1223: $95.10/ha/year
+Study 1214: $560.83/ha/year
+Study 1214: $906.43/ha/year
+Study 1212: $32.45/ha/year
+Study 1151: $3636.34/ha/year
+Study 1151: $3698.18/ha/year
+Study 1151: $3627.41/ha/year
+Study 1151: $3689.25/ha/year
+Study 1151: $390.95/ha/year
+Study 1151: $407.07/ha/year
+Study 1151: $382.02/ha/year
+Study 1151: $398.14/ha/year
+Study 1151: $429.79/ha/year
+Study 1151: $434.64/ha/year
+Study 1151: $420.86/ha/year
+Study 1151: $425.71/ha/year
+Study 1151: $724.30/ha/year
+Study 1151: $782.89/ha/year
+Study 1151: $430.36/ha/year
+Study 1151: $767.79/ha/year
+Study 952: $83.78/ha/year
+Study 845: $312.56/ha/year
+Study 817: $667.48/ha/year
+Study 816: $4846.58/ha/year
+Study 816: $4072.26/ha/year
+Study 816: $3449.71/ha/year
+Study 768: $0.09/ha/year
+Study 562: $279.52/ha/year
+Study 509: $261.89/ha/year
+Study 462: $34.54/ha/year
+Study 447: $2352.74/ha/year
+Study 404: $76.30/ha/year
+Study 397: $1698.50/ha/year
+Study 356: $0.23/ha/year
+Study 322: $358.16/ha/year
+Study 193: $109.45/ha/year
+Study 161: $159.46/ha/year
+Study 161: $75.97/ha/year
+Study 161: $5.15/ha/year
+Study 161: $51.57/ha/year
+Study 161: $112.82/ha/year
+Study 159: $23.96/ha/year
+Study 159: $190.01/ha/year
+Study 159: $437.76/ha/year
+Study 159: $74.38/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.09, 0.227, 5.1465, 6.9777, 9.7688, 12.5599, 13.9554, 23.9555, 32.4476, 34.54, 51.5681, 74.3759, 75.9748, 76.2958, 83.7763, 95.1046, 109.4519, 112.8223, 159.4557, 190.0121, 261.8864, 279.5211, 312.5605, 358.1633, 382.0167, 390.9496, 398.1364, 407.0699, 420.8601, 425.7077, 429.7937, 430.3567, 434.6406, 437.7605, 507.6788, 508.7526, 560.8257, 667.4774, 724.2962, 767.7938, 782.8881, 906.4321, 993.9389, 1698.4989, 2352.739, 3449.7125, 3627.4074, 3636.3406, 3689.251, 3698.1847, 4072.2557, 4846.576, 5184.3285, 9879.3489]
+Step 2: n = 54 (even number)
+Step 3: Middle positions: 27 and 28
+Step 4: Middle values: 398.14 and 407.07
+Step 5: Median = (398.14 + 407.07) / 2 = 402.60
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 57
+Outliers removed: 3
+Final studies used: 54
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.09/ha/year
+Maximum: $9879.35/ha/year
+Mean: $1094.31/ha/year
+Median: $402.60/ha/year
+Std Dev: $1830.39/ha/year
+
+============================================================
+
+Extreme Events Services
+--------------------------------------------------
+Target Coefficient: $890.00/ha/year
+Studies Found: 24
+Calculated Median: $368.58/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1011: $0.13/ha/year
+Study 1011: $0.16/ha/year
+Study 1011: $1.05/ha/year
+Study 1011: $3.42/ha/year
+Study 621: $3249.79/ha/year
+Study 621: $974.89/ha/year
+Study 617: $203.24/ha/year
+Study 599: $59.59/ha/year
+Study 460: $1429.64/ha/year
+Study 397: $1734.07/ha/year
+Study 391: $76.89/ha/year
+Study 391: $51.90/ha/year
+Study 391: $313.32/ha/year
+Study 391: $132.63/ha/year
+Study 314: $33.25/ha/year
+Study 284: $1042.81/ha/year
+Study 245: $5876.45/ha/year
+Study 198: $209.14/ha/year
+Study 170: $868.65/ha/year
+Study 101: $423.84/ha/year
+Study 101: $1059.60/ha/year
+Study 101: $847.68/ha/year
+Study 101: $2331.13/ha/year
+Study 58: $2500.64/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.1317, 0.1612, 1.0535, 3.4239, 33.2488, 51.8991, 59.5878, 76.8875, 132.6309, 203.2401, 209.1406, 313.3165, 423.8412, 847.6825, 868.6536, 974.8942, 1042.805, 1059.6031, 1429.6367, 1734.0749, 2331.1267, 2500.642, 3249.7893, 5876.4521]
+Step 2: n = 24 (even number)
+Step 3: Middle positions: 12 and 13
+Step 4: Middle values: 313.32 and 423.84
+Step 5: Median = (313.32 + 423.84) / 2 = 368.58
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 25
+Outliers removed: 1
+Final studies used: 24
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.13/ha/year
+Maximum: $5876.45/ha/year
+Mean: $976.00/ha/year
+Median: $368.58/ha/year
+Std Dev: $1353.97/ha/year
+
+============================================================
+
+================================================================================
+GRASSLAND ECOSYSTEM
+================================================================================
+
+Pollination Services
+--------------------------------------------------
+Target Coefficient: $280.00/ha/year
+Studies Found: 5
+Calculated Median: $71.23/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1059: $92.89/ha/year
+Study 1059: $95.89/ha/year
+Study 996: $71.23/ha/year
+Study 996: $44.20/ha/year
+Study 952: $22.97/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [22.9655, 44.2037, 71.234, 92.8908, 95.8873]
+Step 2: n = 5 (odd number)
+Step 3: Middle position: 3
+Step 4: Median = 71.23
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 6
+Outliers removed: 1
+Final studies used: 5
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $22.97/ha/year
+Maximum: $95.89/ha/year
+Mean: $65.44/ha/year
+Median: $71.23/ha/year
+Std Dev: $28.18/ha/year
+
+============================================================
+
+Recreation Services
+--------------------------------------------------
+Target Coefficient: $180.00/ha/year
+Studies Found: 42
+Calculated Median: $19.37/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1269: $19.34/ha/year
+Study 1238: $540.89/ha/year
+Study 1238: $288.42/ha/year
+Study 1202: $0.56/ha/year
+Study 1202: $0.56/ha/year
+Study 1189: $0.20/ha/year
+Study 1189: $0.03/ha/year
+Study 1150: $673.91/ha/year
+Study 1150: $19.40/ha/year
+Study 1150: $6.53/ha/year
+Study 1150: $478.59/ha/year
+Study 1150: $17.77/ha/year
+Study 1150: $7.07/ha/year
+Study 1147: $3696.91/ha/year
+Study 1147: $13512.83/ha/year
+Study 1147: $6246.50/ha/year
+Study 1147: $0.03/ha/year
+Study 1147: $0.26/ha/year
+Study 1142: $0.95/ha/year
+Study 1142: $88.70/ha/year
+Study 1142: $32.15/ha/year
+Study 1142: $170.61/ha/year
+Study 1134: $0.02/ha/year
+Study 1124: $32.24/ha/year
+Study 996: $1410.11/ha/year
+Study 996: $1092.46/ha/year
+Study 952: $294.55/ha/year
+Study 932: $1659.86/ha/year
+Study 932: $234.27/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 816: $5380.37/ha/year
+Study 768: $0.55/ha/year
+Study 489: $340.13/ha/year
+Study 160: $1.96/ha/year
+Study 160: $1.10/ha/year
+Study 160: $1.32/ha/year
+Study 160: $1.81/ha/year
+Study 160: $0.79/ha/year
+Study 160: $0.74/ha/year
+Study 46: $1.91/ha/year
+Study 46: $4.80/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0239, 0.0258, 0.0289, 0.1951, 0.2575, 0.5469, 0.5588, 0.5643, 0.737, 0.7874, 0.9455, 1.1009, 1.3161, 1.8105, 1.9148, 1.9639, 4.7985, 6.5288, 7.0728, 17.7727, 19.3382, 19.4049, 32.1475, 32.2426, 88.698, 170.6078, 234.2725, 288.4151, 294.5461, 340.1281, 478.5943, 540.8906, 673.913, 1092.4625, 1262.3363, 1410.11, 1659.8566, 2877.843, 3696.907, 5380.3682, 6246.4981, 13512.8326]
+Step 2: n = 42 (even number)
+Step 3: Middle positions: 21 and 22
+Step 4: Middle values: 19.34 and 19.40
+Step 5: Median = (19.34 + 19.40) / 2 = 19.37
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 43
+Outliers removed: 1
+Final studies used: 42
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.02/ha/year
+Maximum: $13512.83/ha/year
+Mean: $961.94/ha/year
+Median: $19.37/ha/year
+Std Dev: $2403.06/ha/year
+
+============================================================
+
+Soil Services
+--------------------------------------------------
+Target Coefficient: $165.00/ha/year
+Studies Found: 38
+Calculated Median: $386.48/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1269: $4.90/ha/year
+Study 1151: $287.28/ha/year
+Study 1151: $245.12/ha/year
+Study 1151: $1.71/ha/year
+Study 1151: $143.59/ha/year
+Study 1151: $12.98/ha/year
+Study 1151: $310.66/ha/year
+Study 1151: $180.05/ha/year
+Study 1151: $7.75/ha/year
+Study 1151: $438.31/ha/year
+Study 1151: $422.60/ha/year
+Study 1151: $453.86/ha/year
+Study 1151: $462.63/ha/year
+Study 1151: $0.90/ha/year
+Study 1151: $4.71/ha/year
+Study 1151: $4.71/ha/year
+Study 1151: $3636.34/ha/year
+Study 1151: $3698.18/ha/year
+Study 1151: $3627.41/ha/year
+Study 1151: $3689.25/ha/year
+Study 1151: $390.95/ha/year
+Study 1151: $407.07/ha/year
+Study 1151: $382.02/ha/year
+Study 1151: $398.14/ha/year
+Study 1151: $429.79/ha/year
+Study 1151: $434.64/ha/year
+Study 1151: $420.86/ha/year
+Study 1151: $425.71/ha/year
+Study 1151: $724.30/ha/year
+Study 1151: $782.89/ha/year
+Study 1151: $430.36/ha/year
+Study 1151: $767.79/ha/year
+Study 1142: $0.95/ha/year
+Study 1142: $88.70/ha/year
+Study 1142: $32.15/ha/year
+Study 1142: $170.61/ha/year
+Study 952: $41.87/ha/year
+Study 952: $346.37/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.8966, 0.9455, 1.7129, 4.7085, 4.7085, 4.8978, 7.7542, 12.9765, 32.1475, 41.8695, 88.698, 143.5916, 170.6078, 180.0478, 245.1174, 287.2837, 310.6619, 346.3729, 382.0167, 390.9496, 398.1364, 407.0699, 420.8601, 422.6042, 425.7077, 429.7937, 430.3567, 434.6406, 438.3053, 453.8633, 462.6312, 724.2962, 767.7938, 782.8881, 3627.4074, 3636.3406, 3689.251, 3698.1847]
+Step 2: n = 38 (even number)
+Step 3: Middle positions: 19 and 20
+Step 4: Middle values: 382.02 and 390.95
+Step 5: Median = (382.02 + 390.95) / 2 = 386.48
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 40
+Outliers removed: 2
+Final studies used: 38
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.90/ha/year
+Maximum: $3698.18/ha/year
+Mean: $639.69/ha/year
+Median: $386.48/ha/year
+Std Dev: $1059.16/ha/year
+
+============================================================
+
+================================================================================
+COASTAL ECOSYSTEM
+================================================================================
+
+Erosion Services
+--------------------------------------------------
+Target Coefficient: $1800.00/ha/year
+Studies Found: 13
+Calculated Median: $103.46/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1362: $3076.24/ha/year
+Study 804: $919.72/ha/year
+Study 674: $249.08/ha/year
+Study 609: $0.00/ha/year
+Study 546: $102.08/ha/year
+Study 512: $57.23/ha/year
+Study 512: $964.16/ha/year
+Study 512: $103.46/ha/year
+Study 509: $11.39/ha/year
+Study 460: $1429.64/ha/year
+Study 404: $52.62/ha/year
+Study 281: $1989.52/ha/year
+Study 175: $16.23/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0, 11.3864, 16.225, 52.6224, 57.233, 102.0836, 103.4597, 249.0751, 919.7193, 964.1564, 1429.6367, 1989.5152, 3076.2385]
+Step 2: n = 13 (odd number)
+Step 3: Middle position: 7
+Step 4: Median = 103.46
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 14
+Outliers removed: 1
+Final studies used: 13
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.00/ha/year
+Maximum: $3076.24/ha/year
+Mean: $690.10/ha/year
+Median: $103.46/ha/year
+Std Dev: $925.67/ha/year
+
+============================================================
+
+Recreation Services
+--------------------------------------------------
+Target Coefficient: $380.00/ha/year
+Studies Found: 605
+Calculated Median: $217.23/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1362: $27.22/ha/year
+Study 1312: $425.74/ha/year
+Study 1289: $80.47/ha/year
+Study 1289: $0.74/ha/year
+Study 1289: $99.67/ha/year
+Study 1287: $1.59/ha/year
+Study 1256: $911.45/ha/year
+Study 1256: $2969.72/ha/year
+Study 1256: $8.46/ha/year
+Study 1256: $8.46/ha/year
+Study 1238: $31030.08/ha/year
+Study 1185: $23.22/ha/year
+Study 1174: $585.97/ha/year
+Study 1174: $751.22/ha/year
+Study 1174: $15.46/ha/year
+Study 1174: $18.12/ha/year
+Study 1174: $879.37/ha/year
+Study 1174: $1044.09/ha/year
+Study 1174: $11.16/ha/year
+Study 1174: $13.64/ha/year
+Study 1150: $673.91/ha/year
+Study 1150: $19.40/ha/year
+Study 1150: $6.53/ha/year
+Study 1150: $478.59/ha/year
+Study 1150: $17.77/ha/year
+Study 1150: $7.07/ha/year
+Study 1141: $207.94/ha/year
+Study 1093: $54.14/ha/year
+Study 1093: $6213.40/ha/year
+Study 1091: $4357.61/ha/year
+Study 1080: $0.32/ha/year
+Study 1080: $0.64/ha/year
+Study 1080: $6.13/ha/year
+Study 1080: $6.28/ha/year
+Study 1080: $12.33/ha/year
+Study 1080: $15.07/ha/year
+Study 1080: $3.10/ha/year
+Study 1080: $1.98/ha/year
+Study 1080: $26.50/ha/year
+Study 1080: $5.49/ha/year
+Study 1080: $38.27/ha/year
+Study 1080: $188.72/ha/year
+Study 1080: $3.96/ha/year
+Study 1080: $7.03/ha/year
+Study 1080: $75.84/ha/year
+Study 1080: $34.63/ha/year
+Study 1080: $1626.82/ha/year
+Study 1080: $0.43/ha/year
+Study 1074: $0.13/ha/year
+Study 1074: $26.75/ha/year
+Study 1074: $217.23/ha/year
+Study 1074: $886.77/ha/year
+Study 1066: $741.16/ha/year
+Study 1066: $32033.74/ha/year
+Study 1065: $92.49/ha/year
+Study 1065: $878.59/ha/year
+Study 1065: $271.75/ha/year
+Study 1060: $28.89/ha/year
+Study 1060: $2.03/ha/year
+Study 1044: $1874.75/ha/year
+Study 1044: $1368.77/ha/year
+Study 1011: $0.18/ha/year
+Study 1011: $0.98/ha/year
+Study 1011: $3.63/ha/year
+Study 1011: $0.13/ha/year
+Study 979: $101.08/ha/year
+Study 979: $266.89/ha/year
+Study 979: $82.58/ha/year
+Study 972: $2976.25/ha/year
+Study 972: $8749.10/ha/year
+Study 972: $2208.54/ha/year
+Study 932: $30466.04/ha/year
+Study 932: $8567.70/ha/year
+Study 932: $10044.18/ha/year
+Study 893: $52.37/ha/year
+Study 891: $911.86/ha/year
+Study 891: $253.29/ha/year
+Study 891: $10837.92/ha/year
+Study 888: $1.25/ha/year
+Study 888: $308.30/ha/year
+Study 887: $10.40/ha/year
+Study 883: $43.85/ha/year
+Study 882: $0.19/ha/year
+Study 882: $2.87/ha/year
+Study 879: $287.18/ha/year
+Study 878: $889.53/ha/year
+Study 870: $9.93/ha/year
+Study 870: $16.55/ha/year
+Study 870: $9.93/ha/year
+Study 870: $73.62/ha/year
+Study 870: $110.43/ha/year
+Study 864: $16114.17/ha/year
+Study 863: $936.20/ha/year
+Study 844: $4.80/ha/year
+Study 844: $34.56/ha/year
+Study 844: $46.39/ha/year
+Study 842: $173.05/ha/year
+Study 837: $18.40/ha/year
+Study 837: $30.85/ha/year
+Study 837: $33.28/ha/year
+Study 837: $14.67/ha/year
+Study 837: $12.77/ha/year
+Study 837: $20.55/ha/year
+Study 837: $30.26/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 826: $1262.34/ha/year
+Study 826: $2877.84/ha/year
+Study 824: $32.66/ha/year
+Study 816: $207.09/ha/year
+Study 816: $24432.25/ha/year
+Study 816: $10346.57/ha/year
+Study 816: $3449.71/ha/year
+Study 813: $10.87/ha/year
+Study 813: $1.09/ha/year
+Study 813: $1.36/ha/year
+Study 806: $593.49/ha/year
+Study 805: $1010.71/ha/year
+Study 802: $19680.24/ha/year
+Study 802: $2683.88/ha/year
+Study 800: $1762.27/ha/year
+Study 800: $3524.55/ha/year
+Study 795: $325.89/ha/year
+Study 795: $325.89/ha/year
+Study 795: $3676.45/ha/year
+Study 795: $919.11/ha/year
+Study 792: $12.30/ha/year
+Study 790: $3767.96/ha/year
+Study 790: $13676.31/ha/year
+Study 790: $6977.71/ha/year
+Study 790: $3907.52/ha/year
+Study 790: $8233.70/ha/year
+Study 790: $6279.94/ha/year
+Study 789: $55.75/ha/year
+Study 781: $2.26/ha/year
+Study 781: $84.69/ha/year
+Study 768: $0.67/ha/year
+Study 768: $0.55/ha/year
+Study 758: $5355.43/ha/year
+Study 756: $8.71/ha/year
+Study 756: $1.14/ha/year
+Study 750: $5678.38/ha/year
+Study 743: $5881.66/ha/year
+Study 738: $5.02/ha/year
+Study 738: $7128.39/ha/year
+Study 738: $15.68/ha/year
+Study 738: $1.15/ha/year
+Study 738: $1.83/ha/year
+Study 738: $30.86/ha/year
+Study 738: $5.56/ha/year
+Study 738: $1.98/ha/year
+Study 738: $141.97/ha/year
+Study 738: $53.50/ha/year
+Study 738: $73.41/ha/year
+Study 738: $39.52/ha/year
+Study 738: $13346.60/ha/year
+Study 738: $1868.52/ha/year
+Study 738: $37.37/ha/year
+Study 738: $153.80/ha/year
+Study 738: $51.27/ha/year
+Study 738: $53.39/ha/year
+Study 738: $230.69/ha/year
+Study 738: $101.43/ha/year
+Study 738: $3292.15/ha/year
+Study 738: $212.19/ha/year
+Study 738: $13.83/ha/year
+Study 738: $6.92/ha/year
+Study 738: $13.31/ha/year
+Study 737: $0.14/ha/year
+Study 737: $0.15/ha/year
+Study 737: $0.15/ha/year
+Study 737: $0.14/ha/year
+Study 737: $0.14/ha/year
+Study 737: $0.16/ha/year
+Study 737: $0.14/ha/year
+Study 737: $0.14/ha/year
+Study 735: $418.23/ha/year
+Study 732: $0.04/ha/year
+Study 732: $0.07/ha/year
+Study 732: $0.16/ha/year
+Study 732: $0.10/ha/year
+Study 732: $0.68/ha/year
+Study 732: $0.41/ha/year
+Study 731: $1.88/ha/year
+Study 730: $0.07/ha/year
+Study 730: $0.12/ha/year
+Study 730: $8.74/ha/year
+Study 730: $1.02/ha/year
+Study 730: $93.99/ha/year
+Study 729: $5479.54/ha/year
+Study 728: $0.02/ha/year
+Study 726: $2.86/ha/year
+Study 726: $0.01/ha/year
+Study 726: $0.40/ha/year
+Study 726: $0.00/ha/year
+Study 726: $0.20/ha/year
+Study 726: $191.55/ha/year
+Study 720: $0.15/ha/year
+Study 718: $1.63/ha/year
+Study 718: $0.05/ha/year
+Study 715: $9830.39/ha/year
+Study 715: $9830.39/ha/year
+Study 715: $9828.26/ha/year
+Study 715: $9830.39/ha/year
+Study 715: $9830.39/ha/year
+Study 715: $9830.23/ha/year
+Study 715: $84.34/ha/year
+Study 715: $9814.96/ha/year
+Study 715: $9.90/ha/year
+Study 715: $9899.22/ha/year
+Study 715: $9830.39/ha/year
+Study 714: $0.62/ha/year
+Study 714: $0.00/ha/year
+Study 714: $1.82/ha/year
+Study 714: $3.27/ha/year
+Study 714: $5.04/ha/year
+Study 714: $0.00/ha/year
+Study 713: $0.05/ha/year
+Study 713: $0.01/ha/year
+Study 713: $0.06/ha/year
+Study 713: $0.01/ha/year
+Study 712: $3.37/ha/year
+Study 712: $1.55/ha/year
+Study 711: $16.31/ha/year
+Study 711: $954.99/ha/year
+Study 711: $1928.70/ha/year
+Study 711: $2209.58/ha/year
+Study 711: $14.37/ha/year
+Study 711: $7.09/ha/year
+Study 710: $69.31/ha/year
+Study 706: $3.54/ha/year
+Study 706: $0.06/ha/year
+Study 705: $0.08/ha/year
+Study 705: $0.09/ha/year
+Study 702: $301.65/ha/year
+Study 702: $171.85/ha/year
+Study 702: $129.80/ha/year
+Study 684: $65.72/ha/year
+Study 684: $176.62/ha/year
+Study 682: $21.93/ha/year
+Study 682: $10416.94/ha/year
+Study 680: $1930.64/ha/year
+Study 680: $7535.74/ha/year
+Study 677: $6255.34/ha/year
+Study 677: $296.18/ha/year
+Study 677: $356.04/ha/year
+Study 671: $1429.19/ha/year
+Study 670: $0.07/ha/year
+Study 670: $0.08/ha/year
+Study 669: $6268.66/ha/year
+Study 669: $1356.31/ha/year
+Study 666: $886.15/ha/year
+Study 659: $5712.78/ha/year
+Study 645: $11157.85/ha/year
+Study 645: $634.34/ha/year
+Study 645: $13207.25/ha/year
+Study 644: $21.71/ha/year
+Study 643: $0.08/ha/year
+Study 625: $89.30/ha/year
+Study 622: $1.06/ha/year
+Study 616: $152.24/ha/year
+Study 611: $267.51/ha/year
+Study 610: $340.72/ha/year
+Study 605: $10.01/ha/year
+Study 604: $114.67/ha/year
+Study 601: $1708.52/ha/year
+Study 601: $406.43/ha/year
+Study 601: $2396.10/ha/year
+Study 601: $5813.67/ha/year
+Study 601: $451.82/ha/year
+Study 595: $1741.48/ha/year
+Study 593: $162.34/ha/year
+Study 593: $3031.05/ha/year
+Study 593: $15.68/ha/year
+Study 589: $2905.01/ha/year
+Study 588: $71.39/ha/year
+Study 588: $83.69/ha/year
+Study 586: $521.23/ha/year
+Study 570: $0.00/ha/year
+Study 569: $178.59/ha/year
+Study 569: $2117.14/ha/year
+Study 569: $1009.17/ha/year
+Study 562: $31.45/ha/year
+Study 562: $1706.66/ha/year
+Study 557: $28766.26/ha/year
+Study 557: $91.71/ha/year
+Study 557: $917.15/ha/year
+Study 557: $8502.22/ha/year
+Study 557: $1546.76/ha/year
+Study 552: $138.84/ha/year
+Study 523: $303.73/ha/year
+Study 523: $1407.83/ha/year
+Study 522: $83.62/ha/year
+Study 520: $1413.50/ha/year
+Study 520: $598.92/ha/year
+Study 519: $472.71/ha/year
+Study 499: $2221.79/ha/year
+Study 491: $7344.12/ha/year
+Study 491: $16849.81/ha/year
+Study 487: $7.58/ha/year
+Study 487: $25.25/ha/year
+Study 486: $1752.87/ha/year
+Study 480: $1250.48/ha/year
+Study 480: $271.19/ha/year
+Study 480: $188.32/ha/year
+Study 480: $22.60/ha/year
+Study 438: $2.21/ha/year
+Study 435: $178.94/ha/year
+Study 435: $107.71/ha/year
+Study 430: $0.00/ha/year
+Study 426: $2652.90/ha/year
+Study 423: $100.86/ha/year
+Study 423: $3794.69/ha/year
+Study 420: $2628.83/ha/year
+Study 407: $17.97/ha/year
+Study 404: $2541.30/ha/year
+Study 404: $578.85/ha/year
+Study 404: $1223.57/ha/year
+Study 394: $2971.72/ha/year
+Study 389: $15149.15/ha/year
+Study 389: $9089.87/ha/year
+Study 389: $16296.43/ha/year
+Study 389: $9777.58/ha/year
+Study 378: $632.81/ha/year
+Study 371: $303.84/ha/year
+Study 371: $729.22/ha/year
+Study 371: $304.16/ha/year
+Study 369: $1642.54/ha/year
+Study 369: $388.47/ha/year
+Study 362: $2258.15/ha/year
+Study 359: $1.91/ha/year
+Study 359: $0.58/ha/year
+Study 359: $0.45/ha/year
+Study 359: $1657.81/ha/year
+Study 359: $2152.71/ha/year
+Study 359: $659.63/ha/year
+Study 359: $17276.99/ha/year
+Study 359: $1.41/ha/year
+Study 359: $2298.36/ha/year
+Study 359: $3821.43/ha/year
+Study 359: $120.89/ha/year
+Study 359: $4899.92/ha/year
+Study 359: $16.12/ha/year
+Study 359: $838.49/ha/year
+Study 359: $1113.83/ha/year
+Study 359: $455.63/ha/year
+Study 359: $32057.23/ha/year
+Study 359: $13445.77/ha/year
+Study 359: $1949.21/ha/year
+Study 359: $14.51/ha/year
+Study 359: $46.12/ha/year
+Study 359: $40.89/ha/year
+Study 359: $130.40/ha/year
+Study 359: $561.74/ha/year
+Study 359: $657.93/ha/year
+Study 359: $26.36/ha/year
+Study 359: $237.32/ha/year
+Study 359: $0.62/ha/year
+Study 359: $17.77/ha/year
+Study 359: $48.81/ha/year
+Study 359: $63.33/ha/year
+Study 359: $37.43/ha/year
+Study 359: $2055.23/ha/year
+Study 359: $26.72/ha/year
+Study 359: $1271.04/ha/year
+Study 359: $10698.22/ha/year
+Study 359: $18.37/ha/year
+Study 359: $85.33/ha/year
+Study 359: $25.47/ha/year
+Study 359: $20.98/ha/year
+Study 359: $29.41/ha/year
+Study 359: $80.55/ha/year
+Study 359: $248.09/ha/year
+Study 359: $9.60/ha/year
+Study 359: $4.42/ha/year
+Study 359: $56.86/ha/year
+Study 359: $46.38/ha/year
+Study 359: $13.73/ha/year
+Study 359: $19.49/ha/year
+Study 359: $592.63/ha/year
+Study 359: $62.73/ha/year
+Study 359: $857.06/ha/year
+Study 359: $193.06/ha/year
+Study 359: $49.02/ha/year
+Study 359: $4127.56/ha/year
+Study 359: $2449.82/ha/year
+Study 359: $3191.75/ha/year
+Study 359: $12.04/ha/year
+Study 359: $22.94/ha/year
+Study 359: $177.18/ha/year
+Study 359: $1187.19/ha/year
+Study 359: $1.31/ha/year
+Study 359: $34520.29/ha/year
+Study 359: $37.76/ha/year
+Study 359: $213.90/ha/year
+Study 359: $4.44/ha/year
+Study 359: $3105.03/ha/year
+Study 359: $881.87/ha/year
+Study 359: $2555.15/ha/year
+Study 359: $11.14/ha/year
+Study 359: $3.59/ha/year
+Study 359: $1662.00/ha/year
+Study 359: $63.91/ha/year
+Study 359: $858.19/ha/year
+Study 359: $130.76/ha/year
+Study 359: $170.05/ha/year
+Study 359: $1444.90/ha/year
+Study 359: $3136.85/ha/year
+Study 359: $795.34/ha/year
+Study 359: $5491.35/ha/year
+Study 359: $1033.14/ha/year
+Study 359: $261.80/ha/year
+Study 359: $164.12/ha/year
+Study 359: $28.87/ha/year
+Study 359: $10780.57/ha/year
+Study 359: $176.82/ha/year
+Study 359: $5.97/ha/year
+Study 359: $418.47/ha/year
+Study 359: $207.20/ha/year
+Study 359: $232.31/ha/year
+Study 359: $1990.80/ha/year
+Study 359: $5647.52/ha/year
+Study 359: $6898.82/ha/year
+Study 359: $8.98/ha/year
+Study 359: $3271.60/ha/year
+Study 359: $31.27/ha/year
+Study 359: $3274.60/ha/year
+Study 359: $24630.61/ha/year
+Study 359: $7.40/ha/year
+Study 359: $15.57/ha/year
+Study 359: $36.72/ha/year
+Study 359: $5.46/ha/year
+Study 359: $100.26/ha/year
+Study 359: $1856.65/ha/year
+Study 359: $1.99/ha/year
+Study 359: $17.14/ha/year
+Study 359: $2.34/ha/year
+Study 359: $5.99/ha/year
+Study 359: $3.40/ha/year
+Study 359: $49.98/ha/year
+Study 359: $5.70/ha/year
+Study 359: $35.94/ha/year
+Study 359: $15.51/ha/year
+Study 359: $64.08/ha/year
+Study 359: $2595.32/ha/year
+Study 359: $5420.23/ha/year
+Study 359: $561.49/ha/year
+Study 359: $3353.96/ha/year
+Study 359: $203.63/ha/year
+Study 359: $18248.36/ha/year
+Study 359: $18.81/ha/year
+Study 359: $474.75/ha/year
+Study 351: $12.59/ha/year
+Study 340: $185.03/ha/year
+Study 334: $687.16/ha/year
+Study 334: $687.16/ha/year
+Study 332: $57.62/ha/year
+Study 321: $237.33/ha/year
+Study 321: $68.69/ha/year
+Study 321: $23.15/ha/year
+Study 321: $8.11/ha/year
+Study 319: $19.92/ha/year
+Study 313: $7.37/ha/year
+Study 312: $3836.38/ha/year
+Study 311: $1412.30/ha/year
+Study 290: $980.18/ha/year
+Study 279: $1402.02/ha/year
+Study 271: $420.13/ha/year
+Study 258: $15292.68/ha/year
+Study 258: $17131.67/ha/year
+Study 258: $12389.01/ha/year
+Study 258: $11288.03/ha/year
+Study 258: $30937.95/ha/year
+Study 258: $31305.23/ha/year
+Study 258: $31391.65/ha/year
+Study 258: $29166.36/ha/year
+Study 257: $413.98/ha/year
+Study 245: $5876.45/ha/year
+Study 240: $40.47/ha/year
+Study 236: $0.04/ha/year
+Study 234: $615.16/ha/year
+Study 233: $32.98/ha/year
+Study 233: $17.18/ha/year
+Study 229: $25643.40/ha/year
+Study 227: $42.43/ha/year
+Study 227: $367.22/ha/year
+Study 227: $9445.77/ha/year
+Study 227: $738.74/ha/year
+Study 227: $238.23/ha/year
+Study 227: $18290.56/ha/year
+Study 226: $119.19/ha/year
+Study 210: $479.44/ha/year
+Study 210: $2532.57/ha/year
+Study 209: $389.22/ha/year
+Study 209: $2823.94/ha/year
+Study 201: $278.13/ha/year
+Study 201: $20377.16/ha/year
+Study 192: $121.41/ha/year
+Study 191: $11855.25/ha/year
+Study 182: $1882.13/ha/year
+Study 177: $18435.08/ha/year
+Study 175: $5.56/ha/year
+Study 173: $20.77/ha/year
+Study 170: $290.41/ha/year
+Study 169: $308.74/ha/year
+Study 169: $193.52/ha/year
+Study 169: $99.01/ha/year
+Study 168: $92.98/ha/year
+Study 167: $2148.60/ha/year
+Study 163: $335.06/ha/year
+Study 163: $261.83/ha/year
+Study 160: $1.96/ha/year
+Study 160: $1.10/ha/year
+Study 160: $1.32/ha/year
+Study 160: $1.81/ha/year
+Study 160: $0.79/ha/year
+Study 160: $0.74/ha/year
+Study 149: $15461.83/ha/year
+Study 147: $20993.01/ha/year
+Study 147: $23212.63/ha/year
+Study 147: $33551.42/ha/year
+Study 146: $40.97/ha/year
+Study 146: $13.04/ha/year
+Study 143: $619.85/ha/year
+Study 143: $154.96/ha/year
+Study 140: $94.71/ha/year
+Study 140: $254.99/ha/year
+Study 140: $101.99/ha/year
+Study 137: $1011.00/ha/year
+Study 137: $6.03/ha/year
+Study 132: $4111.63/ha/year
+Study 129: $11.21/ha/year
+Study 129: $0.21/ha/year
+Study 108: $33951.02/ha/year
+Study 98: $166.70/ha/year
+Study 91: $9483.22/ha/year
+Study 88: $52.96/ha/year
+Study 87: $2807.52/ha/year
+Study 87: $4005.39/ha/year
+Study 83: $215.87/ha/year
+Study 82: $21162.08/ha/year
+Study 81: $42140.12/ha/year
+Study 81: $6388.42/ha/year
+Study 80: $4342.52/ha/year
+Study 80: $657.33/ha/year
+Study 77: $1409.38/ha/year
+Study 55: $1495.34/ha/year
+Study 50: $945.96/ha/year
+Study 48: $10.49/ha/year
+Study 39: $24.49/ha/year
+Study 38: $2693.02/ha/year
+Study 38: $2693.02/ha/year
+Study 35: $2835.95/ha/year
+Study 35: $657.15/ha/year
+Study 35: $632.58/ha/year
+Study 35: $1790.74/ha/year
+Study 35: $1778.05/ha/year
+Study 35: $3173.56/ha/year
+Study 35: $3091.76/ha/year
+Study 35: $2880.96/ha/year
+Study 20: $22796.61/ha/year
+Study 20: $10234.96/ha/year
+Study 20: $60.07/ha/year
+Study 17: $709.90/ha/year
+Study 17: $161.31/ha/year
+Study 17: $870.01/ha/year
+Study 17: $640.42/ha/year
+Study 17: $36.25/ha/year
+Study 17: $111.97/ha/year
+Study 16: $975.14/ha/year
+Study 15: $23.99/ha/year
+Study 3: $6122.52/ha/year
+Study 3: $183.07/ha/year
+Study 3: $5984.36/ha/year
+Study 3: $179.63/ha/year
+Study 3: $5644.80/ha/year
+Study 3: $176.94/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.0, 0.0, 0.0005, 0.0025, 0.0043, 0.0058, 0.0062, 0.0075, 0.0205, 0.0403, 0.0414, 0.0513, 0.0549, 0.0596, 0.0624, 0.0672, 0.0686, 0.0728, 0.0765, 0.0804, 0.0812, 0.0934, 0.1034, 0.1162, 0.1317, 0.1324, 0.1416, 0.1416, 0.142, 0.144, 0.1445, 0.146, 0.1513, 0.155, 0.1572, 0.1603, 0.1801, 0.1883, 0.202, 0.2112, 0.3193, 0.404, 0.4086, 0.4294, 0.4503, 0.5469, 0.582, 0.6173, 0.6239, 0.6422, 0.6746, 0.6827, 0.737, 0.7383, 0.7874, 0.9797, 1.0179, 1.0582, 1.087, 1.1009, 1.1449, 1.15, 1.2474, 1.3086, 1.3161, 1.3588, 1.4147, 1.5522, 1.5931, 1.6301, 1.8105, 1.816, 1.8254, 1.8825, 1.9072, 1.9639, 1.9758, 1.9818, 1.9937, 2.0311, 2.2082, 2.2631, 2.3414, 2.8556, 2.8749, 3.0974, 3.266, 3.3744, 3.4019, 3.5415, 3.5873, 3.6346, 3.9599, 4.4151, 4.4428, 4.7997, 5.0198, 5.039, 5.4557, 5.4866, 5.5555, 5.5565, 5.704, 5.9714, 5.9892, 6.0298, 6.1288, 6.2756, 6.5288, 6.9155, 7.028, 7.0728, 7.0864, 7.3713, 7.397, 7.5837, 8.1128, 8.4608, 8.4608, 8.7085, 8.7381, 8.9771, 9.5981, 9.8972, 9.9275, 9.9275, 10.0082, 10.3968, 10.4883, 10.8704, 11.1406, 11.157, 11.208, 12.0441, 12.3049, 12.3347, 12.5871, 12.7666, 13.0351, 13.3063, 13.6389, 13.7331, 13.8309, 14.3675, 14.5091, 14.6698, 15.0689, 15.4598, 15.5078, 15.5687, 15.6825, 15.6825, 16.1248, 16.3064, 16.5464, 17.1424, 17.1758, 17.7727, 17.7729, 17.9709, 18.1157, 18.3721, 18.3958, 18.8074, 19.4049, 19.4911, 19.9197, 20.5491, 20.7741, 20.9846, 21.7079, 21.9293, 22.599, 22.9372, 23.1469, 23.2165, 23.9873, 24.4887, 25.2541, 25.4665, 26.3621, 26.5008, 26.7165, 26.7525, 27.2178, 28.8684, 28.8867, 29.4057, 30.2591, 30.8478, 30.8639, 31.2672, 31.4466, 32.6636, 32.978, 33.2834, 34.562, 34.6297, 35.9352, 36.2503, 36.724, 37.3705, 37.4257, 37.7628, 38.2667, 39.5169, 40.4674, 40.8879, 40.9709, 42.4339, 43.8519, 46.1158, 46.3838, 46.3943, 48.812, 49.0188, 49.9835, 51.2654, 52.3722, 52.963, 53.3864, 53.4974, 54.1424, 55.7503, 56.8571, 57.6238, 60.0747, 62.7279, 63.3338, 63.9111, 64.0845, 65.7192, 68.685, 69.3091, 71.3907, 73.4076, 73.6212, 75.836, 80.4721, 80.5548, 82.5788, 83.6171, 83.6892, 84.3376, 84.686, 85.3314, 89.2958, 91.7149, 92.4894, 92.9815, 93.9949, 94.7089, 99.0123, 99.6673, 100.2624, 100.8642, 101.0788, 101.4342, 101.9942, 107.7091, 110.4318, 111.9663, 114.6663, 119.1872, 120.8921, 121.4111, 129.8015, 130.4012, 130.7618, 138.8439, 141.9738, 152.2398, 153.7963, 154.9633, 161.3138, 162.344, 164.116, 166.7042, 170.0453, 171.8499, 173.0472, 176.6203, 176.8242, 176.9364, 177.1807, 178.5869, 178.9417, 179.6314, 183.0654, 185.0303, 188.3247, 188.7203, 191.5457, 193.0563, 193.524, 203.633, 207.0856, 207.1985, 207.9418, 212.1939, 213.9002, 215.8651, 217.2262, 230.6944, 232.3082, 237.3223, 237.3272, 238.2311, 248.0925, 253.2936, 254.9854, 261.7974, 261.8266, 266.8887, 267.5106, 271.1876, 271.7541, 278.1271, 287.1844, 290.4112, 296.1751, 301.6513, 303.728, 303.8424, 304.158, 308.3004, 308.7384, 325.8881, 325.8881, 335.0649, 340.7178, 356.0403, 367.2195, 388.4735, 389.2228, 406.4327, 413.9774, 418.2301, 418.4719, 420.1278, 425.7402, 451.8152, 455.6297, 472.7115, 474.7542, 478.5943, 479.4404, 521.2291, 561.4881, 561.7367, 578.8469, 585.9717, 592.632, 593.4873, 598.9198, 615.1609, 619.8533, 632.5765, 632.8097, 634.3384, 640.4218, 657.1539, 657.3264, 657.932, 659.6265, 673.913, 687.1583, 687.1649, 709.9015, 729.2217, 738.7356, 741.1588, 751.2191, 795.343, 838.4889, 857.0555, 858.1903, 870.007, 878.5929, 879.3729, 881.8666, 886.1478, 886.7717, 889.5323, 911.4465, 911.8621, 917.1493, 919.1112, 936.1988, 945.9628, 954.9875, 975.1408, 980.1804, 1009.1693, 1010.7066, 1011.0004, 1033.1381, 1044.0883, 1113.8261, 1187.1875, 1223.5733, 1250.4761, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1262.3363, 1271.0427, 1356.3098, 1368.774, 1402.0187, 1407.8306, 1409.3814, 1412.2966, 1413.4977, 1429.1851, 1444.8961, 1495.3387, 1546.76, 1626.8198, 1642.544, 1657.8124, 1662.0048, 1706.6623, 1708.5225, 1741.4833, 1752.8737, 1762.2732, 1778.0529, 1790.7445, 1856.6541, 1868.5244, 1874.7541, 1882.1343, 1928.7002, 1930.6448, 1949.2145, 1990.7997, 2055.2286, 2117.1385, 2148.6012, 2152.7114, 2208.5385, 2209.5789, 2221.7897, 2258.1451, 2298.358, 2396.1021, 2449.8159, 2532.5732, 2541.2989, 2555.1453, 2595.3229, 2628.8341, 2652.9007, 2683.8805, 2693.022, 2693.022, 2807.5183, 2823.9355, 2835.9478, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2877.843, 2880.9585, 2905.0139, 2969.7247, 2971.715, 2976.2456, 3031.0494, 3091.7604, 3105.0293, 3136.847, 3173.5606, 3191.748, 3271.6041, 3274.5987, 3292.147, 3353.9557, 3449.7125, 3524.5463, 3676.445, 3767.9631, 3794.69, 3821.4306, 3836.3829, 3907.5173, 4005.3928, 4111.6322, 4127.5616, 4342.5241, 4357.6149, 4899.9197, 5355.4311, 5420.232, 5479.5406, 5491.3538, 5644.8, 5647.5241, 5678.3793, 5712.7848, 5813.6686, 5876.4521, 5881.6577, 5984.3625, 6122.5205, 6213.3953, 6255.3391, 6268.6585, 6279.9386, 6388.4188, 6898.8174, 6977.7095, 7128.3867, 7344.1228, 7535.7424, 8233.6972, 8502.2222, 8567.699, 8749.097, 9089.8699, 9445.7737, 9483.219, 9777.5819, 9814.9634, 9828.2617, 9830.2298, 9830.3852, 9830.3852, 9830.3852, 9830.3852, 9830.3852, 9899.218, 10044.1785, 10234.9554, 10346.565, 10416.9429, 10698.2204, 10780.572, 10837.9157, 11157.8498, 11288.0312, 11855.2508, 12389.0075, 13207.2507, 13346.603, 13445.7689, 13676.3107, 15149.1469, 15292.6811, 15461.8251, 16114.169, 16296.4311, 16849.8058, 17131.6744, 17276.9895, 18248.364, 18290.5627, 18435.0765, 19680.2402, 20377.163, 20993.005, 21162.0817, 22796.6149, 23212.6327, 24432.2479, 24630.6123, 25643.4003, 28766.2649, 29166.3645, 30466.0414, 30937.9511, 31030.0795, 31305.2313, 31391.6501, 32033.7373, 32057.2286, 33551.4248, 33951.019, 34520.2898, 42140.1206]
+Step 2: n = 605 (odd number)
+Step 3: Middle position: 303
+Step 4: Median = 217.23
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 620
+Outliers removed: 15
+Final studies used: 605
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.00/ha/year
+Maximum: $42140.12/ha/year
+Mean: $2698.84/ha/year
+Median: $217.23/ha/year
+Std Dev: $6076.02/ha/year
+
+============================================================
+
+Nursery Services
+--------------------------------------------------
+Target Coefficient: $450.00/ha/year
+Studies Found: 42
+Calculated Median: $537.35/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1150: $673.91/ha/year
+Study 1150: $19.40/ha/year
+Study 1150: $6.53/ha/year
+Study 1150: $478.59/ha/year
+Study 1150: $17.77/ha/year
+Study 1150: $7.07/ha/year
+Study 1065: $596.10/ha/year
+Study 1065: $1775.90/ha/year
+Study 1065: $730.69/ha/year
+Study 1055: $5404.92/ha/year
+Study 1055: $5404.92/ha/year
+Study 1055: $10809.83/ha/year
+Study 1055: $10809.83/ha/year
+Study 1011: $0.11/ha/year
+Study 1011: $0.16/ha/year
+Study 1011: $1.40/ha/year
+Study 1011: $4.69/ha/year
+Study 870: $9.93/ha/year
+Study 870: $16.55/ha/year
+Study 870: $73.62/ha/year
+Study 870: $110.43/ha/year
+Study 705: $0.14/ha/year
+Study 705: $0.14/ha/year
+Study 663: $1745.49/ha/year
+Study 558: $739.92/ha/year
+Study 558: $147.10/ha/year
+Study 553: $363.50/ha/year
+Study 512: $1355.98/ha/year
+Study 512: $818.87/ha/year
+Study 512: $4530.21/ha/year
+Study 445: $7957.01/ha/year
+Study 435: $9.85/ha/year
+Study 340: $302.05/ha/year
+Study 340: $3164.80/ha/year
+Study 227: $34.50/ha/year
+Study 227: $2319.23/ha/year
+Study 227: $1721.56/ha/year
+Study 227: $2565.01/ha/year
+Study 227: $3109.40/ha/year
+Study 227: $127.65/ha/year
+Study 55: $2415.81/ha/year
+Study 55: $3592.92/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.1127, 0.1406, 0.1425, 0.1593, 1.3959, 4.688, 6.5288, 7.0728, 9.8531, 9.9275, 16.5464, 17.7727, 19.4049, 34.4991, 73.6212, 110.4318, 127.6456, 147.1005, 302.054, 363.5035, 478.5943, 596.1042, 673.913, 730.6873, 739.9194, 818.8726, 1355.9825, 1721.5572, 1745.4933, 1775.8955, 2319.2326, 2415.8103, 2565.0093, 3109.3957, 3164.8047, 3592.919, 4530.2144, 5404.9158, 5404.9158, 7957.005, 10809.8316, 10809.8316]
+Step 2: n = 42 (even number)
+Step 3: Middle positions: 21 and 22
+Step 4: Middle values: 478.59 and 596.10
+Step 5: Median = (478.59 + 596.10) / 2 = 537.35
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 44
+Outliers removed: 2
+Final studies used: 42
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.11/ha/year
+Maximum: $10809.83/ha/year
+Mean: $1761.27/ha/year
+Median: $537.35/ha/year
+Std Dev: $2717.42/ha/year
+
+============================================================
+
+================================================================================
+URBAN ECOSYSTEM
+================================================================================
+
+Air Quality Services
+--------------------------------------------------
+Target Coefficient: $320.00/ha/year
+Studies Found: 33
+Calculated Median: $127.73/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1230: $1.79/ha/year
+Study 817: $1188.90/ha/year
+Study 817: $131.45/ha/year
+Study 551: $5.94/ha/year
+Study 551: $18.54/ha/year
+Study 551: $941.72/ha/year
+Study 551: $1511.77/ha/year
+Study 551: $49.24/ha/year
+Study 551: $7.02/ha/year
+Study 550: $1460.77/ha/year
+Study 550: $57.06/ha/year
+Study 550: $489.84/ha/year
+Study 550: $743.12/ha/year
+Study 550: $196.87/ha/year
+Study 550: $4.34/ha/year
+Study 549: $3.64/ha/year
+Study 320: $8.41/ha/year
+Study 320: $230.07/ha/year
+Study 320: $0.90/ha/year
+Study 320: $14.83/ha/year
+Study 320: $1579.41/ha/year
+Study 204: $1.54/ha/year
+Study 204: $343.51/ha/year
+Study 204: $1154.52/ha/year
+Study 204: $550.19/ha/year
+Study 204: $127.94/ha/year
+Study 204: $10.16/ha/year
+Study 203: $1.28/ha/year
+Study 203: $367.89/ha/year
+Study 203: $1249.29/ha/year
+Study 203: $127.73/ha/year
+Study 203: $119.58/ha/year
+Study 203: $18.79/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [0.8989, 1.2824, 1.5388, 1.7868, 3.6414, 4.3414, 5.9364, 7.0249, 8.4052, 10.1562, 14.8294, 18.5371, 18.7918, 49.2433, 57.0621, 119.5825, 127.7323, 127.9416, 131.4507, 196.8655, 230.0696, 343.513, 367.8944, 489.8416, 550.1926, 743.1164, 941.7201, 1154.5157, 1188.8985, 1249.2869, 1460.7736, 1511.7695, 1579.4051]
+Step 2: n = 33 (odd number)
+Step 3: Middle position: 17
+Step 4: Median = 127.73
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 34
+Outliers removed: 1
+Final studies used: 33
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $0.90/ha/year
+Maximum: $1579.41/ha/year
+Mean: $385.40/ha/year
+Median: $127.73/ha/year
+Std Dev: $513.97/ha/year
+
+============================================================
+
+Recreation Services
+--------------------------------------------------
+Target Coefficient: $245.00/ha/year
+Studies Found: 446
+Calculated Median: $610.31/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1353: $1350.13/ha/year
+Study 1353: $177.17/ha/year
+Study 1353: $360.87/ha/year
+Study 1353: $1382.39/ha/year
+Study 1353: $419.66/ha/year
+Study 1353: $437.15/ha/year
+Study 1353: $656.96/ha/year
+Study 1353: $374.27/ha/year
+Study 1353: $468.55/ha/year
+Study 1353: $493.35/ha/year
+Study 1353: $779.61/ha/year
+Study 1353: $753.15/ha/year
+Study 1353: $533.58/ha/year
+Study 1353: $673.82/ha/year
+Study 1353: $342.67/ha/year
+Study 1353: $1428.68/ha/year
+Study 1353: $377.66/ha/year
+Study 1353: $1131.17/ha/year
+Study 1353: $597.51/ha/year
+Study 1353: $1240.96/ha/year
+Study 1353: $374.70/ha/year
+Study 1353: $516.81/ha/year
+Study 1353: $1214.56/ha/year
+Study 1353: $852.86/ha/year
+Study 1353: $593.98/ha/year
+Study 1353: $721.05/ha/year
+Study 1353: $1514.34/ha/year
+Study 1353: $763.55/ha/year
+Study 1353: $511.43/ha/year
+Study 1353: $478.13/ha/year
+Study 1353: $404.52/ha/year
+Study 1353: $374.70/ha/year
+Study 1353: $674.13/ha/year
+Study 1353: $1412.19/ha/year
+Study 1353: $215.94/ha/year
+Study 1353: $385.49/ha/year
+Study 1353: $853.80/ha/year
+Study 1353: $738.30/ha/year
+Study 1353: $883.51/ha/year
+Study 1353: $1132.43/ha/year
+Study 1353: $349.46/ha/year
+Study 1353: $527.80/ha/year
+Study 1353: $506.73/ha/year
+Study 1353: $521.93/ha/year
+Study 1353: $422.32/ha/year
+Study 1353: $426.05/ha/year
+Study 1353: $378.55/ha/year
+Study 1353: $431.32/ha/year
+Study 1353: $979.25/ha/year
+Study 1353: $1489.90/ha/year
+Study 1353: $546.05/ha/year
+Study 1353: $1470.91/ha/year
+Study 1353: $358.61/ha/year
+Study 1353: $427.56/ha/year
+Study 1353: $656.14/ha/year
+Study 1353: $244.73/ha/year
+Study 1353: $260.65/ha/year
+Study 1353: $1321.25/ha/year
+Study 1353: $546.28/ha/year
+Study 1353: $639.68/ha/year
+Study 1353: $557.21/ha/year
+Study 1353: $863.68/ha/year
+Study 1353: $621.92/ha/year
+Study 1353: $1117.42/ha/year
+Study 1353: $1399.55/ha/year
+Study 1353: $535.47/ha/year
+Study 1353: $1234.82/ha/year
+Study 1353: $1212.43/ha/year
+Study 1353: $1882.14/ha/year
+Study 1353: $796.64/ha/year
+Study 1353: $495.71/ha/year
+Study 1353: $651.96/ha/year
+Study 1353: $446.18/ha/year
+Study 1353: $268.35/ha/year
+Study 1353: $536.08/ha/year
+Study 1353: $1369.81/ha/year
+Study 1353: $454.02/ha/year
+Study 1353: $317.50/ha/year
+Study 1353: $588.49/ha/year
+Study 1353: $1287.57/ha/year
+Study 1353: $1157.09/ha/year
+Study 1353: $138.05/ha/year
+Study 1353: $650.33/ha/year
+Study 1353: $914.03/ha/year
+Study 1353: $518.16/ha/year
+Study 1353: $668.81/ha/year
+Study 1353: $631.03/ha/year
+Study 1353: $808.41/ha/year
+Study 1353: $911.33/ha/year
+Study 1353: $251.83/ha/year
+Study 1353: $490.79/ha/year
+Study 1353: $517.24/ha/year
+Study 1353: $731.02/ha/year
+Study 1353: $331.08/ha/year
+Study 1353: $463.79/ha/year
+Study 1353: $392.35/ha/year
+Study 1353: $1410.76/ha/year
+Study 1353: $619.56/ha/year
+Study 1353: $957.38/ha/year
+Study 1353: $796.29/ha/year
+Study 1353: $1887.16/ha/year
+Study 1353: $429.82/ha/year
+Study 1353: $543.39/ha/year
+Study 1353: $361.72/ha/year
+Study 1353: $493.34/ha/year
+Study 1353: $1486.45/ha/year
+Study 1353: $962.32/ha/year
+Study 1353: $1319.09/ha/year
+Study 1353: $448.10/ha/year
+Study 1353: $542.63/ha/year
+Study 1353: $331.08/ha/year
+Study 1353: $1539.65/ha/year
+Study 1353: $732.56/ha/year
+Study 1353: $385.03/ha/year
+Study 1353: $532.00/ha/year
+Study 1353: $263.85/ha/year
+Study 1353: $471.97/ha/year
+Study 1353: $274.66/ha/year
+Study 1353: $325.63/ha/year
+Study 1353: $677.58/ha/year
+Study 1353: $382.28/ha/year
+Study 1353: $2421.21/ha/year
+Study 1353: $1356.92/ha/year
+Study 1353: $727.17/ha/year
+Study 1353: $321.50/ha/year
+Study 1353: $523.03/ha/year
+Study 1353: $1207.36/ha/year
+Study 1353: $299.97/ha/year
+Study 1353: $696.95/ha/year
+Study 1353: $751.27/ha/year
+Study 1353: $350.20/ha/year
+Study 1353: $617.05/ha/year
+Study 1353: $965.42/ha/year
+Study 1353: $1070.71/ha/year
+Study 1353: $456.53/ha/year
+Study 1353: $479.88/ha/year
+Study 1353: $864.49/ha/year
+Study 1353: $576.62/ha/year
+Study 1353: $526.74/ha/year
+Study 1353: $410.23/ha/year
+Study 1353: $585.05/ha/year
+Study 1353: $697.26/ha/year
+Study 1353: $327.34/ha/year
+Study 1353: $887.95/ha/year
+Study 1353: $1067.89/ha/year
+Study 1353: $884.40/ha/year
+Study 1353: $1177.39/ha/year
+Study 1353: $335.01/ha/year
+Study 1353: $404.45/ha/year
+Study 1353: $590.15/ha/year
+Study 1353: $432.71/ha/year
+Study 1353: $1180.42/ha/year
+Study 1353: $811.29/ha/year
+Study 1353: $530.45/ha/year
+Study 1353: $327.46/ha/year
+Study 1353: $486.86/ha/year
+Study 1353: $434.48/ha/year
+Study 1353: $641.47/ha/year
+Study 1353: $934.40/ha/year
+Study 1353: $641.21/ha/year
+Study 1353: $998.03/ha/year
+Study 1353: $2051.47/ha/year
+Study 1353: $510.70/ha/year
+Study 1353: $611.10/ha/year
+Study 1353: $1449.01/ha/year
+Study 1353: $733.74/ha/year
+Study 1353: $927.24/ha/year
+Study 1353: $405.67/ha/year
+Study 1353: $403.44/ha/year
+Study 1353: $566.35/ha/year
+Study 1353: $748.86/ha/year
+Study 1353: $1136.70/ha/year
+Study 1353: $565.13/ha/year
+Study 1353: $1079.24/ha/year
+Study 1353: $1100.36/ha/year
+Study 1353: $1264.90/ha/year
+Study 1353: $1455.68/ha/year
+Study 1353: $330.25/ha/year
+Study 1353: $843.79/ha/year
+Study 1353: $984.63/ha/year
+Study 1353: $888.31/ha/year
+Study 1353: $1622.45/ha/year
+Study 1353: $733.03/ha/year
+Study 1353: $445.90/ha/year
+Study 1353: $154.20/ha/year
+Study 1353: $1969.54/ha/year
+Study 1353: $582.15/ha/year
+Study 1353: $909.56/ha/year
+Study 1353: $134.65/ha/year
+Study 1353: $553.76/ha/year
+Study 1353: $636.99/ha/year
+Study 1353: $443.54/ha/year
+Study 1353: $2118.37/ha/year
+Study 1353: $679.01/ha/year
+Study 1353: $690.78/ha/year
+Study 1353: $668.62/ha/year
+Study 1353: $647.62/ha/year
+Study 1353: $1452.50/ha/year
+Study 1353: $572.98/ha/year
+Study 1353: $1655.26/ha/year
+Study 1353: $552.56/ha/year
+Study 1353: $448.99/ha/year
+Study 1353: $482.77/ha/year
+Study 1353: $338.04/ha/year
+Study 1353: $339.32/ha/year
+Study 1353: $900.89/ha/year
+Study 1353: $1528.88/ha/year
+Study 1353: $695.18/ha/year
+Study 1353: $569.62/ha/year
+Study 1353: $608.19/ha/year
+Study 1353: $484.53/ha/year
+Study 1353: $524.32/ha/year
+Study 1353: $701.43/ha/year
+Study 1353: $1792.85/ha/year
+Study 1353: $491.19/ha/year
+Study 1353: $937.42/ha/year
+Study 1353: $377.79/ha/year
+Study 1353: $815.35/ha/year
+Study 1353: $651.12/ha/year
+Study 1353: $609.32/ha/year
+Study 1353: $150.14/ha/year
+Study 1353: $1020.10/ha/year
+Study 1353: $738.04/ha/year
+Study 1353: $278.62/ha/year
+Study 1353: $566.18/ha/year
+Study 1353: $730.35/ha/year
+Study 1353: $707.07/ha/year
+Study 1353: $1314.12/ha/year
+Study 1353: $752.94/ha/year
+Study 1353: $583.10/ha/year
+Study 1353: $408.65/ha/year
+Study 1353: $1695.96/ha/year
+Study 1353: $735.90/ha/year
+Study 1353: $690.24/ha/year
+Study 1353: $723.37/ha/year
+Study 1353: $666.40/ha/year
+Study 1353: $454.89/ha/year
+Study 1353: $524.84/ha/year
+Study 1353: $419.53/ha/year
+Study 1353: $377.61/ha/year
+Study 1353: $811.59/ha/year
+Study 1353: $262.61/ha/year
+Study 1353: $280.13/ha/year
+Study 1353: $517.27/ha/year
+Study 1353: $845.08/ha/year
+Study 1353: $1396.83/ha/year
+Study 1353: $772.53/ha/year
+Study 1353: $708.44/ha/year
+Study 1353: $599.38/ha/year
+Study 1353: $976.60/ha/year
+Study 1353: $713.31/ha/year
+Study 1353: $810.09/ha/year
+Study 1353: $594.39/ha/year
+Study 1353: $909.32/ha/year
+Study 1353: $534.70/ha/year
+Study 1353: $498.11/ha/year
+Study 1353: $799.70/ha/year
+Study 1353: $450.64/ha/year
+Study 1353: $401.81/ha/year
+Study 1353: $303.68/ha/year
+Study 1353: $1495.59/ha/year
+Study 1353: $678.96/ha/year
+Study 1353: $1483.85/ha/year
+Study 1353: $545.60/ha/year
+Study 1353: $730.25/ha/year
+Study 1353: $235.71/ha/year
+Study 1353: $423.70/ha/year
+Study 1353: $385.33/ha/year
+Study 1353: $540.64/ha/year
+Study 1353: $359.25/ha/year
+Study 1353: $609.51/ha/year
+Study 1353: $341.35/ha/year
+Study 1353: $2640.68/ha/year
+Study 1353: $1289.54/ha/year
+Study 1353: $730.12/ha/year
+Study 1353: $540.96/ha/year
+Study 1353: $387.47/ha/year
+Study 1353: $454.99/ha/year
+Study 1353: $290.26/ha/year
+Study 1353: $688.48/ha/year
+Study 1353: $510.90/ha/year
+Study 1353: $311.13/ha/year
+Study 1353: $809.81/ha/year
+Study 1353: $708.48/ha/year
+Study 1353: $444.99/ha/year
+Study 1353: $543.87/ha/year
+Study 1353: $386.33/ha/year
+Study 1353: $394.02/ha/year
+Study 1353: $483.16/ha/year
+Study 1353: $518.47/ha/year
+Study 1353: $484.54/ha/year
+Study 1353: $342.69/ha/year
+Study 1353: $784.50/ha/year
+Study 1353: $323.31/ha/year
+Study 1353: $367.61/ha/year
+Study 1353: $496.55/ha/year
+Study 1353: $614.56/ha/year
+Study 1353: $407.32/ha/year
+Study 1353: $347.80/ha/year
+Study 1353: $555.16/ha/year
+Study 1353: $194.59/ha/year
+Study 1353: $305.31/ha/year
+Study 1353: $209.06/ha/year
+Study 1353: $638.00/ha/year
+Study 1353: $466.84/ha/year
+Study 1353: $1757.12/ha/year
+Study 1353: $273.75/ha/year
+Study 1353: $390.12/ha/year
+Study 1353: $434.01/ha/year
+Study 1353: $601.06/ha/year
+Study 1353: $378.34/ha/year
+Study 1353: $2106.63/ha/year
+Study 1353: $1324.69/ha/year
+Study 1353: $671.43/ha/year
+Study 1353: $944.06/ha/year
+Study 1353: $1456.98/ha/year
+Study 1353: $1248.53/ha/year
+Study 1353: $820.35/ha/year
+Study 1353: $2831.81/ha/year
+Study 1353: $1558.64/ha/year
+Study 1353: $1043.75/ha/year
+Study 1353: $1190.54/ha/year
+Study 1353: $1069.63/ha/year
+Study 1353: $1846.08/ha/year
+Study 1353: $321.41/ha/year
+Study 1353: $718.41/ha/year
+Study 1353: $359.40/ha/year
+Study 1353: $339.42/ha/year
+Study 1353: $884.70/ha/year
+Study 1353: $609.53/ha/year
+Study 1353: $1144.31/ha/year
+Study 1353: $485.47/ha/year
+Study 1353: $241.44/ha/year
+Study 1353: $271.99/ha/year
+Study 1353: $725.25/ha/year
+Study 1353: $1710.63/ha/year
+Study 1353: $263.82/ha/year
+Study 1353: $652.42/ha/year
+Study 1353: $551.61/ha/year
+Study 1353: $701.90/ha/year
+Study 1353: $1526.30/ha/year
+Study 1353: $650.26/ha/year
+Study 1353: $471.56/ha/year
+Study 1353: $127.78/ha/year
+Study 1353: $169.91/ha/year
+Study 1353: $626.28/ha/year
+Study 1353: $401.58/ha/year
+Study 1353: $507.88/ha/year
+Study 1353: $997.11/ha/year
+Study 1353: $387.12/ha/year
+Study 1353: $582.86/ha/year
+Study 1353: $440.24/ha/year
+Study 1353: $232.98/ha/year
+Study 1353: $699.00/ha/year
+Study 1353: $967.77/ha/year
+Study 1353: $486.42/ha/year
+Study 1353: $1067.70/ha/year
+Study 1353: $2574.31/ha/year
+Study 1353: $267.60/ha/year
+Study 1353: $319.43/ha/year
+Study 1353: $1135.71/ha/year
+Study 1353: $228.62/ha/year
+Study 1353: $548.93/ha/year
+Study 1353: $560.81/ha/year
+Study 1353: $1071.97/ha/year
+Study 1353: $1073.92/ha/year
+Study 1353: $722.66/ha/year
+Study 1353: $857.53/ha/year
+Study 1353: $112.02/ha/year
+Study 1353: $826.19/ha/year
+Study 1353: $238.78/ha/year
+Study 1353: $361.40/ha/year
+Study 1353: $778.36/ha/year
+Study 1353: $1399.06/ha/year
+Study 1353: $730.80/ha/year
+Study 1353: $479.37/ha/year
+Study 1353: $781.13/ha/year
+Study 1353: $95.41/ha/year
+Study 1353: $450.97/ha/year
+Study 1353: $406.60/ha/year
+Study 1353: $452.93/ha/year
+Study 1353: $1847.50/ha/year
+Study 1353: $544.56/ha/year
+Study 1353: $1019.90/ha/year
+Study 1353: $846.95/ha/year
+Study 1353: $926.33/ha/year
+Study 1353: $361.86/ha/year
+Study 1353: $380.97/ha/year
+Study 1353: $374.51/ha/year
+Study 1353: $503.74/ha/year
+Study 1353: $521.53/ha/year
+Study 1353: $1317.74/ha/year
+Study 1353: $304.00/ha/year
+Study 1353: $2187.96/ha/year
+Study 1353: $433.02/ha/year
+Study 1353: $499.60/ha/year
+Study 1353: $748.99/ha/year
+Study 1353: $453.86/ha/year
+Study 1353: $626.07/ha/year
+Study 1353: $457.96/ha/year
+Study 1353: $599.41/ha/year
+Study 1307: $379.91/ha/year
+Study 1307: $579.89/ha/year
+Study 1268: $123233.78/ha/year
+Study 1244: $13.19/ha/year
+Study 1237: $11704.55/ha/year
+Study 1237: $1270.78/ha/year
+Study 1237: $961.45/ha/year
+Study 1236: $1925.76/ha/year
+Study 1230: $1.79/ha/year
+Study 1212: $37285.10/ha/year
+Study 1212: $15611.33/ha/year
+Study 1207: $709.30/ha/year
+Study 1204: $169.50/ha/year
+Study 1124: $1999.55/ha/year
+Study 1124: $1931.18/ha/year
+Study 1124: $5900.28/ha/year
+Study 1124: $995.18/ha/year
+Study 1124: $1434.29/ha/year
+Study 914: $21818.62/ha/year
+Study 914: $23393.09/ha/year
+Study 914: $98453.13/ha/year
+Study 914: $61514.32/ha/year
+Study 914: $9053.41/ha/year
+Study 914: $10056.19/ha/year
+Study 908: $19744.37/ha/year
+Study 908: $1516.63/ha/year
+Study 908: $556.15/ha/year
+Study 908: $3725.82/ha/year
+Study 826: $662.37/ha/year
+Study 826: $2877.84/ha/year
+Study 817: $1188.90/ha/year
+Study 817: $131.45/ha/year
+Study 816: $4878.73/ha/year
+Study 816: $16620.87/ha/year
+Study 816: $5022.79/ha/year
+Study 816: $122.19/ha/year
+Study 816: $88.75/ha/year
+Study 816: $189.08/ha/year
+Study 816: $351.15/ha/year
+Study 816: $333.14/ha/year
+Study 816: $1027.71/ha/year
+Study 816: $65.60/ha/year
+Study 816: $200.65/ha/year
+Study 816: $909.38/ha/year
+Study 24: $81763.31/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [1.7868, 13.1889, 65.5986, 88.751, 95.4114, 112.0175, 122.1934, 127.7793, 131.4507, 134.6482, 138.0463, 150.1435, 154.2043, 169.5018, 169.9108, 177.1671, 189.0782, 194.594, 200.6544, 209.063, 215.9399, 228.6172, 232.9758, 235.7139, 238.7775, 241.4362, 244.7268, 251.8289, 260.6523, 262.6145, 263.8173, 263.8463, 267.5965, 268.3474, 271.9947, 273.753, 274.6594, 278.6189, 280.1306, 290.2583, 299.9706, 303.676, 304.0034, 305.3087, 311.1263, 317.4978, 319.4272, 321.4133, 321.4993, 323.3141, 325.6296, 327.3352, 327.4596, 330.2544, 331.0815, 331.0815, 333.1378, 335.0095, 338.0351, 339.321, 339.4202, 341.347, 342.6716, 342.6851, 347.7983, 349.4561, 350.1966, 351.1452, 358.6083, 359.2525, 359.4002, 360.8681, 361.3966, 361.7205, 361.8569, 367.6084, 374.2675, 374.5069, 374.697, 374.697, 377.6143, 377.663, 377.7905, 378.3437, 378.5455, 379.9067, 380.9678, 382.2759, 385.028, 385.3255, 385.4945, 386.3328, 387.1179, 387.4668, 390.1167, 392.3458, 394.0169, 401.5817, 401.8061, 403.4395, 404.4487, 404.5237, 405.6696, 406.5971, 407.3217, 408.6502, 410.2273, 419.528, 419.6607, 422.3227, 423.6963, 426.0507, 427.5592, 429.8183, 431.3179, 432.7102, 433.0176, 434.0061, 434.4756, 437.1465, 440.2405, 443.5372, 444.9854, 445.8955, 446.1801, 448.1026, 448.9939, 450.6356, 450.9724, 452.9265, 453.8584, 454.0172, 454.8869, 454.9893, 456.5274, 457.963, 463.7944, 466.8407, 468.5456, 471.5557, 471.9741, 478.126, 479.3659, 479.8751, 482.7664, 483.162, 484.53, 484.5413, 485.4726, 486.4215, 486.8571, 490.7917, 491.1894, 493.3358, 493.3511, 495.7132, 496.5497, 498.1092, 499.596, 503.7363, 506.7331, 507.8785, 510.6982, 510.8998, 511.4291, 516.8124, 517.2448, 517.2726, 518.1621, 518.4744, 521.5295, 521.9286, 523.0284, 524.3244, 524.8436, 526.739, 527.799, 530.4513, 532.0039, 533.5822, 534.7028, 535.4693, 536.0764, 540.6385, 540.9567, 542.6285, 543.3927, 543.8695, 544.5597, 545.5974, 546.0524, 546.2755, 548.9259, 551.6117, 552.5632, 553.7619, 555.1609, 556.1543, 557.2145, 560.8133, 565.1332, 566.1838, 566.3487, 569.6152, 572.9839, 576.6231, 579.8895, 582.1486, 582.8621, 583.0966, 585.0533, 588.4913, 590.1478, 593.9837, 594.3909, 597.5142, 599.377, 599.4118, 601.0595, 608.1878, 609.3204, 609.5072, 609.5344, 611.0953, 614.5637, 617.0507, 619.5648, 621.9231, 626.0727, 626.2754, 631.0257, 636.985, 637.9977, 639.6797, 641.2138, 641.4731, 647.6223, 650.2624, 650.3295, 651.1154, 651.9583, 652.4196, 656.1437, 656.9585, 662.372, 666.4036, 668.6217, 668.8141, 671.432, 673.8249, 674.1298, 677.5771, 678.9568, 679.0122, 688.4795, 690.2407, 690.7822, 695.178, 696.9546, 697.2623, 698.9952, 701.4316, 701.9039, 707.0714, 708.4436, 708.4762, 709.2997, 713.3121, 718.408, 721.0516, 722.6638, 723.3734, 725.2539, 727.1675, 730.1204, 730.2458, 730.3508, 730.8032, 731.0181, 732.5589, 733.028, 733.7426, 735.8969, 738.0396, 738.3041, 748.8629, 748.9859, 751.273, 752.9436, 753.1464, 763.5474, 772.5305, 778.3562, 779.6116, 781.1307, 784.4988, 796.286, 796.6385, 799.7006, 808.4088, 809.8134, 810.0894, 811.2885, 811.5932, 815.352, 820.3508, 826.1923, 843.7911, 845.0789, 846.9537, 852.8577, 853.8001, 857.5332, 863.6839, 864.4876, 883.5069, 884.4005, 884.7013, 887.9539, 888.3124, 900.8898, 909.3208, 909.3761, 909.5641, 911.3321, 914.0337, 926.3343, 927.235, 934.399, 937.4195, 944.0627, 957.3792, 961.4453, 962.3171, 965.4184, 967.7744, 976.604, 979.247, 984.6299, 995.1816, 997.1089, 998.032, 1019.9033, 1020.0995, 1027.7108, 1043.7532, 1067.7033, 1067.8865, 1069.6269, 1070.711, 1071.9652, 1073.9195, 1079.241, 1100.3603, 1117.4217, 1131.1745, 1132.4303, 1135.7096, 1136.6956, 1144.306, 1157.0908, 1177.389, 1180.4181, 1188.8985, 1190.5393, 1207.3571, 1212.4257, 1214.5553, 1234.8172, 1240.9609, 1248.5281, 1264.9008, 1270.7798, 1287.5705, 1289.5417, 1314.119, 1317.7419, 1319.0875, 1321.2544, 1324.6865, 1350.1304, 1356.9168, 1369.8146, 1382.3857, 1396.8298, 1399.0641, 1399.5533, 1410.7641, 1412.19, 1428.6768, 1434.2932, 1449.0095, 1452.502, 1455.6814, 1456.978, 1470.9137, 1483.8481, 1486.4524, 1489.8985, 1495.5856, 1514.341, 1516.6332, 1526.297, 1528.8843, 1539.6537, 1558.6356, 1622.4485, 1655.255, 1695.9602, 1710.6334, 1757.1206, 1792.8542, 1846.0789, 1847.4995, 1882.1415, 1887.1646, 1925.7646, 1931.183, 1969.5432, 1999.547, 2051.4663, 2106.63, 2118.3732, 2187.963, 2421.213, 2574.3074, 2640.6831, 2831.8064, 2877.843, 3725.8154, 4878.7321, 5022.7917, 5900.2818, 9053.4077, 10056.1944, 11704.5512, 15611.3317, 16620.8743, 19744.3651, 21818.615, 23393.0863, 37285.0955, 61514.3232, 81763.3065, 98453.133, 123233.7798]
+Step 2: n = 446 (even number)
+Step 3: Middle positions: 223 and 224
+Step 4: Middle values: 609.53 and 611.10
+Step 5: Median = (609.53 + 611.10) / 2 = 610.31
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 449
+Outliers removed: 3
+Final studies used: 446
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $1.79/ha/year
+Maximum: $123233.78/ha/year
+Mean: $1933.55/ha/year
+Median: $610.31/ha/year
+Std Dev: $9199.29/ha/year
+
+============================================================
+
+Climate Services
+--------------------------------------------------
+Target Coefficient: $180.00/ha/year
+Studies Found: 33
+Calculated Median: $786.76/ha/year
+
+STUDY ID → VALUE MAPPING:
+------------------------------
+Study 1230: $1.79/ha/year
+Study 1212: $29.20/ha/year
+Study 1124: $839.78/ha/year
+Study 1124: $786.76/ha/year
+Study 1124: $786.76/ha/year
+Study 1124: $786.76/ha/year
+Study 1124: $786.76/ha/year
+Study 1124: $786.76/ha/year
+Study 907: $426.64/ha/year
+Study 817: $1188.90/ha/year
+Study 817: $131.45/ha/year
+Study 816: $4878.73/ha/year
+Study 816: $5022.79/ha/year
+Study 816: $122.19/ha/year
+Study 816: $88.75/ha/year
+Study 816: $189.08/ha/year
+Study 816: $351.15/ha/year
+Study 816: $333.14/ha/year
+Study 816: $1027.71/ha/year
+Study 816: $65.60/ha/year
+Study 816: $200.65/ha/year
+Study 816: $909.38/ha/year
+Study 551: $1509.60/ha/year
+Study 551: $638.42/ha/year
+Study 550: $1085.66/ha/year
+Study 550: $1153.95/ha/year
+Study 535: $364.22/ha/year
+Study 320: $736.87/ha/year
+Study 320: $385.89/ha/year
+Study 204: $1279.30/ha/year
+Study 204: $1711.65/ha/year
+Study 203: $1556.47/ha/year
+Study 203: $886.17/ha/year
+
+MEDIAN CALCULATION PROCESS:
+------------------------------
+Step 1: Sort values: [1.7868, 29.2029, 65.5986, 88.751, 122.1934, 131.4507, 189.0782, 200.6544, 333.1378, 351.1452, 364.2237, 385.8942, 426.6393, 638.42, 736.8741, 786.7583, 786.7583, 786.7583, 786.7583, 786.7583, 839.7773, 886.168, 909.3761, 1027.7108, 1085.6629, 1153.9461, 1188.8985, 1279.3048, 1509.6001, 1556.4662, 1711.6539, 4878.7321, 5022.7917]
+Step 2: n = 33 (odd number)
+Step 3: Middle position: 17
+Step 4: Median = 786.76
+
+QUALITY FILTERING APPLIED:
+------------------------------
+Original studies: 35
+Outliers removed: 2
+Final studies used: 33
+Mean ± 2×StdDev filtering applied
+
+STATISTICAL SUMMARY:
+--------------------
+Minimum: $1.79/ha/year
+Maximum: $5022.79/ha/year
+Mean: $940.88/ha/year
+Median: $786.76/ha/year
+Std Dev: $1118.00/ha/year
+
+============================================================
