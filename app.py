@@ -1052,8 +1052,8 @@ Example: 100ha Forest
             10: "Cropland",         # ESA code 10 → Cropland
             20: "Forest",           # ESA code 20 → Forest  
             30: "Grassland",        # ESA code 30 → Grassland
-            40: "Grassland",        # ESA code 40 → Grassland
-            50: "Desert",           # ESA code 50 → Desert
+            40: "Shrubland",        # ESA code 40 → Shrubland
+            50: "Desert",           # ESA code 50 → Desert (sparse vegetation)
             60: "Wetland",          # ESA code 60 → Wetlands
             70: "Coastal",          # ESA code 70 → Coastal
             80: "Desert",           # ESA code 80 → Desert
@@ -1091,15 +1091,15 @@ Example: 100ha Forest
         # ESA CCI Level 1 landcover descriptions for tooltips
         landcover_descriptions = {
             10: "Cropland",
-            20: "Deciduous Broadleaved Forest", 
-            30: "Deciduous Needleleaved Forest",
-            40: "Evergreen Broadleaved Forest",
-            50: "Evergreen Needleleaved Forest",
-            60: "Mixed Forest",
+            20: "Forest", 
+            30: "Grassland",
+            40: "Shrubland",
+            50: "Sparse Vegetation",
+            60: "Wetlands",
             70: "Water Bodies",
-            80: "Urban Areas",
-            90: "Shrubland",
-            100: "Herbaceous Cover (Flooded)",
+            80: "Permanent Snow and Ice",
+            90: "Bare Areas",
+            100: "Urban Areas",
             110: "Shrubland (Flooded)",
             120: "Grassland",
             130: "Grassland Sparse",
