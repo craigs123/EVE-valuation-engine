@@ -279,70 +279,73 @@ def get_precomputed_status():
         return {'precomputed_available': False}
 
 def get_landcover_code_description(code: int) -> str:
-    """Get description for OpenLandMap landcover code"""
+    """Get ESA CCI Level 1 description for OpenLandMap landcover code"""
+    # ESA CCI Level 1 descriptions (official classification)
     descriptions = {
-        10: "Agricultural (Cropland)",
-        20: "Forest (Deciduous Broadleaved)", 
-        30: "Forest (Deciduous Needleleaved)",
-        40: "Forest (Evergreen Broadleaved)",
-        50: "Forest (Evergreen Needleleaved)",
-        60: "Forest (Mixed)",
+        10: "Cropland",
+        20: "Forest", 
+        30: "Grassland",
+        40: "Shrubland",
+        50: "Sparse Vegetation",
+        60: "Wetlands",
         61: "Forest (Tree Cover)",
         62: "Forest (Flooded Fresh/Brackish)",
-        70: "Grassland",
+        70: "Water Bodies",
         71: "Grassland (Herbaceous Cover)",
-        80: "Urban Areas",
-        90: "Shrubland",
-        100: "Grassland (Herbaceous Cover Flooded)",
+        80: "Permanent Snow and Ice",
+        90: "Bare Areas",
+        100: "Urban Areas",
         110: "Shrubland (Flooded)",
         120: "Grassland",
         121: "Grassland (Sparse Vegetation)",
         122: "Grassland (Sparse Herbaceous)",
-        130: "Grassland",
-        140: "Grassland (Lichens and Mosses)",
-        150: "Desert (Sparse Vegetation)",
-        152: "Desert (Bare Areas)",
-        153: "Desert (Bare Rock)",
-        160: "Desert (Bare Soil)",
-        180: "Coastal (Permanent Water Bodies)",
-        190: "Wetland (Herbaceous Wetland)",
-        200: "Desert (Snow and Ice)",
-        210: "Coastal (Water Bodies)",
-        220: "Desert (Snow/Ice)"
+        130: "Grassland Sparse",
+        140: "Lichens and Mosses",
+        150: "Sparse Vegetation",
+        152: "Bare Areas",
+        153: "Bare Rock",
+        160: "Bare Areas",
+        170: "Bare Soil",
+        180: "Permanent Water Bodies",
+        190: "Herbaceous Wetland",
+        200: "Snow and Ice",
+        210: "Water Bodies",
+        220: "Snow/Ice Permanent"
     }
     return descriptions.get(code, f"Unknown Landcover (Code {code})")
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping"""
-    # Default landcover to ESVD mapping
+    # ESA CCI Level 1 to ESVD mapping (matches user specifications)
     default_landcover_mapping = {
-        10: "Agricultural",      # Cropland
-        20: "Forest",           # Forest (deciduous broadleaved)
-        30: "Forest",           # Forest (deciduous needleleaved) 
-        40: "Forest",           # Forest (evergreen broadleaved)
-        50: "Forest",           # Forest (evergreen needleleaved)
-        60: "Forest",           # Forest (mixed)
-        61: "Forest",           # Tree Cover
-        62: "Forest",           # Forest (flooded fresh/brackish)
-        70: "Grassland",        # Grassland
-        71: "Grassland",        # Herbaceous cover
-        80: "Urban",            # Urban areas
-        90: "Shrubland",        # Shrubland - now properly mapped
-        100: "Grassland",       # Herbaceous cover (flooded)
-        110: "Shrubland",       # Shrubland (flooded) - now properly mapped
-        120: "Grassland",       # Grassland
-        121: "Grassland",       # Sparse vegetation
-        122: "Grassland",       # Sparse herbaceous
-        130: "Grassland",       # Grassland
-        140: "Grassland",       # Lichens and mosses
-        150: "Desert",          # Sparse vegetation
-        152: "Desert",          # Bare areas
-        153: "Desert",          # Bare rock
-        160: "Desert",          # Bare soil
-        180: "Coastal",         # Permanent water bodies
-        190: "Wetland",         # Herbaceous wetland
-        200: "Desert",          # Snow and ice
-        210: "Coastal",         # Water bodies
+        10: "Cropland",         # ESA code 10 → Cropland
+        20: "Forest",           # ESA code 20 → Forest (will be subtyped by location)
+        30: "Grassland",        # ESA code 30 → Grassland
+        40: "Grassland",        # ESA code 40 → Grassland (shrubland uses grassland coefficients)
+        50: "Desert",           # ESA code 50 → Desert
+        60: "Wetland",          # ESA code 60 → Wetland
+        61: "Forest",           # Tree Cover → Forest
+        62: "Forest",           # Forest (flooded) → Forest
+        70: "Coastal",          # ESA code 70 → Coastal
+        71: "Grassland",        # Herbaceous cover → Grassland
+        80: "Desert",           # ESA code 80 → Desert
+        90: "Desert",           # ESA code 90 → Desert
+        100: "Urban",           # ESA code 100 → Urban
+        110: "Wetland",         # Shrubland (flooded) → Wetland
+        120: "Grassland",       # Grassland → Grassland
+        121: "Grassland",       # Sparse vegetation → Grassland
+        122: "Grassland",       # Sparse herbaceous → Grassland
+        130: "Grassland",       # Grassland sparse → Grassland
+        140: "Grassland",       # Lichens and mosses → Grassland
+        150: "Desert",          # Sparse vegetation → Desert
+        152: "Desert",          # Bare areas → Desert
+        153: "Desert",          # Bare rock → Desert
+        160: "Desert",          # Bare soil → Desert
+        170: "Desert",          # Bare soil → Desert
+        180: "Coastal",         # Permanent water bodies → Coastal
+        190: "Wetland",         # Herbaceous wetland → Wetland
+        200: "Desert",          # Snow and ice → Desert
+        210: "Coastal",         # Water bodies → Coastal
         220: "Desert",          # Snow/Ice
     }
     
