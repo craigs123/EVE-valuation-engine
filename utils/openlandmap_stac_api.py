@@ -53,36 +53,30 @@ class OpenLandMapSTAC:
             }
         ]
         
-        # Updated default mapping with improved ecosystem type accuracy
+        # ESA CCI Level 1 classification mapping (22 ten-value codes: 10, 20, 30, ..., 220)
         self.landcover_to_esvd = {
             10: "Agricultural",      # Cropland
             20: "Forest",           # Forest (deciduous broadleaved)
-            30: "Forest",           # Forest (deciduous needleleaved) 
+            30: "Forest",           # Forest (deciduous needleleaved)
             40: "Forest",           # Forest (evergreen broadleaved)
             50: "Forest",           # Forest (evergreen needleleaved)
             60: "Forest",           # Forest (mixed)
-            61: "Forest",           # Tree Cover
-            62: "Forest",           # Forest (flooded fresh/brackish)
-            70: "Coastal",          # Water bodies (ESA CCI code)
-            71: "Grassland",        # Herbaceous cover
+            70: "Coastal",          # Water bodies
             80: "Urban",            # Urban areas
-            90: "Shrubland",        # Shrubland - now properly mapped
+            90: "Shrubland",        # Shrubland
             100: "Grassland",       # Herbaceous cover (flooded)
-            110: "Shrubland",       # Shrubland (flooded) - now properly mapped
+            110: "Shrubland",       # Shrubland (flooded)
             120: "Grassland",       # Grassland
-            121: "Grassland",       # Sparse vegetation
-            122: "Grassland",       # Sparse herbaceous
-            130: "Grassland",       # Grassland
+            130: "Grassland",       # Grassland sparse
             140: "Grassland",       # Lichens and mosses
             150: "Desert",          # Sparse vegetation
-            152: "Desert",          # Bare areas
-            153: "Desert",          # Bare rock
-            160: "Desert",          # Bare soil
-            180: "Coastal",         # Permanent water bodies (open ocean)
+            160: "Desert",          # Bare areas
+            170: "Desert",          # Bare soil
+            180: "Coastal",         # Permanent water bodies
             190: "Wetland",         # Herbaceous wetland
             200: "Desert",          # Snow and ice
-            210: "Coastal",         # Water bodies (open ocean)
-            220: "Desert",          # Snow/Ice
+            210: "Coastal",         # Water bodies (open water)
+            220: "Desert",          # Snow/Ice permanent
         }
         
         # Fallback ecosystem detection based on geographic patterns
@@ -332,11 +326,17 @@ class OpenLandMapSTAC:
                 confidence = 0.90  # High confidence from STAC API
                 
                 # Add readable land cover type
+                # ESA CCI Level 1 display names
                 land_cover_names = {
-                    10: 'Cropland', 50: 'Evergreen Needleleaf Forest', 
-                    61: 'Tree Cover', 70: 'Water Bodies',
-                    130: 'Grassland', 152: 'Bare Areas',
-                    180: 'Water Bodies', 220: 'Snow/Ice'
+                    10: 'Cropland', 20: 'Deciduous Broadleaved Forest', 
+                    30: 'Deciduous Needleleaved Forest', 40: 'Evergreen Broadleaved Forest',
+                    50: 'Evergreen Needleleaved Forest', 60: 'Mixed Forest',
+                    70: 'Water Bodies', 80: 'Urban Areas', 90: 'Shrubland',
+                    100: 'Herbaceous Cover (Flooded)', 110: 'Shrubland (Flooded)',
+                    120: 'Grassland', 130: 'Grassland Sparse', 140: 'Lichens and Mosses',
+                    150: 'Sparse Vegetation', 160: 'Bare Areas', 170: 'Bare Soil',
+                    180: 'Permanent Water Bodies', 190: 'Herbaceous Wetland',
+                    200: 'Snow and Ice', 210: 'Water Bodies', 220: 'Snow/Ice Permanent'
                 }
                 cover_type = land_cover_names.get(land_cover_code, f'Class {land_cover_code}')
                 
