@@ -53,30 +53,30 @@ class OpenLandMapSTAC:
             }
         ]
         
-        # ESA CCI Level 1 classification mapping (22 ten-value codes: 10, 20, 30, ..., 220)
+        # ESA CCI Level 1 to ESVD ecosystem coefficient mapping
         self.landcover_to_esvd = {
-            10: "Agricultural",      # Cropland
-            20: "Forest",           # Forest (deciduous broadleaved)
-            30: "Forest",           # Forest (deciduous needleleaved)
-            40: "Forest",           # Forest (evergreen broadleaved)
-            50: "Forest",           # Forest (evergreen needleleaved)
-            60: "Forest",           # Forest (mixed)
-            70: "Coastal",          # Water bodies
-            80: "Urban",            # Urban areas
-            90: "Shrubland",        # Shrubland
-            100: "Grassland",       # Herbaceous cover (flooded)
-            110: "Shrubland",       # Shrubland (flooded)
-            120: "Grassland",       # Grassland
-            130: "Grassland",       # Grassland sparse
-            140: "Grassland",       # Lichens and mosses
-            150: "Desert",          # Sparse vegetation
-            160: "Desert",          # Bare areas
-            170: "Desert",          # Bare soil
-            180: "Coastal",         # Permanent water bodies
-            190: "Wetland",         # Herbaceous wetland
-            200: "Desert",          # Snow and ice
-            210: "Coastal",         # Water bodies (open water)
-            220: "Desert",          # Snow/Ice permanent
+            10: "Cropland",         # ESA code 10 → Cropland
+            20: "Forest",           # ESA code 20 → Forest  
+            30: "Grassland",        # ESA code 30 → Grassland
+            40: "Grassland",        # ESA code 40 → Grassland
+            50: "Desert",           # ESA code 50 → Desert
+            60: "Wetland",          # ESA code 60 → Wetlands
+            70: "Freshwater",       # ESA code 70 → Freshwater
+            80: "Other terrestrial", # ESA code 80 → Other terrestrial
+            90: "Desert",           # ESA code 90 → Desert
+            100: "Urban",           # ESA code 100 → Urban
+            110: "Wetland",         # ESA code 110 → Wetlands (flooded shrubland)
+            120: "Grassland",       # ESA code 120 → Grassland
+            130: "Grassland",       # ESA code 130 → Grassland (sparse)
+            140: "Grassland",       # ESA code 140 → Grassland (lichens/mosses)
+            150: "Desert",          # ESA code 150 → Desert (sparse vegetation)
+            160: "Desert",          # ESA code 160 → Desert (bare areas)
+            170: "Desert",          # ESA code 170 → Desert (bare soil)
+            180: "Freshwater",      # ESA code 180 → Freshwater (water bodies)
+            190: "Wetland",         # ESA code 190 → Wetlands (herbaceous wetland)
+            200: "Desert",          # ESA code 200 → Desert (snow/ice)
+            210: "Freshwater",      # ESA code 210 → Freshwater (water bodies)
+            220: "Desert",          # ESA code 220 → Desert (snow/ice permanent)
         }
         
         # Fallback ecosystem detection based on geographic patterns
