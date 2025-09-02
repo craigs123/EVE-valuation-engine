@@ -159,8 +159,12 @@ class OpenLandMapSTAC:
         """
         Predict land cover class based on geographic location using global patterns
         """
-        # Open ocean areas (areas far from major landmasses)
-        if self._is_likely_ocean(lat, lon):
+        # Priority 1: Check for major inland water bodies first
+        if self._is_major_inland_water(lat, lon):
+            return random.choice([70, 180, 210])  # Water bodies/Permanent water
+        
+        # Priority 2: Open ocean areas (areas far from major landmasses)
+        elif self._is_likely_ocean(lat, lon):
             return random.choice([180, 210])  # Permanent water bodies / Water bodies
         
         # Tropical forests (Amazon, Congo, Southeast Asia)
@@ -179,7 +183,7 @@ class OpenLandMapSTAC:
         # Mediterranean regions
         elif ((30 <= lat <= 45) and
               ((-10 <= lon <= 45) or      # Mediterranean basin
-               (-125 <= lon <= -115) or   # California
+               (-123 <= lon <= -117) or   # California (narrowed to exclude Nevada)
                (135 <= lon <= 150))):     # Australia
             return random.choice([20, 70])  # Mixed forest/grassland
         
@@ -250,6 +254,30 @@ class OpenLandMapSTAC:
             return random.randint(1000, 4000)
         else:
             return random.randint(0, 800)  # General terrain
+    
+    def _is_major_inland_water(self, lat: float, lon: float) -> bool:
+        """
+        Detect major inland water bodies (large lakes, reservoirs)
+        """
+        # Great Lakes region
+        if (41 <= lat <= 49) and (-93 <= lon <= -76):
+            return True
+        # Pyramid Lake, Nevada
+        elif (39.8 <= lat <= 40.3) and (-119.8 <= lon <= -119.2):
+            return True
+        # Lake Tahoe (California/Nevada border) 
+        elif (39.0 <= lat <= 39.4) and (-120.2 <= lon <= -119.8):
+            return True
+        # Great Salt Lake, Utah
+        elif (40.5 <= lat <= 41.8) and (-113.0 <= lon <= -111.8):
+            return True
+        # Salton Sea, California
+        elif (33.0 <= lat <= 33.8) and (-116.2 <= lon <= -115.5):
+            return True
+        # Lake Oahe (Missouri River), Dakotas
+        elif (44.0 <= lat <= 46.0) and (-101.5 <= lon <= -100.0):
+            return True
+        return False
     
     def _is_likely_ocean(self, lat: float, lon: float) -> bool:
         """
