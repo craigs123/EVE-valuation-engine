@@ -61,8 +61,8 @@ class OpenLandMapSTAC:
             40: "Grassland",        # ESA code 40 → Grassland
             50: "Desert",           # ESA code 50 → Desert
             60: "Wetland",          # ESA code 60 → Wetlands
-            70: "Freshwater",       # ESA code 70 → Freshwater
-            80: "Other terrestrial", # ESA code 80 → Other terrestrial
+            70: "Coastal",          # ESA code 70 → Coastal
+            80: "Desert",           # ESA code 80 → Desert
             90: "Desert",           # ESA code 90 → Desert
             100: "Urban",           # ESA code 100 → Urban
             110: "Wetland",         # ESA code 110 → Wetlands (flooded shrubland)
@@ -72,10 +72,10 @@ class OpenLandMapSTAC:
             150: "Desert",          # ESA code 150 → Desert (sparse vegetation)
             160: "Desert",          # ESA code 160 → Desert (bare areas)
             170: "Desert",          # ESA code 170 → Desert (bare soil)
-            180: "Freshwater",      # ESA code 180 → Freshwater (water bodies)
+            180: "Coastal",         # ESA code 180 → Coastal (water bodies)
             190: "Wetland",         # ESA code 190 → Wetlands (herbaceous wetland)
             200: "Desert",          # ESA code 200 → Desert (snow/ice)
-            210: "Freshwater",      # ESA code 210 → Freshwater (water bodies)
+            210: "Coastal",         # ESA code 210 → Coastal (water bodies)
             220: "Desert",          # ESA code 220 → Desert (snow/ice permanent)
         }
         
