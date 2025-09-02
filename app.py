@@ -1042,7 +1042,7 @@ Example: 100ha Forest
         # All possible ESVD ecosystem types (including forest subtypes)
         esvd_ecosystem_types = [
             "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest", "Mediterranean Forest",
-            "Grassland", "Agricultural", "Urban", "Desert", 
+            "Grassland", "Cropland", "Urban", "Desert", 
             "Wetland", "Coastal", "Shrubland"
         ]
         
@@ -1073,13 +1073,14 @@ Example: 100ha Forest
             220: "Desert",          # ESA code 220 → Desert (snow/ice permanent)
         }
         
-        # Initialize session state for custom mapping
+        # Initialize session state for custom mapping with correct defaults
         if 'custom_landcover_mapping' not in st.session_state:
             st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
         
-        # Force reset session state to match current defaults (for consistent mappings)
-        # This ensures the interface shows the correct current defaults
-        st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
+        # Update only missing keys to preserve user customizations while ensuring new defaults are present
+        for code, ecosystem in default_landcover_mapping.items():
+            if code not in st.session_state.custom_landcover_mapping:
+                st.session_state.custom_landcover_mapping[code] = ecosystem
         
         st.markdown("**Landcover Code Mapping Table:**")
         st.caption("Modify the dropdown selections to customize ecosystem detection. Hover over codes for descriptions.")
