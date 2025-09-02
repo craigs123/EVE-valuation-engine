@@ -438,11 +438,16 @@ def display_data_source_status(analysis_results: Dict = None):
                             col1, col2 = st.columns(2)
                             
                             with col1:
-                                st.write(f"• **Landcover Class**: {point_data.get('landcover_class', 'Unknown')}")
-                                openlandmap_description = get_landcover_code_description(point_data.get('landcover_class', 0))
-                                st.write(f"• **Description**: {openlandmap_description}")
-                                esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(point_data.get('landcover_class', 0), analysis_results)
-                                st.write(f"• **Mapped Ecosystem**: {esvd_ecosystem}")
+                                landcover_code = point_data.get('landcover_class', 0)
+                                st.write(f"• **ESA CCI Code**: {landcover_code}")
+                                
+                                # Show the mapping chain clearly
+                                openlandmap_description = get_landcover_code_description(landcover_code)
+                                st.write(f"• **ESA Level 1**: {openlandmap_description}")
+                                
+                                esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(landcover_code, analysis_results)
+                                st.write(f"• **ESVD Ecosystem**: {esvd_ecosystem}")
+                                st.caption(f"Mapping: {landcover_code} → {openlandmap_description} → {esvd_ecosystem}")
                                 
                             with col2:
                                 st.write(f"• **API Ecosystem Type**: {point_data.get('ecosystem_type', 'Unknown')}")
@@ -555,7 +560,7 @@ def display_data_source_status(analysis_results: Dict = None):
                         openlandmap_description = get_landcover_code_description(code)
                         esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                         percentage = (count / len(sampling_point_data)) * 100
-                        st.write(f"• **{code}**: {openlandmap_description} → **{esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
+                        st.write(f"• **ESA Code {code}**: {openlandmap_description} → **ESVD: {esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
                         
                 elif landcover_codes:
                     st.markdown("**🧪 Geographic Estimation Data:**")
@@ -574,7 +579,7 @@ def display_data_source_status(analysis_results: Dict = None):
                         openlandmap_description = get_landcover_code_description(code)
                         esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                         percentage = (count / len(landcover_codes)) * 100
-                        st.write(f"• **{code}**: {openlandmap_description} → **{esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
+                        st.write(f"• **ESA Code {code}**: {openlandmap_description} → **ESVD: {esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
                 else:
                     st.markdown("**ℹ️ No Sampling Data Available**")
                     st.write("No sampling point data available for this analysis.")
