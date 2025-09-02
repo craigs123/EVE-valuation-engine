@@ -1052,11 +1052,11 @@ Example: 100ha Forest
             10: "Cropland",         # ESA code 10 → Cropland
             20: "Forest",           # ESA code 20 → Forest  
             30: "Grassland",        # ESA code 30 → Grassland
-            40: "Shrubland",        # ESA code 40 → Shrubland
-            50: "Desert",           # ESA code 50 → Desert (sparse vegetation)
-            60: "Wetland",          # ESA code 60 → Wetlands
+            40: "Grassland",        # ESA code 40 → Grassland (shrubland mapped to grassland coefficients)
+            50: "Desert",           # ESA code 50 → Desert
+            60: "Wetland",          # ESA code 60 → Wetland
             70: "Coastal",          # ESA code 70 → Coastal
-            80: "Desert",           # ESA code 80 → Desert
+            80: "Desert",           # ESA code 80 → Desert  
             90: "Desert",           # ESA code 90 → Desert
             100: "Urban",           # ESA code 100 → Urban
             110: "Wetland",         # ESA code 110 → Wetlands (flooded shrubland)
