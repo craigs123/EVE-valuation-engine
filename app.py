@@ -1077,6 +1077,10 @@ Example: 100ha Forest
         if 'custom_landcover_mapping' not in st.session_state:
             st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
         
+        # Force reset session state to match current defaults (for consistent mappings)
+        # This ensures the interface shows the correct current defaults
+        st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
+        
         st.markdown("**Landcover Code Mapping Table:**")
         st.caption("Modify the dropdown selections to customize ecosystem detection. Hover over codes for descriptions.")
         
