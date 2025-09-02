@@ -63,7 +63,7 @@ class OpenLandMapSTAC:
             60: "Forest",           # Forest (mixed)
             61: "Forest",           # Tree Cover
             62: "Forest",           # Forest (flooded fresh/brackish)
-            70: "Grassland",        # Grassland
+            70: "Coastal",          # Water bodies (ESA CCI code)
             71: "Grassland",        # Herbaceous cover
             80: "Urban",            # Urban areas
             90: "Shrubland",        # Shrubland - now properly mapped
@@ -334,7 +334,7 @@ class OpenLandMapSTAC:
                 # Add readable land cover type
                 land_cover_names = {
                     10: 'Cropland', 50: 'Evergreen Needleleaf Forest', 
-                    61: 'Tree Cover', 70: 'Herbaceous Cover',
+                    61: 'Tree Cover', 70: 'Water Bodies',
                     130: 'Grassland', 152: 'Bare Areas',
                     180: 'Water Bodies', 220: 'Snow/Ice'
                 }
