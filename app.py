@@ -446,8 +446,6 @@ def display_data_source_status(analysis_results: Dict = None):
                                 
                             with col2:
                                 st.write(f"• **API Ecosystem Type**: {point_data.get('ecosystem_type', 'Unknown')}")
-                                confidence = point_data.get('confidence', 0.0)
-                                st.write(f"• **Confidence**: {confidence:.1%}")
                                 st.write(f"• **Data Source**: {point_data.get('source', 'Unknown')}")
                                 
                             # Show coordinates
@@ -548,20 +546,10 @@ def display_data_source_status(analysis_results: Dict = None):
                     # Summary statistics
                     st.markdown("**📊 Summary Statistics:**")
                     code_counts = {}
-                    confidence_sum = 0
-                    valid_confidences = 0
                     
                     for point_data in sampling_point_data.values():
                         code = point_data.get('landcover_class', 'Unknown')
                         code_counts[code] = code_counts.get(code, 0) + 1
-                        
-                        confidence = point_data.get('confidence', 0.0)
-                        if confidence > 0:
-                            confidence_sum += confidence
-                            valid_confidences += 1
-                    
-                    avg_confidence = (confidence_sum / valid_confidences) if valid_confidences > 0 else 0
-                    st.write(f"• **Average Confidence**: {avg_confidence:.1%}")
                     
                     for code, count in sorted(code_counts.items()):
                         openlandmap_description = get_landcover_code_description(code)
@@ -2160,7 +2148,7 @@ with col2:
                 
                 **Climate Zone**: {forest_info['climate_zone']}  
                 **Detection Method**: {forest_info.get('selection_method', 'Geographic coordinate analysis')}  
-                **Confidence Level**: {forest_info['confidence']:.0%}
+**Detection Method**: Coordinate-based forest classification
                 
                 *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
                 """)
@@ -3197,7 +3185,7 @@ if st.session_state.analysis_results:
                 if 'detected_ecosystem' in st.session_state:
                     ecosystem_info = st.session_state.detected_ecosystem
                     st.markdown(f"""
-                    - **Confidence**: {ecosystem_info.get('confidence', 0):.0%}
+                    - **Data Source**: {ecosystem_info.get('source', 'OpenLandMap STAC')}
                     - **Coverage**: {ecosystem_info.get('coverage_percentage', 0):.0f}% of selected area
                     - **Sample Points**: {ecosystem_info.get('successful_queries', 0)} of {ecosystem_info.get('total_samples', 4)} analyzed
                     - **Source**: {ecosystem_info.get('source', 'Geographic analysis')}
@@ -3214,7 +3202,7 @@ if st.session_state.analysis_results:
                 1. **Area-Based Sampling**: Sample density scales with area size (1 point per 100 hectares)
                 2. **Grid Distribution**: Points arranged in grid pattern across your selected area  
                 3. **OpenLandMap Integration**: Queries global land cover databases for each sample point
-                4. **Confidence Assessment**: Based on successful detections and data source quality
+                4. **Data Quality**: Based on successful detections and data source reliability
                 
                 **Sample Limit**: Maximum 100 sample points for optimal performance
                 **Sampling Density**: Currently {st.session_state.get('sampling_frequency', 1.0)} points per 100 hectares
