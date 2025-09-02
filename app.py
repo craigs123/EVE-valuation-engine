@@ -415,35 +415,107 @@ def display_data_source_status(analysis_results: Dict = None):
                 st.info("🧪 **Active Source**: Geographic Estimation")
                 st.caption("Using location-based land use prediction")
                 
-        # Show detailed landcover code information if analysis data is available
+        # Show detailed sampling point information if analysis data is available
         if analysis_results:
+            sampling_point_data = analysis_results.get('sampling_point_data', {})
             landcover_codes = analysis_results.get('landcover_codes', {})
             data_source = analysis_results.get('landcover_data_source', 'estimated')
             
-            with st.expander("📊 Landcover Code Details", expanded=False):
-                if data_source == 'openlandmap' and landcover_codes:
+            with st.expander("📊 Sampling Points Analysis Details", expanded=False):
+                if data_source == 'openlandmap' and sampling_point_data:
                     st.markdown("**🌍 OpenLandMap STAC Data:**")
                     st.write(f"• Data Source: Authentic satellite-derived landcover classifications")
-                    st.write(f"• Sample Points Analyzed: {len(landcover_codes)} points")
-                    st.markdown("**Landcover Codes by Sample Point:**")
+                    st.write(f"• Sample Points Analyzed: {len(sampling_point_data)} points")
+                    st.markdown("**Complete Data by Sample Point:**")
                     
-                    # Group and count landcover codes
+                    # Display detailed information for each sampling point
+                    for point_id, point_data in sampling_point_data.items():
+                        point_num = point_id.replace('point_', '')
+                        
+                        with st.container():
+                            st.markdown(f"**📍 Sample Point {int(point_num) + 1}**")
+                            
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.write(f"• **Landcover Class**: {point_data.get('landcover_class', 'Unknown')}")
+                                openlandmap_description = get_landcover_code_description(point_data.get('landcover_class', 0))
+                                st.write(f"• **Description**: {openlandmap_description}")
+                                esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(point_data.get('landcover_class', 0), analysis_results)
+                                st.write(f"• **Mapped Ecosystem**: {esvd_ecosystem}")
+                                
+                            with col2:
+                                st.write(f"• **API Ecosystem Type**: {point_data.get('ecosystem_type', 'Unknown')}")
+                                confidence = point_data.get('confidence', 0.0)
+                                st.write(f"• **Confidence**: {confidence:.1%}")
+                                st.write(f"• **Data Source**: {point_data.get('source', 'Unknown')}")
+                                
+                            # Show coordinates
+                            coords = point_data.get('coordinates', {})
+                            if coords and isinstance(coords, dict):
+                                lat = coords.get('lat', 0)
+                                lon = coords.get('lon', 0)
+                                st.write(f"• **Coordinates**: {lat:.4f}, {lon:.4f}")
+                            
+                            # Show STAC data if available
+                            stac_data = point_data.get('stac_data', {})
+                            if stac_data and isinstance(stac_data, dict) and stac_data:
+                                with st.expander(f"🛰️ Raw STAC API Data - Point {int(point_num) + 1}", expanded=False):
+                                    for key, value in stac_data.items():
+                                        if isinstance(value, (str, int, float)):
+                                            st.write(f"• **{key}**: {value}")
+                                        elif isinstance(value, dict):
+                                            st.write(f"• **{key}**: {len(value)} fields")
+                                        elif isinstance(value, list):
+                                            st.write(f"• **{key}**: {len(value)} items")
+                            
+                            st.divider()
+                    
+                    # Summary statistics
+                    st.markdown("**📊 Summary Statistics:**")
                     code_counts = {}
-                    for point_id, code in landcover_codes.items():
+                    confidence_sum = 0
+                    valid_confidences = 0
+                    
+                    for point_data in sampling_point_data.values():
+                        code = point_data.get('landcover_class', 'Unknown')
                         code_counts[code] = code_counts.get(code, 0) + 1
+                        
+                        confidence = point_data.get('confidence', 0.0)
+                        if confidence > 0:
+                            confidence_sum += confidence
+                            valid_confidences += 1
+                    
+                    avg_confidence = (confidence_sum / valid_confidences) if valid_confidences > 0 else 0
+                    st.write(f"• **Average Confidence**: {avg_confidence:.1%}")
                     
                     for code, count in sorted(code_counts.items()):
                         openlandmap_description = get_landcover_code_description(code)
                         esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
-                        percentage = (count / len(landcover_codes)) * 100
-                        st.write(f"  • **{code}**: {openlandmap_description} → **{esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
-                else:
+                        percentage = (count / len(sampling_point_data)) * 100
+                        st.write(f"• **{code}**: {openlandmap_description} → **{esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
+                        
+                elif landcover_codes:
                     st.markdown("**🧪 Geographic Estimation Data:**")
                     st.write(f"• Based on: Geographic location and global land use patterns")
                     st.write(f"• Accuracy: ~85% ecosystem detection for major biomes")
                     st.write(f"• Method: Coordinate-based prediction with regional specialization")
-                    if landcover_codes:
-                        st.write(f"• Estimated Codes: {', '.join(map(str, set(landcover_codes.values())))}")
+                    st.write(f"• Sample Points: {len(landcover_codes)} points")
+                    
+                    # Show estimated codes summary
+                    code_counts = {}
+                    for code in landcover_codes.values():
+                        code_counts[code] = code_counts.get(code, 0) + 1
+                    
+                    st.markdown("**Estimated Landcover Codes:**")
+                    for code, count in sorted(code_counts.items()):
+                        openlandmap_description = get_landcover_code_description(code)
+                        esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
+                        percentage = (count / len(landcover_codes)) * 100
+                        st.write(f"• **{code}**: {openlandmap_description} → **{esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
+                else:
+                    st.markdown("**ℹ️ No Sampling Data Available**")
+                    st.write("No sampling point data available for this analysis.")
     
     return openlandmap_status.get('authentication_success', False)
 
@@ -1957,6 +2029,7 @@ with col2:
         
         # Display data source status - show clearly which method was used  
         analysis_results_for_display = {
+            'sampling_point_data': st.session_state.get('sampling_point_data', {}),
             'landcover_codes': st.session_state.get('landcover_codes', {}),
             'landcover_data_source': st.session_state.get('landcover_data_source', 'estimated')
         }
@@ -2312,19 +2385,30 @@ if analyze_button and st.session_state.selected_area:
                         progress_callback=update_progress
                     )
                     
-                    # Extract landcover codes from ecosystem detection
-                    landcover_codes = {}
+                    # Extract complete sampling point data from ecosystem detection
+                    sampling_point_data = {}
                     data_source = 'estimated'
                     
                     if ecosystem_info and 'sample_results' in ecosystem_info:
                         for i, result in enumerate(ecosystem_info['sample_results']):
-                            if result and 'landcover_class' in result:
-                                landcover_codes[f'point_{i}'] = result['landcover_class']
+                            if result:
+                                # Extract all available data from OpenLandMap API
+                                point_data = {
+                                    'landcover_class': result.get('landcover_class', 'Unknown'),
+                                    'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
+                                    'confidence': result.get('confidence', 0.0),
+                                    'source': result.get('source', 'Unknown'),
+                                    'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
+                                    'stac_data': result.get('stac_data', {})
+                                }
+                                sampling_point_data[f'point_{i}'] = point_data
+                                
                                 if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
                                     data_source = 'openlandmap'
                     
-                    # Store landcover information for display
-                    st.session_state.landcover_codes = landcover_codes
+                    # Store complete sampling point information for display
+                    st.session_state.sampling_point_data = sampling_point_data
+                    st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
                     st.session_state.landcover_data_source = data_source
                     
                     # Show completion in progress container
@@ -2646,6 +2730,7 @@ if st.session_state.analysis_results:
         
         # Show data source status in summary view
         analysis_results_for_display = {
+            'sampling_point_data': st.session_state.get('sampling_point_data', {}),
             'landcover_codes': st.session_state.get('landcover_codes', {}),
             'landcover_data_source': st.session_state.get('landcover_data_source', 'estimated')
         }
@@ -2940,6 +3025,7 @@ if st.session_state.analysis_results:
         
         # Show detailed data source status in detailed view
         analysis_results_for_display = {
+            'sampling_point_data': st.session_state.get('sampling_point_data', {}),
             'landcover_codes': st.session_state.get('landcover_codes', {}),
             'landcover_data_source': st.session_state.get('landcover_data_source', 'estimated')
         }
