@@ -70,6 +70,7 @@ class OpenLandMapSTAC:
             130: "Grassland",       # ESA code 130 → Grassland (sparse)
             140: "Grassland",       # ESA code 140 → Grassland (lichens/mosses)
             150: "Desert",          # ESA code 150 → Desert (sparse vegetation)
+            152: "Desert",          # ESA code 152 → Desert (bare areas)
             160: "Desert",          # ESA code 160 → Desert (bare areas)
             170: "Desert",          # ESA code 170 → Desert (bare soil)
             180: "Coastal",         # ESA code 180 → Coastal (water bodies)
