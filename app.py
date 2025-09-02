@@ -542,36 +542,6 @@ def display_data_source_status(analysis_results: Dict = None):
                                             else:
                                                 st.write(f"• **{metric}**: {description}")
                                 
-                                # Keep detailed raw data in separate expandable section
-                                with st.expander(f"🛰️ Raw STAC API Data - Point {int(point_num) + 1}", expanded=False):
-                                    for key, value in stac_data.items():
-                                        if isinstance(value, (str, int, float)):
-                                            st.write(f"• **{key}**: {value}")
-                                        elif isinstance(value, dict):
-                                            st.write(f"• **{key}**: {len(value)} fields")
-                                            if value:  # Show contents if dict has data
-                                                for sub_key, sub_value in value.items():
-                                                    if isinstance(sub_value, (str, int, float)):
-                                                        st.write(f"  - {sub_key}: {sub_value}")
-                                                    else:
-                                                        st.write(f"  - {sub_key}: {type(sub_value).__name__}")
-                                        elif isinstance(value, list):
-                                            st.write(f"• **{key}**: {len(value)} items")
-                                            if value:  # Show contents if list has data
-                                                for i, item in enumerate(value[:3]):  # Show first 3 items for space
-                                                    if isinstance(item, dict):
-                                                        st.write(f"  - Item {i+1}:")
-                                                        for item_key, item_value in item.items():
-                                                            if isinstance(item_value, (str, int, float)):
-                                                                st.write(f"    • {item_key}: {item_value}")
-                                                            else:
-                                                                st.write(f"    • {item_key}: {type(item_value).__name__}")
-                                                    else:
-                                                        st.write(f"  - Item {i+1}: {item}")
-                                                if len(value) > 3:
-                                                    st.write(f"  - ... and {len(value) - 3} more items")
-                                        else:
-                                            st.write(f"• **{key}**: {type(value).__name__}")
                             
                             st.divider()
                     
