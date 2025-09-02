@@ -469,34 +469,65 @@ def display_data_source_status(analysis_results: Dict = None):
                                 if climate_data and isinstance(climate_data, list):
                                     for item in climate_data:
                                         if isinstance(item, dict):
-                                            collection_id = item.get('collection_id', '')
+                                            name = item.get('name', '').lower()
                                             value = item.get('value')
-                                            if 'evi' in collection_id.lower() and value is not None:
-                                                environmental_summary['Vegetation Index (EVI)'] = f"{value:.3f} - Enhanced vegetation health indicator"
-                                            elif 'fapar' in collection_id.lower() and value is not None:
-                                                environmental_summary['Photosynthetic Activity (FAPAR)'] = f"{value:.3f} - Fraction of absorbed photosynthetic radiation"
-                                            elif 'dtm' in collection_id.lower() and value is not None:
-                                                environmental_summary['Elevation'] = f"{value:.0f}m - Terrain elevation above sea level"
+                                            unit = item.get('unit', '')
+                                            description = item.get('description', '')
+                                            
+                                            if value is not None:
+                                                if 'vegetation' in name or 'evi' in name:
+                                                    environmental_summary['Vegetation Index'] = f"{value:.3f} {unit} - {description}"
+                                                elif 'photosynthetic' in name or 'fapar' in name:
+                                                    environmental_summary['Photosynthetic Activity'] = f"{value:.3f} {unit} - {description}"
+                                                elif 'elevation' in name or 'terrain' in name or 'dtm' in name:
+                                                    environmental_summary['Elevation'] = f"{value:.0f} {unit} - {description}"
+                                                elif 'temperature' in name:
+                                                    environmental_summary['Temperature'] = f"{value:.1f} {unit} - {description}"
+                                                elif 'precipitation' in name or 'rainfall' in name:
+                                                    environmental_summary['Precipitation'] = f"{value:.1f} {unit} - {description}"
+                                                elif 'moisture' in name or 'humidity' in name:
+                                                    environmental_summary['Moisture'] = f"{value:.2f} {unit} - {description}"
+                                                else:
+                                                    # Catch any other climate/vegetation indicators
+                                                    clean_name = name.replace('_', ' ').title()
+                                                    environmental_summary[clean_name] = f"{value:.3f} {unit} - {description}"
                                 
                                 # Process land cover data
                                 land_cover_data = stac_data.get('landCover', [])
                                 if land_cover_data and isinstance(land_cover_data, list):
                                     for item in land_cover_data:
                                         if isinstance(item, dict):
-                                            value = item.get('value')
+                                            value = item.get('value', '')
                                             code = item.get('code')
+                                            description = item.get('description', 'Land cover classification')
                                             if value and code:
-                                                environmental_summary['Land Cover Classification'] = f"{value} (Code: {code}) - ESA land cover type"
+                                                environmental_summary['Land Cover'] = f"{value} (Code: {code}) - {description}"
                                 
                                 # Process soil data
                                 soil_data = stac_data.get('soil', [])
                                 if soil_data and isinstance(soil_data, list):
                                     for item in soil_data:
                                         if isinstance(item, dict):
-                                            collection_id = item.get('collection_id', '')
+                                            name = item.get('name', '').lower()
                                             value = item.get('value')
-                                            if 'oc' in collection_id.lower() and value is not None:
-                                                environmental_summary['Soil Organic Carbon'] = f"{value:.1f} g/kg - Carbon content in soil"
+                                            unit = item.get('unit', '')
+                                            description = item.get('description', '')
+                                            
+                                            if value is not None:
+                                                if 'organic carbon' in name or 'oc' in name:
+                                                    environmental_summary['Soil Organic Carbon'] = f"{value:.1f} {unit} - {description}"
+                                                elif 'ph' in name:
+                                                    environmental_summary['Soil pH'] = f"{value:.2f} {unit} - {description}"
+                                                elif 'nitrogen' in name:
+                                                    environmental_summary['Soil Nitrogen'] = f"{value:.1f} {unit} - {description}"
+                                                elif 'clay' in name:
+                                                    environmental_summary['Clay Content'] = f"{value:.1f} {unit} - {description}"
+                                                elif 'sand' in name:
+                                                    environmental_summary['Sand Content'] = f"{value:.1f} {unit} - {description}"
+                                                else:
+                                                    # Catch any other soil indicators
+                                                    clean_name = name.replace('_', ' ').title()
+                                                    environmental_summary[clean_name] = f"{value:.2f} {unit} - {description}"
                                 
                                 # Display environmental summary
                                 if environmental_summary:
