@@ -75,7 +75,15 @@ class OpenLandMapIntegrator:
                         'ecosystem_type': stac_result['ecosystem_type'],
                         'confidence': stac_result.get('confidence', 0.85),
                         'source': 'OpenLandMap STAC',
-                        'landcover_class': stac_result.get('landcover_class', 0)
+                        'landcover_class': stac_result.get('landcover_class', 0),
+                        'coordinates': stac_result.get('coordinates', {'lat': lat, 'lon': lon}),
+                        'stac_data': {
+                            'climate': stac_result.get('climate', []),
+                            'landCover': stac_result.get('landCover', []),
+                            'soil': stac_result.get('soil', []),
+                            'data_source': stac_result.get('data_source', 'OpenLandMap STAC API'),
+                            'query_time': stac_result.get('query_time')
+                        }
                     }
             except Exception as e:
                 print(f"STAC API query failed for ({lat}, {lon}): {e}")
