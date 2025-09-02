@@ -1047,35 +1047,30 @@ Example: 100ha Forest
         ]
         
         # Updated default mapping with improved ecosystem type accuracy
+        # ESA CCI Level 1 to ESVD ecosystem coefficient mapping (matches OpenLandMap STAC API)
         default_landcover_mapping = {
-            10: "Agricultural",      # Cropland
-            20: "Forest",           # Forest (deciduous broadleaved)
-            30: "Forest",           # Forest (deciduous needleleaved) 
-            40: "Forest",           # Forest (evergreen broadleaved)
-            50: "Forest",           # Forest (evergreen needleleaved)
-            60: "Forest",           # Forest (mixed)
-            61: "Forest",           # Tree Cover
-            62: "Forest",           # Forest (flooded fresh/brackish)
-            70: "Grassland",        # Grassland
-            71: "Grassland",        # Herbaceous cover
-            80: "Urban",            # Urban areas
-            90: "Shrubland",        # Shrubland - now properly mapped
-            100: "Grassland",       # Herbaceous cover (flooded)
-            110: "Shrubland",       # Shrubland (flooded) - now properly mapped
-            120: "Grassland",       # Grassland
-            121: "Grassland",       # Sparse vegetation
-            122: "Grassland",       # Sparse herbaceous
-            130: "Grassland",       # Grassland
-            140: "Grassland",       # Lichens and mosses
-            150: "Desert",          # Sparse vegetation
-            152: "Desert",          # Bare areas
-            153: "Desert",          # Bare rock
-            160: "Desert",          # Bare soil
-            180: "Coastal",         # Permanent water bodies
-            190: "Wetland",         # Herbaceous wetland
-            200: "Desert",          # Snow and ice
-            210: "Coastal",         # Water bodies
-            220: "Desert",          # Snow/Ice
+            10: "Cropland",         # ESA code 10 → Cropland
+            20: "Forest",           # ESA code 20 → Forest  
+            30: "Grassland",        # ESA code 30 → Grassland
+            40: "Grassland",        # ESA code 40 → Grassland
+            50: "Desert",           # ESA code 50 → Desert
+            60: "Wetland",          # ESA code 60 → Wetlands
+            70: "Coastal",          # ESA code 70 → Coastal
+            80: "Desert",           # ESA code 80 → Desert
+            90: "Desert",           # ESA code 90 → Desert
+            100: "Urban",           # ESA code 100 → Urban
+            110: "Wetland",         # ESA code 110 → Wetlands (flooded shrubland)
+            120: "Grassland",       # ESA code 120 → Grassland
+            130: "Grassland",       # ESA code 130 → Grassland (sparse)
+            140: "Grassland",       # ESA code 140 → Grassland (lichens/mosses)
+            150: "Desert",          # ESA code 150 → Desert (sparse vegetation)
+            160: "Desert",          # ESA code 160 → Desert (bare areas)
+            170: "Desert",          # ESA code 170 → Desert (bare soil)
+            180: "Coastal",         # ESA code 180 → Coastal (water bodies)
+            190: "Wetland",         # ESA code 190 → Wetlands (herbaceous wetland)
+            200: "Desert",          # ESA code 200 → Desert (snow/ice)
+            210: "Coastal",         # ESA code 210 → Coastal (water bodies)
+            220: "Desert",          # ESA code 220 → Desert (snow/ice permanent)
         }
         
         # Initialize session state for custom mapping
@@ -1093,36 +1088,30 @@ Example: 100ha Forest
         with col2:
             st.markdown("**Current Mapping**")
         
-        # Landcover descriptions for tooltips
+        # ESA CCI Level 1 landcover descriptions for tooltips
         landcover_descriptions = {
             10: "Cropland",
-            20: "Forest (deciduous broadleaved)", 
-            30: "Forest (deciduous needleleaved)",
-            40: "Forest (evergreen broadleaved)",
-            50: "Forest (evergreen needleleaved)",
-            60: "Forest (mixed)",
-            61: "Tree Cover",
-            62: "Forest (flooded fresh/brackish)",
-            70: "Grassland", 
-            71: "Herbaceous cover",
-            80: "Urban areas",
+            20: "Deciduous Broadleaved Forest", 
+            30: "Deciduous Needleleaved Forest",
+            40: "Evergreen Broadleaved Forest",
+            50: "Evergreen Needleleaved Forest",
+            60: "Mixed Forest",
+            70: "Water Bodies",
+            80: "Urban Areas",
             90: "Shrubland",
-            100: "Herbaceous cover (flooded)",
-            110: "Shrubland (flooded)",
+            100: "Herbaceous Cover (Flooded)",
+            110: "Shrubland (Flooded)",
             120: "Grassland",
-            121: "Sparse vegetation",
-            122: "Sparse herbaceous", 
-            130: "Grassland",
-            140: "Lichens and mosses",
-            150: "Sparse vegetation",
-            152: "Bare areas",
-            153: "Bare rock",
-            160: "Bare soil",
-            180: "Permanent water bodies",
-            190: "Herbaceous wetland",
-            200: "Snow and ice",
-            210: "Water bodies",
-            220: "Snow/Ice"
+            130: "Grassland Sparse",
+            140: "Lichens and Mosses",
+            150: "Sparse Vegetation",
+            160: "Bare Areas",
+            170: "Bare Soil",
+            180: "Permanent Water Bodies",
+            190: "Herbaceous Wetland",
+            200: "Snow and Ice",
+            210: "Water Bodies",
+            220: "Snow/Ice Permanent"
         }
         
         # Display compact mapping table with tooltips
