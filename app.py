@@ -457,9 +457,61 @@ def display_data_source_status(analysis_results: Dict = None):
                                 lon = coords.get('lon', 0)
                                 st.write(f"• **Coordinates**: {lat:.4f}, {lon:.4f}")
                             
-                            # Show STAC data if available
+                            # Show summarized STAC data if available
                             stac_data = point_data.get('stac_data', {})
                             if stac_data and isinstance(stac_data, dict) and stac_data:
+                                
+                                # Extract and summarize key environmental metrics
+                                environmental_summary = {}
+                                
+                                # Process climate/vegetation data
+                                climate_data = stac_data.get('climate', [])
+                                if climate_data and isinstance(climate_data, list):
+                                    for item in climate_data:
+                                        if isinstance(item, dict):
+                                            collection_id = item.get('collection_id', '')
+                                            value = item.get('value')
+                                            if 'evi' in collection_id.lower() and value is not None:
+                                                environmental_summary['Vegetation Index (EVI)'] = f"{value:.3f} - Enhanced vegetation health indicator"
+                                            elif 'fapar' in collection_id.lower() and value is not None:
+                                                environmental_summary['Photosynthetic Activity (FAPAR)'] = f"{value:.3f} - Fraction of absorbed photosynthetic radiation"
+                                            elif 'dtm' in collection_id.lower() and value is not None:
+                                                environmental_summary['Elevation'] = f"{value:.0f}m - Terrain elevation above sea level"
+                                
+                                # Process land cover data
+                                land_cover_data = stac_data.get('landCover', [])
+                                if land_cover_data and isinstance(land_cover_data, list):
+                                    for item in land_cover_data:
+                                        if isinstance(item, dict):
+                                            value = item.get('value')
+                                            code = item.get('code')
+                                            if value and code:
+                                                environmental_summary['Land Cover Classification'] = f"{value} (Code: {code}) - ESA land cover type"
+                                
+                                # Process soil data
+                                soil_data = stac_data.get('soil', [])
+                                if soil_data and isinstance(soil_data, list):
+                                    for item in soil_data:
+                                        if isinstance(item, dict):
+                                            collection_id = item.get('collection_id', '')
+                                            value = item.get('value')
+                                            if 'oc' in collection_id.lower() and value is not None:
+                                                environmental_summary['Soil Organic Carbon'] = f"{value:.1f} g/kg - Carbon content in soil"
+                                
+                                # Display environmental summary
+                                if environmental_summary:
+                                    with st.expander(f"🌍 Environmental Indicators - Point {int(point_num) + 1}", expanded=False):
+                                        st.markdown("**Key Environmental Metrics:**")
+                                        for metric, description in environmental_summary.items():
+                                            parts = description.split(' - ', 1)
+                                            if len(parts) == 2:
+                                                value_part, desc_part = parts
+                                                st.write(f"• **{metric}**: {value_part}")
+                                                st.caption(f"  {desc_part}")
+                                            else:
+                                                st.write(f"• **{metric}**: {description}")
+                                
+                                # Keep detailed raw data in separate expandable section
                                 with st.expander(f"🛰️ Raw STAC API Data - Point {int(point_num) + 1}", expanded=False):
                                     for key, value in stac_data.items():
                                         if isinstance(value, (str, int, float)):
@@ -475,7 +527,7 @@ def display_data_source_status(analysis_results: Dict = None):
                                         elif isinstance(value, list):
                                             st.write(f"• **{key}**: {len(value)} items")
                                             if value:  # Show contents if list has data
-                                                for i, item in enumerate(value[:5]):  # Show first 5 items
+                                                for i, item in enumerate(value[:3]):  # Show first 3 items for space
                                                     if isinstance(item, dict):
                                                         st.write(f"  - Item {i+1}:")
                                                         for item_key, item_value in item.items():
@@ -485,8 +537,8 @@ def display_data_source_status(analysis_results: Dict = None):
                                                                 st.write(f"    • {item_key}: {type(item_value).__name__}")
                                                     else:
                                                         st.write(f"  - Item {i+1}: {item}")
-                                                if len(value) > 5:
-                                                    st.write(f"  - ... and {len(value) - 5} more items")
+                                                if len(value) > 3:
+                                                    st.write(f"  - ... and {len(value) - 3} more items")
                                         else:
                                             st.write(f"• **{key}**: {type(value).__name__}")
                             
