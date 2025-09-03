@@ -1058,32 +1058,65 @@ Example: 100ha Forest
             "Wetland", "Coastal", "Shrubland"
         ]
         
-        # Updated default mapping with improved ecosystem type accuracy
-        # ESA CCI Level 1 to ESVD ecosystem coefficient mapping (matches OpenLandMap STAC API)
+        # Complete ESA CCI Land Cover to ESVD ecosystem coefficient mapping
+        # Based on ESA CCI Land Cover 22-class classification system
         default_landcover_mapping = {
-            10: "Cropland",         # ESA code 10 → Cropland
-            20: "Forest",           # ESA code 20 → Forest  
-            30: "Grassland",        # ESA code 30 → Grassland
-            40: "Grassland",        # ESA code 40 → Grassland (shrubland mapped to grassland coefficients)
-            50: "Desert",           # ESA code 50 → Desert
-            60: "Wetland",          # ESA code 60 → Wetland
-            70: "Coastal",          # ESA code 70 → Coastal
-            80: "Desert",           # ESA code 80 → Desert  
-            90: "Desert",           # ESA code 90 → Desert
-            100: "Urban",           # ESA code 100 → Urban
-            110: "Wetland",         # ESA code 110 → Wetlands (flooded shrubland)
-            120: "Grassland",       # ESA code 120 → Grassland
-            130: "Grassland",       # ESA code 130 → Grassland (sparse)
-            140: "Grassland",       # ESA code 140 → Grassland (lichens/mosses)
-            150: "Desert",          # ESA code 150 → Desert (sparse vegetation)
-            152: "Desert",          # ESA code 152 → Desert (bare areas)
-            160: "Desert",          # ESA code 160 → Desert (bare areas)
-            170: "Desert",          # ESA code 170 → Desert (bare soil)
-            180: "Coastal",         # ESA code 180 → Coastal (water bodies)
-            190: "Wetland",         # ESA code 190 → Wetlands (herbaceous wetland)
-            200: "Desert",          # ESA code 200 → Desert (snow/ice)
-            210: "Coastal",         # ESA code 210 → Coastal (water bodies)
-            220: "Desert",          # ESA code 220 → Desert (snow/ice permanent)
+            # Cropland Classes
+            10: "Cropland",         # Cropland, rainfed
+            11: "Cropland",         # Herbaceous cover
+            12: "Cropland",         # Tree or shrub cover
+            20: "Cropland",         # Cropland, irrigated or post-flooding
+            30: "Cropland",         # Mosaic cropland (>50%) / natural vegetation (<50%)
+            40: "Grassland",        # Mosaic natural vegetation (>50%) / cropland (<50%)
+            
+            # Forest Classes  
+            50: "Forest",           # Tree cover, broadleaved, evergreen, closed to open (>15%)
+            60: "Forest",           # Tree cover, broadleaved, deciduous, closed to open (>15%)
+            61: "Forest",           # Tree cover, broadleaved, deciduous, closed (>40%)
+            62: "Forest",           # Tree cover, broadleaved, deciduous, open (15-40%)
+            70: "Forest",           # Tree cover, needleleaved, evergreen, closed to open (>15%)
+            71: "Forest",           # Tree cover, needleleaved, evergreen, closed (>40%)
+            72: "Forest",           # Tree cover, needleleaved, evergreen, open (15-40%)
+            80: "Forest",           # Tree cover, needleleaved, deciduous, closed to open (>15%)
+            81: "Forest",           # Tree cover, needleleaved, deciduous, closed (>40%)
+            82: "Forest",           # Tree cover, needleleaved, deciduous, open (15-40%)
+            90: "Forest",           # Tree cover, mixed leaf type (broadleaved and needleleaved)
+            100: "Forest",          # Mosaic tree and shrub (>50%) / herbaceous cover (<50%)
+            
+            # Shrubland Classes
+            110: "Shrubland",       # Mosaic herbaceous cover (>50%) / tree and shrub (<50%)
+            120: "Shrubland",       # Shrubland
+            121: "Shrubland",       # Shrubland evergreen
+            122: "Shrubland",       # Shrubland deciduous
+            
+            # Grassland Classes
+            130: "Grassland",       # Grassland
+            140: "Grassland",       # Lichens and mosses
+            
+            # Sparse Vegetation / Desert Classes
+            150: "Desert",          # Sparse vegetation (tree, shrub, herbaceous cover) (<15%)
+            151: "Desert",          # Sparse tree (<15%)
+            152: "Desert",          # Sparse shrub (<15%)
+            153: "Desert",          # Sparse herbaceous cover (<15%)
+            
+            # Wetland Classes
+            160: "Wetland",         # Tree cover, flooded, fresh or brakish water
+            170: "Wetland",         # Tree cover, flooded, saline water
+            180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
+            
+            # Urban Classes
+            190: "Urban",           # Urban areas
+            
+            # Bare Areas Classes
+            200: "Desert",          # Bare areas
+            201: "Desert",          # Consolidated bare areas
+            202: "Desert",          # Unconsolidated bare areas
+            
+            # Water Bodies Classes
+            210: "Coastal",         # Water bodies
+            
+            # Snow and Ice Classes
+            220: "Desert",          # Permanent snow and ice
         }
         
         # Initialize session state for custom mapping with correct defaults
@@ -1106,31 +1139,64 @@ Example: 100ha Forest
         with col2:
             st.markdown("**Current Mapping**")
         
-        # ESA CCI Level 1 landcover descriptions for tooltips
+        # Complete ESA CCI Land Cover descriptions for tooltips
         landcover_descriptions = {
-            10: "Cropland",
-            20: "Forest", 
-            30: "Grassland",
-            40: "Shrubland",
-            50: "Sparse Vegetation",
-            60: "Wetlands",
-            70: "Water Bodies",
-            80: "Permanent Snow and Ice",
-            90: "Bare Areas",
-            100: "Urban Areas",
-            110: "Shrubland (Flooded)",
-            120: "Grassland",
-            130: "Grassland Sparse",
-            140: "Lichens and Mosses",
-            150: "Sparse Vegetation",
-            152: "Bare Areas",
-            160: "Bare Areas",
-            170: "Bare Soil",
-            180: "Permanent Water Bodies",
-            190: "Herbaceous Wetland",
-            200: "Snow and Ice",
-            210: "Water Bodies",
-            220: "Snow/Ice Permanent"
+            # Cropland Classes
+            10: "Cropland, rainfed",
+            11: "Herbaceous cover",
+            12: "Tree or shrub cover",
+            20: "Cropland, irrigated or post-flooding", 
+            30: "Mosaic cropland (>50%) / natural vegetation (<50%)",
+            40: "Mosaic natural vegetation (>50%) / cropland (<50%)",
+            
+            # Forest Classes
+            50: "Tree cover, broadleaved, evergreen, closed to open (>15%)",
+            60: "Tree cover, broadleaved, deciduous, closed to open (>15%)",
+            61: "Tree cover, broadleaved, deciduous, closed (>40%)",
+            62: "Tree cover, broadleaved, deciduous, open (15-40%)",
+            70: "Tree cover, needleleaved, evergreen, closed to open (>15%)",
+            71: "Tree cover, needleleaved, evergreen, closed (>40%)",
+            72: "Tree cover, needleleaved, evergreen, open (15-40%)",
+            80: "Tree cover, needleleaved, deciduous, closed to open (>15%)",
+            81: "Tree cover, needleleaved, deciduous, closed (>40%)",
+            82: "Tree cover, needleleaved, deciduous, open (15-40%)",
+            90: "Tree cover, mixed leaf type (broadleaved and needleleaved)",
+            100: "Mosaic tree and shrub (>50%) / herbaceous cover (<50%)",
+            
+            # Shrubland Classes
+            110: "Mosaic herbaceous cover (>50%) / tree and shrub (<50%)",
+            120: "Shrubland",
+            121: "Shrubland evergreen",
+            122: "Shrubland deciduous",
+            
+            # Grassland Classes
+            130: "Grassland",
+            140: "Lichens and mosses",
+            
+            # Sparse Vegetation Classes
+            150: "Sparse vegetation (tree, shrub, herbaceous cover) (<15%)",
+            151: "Sparse tree (<15%)",
+            152: "Sparse shrub (<15%)",
+            153: "Sparse herbaceous cover (<15%)",
+            
+            # Wetland Classes
+            160: "Tree cover, flooded, fresh or brakish water",
+            170: "Tree cover, flooded, saline water",
+            180: "Shrub or herbaceous cover, flooded, fresh/saline/brakish water",
+            
+            # Urban Classes
+            190: "Urban areas",
+            
+            # Bare Areas Classes
+            200: "Bare areas",
+            201: "Consolidated bare areas",
+            202: "Unconsolidated bare areas",
+            
+            # Water Bodies Classes
+            210: "Water bodies",
+            
+            # Snow and Ice Classes
+            220: "Permanent snow and ice"
         }
         
         # Display compact mapping table with tooltips
