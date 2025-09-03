@@ -418,43 +418,44 @@ class OpenLandMapSTAC:
     def _determine_forest_type_from_coordinates(self, lat: float, lon: float) -> str:
         """
         Determine specific forest type based on coordinates using ESVD methodology
+        Returns specific forest ecosystem types for ESVD coefficient matching
         """
         abs_lat = abs(lat)
         
         # Boreal forest zones (50-70° latitude)
         if 50 <= abs_lat <= 70:
-            return 'boreal_forest'
+            return 'Boreal Forest'
         
         # Tropical forest zones (0-25° latitude)  
         elif abs_lat <= 25:
-            return 'tropical_forest'
+            return 'Tropical Forest'
         
         # Mediterranean climate zones (30-45° latitude, specific regions)
         elif 30 <= abs_lat <= 45:
             # Mediterranean Basin
             if (30 <= lat <= 45 and -10 <= lon <= 45):
-                return 'mediterranean_forest'
+                return 'Mediterranean Forest'
             # California
             elif (32 <= lat <= 42 and -125 <= lon <= -115):
-                return 'mediterranean_forest'
+                return 'Mediterranean Forest'
             # Central Chile  
             elif (-40 <= lat <= -30 and -75 <= lon <= -70):
-                return 'mediterranean_forest'
+                return 'Mediterranean Forest'
             # South Africa (Western Cape)
             elif (-35 <= lat <= -30 and 15 <= lon <= 25):
-                return 'mediterranean_forest'
+                return 'Mediterranean Forest'
             # Southwestern Australia
             elif (-35 <= lat <= -30 and 110 <= lon <= 125):
-                return 'mediterranean_forest'
+                return 'Mediterranean Forest'
             else:
-                return 'temperate_forest'
+                return 'Temperate Forest'
         
         # Temperate forest zones (25-50° latitude, excluding Mediterranean)
         elif 25 < abs_lat < 50:
-            return 'temperate_forest'
+            return 'Temperate Forest'
         
         # Default fallback
-        return 'temperate_forest'
+        return 'Temperate Forest'
     
     def _geographic_fallback_detection(self, lat: float, lon: float) -> str:
         """
