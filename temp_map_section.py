@@ -1,39 +1,29 @@
 # Clean map selection implementation
 with col1:
     st.subheader("🗺️ Select Your Area")
-    st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Create interactive map with layer controls
-    m = folium.Map(
-        location=[40.0, -100.0], 
-        zoom_start=4,
-        tiles=None  # Remove default tiles to add custom ones
-    )
+    # Add layer selector above map
+    col_layer1, col_layer2 = st.columns(2)
+    with col_layer1:
+        layer_type = st.radio("🗺️ Map Style:", ["Light Map", "Satellite"], horizontal=True, key="map_layer_selector")
+    with col_layer2:
+        st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Add base tile layers with proper control setup
-    folium.TileLayer(
-        tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        name='Light Map',
-        overlay=False,
-        control=True,
-        max_zoom=18
-    ).add_to(m)
-    
-    folium.TileLayer(
-        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        attr='&copy; Google',
-        name='Satellite',
-        overlay=False,
-        control=True,
-        max_zoom=20
-    ).add_to(m)
-    
-    # Add layer control widget
-    folium.LayerControl(
-        position='topright',
-        collapsed=False
-    ).add_to(m)
+    # Create interactive map based on selected layer
+    if layer_type == "Satellite":
+        m = folium.Map(
+            location=[40.0, -100.0], 
+            zoom_start=4,
+            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            attr='&copy; Google'
+        )
+    else:  # Light Map
+        m = folium.Map(
+            location=[40.0, -100.0], 
+            zoom_start=4,
+            tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+            attr='&copy; CARTO'
+        )
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
