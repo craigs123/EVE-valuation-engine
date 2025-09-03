@@ -74,7 +74,7 @@ st.markdown("""
 
 # Production-optimized map caching with extended TTL
 @st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
-def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5, layer_type="Light Map"):
+def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5, layer_type="Satellite"):
     """Create and cache folium map with maximum performance optimizations"""
     import folium
     
@@ -1756,7 +1756,7 @@ with col1:
     # Add layer selector
     col_layer1, col_layer2 = st.columns([1, 2])
     with col_layer1:
-        map_layer = st.radio("🗺️ Map Style:", ["Light Map", "Satellite"], horizontal=True, key="main_map_layer_selector")
+        map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
     with col_layer2:
         st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area, or use the test area checkbox above")
     
