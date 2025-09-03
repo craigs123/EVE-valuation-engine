@@ -3,8 +3,30 @@ with col1:
     st.subheader("🗺️ Select Your Area")
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
-    # Create interactive map
+    # Create interactive map with layer controls
     m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+    
+    # Add fast-loading tile layers
+    folium.TileLayer(
+        tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+        attr='CartoDB',
+        name='Light Map',
+        overlay=False,
+        control=True,
+        max_zoom=18
+    ).add_to(m)
+    
+    folium.TileLayer(
+        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Satellite',
+        overlay=False,
+        control=True,
+        max_zoom=20
+    ).add_to(m)
+    
+    # Add layer control toggle
+    folium.LayerControl(position='topright').add_to(m)
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
