@@ -74,57 +74,66 @@ st.markdown("""
 
 # Production-optimized map caching with extended TTL
 @st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
-def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5):
+def get_folium_map(center_lat=39.8283, center_lon=-98.5795, zoom=5, layer_type="Light Map"):
     """Create and cache folium map with maximum performance optimizations"""
     import folium
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=zoom,
-        tiles="CartoDB positron",  # Fast-loading lightweight tiles
-        prefer_canvas=True,
-        max_zoom=18,  # Allow much higher zoom for detail
-        min_zoom=2,
-        attributionControl=False,  # Reduce loading overhead
-        zoomControl=True,
-        scrollWheelZoom=True,
-        doubleClickZoom=True,
-        boxZoom=True,
-        keyboard=True,
-        dragging=True,
-        tap=True,
-        # Optimized for fast loading
-        options={
-            'worldCopyJump': False,
-            'maxBoundsViscosity': 0.0,
-            'zoomAnimation': False,  # Disable for faster performance
-            'markerZoomAnimation': False,
-            'fadeAnimation': False,
-            'zoomSnap': 1,
-            'zoomDelta': 1
-        }
-    )
     
-    # Add fast-loading tile layers with optimized settings
-    folium.TileLayer(
-        tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-        attr='CartoDB',
-        name='Light Map (Fast)',
-        overlay=False,
-        control=True,
-        max_zoom=18
-    ).add_to(m)
-    
-    folium.TileLayer(
-        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        attr='Google',
-        name='Satellite (Fast)',
-        overlay=False,
-        control=True,
-        max_zoom=20
-    ).add_to(m)
-    
-    # Add layer control
-    folium.LayerControl(position='topright').add_to(m)
+    if layer_type == "Satellite":
+        # Create satellite map
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=zoom,
+            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            attr='&copy; Google',
+            prefer_canvas=True,
+            max_zoom=20,
+            min_zoom=2,
+            attributionControl=False,
+            zoomControl=True,
+            scrollWheelZoom=True,
+            doubleClickZoom=True,
+            boxZoom=True,
+            keyboard=True,
+            dragging=True,
+            tap=True,
+            options={
+                'worldCopyJump': False,
+                'maxBoundsViscosity': 0.0,
+                'zoomAnimation': False,
+                'markerZoomAnimation': False,
+                'fadeAnimation': False,
+                'zoomSnap': 1,
+                'zoomDelta': 1
+            }
+        )
+    else:
+        # Create light map (default)
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=zoom,
+            tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+            attr='&copy; CARTO',
+            prefer_canvas=True,
+            max_zoom=18,
+            min_zoom=2,
+            attributionControl=False,
+            zoomControl=True,
+            scrollWheelZoom=True,
+            doubleClickZoom=True,
+            boxZoom=True,
+            keyboard=True,
+            dragging=True,
+            tap=True,
+            options={
+                'worldCopyJump': False,
+                'maxBoundsViscosity': 0.0,
+                'zoomAnimation': False,
+                'markerZoomAnimation': False,
+                'fadeAnimation': False,
+                'zoomSnap': 1,
+                'zoomDelta': 1
+            }
+        )
     
     return m
 
@@ -1677,7 +1686,13 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("🗺️ Step 1: Select Your Area")
-    st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area, or use the test area checkbox above")
+    
+    # Add layer selector
+    col_layer1, col_layer2 = st.columns([1, 2])
+    with col_layer1:
+        map_layer = st.radio("🗺️ Map Style:", ["Light Map", "Satellite"], horizontal=True, key="main_map_layer_selector")
+    with col_layer2:
+        st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area, or use the test area checkbox above")
     
     # Performance-optimized sampling display  
     current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
@@ -1733,7 +1748,7 @@ with col1:
             center_lat, center_lon = 60.0, 15.0
             zoom_level = 13
         
-        m = get_folium_map(center_lat, center_lon, zoom_level)
+        m = get_folium_map(center_lat, center_lon, zoom_level, map_layer)
         
         # Add drawing tools for test area map
         draw_tools = create_drawing_tools()
@@ -1797,7 +1812,7 @@ with col1:
             # Cache the calculated values
             st.session_state[cache_key] = (center_lat, center_lon, zoom_level)
         
-        m = get_folium_map(center_lat, center_lon, zoom_level)
+        m = get_folium_map(center_lat, center_lon, zoom_level, map_layer)
         
         # Add cached drawing tools
         draw_tools = create_drawing_tools()
@@ -1830,7 +1845,7 @@ with col1:
         m.fit_bounds(bounds, padding=[50, 50])  # Reduced padding for speed
     else:
         # Default optimized map view
-        m = get_folium_map(40.0, -100.0, 4)
+        m = get_folium_map(40.0, -100.0, 4, map_layer)
         draw_tools = create_drawing_tools()
         draw_tools.add_to(m)
     
