@@ -53,31 +53,65 @@ class OpenLandMapSTAC:
             }
         ]
         
-        # ESA CCI Level 1 to ESVD ecosystem coefficient mapping
+        # Complete ESA CCI Land Cover (Level 1 & 2) to ESVD ecosystem coefficient mapping
+        # Handles both Level 1 and Level 2 codes from ESA CCI Level 4 data
         self.landcover_to_esvd = {
-            10: "Cropland",         # ESA code 10 → Cropland
-            20: "Forest",           # ESA code 20 → Forest  
-            30: "Grassland",        # ESA code 30 → Grassland
-            40: "Grassland",        # ESA code 40 → Grassland
-            50: "Desert",           # ESA code 50 → Desert
-            60: "Wetland",          # ESA code 60 → Wetlands
-            70: "Coastal",          # ESA code 70 → Coastal
-            80: "Desert",           # ESA code 80 → Desert
-            90: "Desert",           # ESA code 90 → Desert
-            100: "Urban",           # ESA code 100 → Urban
-            110: "Wetland",         # ESA code 110 → Wetlands (flooded shrubland)
-            120: "Grassland",       # ESA code 120 → Grassland
-            130: "Grassland",       # ESA code 130 → Grassland (sparse)
-            140: "Grassland",       # ESA code 140 → Grassland (lichens/mosses)
-            150: "Desert",          # ESA code 150 → Desert (sparse vegetation)
-            152: "Desert",          # ESA code 152 → Desert (bare areas)
-            160: "Desert",          # ESA code 160 → Desert (bare areas)
-            170: "Desert",          # ESA code 170 → Desert (bare soil)
-            180: "Coastal",         # ESA code 180 → Coastal (water bodies)
-            190: "Wetland",         # ESA code 190 → Wetlands (herbaceous wetland)
-            200: "Desert",          # ESA code 200 → Desert (snow/ice)
-            210: "Coastal",         # ESA code 210 → Coastal (water bodies)
-            220: "Desert",          # ESA code 220 → Desert (snow/ice permanent)
+            # Cropland Classes
+            10: "Cropland",         # Cropland, rainfed
+            11: "Cropland",         # Herbaceous cover
+            12: "Cropland",         # Tree or shrub cover
+            20: "Cropland",         # Cropland, irrigated or post-flooding
+            30: "Cropland",         # Mosaic cropland (>50%) / natural vegetation (<50%)
+            40: "Grassland",        # Mosaic natural vegetation (>50%) / cropland (<50%)
+            
+            # Forest Classes  
+            50: "Forest",           # Tree cover, broadleaved, evergreen, closed to open (>15%)
+            60: "Forest",           # Tree cover, broadleaved, deciduous, closed to open (>15%)
+            61: "Forest",           # Tree cover, broadleaved, deciduous, closed (>40%)
+            62: "Forest",           # Tree cover, broadleaved, deciduous, open (15-40%)
+            70: "Forest",           # Tree cover, needleleaved, evergreen, closed to open (>15%)
+            71: "Forest",           # Tree cover, needleleaved, evergreen, closed (>40%)
+            72: "Forest",           # Tree cover, needleleaved, evergreen, open (15-40%)
+            80: "Forest",           # Tree cover, needleleaved, deciduous, closed to open (>15%)
+            81: "Forest",           # Tree cover, needleleaved, deciduous, closed (>40%)
+            82: "Forest",           # Tree cover, needleleaved, deciduous, open (15-40%)
+            90: "Forest",           # Tree cover, mixed leaf type (broadleaved and needleleaved)
+            100: "Forest",          # Mosaic tree and shrub (>50%) / herbaceous cover (<50%)
+            
+            # Shrubland Classes
+            110: "Shrubland",       # Mosaic herbaceous cover (>50%) / tree and shrub (<50%)
+            120: "Shrubland",       # Shrubland
+            121: "Shrubland",       # Shrubland evergreen
+            122: "Shrubland",       # Shrubland deciduous
+            
+            # Grassland Classes
+            130: "Grassland",       # Grassland
+            140: "Grassland",       # Lichens and mosses
+            
+            # Sparse Vegetation / Desert Classes
+            150: "Desert",          # Sparse vegetation (tree, shrub, herbaceous cover) (<15%)
+            151: "Desert",          # Sparse tree (<15%)
+            152: "Desert",          # Sparse shrub (<15%)
+            153: "Desert",          # Sparse herbaceous cover (<15%)
+            
+            # Wetland Classes
+            160: "Wetland",         # Tree cover, flooded, fresh or brakish water
+            170: "Wetland",         # Tree cover, flooded, saline water
+            180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
+            
+            # Urban Classes
+            190: "Urban",           # Urban areas
+            
+            # Bare Areas Classes
+            200: "Desert",          # Bare areas
+            201: "Desert",          # Consolidated bare areas
+            202: "Desert",          # Unconsolidated bare areas
+            
+            # Water Bodies Classes
+            210: "Coastal",         # Water bodies
+            
+            # Snow and Ice Classes
+            220: "Desert",          # Permanent snow and ice
         }
         
         # Fallback ecosystem detection based on geographic patterns
