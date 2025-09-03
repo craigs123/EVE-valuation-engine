@@ -4,12 +4,16 @@ with col1:
     st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
     
     # Create interactive map with layer controls
-    m = folium.Map(location=[40.0, -100.0], zoom_start=4)
+    m = folium.Map(
+        location=[40.0, -100.0], 
+        zoom_start=4,
+        tiles=None  # Remove default tiles to add custom ones
+    )
     
-    # Add fast-loading tile layers
+    # Add base tile layers with proper control setup
     folium.TileLayer(
         tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-        attr='CartoDB',
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         name='Light Map',
         overlay=False,
         control=True,
@@ -18,15 +22,18 @@ with col1:
     
     folium.TileLayer(
         tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        attr='Google',
+        attr='&copy; Google',
         name='Satellite',
         overlay=False,
         control=True,
         max_zoom=20
     ).add_to(m)
     
-    # Add layer control toggle
-    folium.LayerControl(position='topright').add_to(m)
+    # Add layer control widget
+    folium.LayerControl(
+        position='topright',
+        collapsed=False
+    ).add_to(m)
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
