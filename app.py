@@ -2623,8 +2623,8 @@ if analyze_button and st.session_state.selected_area:
                                 st.session_state.sampling_point_data = sampling_point_data
                                 st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                                 
-                                st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Continuing analysis...")
-                                st.rerun()  # Rerun to proceed with analysis
+                                st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Analysis continues below...")
+                                # Don't rerun - let analysis continue naturally
                             
                             if bulk_water_type == "Please select...":
                                 st.info("👆 Please select how to classify all water bodies, then click 'Classify All Water Bodies' to continue.")
