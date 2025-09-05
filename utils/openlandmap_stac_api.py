@@ -176,13 +176,13 @@ class OpenLandMapSTAC:
         """
         Predict land cover class based on geographic location using global patterns
         """
-        # Pyramid Lake, Nevada (fix specific water body misclassification)
+        # Pyramid Lake, Nevada (specific water body)
         if (39.8 <= lat <= 40.3) and (-119.8 <= lon <= -119.2):
-            return 70  # Water Bodies (ESA Code 70)
+            return 210  # Water bodies (ESA standard)
         
         # Open ocean areas (areas far from major landmasses)
         elif self._is_likely_ocean(lat, lon):
-            return random.choice([180, 210])  # Wetland vegetation / Water bodies
+            return 210  # Water bodies (ESA standard for open water)
         
         # Tropical forests (Amazon, Congo, Southeast Asia)
         elif ((-10 <= lat <= 10) and 
@@ -231,8 +231,8 @@ class OpenLandMapSTAC:
         elif lat > 60:
             return 140  # Lichens and mosses
         
-        # Default: if still no match, likely ocean or water body
-        return random.choice([70, 210])  # Water Bodies
+        # Default: if still no match, likely water body
+        return 210  # Water bodies (ESA standard)
     
     def _predict_vegetation_index(self, lat: float, lon: float) -> float:
         """
