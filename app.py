@@ -1225,6 +1225,77 @@ Example: 100ha Forest
                 # Update session state when user changes selection
                 st.session_state.custom_landcover_mapping[code] = new_mapping
         
+        # ESA Land Cover Code Value Multipliers
+        st.markdown("---")
+        st.markdown("**ESA Land Cover Code Value Multipliers**")
+        st.info("Adjust ecosystem valuation percentages for specific ESA land cover codes. Default: 100%")
+        
+        # Initialize default multipliers (100% = 1.0)
+        if 'esa_code_multipliers' not in st.session_state:
+            st.session_state.esa_code_multipliers = {}
+            # Set all codes to 100% by default
+            for code in default_landcover_mapping.keys():
+                st.session_state.esa_code_multipliers[code] = 100
+        
+        # Add any missing codes to the multipliers
+        for code in default_landcover_mapping.keys():
+            if code not in st.session_state.esa_code_multipliers:
+                st.session_state.esa_code_multipliers[code] = 100
+        
+        # Create tabbed interface for better organization
+        tab1, tab2 = st.tabs(["🌾 Cropland & Grassland", "🌲 Forest & Other"])
+        
+        with tab1:
+            st.markdown("**Cropland, Grassland, and Agricultural Areas**")
+            cropland_codes = [10, 11, 12, 20, 30, 40, 130, 140]
+            
+            for code in sorted([c for c in cropland_codes if c in default_landcover_mapping]):
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    description = landcover_descriptions.get(code, f"ESA Code {code}")
+                    st.markdown(f"**Code {code}**: {description}")
+                with col2:
+                    current_value = st.session_state.esa_code_multipliers.get(code, 100)
+                    new_value = st.number_input(
+                        f"Multiplier %",
+                        min_value=0,
+                        max_value=500,
+                        value=current_value,
+                        step=5,
+                        key=f"multiplier_{code}",
+                        label_visibility="collapsed"
+                    )
+                    st.session_state.esa_code_multipliers[code] = new_value
+        
+        with tab2:
+            st.markdown("**Forest, Wetland, Urban, and Other Areas**")
+            other_codes = [50, 60, 61, 62, 70, 71, 72, 80, 81, 82, 90, 100, 110, 120, 121, 122, 
+                          150, 151, 152, 153, 160, 170, 180, 190, 200, 201, 202, 210, 220]
+            
+            for code in sorted([c for c in other_codes if c in default_landcover_mapping]):
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    description = landcover_descriptions.get(code, f"ESA Code {code}")
+                    st.markdown(f"**Code {code}**: {description}")
+                with col2:
+                    current_value = st.session_state.esa_code_multipliers.get(code, 100)
+                    new_value = st.number_input(
+                        f"Multiplier %",
+                        min_value=0,
+                        max_value=500,
+                        value=current_value,
+                        step=5,
+                        key=f"multiplier_{code}",
+                        label_visibility="collapsed"
+                    )
+                    st.session_state.esa_code_multipliers[code] = new_value
+        
+        # Reset to defaults button
+        if st.button("🔄 Reset All Multipliers to 100%", use_container_width=True):
+            for code in default_landcover_mapping.keys():
+                st.session_state.esa_code_multipliers[code] = 100
+            st.rerun()
+        
         st.markdown("---")
         
         # Action buttons
@@ -2725,6 +2796,12 @@ if analyze_button and st.session_state.selected_area:
                     user_quality_factor = st.session_state.get('quality_factor', 1.0)  # Default to 100% intactness
                     eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
                     
+                    # Apply ESA land cover code specific multiplier if available
+                    if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
+                        landcover_code = st.session_state.detected_ecosystem['landcover_class']
+                        esa_multiplier = st.session_state.get('esa_code_multipliers', {}).get(landcover_code, 100) / 100.0
+                        eco_result['total_value'] = eco_result['total_value'] * esa_multiplier
+                    
                     total_value += eco_result['total_value']
                     mixed_results[eco_type] = eco_result
                 
@@ -2794,6 +2871,14 @@ if analyze_button and st.session_state.selected_area:
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
                 esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
+                
+                # Apply ESA land cover code specific multiplier if available
+                if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
+                    landcover_code = st.session_state.detected_ecosystem['landcover_class']
+                    esa_multiplier = st.session_state.get('esa_code_multipliers', {}).get(landcover_code, 100) / 100.0
+                    esvd_results['total_value'] = esvd_results['total_value'] * esa_multiplier
+                    esvd_results['current_value'] = esvd_results['current_value'] * esa_multiplier
+                    esvd_results['total_annual_value'] = esvd_results['total_annual_value'] * esa_multiplier
             
             # Determine the actual ecosystem type for display
             display_ecosystem_type = ecosystem_type
