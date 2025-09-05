@@ -2538,37 +2538,27 @@ if analyze_button and st.session_state.selected_area:
                         progress_callback=update_progress
                     )
                     
-                    # Check if we already have sampling data (avoid re-sampling during water body classification workflow)
-                    if (st.session_state.get('sampling_point_data') and 
-                        st.session_state.get('landcover_data_source') and
-                        st.session_state.get('analysis_in_progress', False)):
-                        
-                        # Use existing sampling data - no need to sample again
-                        sampling_point_data = st.session_state.sampling_point_data
-                        data_source = st.session_state.landcover_data_source
-                        st.info("✅ Using existing sampling data (no re-sampling needed)")
-                        
-                    else:
-                        # Extract complete sampling point data from ecosystem detection
-                        sampling_point_data = {}
-                        data_source = 'estimated'
-                        
-                        if ecosystem_info and 'sample_results' in ecosystem_info:
-                            for i, result in enumerate(ecosystem_info['sample_results']):
-                                if result:
-                                    # Extract all available data from OpenLandMap API
-                                    point_data = {
-                                        'landcover_class': result.get('landcover_class', 'Unknown'),
-                                        'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
-                                        'confidence': result.get('confidence', 0.0),
-                                        'source': result.get('source', 'Unknown'),
-                                        'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
-                                        'stac_data': result.get('stac_data', {})
-                                    }
-                                    sampling_point_data[f'point_{i}'] = point_data
-                                    
-                                    if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
-                                        data_source = 'openlandmap'
+                    # Always do fresh sampling for each analysis
+                    # Extract complete sampling point data from ecosystem detection
+                    sampling_point_data = {}
+                    data_source = 'estimated'
+                    
+                    if ecosystem_info and 'sample_results' in ecosystem_info:
+                        for i, result in enumerate(ecosystem_info['sample_results']):
+                            if result:
+                                # Extract all available data from OpenLandMap API
+                                point_data = {
+                                    'landcover_class': result.get('landcover_class', 'Unknown'),
+                                    'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
+                                    'confidence': result.get('confidence', 0.0),
+                                    'source': result.get('source', 'Unknown'),
+                                    'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
+                                    'stac_data': result.get('stac_data', {})
+                                }
+                                sampling_point_data[f'point_{i}'] = point_data
+                                
+                                if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
+                                    data_source = 'openlandmap'
                     
                     # Handle water body classification with automatic continuation
                     water_body_points = {}
