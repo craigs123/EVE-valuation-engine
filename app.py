@@ -2146,15 +2146,9 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Only clear water body classifications if not currently in classification mode
-            if not st.session_state.get('pending_water_classification', False):
-                # Clear previous water body classifications for new analysis
-                if 'water_body_classifications' in st.session_state:
-                    del st.session_state['water_body_classifications']
-                if 'water_body_user_selected' in st.session_state:
-                    del st.session_state['water_body_user_selected']
-                if 'pending_water_classification' in st.session_state:
-                    del st.session_state['pending_water_classification']
+            # Clear previous water body classifications for new analysis
+            if 'all_water_bodies_classified' in st.session_state:
+                del st.session_state['all_water_bodies_classified']
             # Set analyze_button for processing
             analyze_button = True
         else:
