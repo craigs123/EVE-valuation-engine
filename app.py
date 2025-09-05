@@ -2131,11 +2131,13 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Clear previous water body classifications for new analysis
-            if 'water_body_classifications' in st.session_state:
-                del st.session_state['water_body_classifications']
-            if 'pending_water_classification' in st.session_state:
-                del st.session_state['pending_water_classification']
+            # Only clear water body classifications if not currently in classification mode
+            if not st.session_state.get('pending_water_classification', False):
+                # Clear previous water body classifications for new analysis
+                if 'water_body_classifications' in st.session_state:
+                    del st.session_state['water_body_classifications']
+                if 'pending_water_classification' in st.session_state:
+                    del st.session_state['pending_water_classification']
             # Set analyze_button for processing
             analyze_button = True
         else:
@@ -2581,9 +2583,14 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.water_body_classifications[point_id] = water_type
                             st.markdown("---")
                         
-                        # Stop execution here to wait for user input
-                        st.info("👆 Please classify all water bodies above, then click the **Calculate Ecosystem Value** button again to continue.")
-                        st.stop()
+                        # Add a dedicated button to accept classification and continue
+                        if st.button("🌊 Continue with Water Body Classification", type="primary", use_container_width=True):
+                            st.session_state.pending_water_classification = False
+                            st.success("✅ Water body classification accepted! Continuing analysis...")
+                            st.rerun()
+                        else:
+                            st.info("👆 Please classify all water bodies above, then click **Continue with Water Body Classification** to proceed.")
+                            st.stop()
                     
                     # Apply water body classifications if they exist
                     if 'water_body_classifications' in st.session_state:
