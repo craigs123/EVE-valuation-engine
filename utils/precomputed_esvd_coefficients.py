@@ -527,30 +527,28 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 0.00      # Service 22: Cognitive development
             },
             'boreal_forest': {
-                'climate': 520.00,      # High carbon in soils/permafrost
-                'food': 180.00,         # Limited food production
-                'water': 160.00,        # Snow/ice water storage
-                'recreation': 220.00,   # Limited recreation value
-                'raw_materials': 480.00,       # Pulp/paper raw materials value
-                'water_regulation': 420.00,  # Important watershed function
-                'erosion': 200.00,      # Moderate erosion control
-                'pollution': 380.00,    # High air purification
-                'cultural': 80.00,      # Limited cultural services
-                'habitat': 280.00,      # Important wildlife habitat
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 185.00,    # Boreal species genetic diversity
-                'aesthetic_value': 140.00,      # Northern wilderness beauty
-                'spiritual_value': 110.00,      # Indigenous spiritual values
-                'soil_formation': 95.00,        # Slow soil formation in cold
-                'nutrient_cycling': 120.00,     # Limited nutrient cycling
-                'medicinal_resources': 95.00,   # Limited medicinal plants
-                'ornamental_resources': 65.00,  # Limited ornamental value
-                'extreme_events': 180.00,       # Moderate climate buffering
-                'water_purification': 280.00,   # Good water filtration
-                'pollination': 120.00,          # Limited pollination services
-                'biological_control': 150.00,   # Natural pest control
-                'nursery_services': 320.00,     # Important wildlife habitat
-                'primary_production': 280.00    # Moderate primary production
+                'food': 4475.00,        # Service 1: Food
+                'water': 0.00,          # Service 2: Water
+                'raw_materials': 342.00,        # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 0.00,      # Service 7: Air quality regulation
+                'climate': 1506.00,     # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'water_purification': 0.00,     # Service 11: Waste treatment
+                'erosion': 0.00,        # Service 12: Erosion prevention
+                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'habitat': 0.00,        # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 1643.00,     # Service 18: Aesthetic information
+                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'cultural': 0.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
             },
             'mediterranean_forest': {
                 'climate': 280.00,      # Moderate carbon, fire adapted
