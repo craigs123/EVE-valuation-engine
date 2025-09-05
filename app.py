@@ -2129,6 +2129,11 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
+            # Clear previous water body classifications for new analysis
+            if 'water_body_classifications' in st.session_state:
+                del st.session_state['water_body_classifications']
+            if 'pending_water_classification' in st.session_state:
+                del st.session_state['pending_water_classification']
             # Set analyze_button for processing
             analyze_button = True
         else:
@@ -2526,6 +2531,60 @@ if analyze_button and st.session_state.selected_area:
                                 
                                 if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
                                     data_source = 'openlandmap'
+                    
+                    # Check for water bodies (ESA code 210) and prompt user for classification
+                    water_body_points = {}
+                    for point_id, point_data in sampling_point_data.items():
+                        if point_data.get('landcover_class') == 210:
+                            water_body_points[point_id] = point_data
+                    
+                    # If water bodies detected, prompt user for classification
+                    if water_body_points and 'water_body_classifications' not in st.session_state:
+                        st.session_state.water_body_classifications = {}
+                        st.session_state.pending_water_classification = True
+                        
+                        # Show water body classification dialog
+                        st.markdown("---")
+                        st.warning("🌊 **Water Bodies Detected!**")
+                        st.markdown(f"Found {len(water_body_points)} sample point(s) with water bodies. Please classify each one:")
+                        
+                        # Create classification form for each water body point
+                        for point_id, point_data in water_body_points.items():
+                            point_num = point_id.replace('point_', '')
+                            coords = point_data.get('coordinates', {})
+                            lat, lon = coords.get('lat', 0), coords.get('lon', 0)
+                            
+                            st.markdown(f"**📍 Sample Point {int(point_num) + 1}** (Lat: {lat:.4f}, Lon: {lon:.4f})")
+                            
+                            water_type = st.radio(
+                                f"How should this water body be classified?",
+                                options=["Ocean", "River/Lake", "Coastal"],
+                                key=f"water_classification_{point_id}",
+                                help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
+                            )
+                            st.session_state.water_body_classifications[point_id] = water_type
+                            st.markdown("---")
+                        
+                        # Stop execution here to wait for user input
+                        st.info("👆 Please classify all water bodies above, then click the **Calculate Ecosystem Value** button again to continue.")
+                        st.stop()
+                    
+                    # Apply water body classifications if they exist
+                    if 'water_body_classifications' in st.session_state:
+                        for point_id, water_type in st.session_state.water_body_classifications.items():
+                            if point_id in sampling_point_data:
+                                # Map user choice to ecosystem type
+                                ecosystem_mapping = {
+                                    "Ocean": "Marine",
+                                    "River/Lake": "Rivers and Lakes", 
+                                    "Coastal": "Coastal"
+                                }
+                                
+                                # Update the ecosystem type in sampling data
+                                sampling_point_data[point_id]['ecosystem_type'] = ecosystem_mapping[water_type]
+                                # Keep original ESA code for reference
+                                sampling_point_data[point_id]['original_landcover_class'] = 210
+                                sampling_point_data[point_id]['user_classified'] = True
                     
                     # Store complete sampling point information for display
                     st.session_state.sampling_point_data = sampling_point_data
