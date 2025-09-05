@@ -2529,15 +2529,15 @@ if analyze_button and st.session_state.selected_area:
                         progress_callback=update_progress
                     )
                     
-                    # Check if we already have classified sampling data (avoid re-sampling)
-                    if (st.session_state.get('water_bodies_already_processed', False) and 
-                        st.session_state.get('sampling_point_data') and 
-                        st.session_state.get('landcover_data_source')):
+                    # Check if we already have sampling data (avoid re-sampling during water body classification workflow)
+                    if (st.session_state.get('sampling_point_data') and 
+                        st.session_state.get('landcover_data_source') and
+                        st.session_state.get('analysis_in_progress', False)):
                         
-                        # Use existing classified sampling data
+                        # Use existing sampling data - no need to sample again
                         sampling_point_data = st.session_state.sampling_point_data
                         data_source = st.session_state.landcover_data_source
-                        st.info("✅ Using previously classified water body data (no re-sampling needed)")
+                        st.info("✅ Using existing sampling data (no re-sampling needed)")
                         
                     else:
                         # Extract complete sampling point data from ecosystem detection
