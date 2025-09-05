@@ -62,7 +62,7 @@ with col3:
                 area_ha = lat_range * lon_range * 111.32 * 111.32 * 100
                 
                 # Simple valuation (placeholder - would use real ESVD data)
-                base_value_per_ha = {"Forest": 3956, "Grassland": 232, "Wetland": 25681, 
+                base_value_per_ha = {"Forest": 3956, "Grassland": 232, "Wetland": 105086, 
                                     "Agricultural": 92, "Coastal": 75142, "Marine": 67760, "Auto-detect": 2000}
                 value_per_ha = base_value_per_ha.get(ecosystem_type, 2000)
                 total_value = area_ha * value_per_ha

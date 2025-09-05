@@ -596,30 +596,30 @@ class PrecomputedESVDCoefficients:
                 'habitat': 320.00       
             },
             'wetland': {
-                'climate': 407.07,      # From 67 studies
-                'food': 299.57,         # From 108 studies
-                'water': 58.09,         # From 190 studies
-                'recreation': 615.86,   # From 162 studies
-                'raw_materials': 200.00,       # From 23 studies
-                'water_regulation': 1200.00,  # From 145 studies (high wetland value)
-                'erosion': 890.00,      # From 67 studies
-                'pollution': 750.00,    # From 98 studies
-                'cultural': 180.00,     # From 89 studies
-                'habitat': 950.00,      # From 134 studies
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 320.00,    # High wetland genetic diversity
-                'aesthetic_value': 280.00,      # Beautiful wetland landscapes
-                'spiritual_value': 190.00,      # High spiritual/cultural value
-                'soil_formation': 450.00,       # Excellent sediment deposition
-                'nutrient_cycling': 680.00,     # Very high nutrient processing
-                'medicinal_resources': 220.00,  # Wetland medicinal plants
-                'ornamental_resources': 150.00, # Wetland ornamental species
-                'extreme_events': 850.00,       # Excellent flood control
-                'water_purification': 1400.00,  # Highest water treatment value
-                'pollination': 180.00,          # Moderate pollination services
-                'biological_control': 280.00,   # High biological control
-                'nursery_services': 780.00,     # Excellent breeding habitat
-                'primary_production': 620.00    # High wetland productivity
+                'climate': 2752.00,       # Climate regulation
+                'food': 2939.00,          # Food production
+                'water': 11582.00,        # Water provision and regulation
+                'recreation': 29466.00,   # Recreation and tourism
+                'raw_materials': 294.00,  # Raw materials
+                'water_regulation': 2428.00,  # Regulation of water flows
+                'erosion': 0.00,          # Erosion prevention
+                'pollution': 2968.00,     # Air quality regulation
+                'cultural': 970.00,       # Culture, art and design
+                'habitat': 1937.00,       # Maintenance of genetic diversity
+                # COMPLETE TEEB SERVICES - Wetland ecosystem values
+                'genetic_resources': 266.00,    # Genetic resources
+                'aesthetic_value': 11316.00,    # Aesthetic information
+                'spiritual_value': 0.00,        # Spiritual experience
+                'soil_formation': 0.00,         # Maintenance of soil fertility
+                'nutrient_cycling': 0.00,       # Same as soil fertility
+                'medicinal_resources': 0.00,    # Medicinal resources
+                'ornamental_resources': 0.00,   # Ornamental resources
+                'extreme_events': 6374.00,      # Moderation of extreme events
+                'water_purification': 14010.00, # Waste treatment
+                'pollination': 0.00,            # Pollination
+                'biological_control': 0.00,     # Biological control
+                'nursery_services': 3060.00,    # Maintenance of life cycles
+                'primary_production': 14724.00  # Cognitive development
             },
             'grassland': {
                 'climate': 398.14,      # From 123 studies
