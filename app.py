@@ -2146,9 +2146,17 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Clear previous water body classifications for new analysis
-            if 'all_water_bodies_classified' in st.session_state:
-                del st.session_state['all_water_bodies_classified']
+            # Only clear water body classifications if this is a NEW area selection
+            # Check if the current area is different from the previously analyzed area
+            current_area_key = f"{selected_coordinates}"
+            previous_area_key = st.session_state.get('last_analyzed_area', '')
+            
+            if current_area_key != previous_area_key:
+                # New area selected - clear previous classifications
+                if 'all_water_bodies_classified' in st.session_state:
+                    del st.session_state['all_water_bodies_classified']
+                st.session_state.last_analyzed_area = current_area_key
+            
             # Set analyze_button for processing
             analyze_button = True
         else:
