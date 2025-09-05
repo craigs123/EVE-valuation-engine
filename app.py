@@ -1574,9 +1574,9 @@ elif use_test_area_single:
             "location": "Arizona Sonoran desert"
         },
         "🌊 Test area (Water Bodies)": {
-            "coords": calculate_1000ha_coordinates(30.0, -140.0),
-            "description": "Middle of Pacific Ocean (30.0°N, 140.0°W) | Expected: ESA Code 210, triggers water body classification",
-            "location": "Mid-Pacific Ocean"
+            "coords": calculate_1000ha_coordinates(35.0, -50.0),
+            "description": "Middle of Atlantic Ocean (35.0°N, 50.0°W) | Expected: ESA Code 210, triggers water body classification",
+            "location": "Mid-Atlantic Ocean"
         }
     }
     
