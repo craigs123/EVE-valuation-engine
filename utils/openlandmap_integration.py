@@ -37,7 +37,7 @@ class OpenLandMapIntegrator:
             50: "Urban",           # Built-up
             60: "Wetland",         # Bare/sparse vegetation
             70: "Wetland",         # Snow and ice
-            80: "Wetland",         # Permanent water bodies
+            80: "Rivers and Lakes", # Permanent water bodies
             90: "Coastal",         # Herbaceous wetland
             100: "Forest",         # Moss and lichen
             
@@ -58,7 +58,7 @@ class OpenLandMapIntegrator:
             14: "Agricultural",    # Cropland/Natural Vegetation Mosaics
             15: "Desert",          # Permanent Snow and Ice
             16: "Desert",          # Barren
-            17: "Wetland"          # Water Bodies
+            17: "Rivers and Lakes"  # Water Bodies
         }
     
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:

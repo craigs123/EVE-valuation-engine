@@ -717,6 +717,7 @@ with st.sidebar:
             "Mediterranean Forest",
             "Grassland", 
             "Wetland", 
+            "Rivers and Lakes",
             "Agricultural", 
             "Coastal", 
             "Urban", 

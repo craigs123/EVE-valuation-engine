@@ -27,6 +27,7 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
      * Agricultural: ESVD "Cropland", "Agricultural", "Farmland", "Pasture"
      * Coastal: ESVD "Coastal", "Estuary", "Mangrove", "Salt Marsh"
      * Marine: ESVD "Marine", "Ocean", "Open Water", "Pelagic", "Deep Sea"
+     * Rivers and Lakes: ESVD "Rivers", "Lakes", "Freshwater", "Inland Water", "Streams"
      * Urban: ESVD "Urban", "Built Environment", "Green Infrastructure"
      * Shrubland: ESVD "Shrubland", "Scrubland", "Chaparral", "Maquis"
      * Desert: ESVD "Desert", "Arid", "Semi-arid", "Dryland"
@@ -804,6 +805,32 @@ class PrecomputedESVDCoefficients:
                 'biological_control': 0.00,     # Marine biological control
                 'nursery_services': 1355.00,    # Important marine nursery habitat
                 'primary_production': 2248.00   # Marine primary production
+            },
+            'rivers_and_lakes': {
+                'climate': 0.00,          # Climate regulation
+                'food': 2202.00,          # Food production (fisheries, aquaculture)
+                'water': 2634.00,         # Water provision and regulation
+                'recreation': 167647.00,  # Recreation and tourism
+                'raw_materials': 108.00,  # Raw materials
+                'water_regulation': 1992.00,  # Regulation of water flows
+                'erosion': 0.00,          # Erosion prevention
+                'pollution': 0.00,        # Air quality regulation
+                'cultural': 0.00,         # Culture, art and design
+                'habitat': 0.00,          # Maintenance of genetic diversity
+                # COMPLETE TEEB SERVICES - Rivers and Lakes ecosystem values
+                'genetic_resources': 0.00,      # Genetic resources
+                'aesthetic_value': 33737.00,    # Aesthetic information
+                'spiritual_value': 0.00,        # Spiritual experience
+                'soil_formation': 0.00,         # Maintenance of soil fertility
+                'nutrient_cycling': 0.00,       # Same as soil fertility
+                'medicinal_resources': 0.00,    # Medicinal resources
+                'ornamental_resources': 0.00,   # Ornamental resources
+                'extreme_events': 11296.00,     # Moderation of extreme events
+                'water_purification': 2561.00,  # Waste treatment
+                'pollination': 0.00,            # Pollination
+                'biological_control': 0.00,     # Biological control
+                'nursery_services': 0.00,       # Maintenance of life cycles
+                'primary_production': 0.00      # Cognitive development
             }
         }
         
