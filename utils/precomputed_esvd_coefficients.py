@@ -482,7 +482,7 @@ class PrecomputedESVDCoefficients:
                 'food': 380.00,         # High food diversity from studies
                 'water': 120.00,        # High precipitation regions
                 'recreation': 520.00,   # Ecotourism premium value
-                'timber': 650.00,       # Exotic hardwoods value
+                'raw_materials': 650.00,       # Exotic hardwoods value
                 'water_regulation': 580.00,  # Rainforest water cycling
                 'erosion': 420.00,      # Dense root systems
                 'pollution': 340.00,    # High air purification
@@ -509,7 +509,7 @@ class PrecomputedESVDCoefficients:
                 'food': 290.00,         # Moderate food production
                 'water': 140.00,        # Seasonal water patterns
                 'recreation': 480.00,   # Outdoor recreation value
-                'timber': 920.00,       # Highest timber value (pine, oak)
+                'raw_materials': 920.00,       # Highest raw materials value (pine, oak)
                 'water_regulation': 380.00,  # Seasonal watershed services
                 'erosion': 280.00,      # Moderate erosion control
                 'pollution': 250.00,    # Air purification services
@@ -535,7 +535,7 @@ class PrecomputedESVDCoefficients:
                 'food': 180.00,         # Limited food production
                 'water': 160.00,        # Snow/ice water storage
                 'recreation': 220.00,   # Limited recreation value
-                'timber': 480.00,       # Pulp/paper timber value
+                'raw_materials': 480.00,       # Pulp/paper raw materials value
                 'water_regulation': 420.00,  # Important watershed function
                 'erosion': 200.00,      # Moderate erosion control
                 'pollution': 380.00,    # High air purification
@@ -561,7 +561,7 @@ class PrecomputedESVDCoefficients:
                 'food': 320.00,         # Nuts, fruits, olives
                 'water': 90.00,         # Water-limited systems
                 'recreation': 580.00,   # High recreation/tourism value
-                'timber': 380.00,       # Limited timber, cork products
+                'raw_materials': 380.00,       # Limited raw materials, cork products
                 'water_regulation': 240.00,  # Limited water regulation
                 'erosion': 350.00,      # Critical erosion control
                 'pollution': 200.00,    # Moderate air purification
@@ -588,7 +588,7 @@ class PrecomputedESVDCoefficients:
                 'food': 290.00,         
                 'water': 140.00,        
                 'recreation': 480.00,   
-                'timber': 920.00,       
+                'raw_materials': 920.00,       
                 'water_regulation': 380.00,
                 'erosion': 280.00,      
                 'pollution': 250.00,    
@@ -600,7 +600,7 @@ class PrecomputedESVDCoefficients:
                 'food': 299.57,         # From 108 studies
                 'water': 58.09,         # From 190 studies
                 'recreation': 615.86,   # From 162 studies
-                'timber': 200.00,       # From 23 studies
+                'raw_materials': 200.00,       # From 23 studies
                 'water_regulation': 1200.00,  # From 145 studies (high wetland value)
                 'erosion': 890.00,      # From 67 studies
                 'pollution': 750.00,    # From 98 studies
@@ -626,7 +626,7 @@ class PrecomputedESVDCoefficients:
                 'food': 434.64,         # From 75 studies
                 'water': 113.50,        # From 103 studies
                 'recreation': 17.77,    # From 37 studies
-                'timber': 25.00,        # From 12 studies
+                'raw_materials': 25.00,        # From 12 studies
                 'water_regulation': 180.00,   # From 67 studies
                 'erosion': 250.00,      # From 89 studies
                 'pollution': 90.00,     # From 45 studies
@@ -652,7 +652,7 @@ class PrecomputedESVDCoefficients:
                 'food': 326.36,         # From 193 studies
                 'water': 58.29,         # From 226 studies
                 'recreation': 555.16,   # From 475 studies
-                'timber': 70.00,        # From 34 studies
+                'raw_materials': 70.00,        # From 34 studies
                 'water_regulation': 120.00,   # From 89 studies
                 'erosion': 160.00,      # From 123 studies
                 'pollution': 50.00,     # From 67 studies
@@ -679,7 +679,7 @@ class PrecomputedESVDCoefficients:
                 'food': 7050.00,         # Food production (fisheries, mariculture)
                 'water': 6397.00,        # Water provision and regulation
                 'recreation': 6318.00,   # Recreation and tourism
-                'timber': 6172.00,       # Raw materials (timber, shells, etc.)
+                'raw_materials': 6172.00,       # Raw materials (timber, shells, etc.)
                 'water_regulation': 0.00,       # Regulation of water flows
                 'erosion': 7736.00,      # Erosion prevention
                 'pollution': 496.00,     # Air quality regulation
@@ -705,7 +705,7 @@ class PrecomputedESVDCoefficients:
                 'food': 85.00,          # From 12 studies
                 'water': 45.00,         # From 34 studies
                 'recreation': 290.00,   # From 67 studies
-                'timber': 5.00,         # From 3 studies
+                'raw_materials': 5.00,         # From 3 studies
                 'water_regulation': 150.00,   # From 45 studies
                 'erosion': 80.00,       # From 23 studies
                 'pollution': 320.00,    # From 56 studies (urban air quality)
@@ -731,7 +731,7 @@ class PrecomputedESVDCoefficients:
                 'food': 180.00,         # From 32 studies (berries, nuts, limited grazing)
                 'water': 85.00,         # From 58 studies (moderate water cycling)
                 'recreation': 220.00,   # From 67 studies (hiking, wildlife viewing)
-                'timber': 120.00,       # From 28 studies (fuelwood, posts, crafts)
+                'raw_materials': 120.00,       # From 28 studies (fuelwood, posts, crafts)
                 'water_regulation': 240.00,   # From 42 studies (watershed functions)
                 'erosion': 320.00,      # From 67 studies (excellent root stabilization)
                 'pollution': 180.00,    # From 34 studies (air filtration)
@@ -757,7 +757,7 @@ class PrecomputedESVDCoefficients:
                 'food': 12.00,          # From 5 studies
                 'water': 8.00,          # From 12 studies
                 'recreation': 35.00,    # From 15 studies
-                'timber': 2.00,         # From 2 studies
+                'raw_materials': 2.00,         # From 2 studies
                 'water_regulation': 15.00,    # From 6 studies
                 'erosion': 25.00,       # From 11 studies
                 'pollution': 10.00,     # From 4 studies
@@ -784,7 +784,7 @@ class PrecomputedESVDCoefficients:
                 'food': 1282.00,         # Marine food production (fisheries, aquaculture)
                 'water': 0.00,           # No freshwater provision from marine areas
                 'recreation': 5648.00,   # High marine recreation value
-                'timber': 16940.00,      # Raw materials (seaweed, shells, etc.)
+                'raw_materials': 16940.00,      # Raw materials (seaweed, shells, etc.)
                 'water_regulation': 0.00,      # No freshwater regulation
                 'erosion': 3740.00,      # Coastal erosion prevention
                 'pollution': 0.00,       # No air quality regulation
@@ -813,7 +813,7 @@ class PrecomputedESVDCoefficients:
             'provisioning': {
                 'food': 'food',                                     # TEEB Service 1
                 'water': 'water',                                   # TEEB Service 2
-                'raw_materials': 'timber',                          # TEEB Service 3
+                'raw_materials': 'raw_materials',                   # TEEB Service 3
                 'genetic_resources': 'genetic_resources',           # TEEB Service 4
                 'medicinal_resources': 'medicinal_resources',       # TEEB Service 5
                 'ornamental_resources': 'ornamental_resources'      # TEEB Service 6
