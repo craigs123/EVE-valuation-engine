@@ -1260,8 +1260,8 @@ Example: 100ha Forest
             for code in sorted([c for c in cropland_codes if c in default_landcover_mapping]):
                 col1, col2 = st.columns([2, 1])
                 with col1:
-                    description = landcover_descriptions.get(code, f"ESA Code {code}")
-                    st.markdown(f"**Code {code}**: {description}")
+                    description = landcover_descriptions.get(code, f"ESA {code}")
+                    st.markdown(f"**{code}**: {description}")
                 with col2:
                     current_value = st.session_state.esa_code_multipliers.get(code, 100)
                     new_value = st.number_input(
@@ -1283,8 +1283,8 @@ Example: 100ha Forest
             for code in sorted([c for c in other_codes if c in default_landcover_mapping]):
                 col1, col2 = st.columns([2, 1])
                 with col1:
-                    description = landcover_descriptions.get(code, f"ESA Code {code}")
-                    st.markdown(f"**Code {code}**: {description}")
+                    description = landcover_descriptions.get(code, f"ESA {code}")
+                    st.markdown(f"**{code}**: {description}")
                 with col2:
                     current_value = st.session_state.esa_code_multipliers.get(code, 100)
                     new_value = st.number_input(
