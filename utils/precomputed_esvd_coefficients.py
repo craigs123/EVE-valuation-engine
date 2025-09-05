@@ -616,31 +616,28 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 380.00    # High grass productivity
             },
             'agricultural': {
-                'climate': 244.91,      # From 186 studies
-                'food': 326.36,         # From 193 studies
-                'water': 58.29,         # From 226 studies
-                'recreation': 555.16,   # From 475 studies
-                'raw_materials': 70.00,        # From 34 studies
-                'water_regulation': 120.00,   # From 89 studies
-                'erosion': 160.00,      # From 123 studies
-                'pollution': 50.00,     # From 67 studies
-                'cultural': 25.00,      # From 145 studies
-                'habitat': 70.00,       # From 178 studies
-                # NEW: Unique coefficients to eliminate double counting
-                'genetic_resources': 95.00,     # Agricultural genetic diversity (crop varieties)
-                'aesthetic_value': 85.00,       # Rural landscape aesthetics
-                'spiritual_value': 15.00,       # Agricultural spiritual/traditional values
-                'soil_formation': 75.00,        # Soil building separate from erosion control
-                'nutrient_cycling': 90.00,      # Nutrient management separate from soil
-                # MISSING 8 TEEB SERVICES - Agricultural ecosystem values
-                'medicinal_resources': 45.00,   # Limited medicinal crop production
-                'ornamental_resources': 25.00,  # Cut flowers, ornamental crops
-                'extreme_events': 35.00,        # Limited storm protection capability
-                'water_purification': 65.00,    # Modest water filtration services
-                'pollination': 180.00,          # Very high pollination value for crops
-                'biological_control': 95.00,    # Natural pest control in agriculture
-                'nursery_services': 40.00,      # Limited wildlife nursery habitat
-                'primary_production': 280.00    # High crop productivity
+                'food': 3914.00,        # Service 1: Food
+                'water': 386.00,        # Service 2: Water
+                'raw_materials': 6175.00,       # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 605.00,    # Service 7: Air quality regulation
+                'climate': 559.00,      # Service 8: Climate regulation
+                'extreme_events': 3218.00,      # Service 9: Moderation of extreme events
+                'water_regulation': 780.00,     # Service 10: Regulation of water flows
+                'water_purification': 1118.00,  # Service 11: Waste treatment
+                'erosion': 4708.00,     # Service 12: Erosion prevention
+                'soil_formation': 589.00,       # Service 13: Maintenance of soil fertility
+                'pollination': 1300.00,         # Service 14: Pollination
+                'biological_control': 1124.00,  # Service 15: Biological control
+                'nursery_services': 2.00,       # Service 16: Maintenance of life cycles
+                'habitat': 0.00,        # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 190.00,      # Service 18: Aesthetic information
+                'recreation': 259.00,   # Service 19: Recreation and tourism
+                'cultural': 1074.00,    # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 2.00      # Service 22: Cognitive development
             },
             'coastal': {
                 'climate': 760.00,       # Climate regulation
