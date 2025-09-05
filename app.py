@@ -1059,7 +1059,7 @@ Example: 100ha Forest
         ]
         
         # Complete ESA CCI Land Cover to ESVD ecosystem coefficient mapping
-        # Based on ESA CCI Land Cover 22-class classification system
+        # Based on ESA CCI Land Cover 22-class classification system + Level 2 subcodes
         default_landcover_mapping = {
             # Cropland Classes
             10: "Cropland",         # Cropland, rainfed
@@ -1104,19 +1104,27 @@ Example: 100ha Forest
             170: "Wetland",         # Tree cover, flooded, saline water
             180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
             
-            # Urban Classes
+            # Urban/Built-up Classes
             190: "Urban",           # Urban areas
             
-            # Bare Areas Classes
-            200: "Desert",          # Bare areas
-            201: "Desert",          # Consolidated bare areas
-            202: "Desert",          # Unconsolidated bare areas
-            
-            # Water Bodies Classes
+            # Water Body Classes
+            200: "Coastal",         # Bare areas
+            201: "Coastal",         # Consolidated bare areas
+            202: "Coastal",         # Unconsolidated bare areas
             210: "Coastal",         # Water bodies
+            220: "Coastal",         # Permanent snow and ice
             
-            # Snow and Ice Classes
-            220: "Desert",          # Permanent snow and ice
+            # Additional missing codes that may be returned by ESA CCI
+            52: "Shrubland",        # Shrub/Scrub
+            31: "Desert",           # Barren Land
+            21: "Urban",            # Developed, Open Space
+            22: "Urban",            # Developed, Low Intensity  
+            23: "Urban",            # Developed, Medium Intensity
+            24: "Urban",            # Developed, High Intensity
+            41: "Forest",           # Deciduous Forest
+            42: "Forest",           # Evergreen Forest
+            43: "Forest",           # Mixed Forest
+            95: "Wetland"           # Emergent Herbaceous Wetlands
         }
         
         # Initialize session state for custom mapping with correct defaults
