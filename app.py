@@ -1432,7 +1432,8 @@ Example: 100ha Forest
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
         # Batch clear with garbage collection
         clear_analysis_cache()
-        critical_keys = ['analysis_results', 'selected_area', 'area_coordinates', 'detected_ecosystem']
+        critical_keys = ['analysis_results', 'selected_area', 'area_coordinates', 'detected_ecosystem', 
+                        'all_water_bodies_classified', 'water_bodies_already_processed']
         for key in critical_keys:
             if key in st.session_state:
                 del st.session_state[key]
@@ -2146,18 +2147,7 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Only clear water body classifications if this is a NEW area selection
-            # Check if the current area is different from the previously analyzed area
-            current_area_key = f"{st.session_state.get('area_coordinates', [])}"
-            previous_area_key = st.session_state.get('last_analyzed_area', '')
-            
-            if current_area_key != previous_area_key:
-                # New area selected - clear previous classifications
-                if 'all_water_bodies_classified' in st.session_state:
-                    del st.session_state['all_water_bodies_classified']
-                st.session_state.last_analyzed_area = current_area_key
-            
-            # Set analyze_button for processing
+            # Set analyze_button for processing - don't clear classifications here anymore
             analyze_button = True
         else:
             analyze_button = False
@@ -2573,7 +2563,10 @@ if analyze_button and st.session_state.selected_area:
                             water_body_points[point_id] = point_data
                     
                     # If water bodies detected and not yet classified, show batch classification dialog
-                    if water_body_points and not st.session_state.get('all_water_bodies_classified', False):
+                    # Only show if we haven't already classified water bodies for this session
+                    if (water_body_points and 
+                        not st.session_state.get('all_water_bodies_classified', False) and
+                        not st.session_state.get('water_bodies_already_processed', False)):
                         st.markdown("---")
                         st.warning("🌊 **Water Bodies Detected!**")
                         st.markdown(f"Found **{len(water_body_points)}** sample points with water bodies.")
@@ -2612,8 +2605,9 @@ if analyze_button and st.session_state.selected_area:
                                 sampling_point_data[point_id]['original_landcover_class'] = 210
                                 sampling_point_data[point_id]['user_classified'] = True
                             
-                            # Mark all water bodies as classified
+                            # Mark all water bodies as classified and processed
                             st.session_state.all_water_bodies_classified = True
+                            st.session_state.water_bodies_already_processed = True
                             
                             st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Continuing analysis...")
                             st.rerun()
