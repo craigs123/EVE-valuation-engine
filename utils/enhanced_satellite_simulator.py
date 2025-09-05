@@ -269,19 +269,19 @@ class EnhancedSatelliteSimulator:
         elif 30 <= abs_lat <= 45:
             # Mediterranean Basin
             if (30 <= center_lat <= 45 and -10 <= center_lon <= 45):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # California
             elif (32 <= center_lat <= 42 and -125 <= center_lon <= -115):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # Central Chile  
             elif (-40 <= center_lat <= -30 and -75 <= center_lon <= -70):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # South Africa (Western Cape)
             elif (-35 <= center_lat <= -30 and 15 <= center_lon <= 25):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # Southwestern Australia
             elif (-35 <= center_lat <= -30 and 110 <= center_lon <= 125):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             else:
                 return 'temperate_forest'
         

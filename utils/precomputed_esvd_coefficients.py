@@ -550,32 +550,6 @@ class PrecomputedESVDCoefficients:
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience
                 'primary_production': 0.00      # Service 22: Cognitive development
             },
-            'mediterranean_forest': {
-                'climate': 280.00,      # Moderate carbon, fire adapted
-                'food': 320.00,         # Nuts, fruits, olives
-                'water': 90.00,         # Water-limited systems
-                'recreation': 580.00,   # High recreation/tourism value
-                'raw_materials': 380.00,       # Limited raw materials, cork products
-                'water_regulation': 240.00,  # Limited water regulation
-                'erosion': 350.00,      # Critical erosion control
-                'pollution': 200.00,    # Moderate air purification
-                'cultural': 220.00,     # High cultural/historical value
-                'habitat': 420.00,      # Unique endemic species
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 280.00,    # High endemic genetic diversity
-                'aesthetic_value': 320.00,      # Mediterranean landscape beauty
-                'spiritual_value': 180.00,      # Cultural/historical spiritual value
-                'soil_formation': 85.00,        # Limited soil formation (rocky)
-                'nutrient_cycling': 140.00,     # Moderate nutrient cycling
-                'medicinal_resources': 240.00,  # High medicinal plant diversity
-                'ornamental_resources': 190.00, # High ornamental plant value
-                'extreme_events': 120.00,       # Limited storm protection
-                'water_purification': 160.00,   # Moderate water filtration
-                'pollination': 350.00,          # High pollination services
-                'biological_control': 220.00,   # Good natural pest control
-                'nursery_services': 280.00,     # Endemic species habitat
-                'primary_production': 260.00    # Moderate productivity
-            },
             # Legacy forest category for backwards compatibility
             'forest': {
                 'climate': 350.00,      # Default to temperate values
@@ -887,19 +861,19 @@ class PrecomputedESVDCoefficients:
         elif 30 <= abs_lat <= 45:
             # Mediterranean Basin
             if (30 <= center_lat <= 45 and -10 <= center_lon <= 45):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # California
             elif (32 <= center_lat <= 42 and -125 <= center_lon <= -115):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # Central Chile  
             elif (-40 <= center_lat <= -30 and -75 <= center_lon <= -70):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # South Africa (Western Cape)
             elif (-35 <= center_lat <= -30 and 15 <= center_lon <= 25):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             # Southwestern Australia
             elif (-35 <= center_lat <= -30 and 110 <= center_lon <= 125):
-                return 'mediterranean_forest'
+                return 'temperate_forest'
             else:
                 return 'temperate_forest'
         

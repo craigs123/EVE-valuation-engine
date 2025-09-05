@@ -2268,14 +2268,6 @@ with col2:
                     - Wildlife habitat value
                     - Cold climate adapted
                     """)
-                elif forest_type == 'mediterranean_forest':
-                    st.markdown("""
-                    **☀️ Mediterranean Forest**
-                    - Drought adaptation
-                    - High recreation value
-                    - Fire-resistant species
-                    - Erosion control focus
-                    """)
         
         # Add calculation breakdown button
         if st.button("🧮 Show Calculation Breakdown", use_container_width=True, help="See how the total value was calculated step by step"):
@@ -2479,7 +2471,6 @@ if analyze_button and st.session_state.selected_area:
                 "Tropical Forest": "tropical_forest",
                 "Temperate Forest": "temperate_forest", 
                 "Boreal Forest": "boreal_forest",
-                "Mediterranean Forest": "mediterranean_forest"
             }
             
             # Handle manual forest type selection

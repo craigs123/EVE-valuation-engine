@@ -415,19 +415,19 @@ class OpenLandMapSTAC:
         elif 30 <= abs_lat <= 45:
             # Mediterranean Basin
             if (30 <= lat <= 45 and -10 <= lon <= 45):
-                return 'Mediterranean Forest'
+                return 'Temperate Forest'
             # California
             elif (32 <= lat <= 42 and -125 <= lon <= -115):
-                return 'Mediterranean Forest'
+                return 'Temperate Forest'
             # Central Chile  
             elif (-40 <= lat <= -30 and -75 <= lon <= -70):
-                return 'Mediterranean Forest'
+                return 'Temperate Forest'
             # South Africa (Western Cape)
             elif (-35 <= lat <= -30 and 15 <= lon <= 25):
-                return 'Mediterranean Forest'
+                return 'Temperate Forest'
             # Southwestern Australia
             elif (-35 <= lat <= -30 and 110 <= lon <= 125):
-                return 'Mediterranean Forest'
+                return 'Temperate Forest'
             else:
                 return 'Temperate Forest'
         
