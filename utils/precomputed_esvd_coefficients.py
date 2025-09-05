@@ -675,30 +675,30 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 280.00    # High crop productivity
             },
             'coastal': {
-                'climate': 890.00,      # From 45 studies (high coastal value)
-                'food': 450.00,         # From 67 studies
-                'water': 230.00,        # From 34 studies
-                'recreation': 1200.00,  # From 89 studies
-                'timber': 15.00,        # From 8 studies
-                'water_regulation': 2100.00,  # From 56 studies (coastal protection)
-                'erosion': 1800.00,     # From 78 studies (coastal erosion control)
-                'pollution': 680.00,    # From 45 studies
-                'cultural': 340.00,     # From 123 studies
-                'habitat': 750.00,      # From 98 studies
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 420.00,    # High marine/coastal diversity
-                'aesthetic_value': 580.00,      # Beautiful coastal landscapes
-                'spiritual_value': 290.00,      # High coastal spiritual value
-                'soil_formation': 320.00,       # Sediment deposition
-                'nutrient_cycling': 850.00,     # High coastal nutrient cycling
-                'medicinal_resources': 280.00,  # Marine medicinal resources
-                'ornamental_resources': 220.00, # Coastal ornamental species
-                'extreme_events': 1900.00,      # Excellent storm/wave protection
-                'water_purification': 920.00,   # High water filtration
-                'pollination': 65.00,           # Limited terrestrial pollination
-                'biological_control': 380.00,   # Marine biological control
-                'nursery_services': 1200.00,    # Critical marine nursery habitat
-                'primary_production': 680.00    # High coastal productivity
+                'climate': 760.00,       # Climate regulation
+                'food': 7050.00,         # Food production (fisheries, mariculture)
+                'water': 6397.00,        # Water provision and regulation
+                'recreation': 6318.00,   # Recreation and tourism
+                'timber': 6172.00,       # Raw materials (timber, shells, etc.)
+                'water_regulation': 0.00,       # Regulation of water flows
+                'erosion': 7736.00,      # Erosion prevention
+                'pollution': 496.00,     # Air quality regulation
+                'cultural': 278.00,      # Culture, art and design
+                'habitat': 6029.00,      # Maintenance of genetic diversity
+                # COMPLETE TEEB SERVICES - Coastal ecosystem values
+                'genetic_resources': 0.00,      # Genetic resources
+                'aesthetic_value': 857.00,      # Aesthetic information
+                'spiritual_value': 0.00,        # Spiritual experience
+                'soil_formation': 6340.00,      # Maintenance of soil fertility
+                'nutrient_cycling': 6340.00,    # Same as soil fertility
+                'medicinal_resources': 0.00,    # Medicinal resources
+                'ornamental_resources': 0.00,   # Ornamental resources
+                'extreme_events': 15746.00,     # Moderation of extreme events
+                'water_purification': 7145.00,  # Waste treatment
+                'pollination': 0.00,            # Pollination
+                'biological_control': 0.00,     # Biological control
+                'nursery_services': 2262.00,    # Maintenance of life cycles
+                'primary_production': 1556.00   # Cognitive development
             },
             'urban': {
                 'climate': 180.00,      # From 23 studies
