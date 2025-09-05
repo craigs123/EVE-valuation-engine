@@ -2556,100 +2556,77 @@ if analyze_button and st.session_state.selected_area:
                                 if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
                                     data_source = 'openlandmap'
                     
-                    # Check for water bodies (ESA code 210) and prompt user for classification
-                    water_body_points = {}
-                    for point_id, point_data in sampling_point_data.items():
-                        if point_data.get('landcover_class') == 210:
-                            water_body_points[point_id] = point_data
-                    
-                    # For Water Bodies mode, force ALL sampling points to be water bodies for testing
-                    if water_bodies_mode:
-                        # Force classification for Water Bodies mode - override ALL sampling points to be water bodies
-                        if sampling_point_data:
-                            # Clear any existing water body points first
-                            water_body_points = {}
-                            # Use ALL sampling points for water body classification (matches user's sampling setting)
-                            for point_id, point_data in sampling_point_data.items():
-                                point_data_copy = point_data.copy()
-                                point_data_copy['landcover_class'] = 210
-                                point_data_copy['simulated_water_body'] = True
-                                water_body_points[point_id] = point_data_copy
-                    
-                    # If water bodies detected, prompt user for classification
-                    if water_body_points and 'water_body_classifications' not in st.session_state:
+                    # Sequential processing: Check each sample point and classify water bodies immediately
+                    if not hasattr(st.session_state, 'current_water_point_index'):
+                        st.session_state.current_water_point_index = 0
+                    if not hasattr(st.session_state, 'water_body_classifications'):
                         st.session_state.water_body_classifications = {}
-                        st.session_state.water_body_user_selected = {}  # Track user selections
-                        st.session_state.pending_water_classification = True
-                        
-                        # Show water body classification dialog
-                        st.markdown("---")
-                        st.warning("🌊 **Water Bodies Detected!**")
-                        st.markdown(f"Found {len(water_body_points)} sample point(s) with water bodies. Please classify each one:")
-                        
-                        # Create classification form for each water body point
-                        for point_id, point_data in water_body_points.items():
-                            point_num = point_id.replace('point_', '')
-                            coords = point_data.get('coordinates', {})
-                            lat, lon = coords.get('lat', 0), coords.get('lon', 0)
-                            
-                            st.markdown(f"**📍 Sample Point {int(point_num) + 1}** (Lat: {lat:.4f}, Lon: {lon:.4f})")
-                            
-                            water_type = st.radio(
-                                f"How should this water body be classified?",
-                                options=["Please select...", "Ocean", "River/Lake", "Coastal"],
-                                key=f"water_classification_{point_id}",
-                                help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
-                            )
-                            # Always store the current selection
-                            st.session_state.water_body_classifications[point_id] = water_type
-                            
-                            # Mark as selected only if user chose a real option (not placeholder)
-                            if water_type != "Please select...":
-                                st.session_state.water_body_user_selected[point_id] = True
-                            else:
-                                st.session_state.water_body_user_selected[point_id] = False
-                            st.markdown("---")
-                        
-                        # Check if all water bodies have been explicitly classified by user
-                        total_water_points = len(water_body_points)
-                        classified_count = sum(1 for point_id in water_body_points.keys() 
-                                             if st.session_state.water_body_user_selected.get(point_id, False))
-                        
-                        all_classified = (classified_count == total_water_points and total_water_points > 0)
-                        
-                        # Show progress
-                        st.info(f"📊 Classification Progress: {classified_count}/{total_water_points} water bodies classified")
-                        
-                        if all_classified:
-                            # All classifications complete - show confirmation and add continue button
-                            st.success("✅ All water bodies classified!")
-                            if st.button("🚀 Continue Analysis", type="primary", use_container_width=True):
-                                st.session_state.pending_water_classification = False
-                                st.success("Continuing with ecosystem analysis...")
-                                st.rerun()
-                            else:
-                                st.info("Click 'Continue Analysis' above to proceed with the valuation.")
-                                st.stop()
-                        else:
-                            st.info(f"👆 Please classify all {total_water_points} water bodies above. Analysis will continue once all are classified.")
-                            st.stop()
                     
-                    # Apply water body classifications if they exist
-                    if 'water_body_classifications' in st.session_state:
-                        for point_id, water_type in st.session_state.water_body_classifications.items():
-                            if point_id in sampling_point_data:
-                                # Map user choice to ecosystem type
-                                ecosystem_mapping = {
-                                    "Ocean": "Marine",
-                                    "River/Lake": "Rivers and Lakes", 
-                                    "Coastal": "Coastal"
-                                }
-                                
-                                # Update the ecosystem type in sampling data
-                                sampling_point_data[point_id]['ecosystem_type'] = ecosystem_mapping[water_type]
-                                # Keep original ESA code for reference
-                                sampling_point_data[point_id]['original_landcover_class'] = 210
-                                sampling_point_data[point_id]['user_classified'] = True
+                    # For Water Bodies mode, force all points to be water bodies for testing
+                    if water_bodies_mode:
+                        for point_id, point_data in sampling_point_data.items():
+                            point_data['landcover_class'] = 210
+                            point_data['simulated_water_body'] = True
+                    
+                    # Process sampling points sequentially - classify water bodies as encountered
+                    sample_point_ids = list(sampling_point_data.keys())
+                    
+                    # Find the next unclassified water body
+                    current_water_point = None
+                    for point_id in sample_point_ids[st.session_state.current_water_point_index:]:
+                        point_data = sampling_point_data[point_id]
+                        if (point_data.get('landcover_class') == 210 and 
+                            point_id not in st.session_state.water_body_classifications):
+                            current_water_point = point_id
+                            break
+                        else:
+                            # Not a water body, move to next
+                            st.session_state.current_water_point_index = sample_point_ids.index(point_id) + 1
+                    
+                    # If we found a water body that needs classification, show the dialog
+                    if current_water_point:
+                        point_data = sampling_point_data[current_water_point]
+                        point_num = current_water_point.replace('point_', '')
+                        coords = point_data.get('coordinates', {})
+                        lat, lon = coords.get('lat', 0), coords.get('lon', 0)
+                        
+                        st.markdown("---")
+                        st.warning("🌊 **Water Body Detected!**")
+                        st.markdown(f"**📍 Sample Point {int(point_num) + 1}** (Lat: {lat:.4f}, Lon: {lon:.4f})")
+                        st.info(f"Processing point {st.session_state.current_water_point_index + 1} of {len(sample_point_ids)}")
+                        
+                        water_type = st.radio(
+                            "How should this water body be classified?",
+                            options=["Please select...", "Ocean", "River/Lake", "Coastal"],
+                            key=f"current_water_classification",
+                            help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
+                        )
+                        
+                        if st.button("✅ Classify This Water Body", type="primary", use_container_width=True, disabled=(water_type == "Please select...")):
+                            # Store the classification
+                            st.session_state.water_body_classifications[current_water_point] = water_type
+                            
+                            # Map user choice to ecosystem type
+                            ecosystem_mapping = {
+                                "Ocean": "Marine",
+                                "River/Lake": "Rivers and Lakes", 
+                                "Coastal": "Coastal"
+                            }
+                            
+                            # Update the ecosystem type in sampling data
+                            sampling_point_data[current_water_point]['ecosystem_type'] = ecosystem_mapping[water_type]
+                            sampling_point_data[current_water_point]['original_landcover_class'] = 210
+                            sampling_point_data[current_water_point]['user_classified'] = True
+                            
+                            # Move to next sample point
+                            st.session_state.current_water_point_index += 1
+                            st.success(f"✅ Classified as {water_type}! Continuing to next sample point...")
+                            st.rerun()
+                        
+                        if water_type == "Please select...":
+                            st.info("👆 Please select a water body type above, then click 'Classify This Water Body' to continue.")
+                        
+                        st.stop()  # Stop processing until user classifies this point
                     
                     # Store complete sampling point information for display
                     st.session_state.sampling_point_data = sampling_point_data
