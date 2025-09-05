@@ -2562,10 +2562,12 @@ if analyze_button and st.session_state.selected_area:
                         if point_data.get('landcover_class') == 210:
                             water_body_points[point_id] = point_data
                     
-                    # For Water Bodies mode, also trigger classification if no water bodies found but mode is active
-                    if water_bodies_mode and not water_body_points:
-                        # Force classification for Water Bodies mode - simulate water body detection for all sampling points
+                    # For Water Bodies mode, force ALL sampling points to be water bodies for testing
+                    if water_bodies_mode:
+                        # Force classification for Water Bodies mode - override ALL sampling points to be water bodies
                         if sampling_point_data:
+                            # Clear any existing water body points first
+                            water_body_points = {}
                             # Use ALL sampling points for water body classification (matches user's sampling setting)
                             for point_id, point_data in sampling_point_data.items():
                                 point_data_copy = point_data.copy()
@@ -2599,20 +2601,27 @@ if analyze_button and st.session_state.selected_area:
                                 help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
                             )
                             # Track both the selection and whether user has made a choice
-                            if water_type != "Please select...":
+                            # Check if this is different from previous value to detect actual user interaction
+                            previous_selection = st.session_state.water_body_classifications.get(point_id, "Please select...")
+                            
+                            if water_type != "Please select..." and water_type != previous_selection:
+                                # User made a new selection
                                 st.session_state.water_body_classifications[point_id] = water_type
                                 st.session_state.water_body_user_selected[point_id] = True
-                            else:
-                                # User hasn't made a selection yet
+                            elif water_type == "Please select...":
+                                # User hasn't made a selection yet or reset to default
                                 st.session_state.water_body_user_selected[point_id] = False
                             st.markdown("---")
                         
                         # Check if all water bodies have been explicitly classified by user
-                        all_classified = True
-                        for point_id in water_body_points.keys():
-                            if not st.session_state.water_body_user_selected.get(point_id, False):
-                                all_classified = False
-                                break
+                        total_water_points = len(water_body_points)
+                        classified_count = sum(1 for point_id in water_body_points.keys() 
+                                             if st.session_state.water_body_user_selected.get(point_id, False))
+                        
+                        all_classified = (classified_count == total_water_points and total_water_points > 0)
+                        
+                        # Show progress
+                        st.info(f"📊 Classification Progress: {classified_count}/{total_water_points} water bodies classified")
                         
                         if all_classified:
                             # All classifications complete - continue automatically
