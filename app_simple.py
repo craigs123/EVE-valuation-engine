@@ -63,7 +63,7 @@ with col3:
                 
                 # Simple valuation (placeholder - would use real ESVD data)
                 base_value_per_ha = {"Forest": 3956, "Grassland": 232, "Wetland": 105086, 
-                                    "Agricultural": 92, "Coastal": 75142, "Marine": 67760, "Rivers and Lakes": 222177, "Auto-detect": 2000}
+                                    "Agricultural": 92, "Coastal": 75142, "Marine": 67760, "Rivers and Lakes": 222177, "Water Bodies": 210, "Auto-detect": 2000}
                 value_per_ha = base_value_per_ha.get(ecosystem_type, 2000)
                 total_value = area_ha * value_per_ha
                 

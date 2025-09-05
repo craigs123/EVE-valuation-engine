@@ -717,9 +717,11 @@ with st.sidebar:
             "Mediterranean Forest",
             "Grassland", 
             "Wetland", 
+            "Water Bodies",
             "Rivers and Lakes",
+            "Coastal",
+            "Marine",
             "Agricultural", 
-            "Coastal", 
             "Urban", 
             "Desert"
         ]
@@ -2471,7 +2473,10 @@ if analyze_button and st.session_state.selected_area:
                 }
                 ecosystem_type = forest_type_mapping[ecosystem_type]
             
-            if st.session_state.ecosystem_override == "Auto-detect":
+            # Handle Water Bodies selection - behave like auto-detect but focus on water
+            water_bodies_mode = (st.session_state.ecosystem_override == "Water Bodies")
+            
+            if st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode:
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
                     
@@ -2537,6 +2542,17 @@ if analyze_button and st.session_state.selected_area:
                     for point_id, point_data in sampling_point_data.items():
                         if point_data.get('landcover_class') == 210:
                             water_body_points[point_id] = point_data
+                    
+                    # For Water Bodies mode, also trigger classification if no water bodies found but mode is active
+                    if water_bodies_mode and not water_body_points:
+                        # Force classification for Water Bodies mode - simulate water body detection
+                        if sampling_point_data:
+                            # Take first sample point and treat as water body for classification
+                            first_point_id = list(sampling_point_data.keys())[0]
+                            first_point_data = sampling_point_data[first_point_id].copy()
+                            first_point_data['landcover_class'] = 210
+                            first_point_data['simulated_water_body'] = True
+                            water_body_points[first_point_id] = first_point_data
                     
                     # If water bodies detected, prompt user for classification
                     if water_body_points and 'water_body_classifications' not in st.session_state:
