@@ -39,7 +39,7 @@ with col2:
     st.markdown("### 2️⃣ Configure")
     ecosystem_type = st.selectbox(
         "Ecosystem Type:",
-        ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal"]
+        ["Auto-detect", "Forest", "Grassland", "Wetland", "Agricultural", "Coastal", "Marine"]
     )
     
     analysis_type = st.selectbox(
@@ -63,7 +63,7 @@ with col3:
                 
                 # Simple valuation (placeholder - would use real ESVD data)
                 base_value_per_ha = {"Forest": 3956, "Grassland": 232, "Wetland": 25681, 
-                                    "Agricultural": 92, "Coastal": 18220, "Auto-detect": 2000}
+                                    "Agricultural": 92, "Coastal": 18220, "Marine": 67760, "Auto-detect": 2000}
                 value_per_ha = base_value_per_ha.get(ecosystem_type, 2000)
                 total_value = area_ha * value_per_ha
                 

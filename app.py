@@ -323,7 +323,7 @@ def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = N
         180: "Coastal",         # Permanent water bodies → Coastal
         190: "Wetland",         # Herbaceous wetland → Wetland
         200: "Desert",          # Snow and ice → Desert
-        210: "Coastal",         # Water bodies → Coastal
+        210: "Marine",          # Water bodies → Marine
         220: "Desert",          # Snow/Ice
     }
     
@@ -1060,7 +1060,7 @@ Example: 100ha Forest
             200: "Coastal",         # Bare areas
             201: "Coastal",         # Consolidated bare areas
             202: "Coastal",         # Unconsolidated bare areas
-            210: "Coastal",         # Water bodies
+            210: "Marine",          # Water bodies
             220: "Coastal",         # Permanent snow and ice
             
             # Additional missing codes that may be returned by ESA CCI

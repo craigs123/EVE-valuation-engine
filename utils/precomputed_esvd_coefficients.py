@@ -25,7 +25,8 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
      * Wetland: ESVD "Wetland", "Swamp", "Marsh", "Peatland", "Bog"
      * Grassland: ESVD "Grassland", "Prairie", "Savanna", "Steppe"
      * Agricultural: ESVD "Cropland", "Agricultural", "Farmland", "Pasture"
-     * Coastal: ESVD "Coastal", "Marine", "Estuary", "Mangrove", "Salt Marsh"
+     * Coastal: ESVD "Coastal", "Estuary", "Mangrove", "Salt Marsh"
+     * Marine: ESVD "Marine", "Ocean", "Open Water", "Pelagic", "Deep Sea"
      * Urban: ESVD "Urban", "Built Environment", "Green Infrastructure"
      * Shrubland: ESVD "Shrubland", "Scrubland", "Chaparral", "Maquis"
      * Desert: ESVD "Desert", "Arid", "Semi-arid", "Dryland"
@@ -777,6 +778,32 @@ class PrecomputedESVDCoefficients:
                 'biological_control': 18.00,    # Limited natural pest control
                 'nursery_services': 28.00,      # Some specialized desert species habitat
                 'primary_production': 35.00     # Low primary production in deserts
+            },
+            'marine': {
+                'climate': 108.00,       # Marine climate regulation
+                'food': 1282.00,         # Marine food production (fisheries, aquaculture)
+                'water': 0.00,           # No freshwater provision from marine areas
+                'recreation': 5648.00,   # High marine recreation value
+                'timber': 16940.00,      # Raw materials (seaweed, shells, etc.)
+                'water_regulation': 0.00,      # No freshwater regulation
+                'erosion': 3740.00,      # Coastal erosion prevention
+                'pollution': 0.00,       # No air quality regulation
+                'cultural': 0.00,        # Base cultural value (separate from specific services)
+                'habitat': 11249.00,     # High marine habitat/biodiversity value
+                # COMPLETE TEEB SERVICES - Marine ecosystem values
+                'genetic_resources': 0.00,      # Marine genetic resources
+                'aesthetic_value': 5800.00,     # Beautiful seascapes and marine views
+                'spiritual_value': 0.00,        # Spiritual experiences from marine areas
+                'soil_formation': 0.00,         # No soil formation in marine environments
+                'nutrient_cycling': 0.00,       # Marine nutrient cycling (different from terrestrial)
+                'medicinal_resources': 0.00,    # Marine medicinal resources
+                'ornamental_resources': 0.00,   # Marine ornamental resources
+                'extreme_events': 16553.00,     # Excellent storm/wave protection
+                'water_purification': 2837.00,  # Marine water treatment capacity
+                'pollination': 0.00,            # No pollination services in marine areas
+                'biological_control': 0.00,     # Marine biological control
+                'nursery_services': 1355.00,    # Important marine nursery habitat
+                'primary_production': 2248.00   # Marine primary production
             }
         }
         
