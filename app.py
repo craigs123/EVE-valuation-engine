@@ -2583,13 +2583,20 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.water_body_classifications[point_id] = water_type
                             st.markdown("---")
                         
-                        # Add a dedicated button to accept classification and continue
-                        if st.button("🌊 Continue with Water Body Classification", type="primary", use_container_width=True):
+                        # Check if all water bodies have been classified
+                        all_classified = True
+                        for point_id in water_body_points.keys():
+                            if point_id not in st.session_state.water_body_classifications or not st.session_state.water_body_classifications[point_id]:
+                                all_classified = False
+                                break
+                        
+                        if all_classified:
+                            # All classifications complete - continue automatically
                             st.session_state.pending_water_classification = False
-                            st.success("✅ Water body classification accepted! Continuing analysis...")
+                            st.success("✅ Water body classification complete! Continuing analysis...")
                             st.rerun()
                         else:
-                            st.info("👆 Please classify all water bodies above, then click **Continue with Water Body Classification** to proceed.")
+                            st.info("👆 Please classify all water bodies above. Analysis will continue automatically once complete.")
                             st.stop()
                     
                     # Apply water body classifications if they exist
