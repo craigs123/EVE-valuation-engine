@@ -1768,7 +1768,7 @@ with col1:
             
             # Use moderate zoom for water bodies due to lower ocean map resolution
             if selected_test_area == "🌊 Test area (Water Bodies)":
-                zoom_level = 11  # Moderate zoom for ocean areas
+                zoom_level = 12  # Moderate-close zoom for ocean areas
             else:
                 zoom_level = 13  # Standard zoom for land areas
         elif use_test_area_multi:
