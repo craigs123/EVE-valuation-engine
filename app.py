@@ -2576,17 +2576,21 @@ if analyze_button and st.session_state.selected_area:
                             
                             water_type = st.radio(
                                 f"How should this water body be classified?",
-                                options=["Ocean", "River/Lake", "Coastal"],
+                                options=["Please select...", "Ocean", "River/Lake", "Coastal"],
                                 key=f"water_classification_{point_id}",
                                 help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
                             )
-                            st.session_state.water_body_classifications[point_id] = water_type
+                            # Only store valid selections (not the placeholder)
+                            if water_type != "Please select...":
+                                st.session_state.water_body_classifications[point_id] = water_type
                             st.markdown("---")
                         
-                        # Check if all water bodies have been classified
+                        # Check if all water bodies have been classified with valid selections
                         all_classified = True
                         for point_id in water_body_points.keys():
-                            if point_id not in st.session_state.water_body_classifications or not st.session_state.water_body_classifications[point_id]:
+                            if (point_id not in st.session_state.water_body_classifications or 
+                                not st.session_state.water_body_classifications[point_id] or
+                                st.session_state.water_body_classifications[point_id] == "Please select..."):
                                 all_classified = False
                                 break
                         
