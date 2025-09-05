@@ -2151,6 +2151,8 @@ with col2:
                 # Clear previous water body classifications for new analysis
                 if 'water_body_classifications' in st.session_state:
                     del st.session_state['water_body_classifications']
+                if 'water_body_user_selected' in st.session_state:
+                    del st.session_state['water_body_user_selected']
                 if 'pending_water_classification' in st.session_state:
                     del st.session_state['pending_water_classification']
             # Set analyze_button for processing
