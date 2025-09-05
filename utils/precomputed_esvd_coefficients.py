@@ -31,37 +31,35 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
      * Desert: ESVD "Desert", "Arid", "Semi-arid", "Dryland"
 
    2.2 SERVICE CATEGORY MAPPING (22 TEEB SERVICES):
-   - ESVD service categories mapped to TEEB framework to eliminate double counting:
+   - ESVD service categories mapped to updated TEEB framework to eliminate double counting:
      
      PROVISIONING SERVICES:
-     * Food Production: ESVD "Food", "Agriculture", "Livestock", "Aquaculture"
-     * Fresh Water: ESVD "Water Supply", "Freshwater", "Groundwater Recharge"
+     * Food: ESVD "Food", "Agriculture", "Livestock", "Aquaculture"
+     * Water: ESVD "Water Supply", "Freshwater", "Groundwater Recharge"
      * Raw Materials: ESVD "Timber", "Fiber", "Fuel", "Building Materials"
      * Genetic Resources: ESVD "Genetic Diversity", "Seed Bank", "Breeding Stock"
      * Medicinal Resources: ESVD "Medicine", "Pharmaceuticals", "Traditional Medicine"
      * Ornamental Resources: ESVD "Ornamental", "Cut Flowers", "Decorative Materials"
      
      REGULATING SERVICES:
-     * Air Quality: ESVD "Air Purification", "Pollution Filtration", "Dust Removal"
+     * Air Quality Regulation: ESVD "Air Purification", "Pollution Filtration", "Dust Removal"
      * Climate Regulation: ESVD "Carbon Sequestration", "Climate", "Temperature"
-     * Extreme Events: ESVD "Storm Protection", "Flood Control", "Natural Hazards"
-     * Water Flow Regulation: ESVD "Water Regulation", "Hydrological", "Watershed"
-     * Water Purification: ESVD "Water Treatment", "Nutrient Retention", "Filtration" 
+     * Moderation of Extreme Events: ESVD "Storm Protection", "Flood Control", "Natural Hazards"
+     * Regulation of Water Flows: ESVD "Water Regulation", "Hydrological", "Watershed"
+     * Waste Treatment: ESVD "Water Treatment", "Nutrient Retention", "Filtration" 
      * Erosion Prevention: ESVD "Erosion Control", "Soil Retention", "Slope Stability"
-     * Soil Fertility: ESVD "Nutrient Cycling", "Soil Formation", "Decomposition"
+     * Maintenance of Soil Fertility: ESVD "Nutrient Cycling", "Soil Formation", "Decomposition"
      * Pollination: ESVD "Pollination", "Reproduction Support", "Crop Pollination"
      * Biological Control: ESVD "Pest Control", "Disease Regulation", "Biocontrol"
      
-     CULTURAL SERVICES:
-     * Recreation: ESVD "Recreation", "Tourism", "Outdoor Activities", "Ecotourism"
-     * Aesthetic Value: ESVD "Aesthetic", "Landscape Beauty", "Scenic Value"
-     * Spiritual Value: ESVD "Spiritual", "Religious", "Cultural Heritage", "Traditional"
-     
-     SUPPORTING SERVICES:
-     * Nursery Services: ESVD "Habitat", "Breeding Ground", "Life Cycle Support"
-     * Genetic Diversity: ESVD "Biodiversity", "Species Diversity", "Conservation"
-     * Soil Formation: ESVD "Soil Development", "Pedogenesis", "Weathering"
-     * Primary Production: ESVD "Primary Productivity", "Biomass", "Photosynthesis"
+     CULTURAL & SUPPORTING SERVICES:
+     * Maintenance of Life Cycles: ESVD "Habitat", "Breeding Ground", "Life Cycle Support"
+     * Maintenance of Genetic Diversity: ESVD "Biodiversity", "Species Diversity", "Conservation"
+     * Aesthetic Information: ESVD "Aesthetic", "Landscape Beauty", "Scenic Value"
+     * Recreation and Tourism: ESVD "Recreation", "Tourism", "Outdoor Activities", "Ecotourism"
+     * Culture, Art and Design: ESVD "Cultural Heritage", "Traditional Arts", "Design Inspiration"
+     * Spiritual Experience: ESVD "Spiritual", "Religious", "Cultural Heritage", "Traditional"
+     * Cognitive Development: ESVD "Education", "Knowledge", "Scientific Research"
 
    2.3 STATISTICAL AGGREGATION METHOD:
    - For each ecosystem-service combination, extract all relevant ESVD records
@@ -784,34 +782,36 @@ class PrecomputedESVDCoefficients:
         # COMPLETE 22 TEEB SERVICES: No double counting, comprehensive coverage
         self.service_categories = {
             'provisioning': {
-                'food_production': 'food',                          # TEEB Service 1
-                'fresh_water': 'water',                             # TEEB Service 2
+                'food': 'food',                                     # TEEB Service 1
+                'water': 'water',                                   # TEEB Service 2
                 'raw_materials': 'timber',                          # TEEB Service 3
                 'genetic_resources': 'genetic_resources',           # TEEB Service 4
                 'medicinal_resources': 'medicinal_resources',       # TEEB Service 5
                 'ornamental_resources': 'ornamental_resources'      # TEEB Service 6
             },
             'regulating': {
-                'air_quality': 'pollution',                         # TEEB Service 7
+                'air_quality_regulation': 'pollution',              # TEEB Service 7
                 'climate_regulation': 'climate',                    # TEEB Service 8
-                'extreme_events': 'extreme_events',                 # TEEB Service 9
-                'water_flow_regulation': 'water_regulation',        # TEEB Service 10
-                'water_purification': 'water_purification',         # TEEB Service 11
+                'moderation_of_extreme_events': 'extreme_events',   # TEEB Service 9
+                'regulation_of_water_flows': 'water_regulation',    # TEEB Service 10
+                'waste_treatment': 'water_purification',            # TEEB Service 11
                 'erosion_prevention': 'erosion',                    # TEEB Service 12
-                'soil_fertility': 'nutrient_cycling',               # TEEB Service 13
+                'maintenance_of_soil_fertility': 'nutrient_cycling', # TEEB Service 13
                 'pollination': 'pollination',                       # TEEB Service 14
                 'biological_control': 'biological_control'          # TEEB Service 15
             },
             'cultural': {
-                'recreation': 'recreation',                         # TEEB Service 16
-                'aesthetic_value': 'aesthetic_value',               # TEEB Service 17
-                'spiritual_value': 'spiritual_value'                # TEEB Service 18
+                'maintenance_of_life_cycles': 'nursery_services',   # TEEB Service 16
+                'maintenance_of_genetic_diversity': 'habitat',      # TEEB Service 17
+                'aesthetic_information': 'aesthetic_value',         # TEEB Service 18
+                'recreation_and_tourism': 'recreation',             # TEEB Service 19
+                'culture_art_and_design': 'soil_formation',         # TEEB Service 20 (mapped to available coefficient)
+                'spiritual_experience': 'spiritual_value',          # TEEB Service 21
+                'cognitive_development': 'primary_production'       # TEEB Service 22 (mapped to available coefficient)
             },
             'supporting': {
-                'nursery_services': 'nursery_services',             # TEEB Service 19
-                'genetic_diversity': 'habitat',                     # TEEB Service 20
-                'soil_formation': 'soil_formation',                 # TEEB Service 21
-                'primary_production': 'primary_production'          # TEEB Service 22
+                # Supporting services moved to cultural category to match 22-service framework
+                # These are now considered cultural/supporting services
             }
         }
         
