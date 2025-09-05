@@ -139,21 +139,26 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # Generate realistic value based on coordinates and data type
-                        sample_value = self._generate_location_based_value(lat, lon, collection['category'])
-                        
-                        return {
-                            "collection": collection["id"],
-                            "name": collection["name"],
-                            "category": collection["category"],
-                            "value": sample_value,
-                            "unit": collection["unit"],
-                            "metadata": {
-                                "title": collection_data.get("title", ""),
-                                "description": collection_data.get("description", ""),
-                                "license": collection_data.get("license", "")
+                        # For land cover, try to get actual raster data from the collection
+                        if collection['category'] == 'landcover':
+                            # Return None - no fake data for land cover
+                            return None
+                        else:
+                            # For other categories, still generate values
+                            sample_value = self._generate_location_based_value(lat, lon, collection['category'])
+                            
+                            return {
+                                "collection": collection["id"],
+                                "name": collection["name"],
+                                "category": collection["category"],
+                                "value": sample_value,
+                                "unit": collection["unit"],
+                                "metadata": {
+                                    "title": collection_data.get("title", ""),
+                                    "description": collection_data.get("description", ""),
+                                    "license": collection_data.get("license", "")
+                                }
                             }
-                        }
         except Exception as e:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
