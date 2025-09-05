@@ -1182,17 +1182,16 @@ Example: 100ha Forest
         st.markdown("**ESA Land Cover Code Value Multipliers**")
         st.info("Adjust ecosystem valuation percentages for specific ESA land cover codes. Default: 100%")
         
-        # Initialize default multipliers (100% = 1.0)
+        # Initialize default multipliers using centralized defaults
+        from utils.esa_landcover_codes import get_default_multipliers
         if 'esa_code_multipliers' not in st.session_state:
-            st.session_state.esa_code_multipliers = {}
-            # Set all codes to 100% by default
-            for code in default_landcover_mapping.keys():
-                st.session_state.esa_code_multipliers[code] = 100
+            st.session_state.esa_code_multipliers = get_default_multipliers()
         
-        # Add any missing codes to the multipliers
-        for code in default_landcover_mapping.keys():
+        # Add any missing codes to the multipliers using centralized defaults
+        default_multipliers = get_default_multipliers()
+        for code, default_value in default_multipliers.items():
             if code not in st.session_state.esa_code_multipliers:
-                st.session_state.esa_code_multipliers[code] = 100
+                st.session_state.esa_code_multipliers[code] = default_value
         
         # Create tabbed interface for better organization
         tab1, tab2 = st.tabs(["🌾 Cropland & Grassland", "🌲 Forest & Other"])
@@ -1246,8 +1245,8 @@ Example: 100ha Forest
         
         # Reset to defaults button
         if st.button("🔄 Reset All Multipliers to 100%", use_container_width=True):
-            for code in default_landcover_mapping.keys():
-                st.session_state.esa_code_multipliers[code] = 100
+            from utils.esa_landcover_codes import get_default_multipliers
+            st.session_state.esa_code_multipliers = get_default_multipliers()
             st.rerun()
         
         st.markdown("---")

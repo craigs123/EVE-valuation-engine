@@ -77,6 +77,10 @@ ESA_LANDCOVER_DESCRIPTIONS = {
     95: "Emergent Herbaceous Wetlands"
 }
 
+# Default ESA Code Multipliers (100% = no adjustment)
+# Users can customize these values in the application settings
+ESA_DEFAULT_MULTIPLIERS = {code: 100 for code in ESA_LANDCOVER_DESCRIPTIONS.keys()}
+
 def get_esa_description(code: int) -> str:
     """
     Get the official ESA CCI land cover description for a given code
@@ -97,6 +101,15 @@ def get_all_esa_codes() -> dict:
         Dictionary of {code: description} mappings
     """
     return ESA_LANDCOVER_DESCRIPTIONS.copy()
+
+def get_default_multipliers() -> dict:
+    """
+    Get default multiplier values for all ESA land cover codes
+    
+    Returns:
+        Dictionary of {code: multiplier_percentage} mappings (all set to 100%)
+    """
+    return ESA_DEFAULT_MULTIPLIERS.copy()
 
 def is_valid_esa_code(code: int) -> bool:
     """
