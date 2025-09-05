@@ -2600,16 +2600,13 @@ if analyze_button and st.session_state.selected_area:
                                 key=f"water_classification_{point_id}",
                                 help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
                             )
-                            # Track both the selection and whether user has made a choice
-                            # Check if this is different from previous value to detect actual user interaction
-                            previous_selection = st.session_state.water_body_classifications.get(point_id, "Please select...")
+                            # Always store the current selection
+                            st.session_state.water_body_classifications[point_id] = water_type
                             
-                            if water_type != "Please select..." and water_type != previous_selection:
-                                # User made a new selection
-                                st.session_state.water_body_classifications[point_id] = water_type
+                            # Mark as selected only if user chose a real option (not placeholder)
+                            if water_type != "Please select...":
                                 st.session_state.water_body_user_selected[point_id] = True
-                            elif water_type == "Please select...":
-                                # User hasn't made a selection yet or reset to default
+                            else:
                                 st.session_state.water_body_user_selected[point_id] = False
                             st.markdown("---")
                         
@@ -2624,12 +2621,17 @@ if analyze_button and st.session_state.selected_area:
                         st.info(f"📊 Classification Progress: {classified_count}/{total_water_points} water bodies classified")
                         
                         if all_classified:
-                            # All classifications complete - continue automatically
-                            st.session_state.pending_water_classification = False
-                            st.success("✅ Water body classification complete! Continuing analysis...")
-                            st.rerun()
+                            # All classifications complete - show confirmation and add continue button
+                            st.success("✅ All water bodies classified!")
+                            if st.button("🚀 Continue Analysis", type="primary", use_container_width=True):
+                                st.session_state.pending_water_classification = False
+                                st.success("Continuing with ecosystem analysis...")
+                                st.rerun()
+                            else:
+                                st.info("Click 'Continue Analysis' above to proceed with the valuation.")
+                                st.stop()
                         else:
-                            st.info("👆 Please classify all water bodies above. Analysis will continue automatically once complete.")
+                            st.info(f"👆 Please classify all {total_water_points} water bodies above. Analysis will continue once all are classified.")
                             st.stop()
                     
                     # Apply water body classifications if they exist
