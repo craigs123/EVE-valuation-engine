@@ -1433,7 +1433,7 @@ Example: 100ha Forest
         # Batch clear with garbage collection
         clear_analysis_cache()
         critical_keys = ['analysis_results', 'selected_area', 'area_coordinates', 'detected_ecosystem', 
-                        'all_water_bodies_classified', 'water_bodies_already_processed']
+                        'all_water_bodies_classified', 'water_bodies_already_processed', 'analysis_in_progress']
         for key in critical_keys:
             if key in st.session_state:
                 del st.session_state[key]
@@ -2147,10 +2147,12 @@ with col2:
         
         # Prominent calculate button
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
-            # Set analyze_button for processing - don't clear classifications here anymore
+            # Set analyze_button for processing and persist analysis state
             analyze_button = True
+            st.session_state.analysis_in_progress = True
         else:
-            analyze_button = False
+            # Check if analysis should continue from water body classification
+            analyze_button = st.session_state.get('analysis_in_progress', False)
             
     else:
         st.info("👆 First, draw an area on the map above")
@@ -2627,7 +2629,8 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                             
                             st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Analysis continues below...")
-                            # Continue with analysis - no stopping
+                            # Keep analysis flag active so it continues after page rerun
+                            st.session_state.analysis_in_progress = True
                         else:
                             st.info("👆 Please select how to classify all water bodies above.")
                             st.stop()  # Only stop if user hasn't selected anything
@@ -2937,6 +2940,9 @@ if analyze_button and st.session_state.selected_area:
                 analysis_results['forest_classification'] = manual_forest_selection
             
             st.session_state.analysis_results = analysis_results
+            # Clear analysis in progress flag - analysis is now complete
+            if 'analysis_in_progress' in st.session_state:
+                del st.session_state['analysis_in_progress']
             
             # Show final completion
             with analysis_progress_container.container():
