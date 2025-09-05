@@ -1023,7 +1023,7 @@ Example: 100ha Forest
         esvd_ecosystem_types = [
             "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest", "Mediterranean Forest",
             "Grassland", "Cropland", "Urban", "Desert", 
-            "Wetland", "Coastal", "Shrubland"
+            "Wetland", "Coastal", "Marine", "Shrubland"
         ]
         
         # Complete ESA CCI Land Cover to ESVD ecosystem coefficient mapping

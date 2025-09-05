@@ -90,7 +90,7 @@ class OpenLandMapSTAC:
             202: "Desert",          # Unconsolidated bare areas
             
             # Water Bodies Classes
-            210: "Coastal",         # Water bodies
+            210: "Marine",          # Water bodies
             
             # Snow and Ice Classes
             220: "Desert",          # Permanent snow and ice
