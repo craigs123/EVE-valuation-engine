@@ -1757,7 +1757,8 @@ with col1:
                 "🌾 Test area (Agricultural)": (40.0, -99.0),      # Nebraska
                 "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
                 "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
-                "🏜️ Test area (Desert)": (33.5, -112.5)           # Arizona
+                "🏜️ Test area (Desert)": (33.5, -112.5),          # Arizona
+                "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
             }
             if selected_test_area in ecosystem_zoom_coords:
                 center_lat, center_lon = ecosystem_zoom_coords[selected_test_area]
