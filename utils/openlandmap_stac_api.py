@@ -200,7 +200,7 @@ class OpenLandMapSTAC:
         
         # Open ocean areas (areas far from major landmasses)
         elif self._is_likely_ocean(lat, lon):
-            return random.choice([180, 210])  # Permanent water bodies / Water bodies
+            return random.choice([180, 210])  # Wetland vegetation / Water bodies
         
         # Tropical forests (Amazon, Congo, Southeast Asia)
         elif ((-10 <= lat <= 10) and 

@@ -288,40 +288,9 @@ def get_precomputed_status():
         return {'precomputed_available': False}
 
 def get_landcover_code_description(code: int) -> str:
-    """Get ESA CCI Level 1 description for OpenLandMap landcover code"""
-    # ESA CCI Level 1 descriptions (official classification)
-    descriptions = {
-        10: "Cropland",
-        20: "Forest", 
-        30: "Grassland",
-        40: "Shrubland",
-        50: "Sparse Vegetation",
-        60: "Wetlands",
-        61: "Forest (Tree Cover)",
-        62: "Forest (Flooded Fresh/Brackish)",
-        70: "Water Bodies",
-        71: "Grassland (Herbaceous Cover)",
-        80: "Permanent Snow and Ice",
-        90: "Bare Areas",
-        100: "Urban Areas",
-        110: "Shrubland (Flooded)",
-        120: "Grassland",
-        121: "Grassland (Sparse Vegetation)",
-        122: "Grassland (Sparse Herbaceous)",
-        130: "Grassland Sparse",
-        140: "Lichens and Mosses",
-        150: "Sparse Vegetation",
-        152: "Bare Areas",
-        153: "Bare Rock",
-        160: "Bare Areas",
-        170: "Bare Soil",
-        180: "Permanent Water Bodies",
-        190: "Herbaceous Wetland",
-        200: "Snow and Ice",
-        210: "Water Bodies",
-        220: "Snow/Ice Permanent"
-    }
-    return descriptions.get(code, f"Unknown Landcover (Code {code})")
+    """Get ESA CCI description for OpenLandMap landcover code using centralized mapping"""
+    from utils.esa_landcover_codes import get_esa_description
+    return get_esa_description(code)
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping"""
