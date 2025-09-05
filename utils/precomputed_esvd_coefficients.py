@@ -590,30 +590,28 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 14724.00  # Cognitive development
             },
             'grassland': {
-                'climate': 398.14,      # From 123 studies
-                'food': 434.64,         # From 75 studies
-                'water': 113.50,        # From 103 studies
-                'recreation': 17.77,    # From 37 studies
-                'raw_materials': 25.00,        # From 12 studies
-                'water_regulation': 180.00,   # From 67 studies
-                'erosion': 250.00,      # From 89 studies
-                'pollution': 90.00,     # From 45 studies
-                'cultural': 45.00,      # From 56 studies
-                'habitat': 200.00,      # From 78 studies
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 85.00,     # Grassland genetic diversity
-                'aesthetic_value': 75.00,       # Open landscape beauty
-                'spiritual_value': 55.00,       # Prairie spiritual connection
-                'soil_formation': 180.00,       # Excellent soil building
-                'nutrient_cycling': 220.00,     # High nutrient cycling
-                'medicinal_resources': 65.00,   # Prairie medicinal plants
-                'ornamental_resources': 35.00,  # Limited ornamental value
-                'extreme_events': 45.00,        # Limited storm protection
-                'water_purification': 95.00,    # Moderate water filtration
-                'pollination': 280.00,          # Very high pollination value
-                'biological_control': 120.00,   # Natural pest control
-                'nursery_services': 150.00,     # Wildlife habitat services
-                'primary_production': 380.00    # High grass productivity
+                'food': 464.00,         # Service 1: Food
+                'water': 184.00,        # Service 2: Water
+                'raw_materials': 247.00,        # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 58.00,     # Service 7: Air quality regulation
+                'climate': 444.00,      # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 391.00,     # Service 10: Regulation of water flows
+                'water_purification': 4.00,     # Service 11: Waste treatment
+                'erosion': 0.00,        # Service 12: Erosion prevention
+                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'habitat': 223.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 353.00,      # Service 18: Aesthetic information
+                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'cultural': 182.00,     # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
             },
             'agricultural': {
                 'food': 3914.00,        # Service 1: Food
@@ -666,83 +664,100 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 1556.00   # Cognitive development
             },
             'urban': {
-                'climate': 180.00,      # From 23 studies
-                'food': 85.00,          # From 12 studies
-                'water': 45.00,         # From 34 studies
-                'recreation': 290.00,   # From 67 studies
-                'raw_materials': 5.00,         # From 3 studies
-                'water_regulation': 150.00,   # From 45 studies
-                'erosion': 80.00,       # From 23 studies
-                'pollution': 320.00,    # From 56 studies (urban air quality)
-                'cultural': 200.00,     # From 89 studies
-                'habitat': 120.00,      # From 34 studies
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 45.00,     # Limited urban genetic diversity
-                'aesthetic_value': 180.00,      # Urban landscape aesthetics
-                'spiritual_value': 95.00,       # Urban spiritual/cultural value
-                'soil_formation': 25.00,        # Limited soil formation
-                'nutrient_cycling': 65.00,      # Limited nutrient cycling
-                'medicinal_resources': 35.00,   # Limited urban medicinal plants
-                'ornamental_resources': 120.00, # High ornamental plant value
-                'extreme_events': 85.00,        # Limited natural disaster protection
-                'water_purification': 180.00,   # Moderate urban water filtration
-                'pollination': 95.00,           # Limited urban pollination
-                'biological_control': 85.00,    # Limited biological control
-                'nursery_services': 65.00,      # Limited urban wildlife habitat
-                'primary_production': 120.00    # Limited urban productivity
+                'food': 0.00,           # Service 1: Food
+                'water': 0.00,          # Service 2: Water
+                'raw_materials': 0.00,  # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 12888.00, # Service 6: Ornamental resources
+                'pollution': 1615.00,   # Service 7: Air quality regulation
+                'climate': 7730.00,     # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 118.00,     # Service 10: Regulation of water flows
+                'water_purification': 0.00,     # Service 11: Waste treatment
+                'erosion': 0.00,        # Service 12: Erosion prevention
+                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 18631.00,   # Service 16: Maintenance of life cycles
+                'habitat': 2157864.00,  # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
+                'recreation': 2668.00,  # Service 19: Recreation and tourism
+                'cultural': 0.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
             },
             'shrubland': {
-                'climate': 280.00,      # From 45 studies (moderate carbon in woody shrubs)
-                'food': 180.00,         # From 32 studies (berries, nuts, limited grazing)
-                'water': 85.00,         # From 58 studies (moderate water cycling)
-                'recreation': 220.00,   # From 67 studies (hiking, wildlife viewing)
-                'raw_materials': 120.00,       # From 28 studies (fuelwood, posts, crafts)
-                'water_regulation': 240.00,   # From 42 studies (watershed functions)
-                'erosion': 320.00,      # From 67 studies (excellent root stabilization)
-                'pollution': 180.00,    # From 34 studies (air filtration)
-                'cultural': 140.00,     # From 56 studies (traditional uses, aesthetics)
-                'habitat': 380.00,      # From 78 studies (important wildlife habitat)
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 120.00,    # Shrubland genetic diversity
-                'aesthetic_value': 160.00,      # Shrubland landscape beauty
-                'spiritual_value': 95.00,       # Traditional spiritual uses
-                'soil_formation': 140.00,       # Good soil stabilization
-                'nutrient_cycling': 180.00,     # Moderate nutrient cycling
-                'medicinal_resources': 150.00,  # Traditional medicinal shrubs
-                'ornamental_resources': 95.00,  # Native shrub ornamental value
-                'extreme_events': 180.00,       # Moderate disaster protection
-                'water_purification': 220.00,   # Good water filtration
-                'pollination': 200.00,          # Good shrub pollination services
-                'biological_control': 160.00,   # Natural pest control
-                'nursery_services': 280.00,     # Important wildlife nesting habitat
-                'primary_production': 240.00    # Moderate shrub productivity
+                'food': 84.00,          # Service 1: Food
+                'water': 0.00,          # Service 2: Water
+                'raw_materials': 215.00,        # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 7.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 0.00,      # Service 7: Air quality regulation
+                'climate': 514.00,      # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'water_purification': 0.00,     # Service 11: Waste treatment
+                'erosion': 0.00,        # Service 12: Erosion prevention
+                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'habitat': 258.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
+                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'cultural': 0.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
             },
             'desert': {
-                'climate': 45.00,       # From 8 studies
-                'food': 12.00,          # From 5 studies
-                'water': 8.00,          # From 12 studies
-                'recreation': 35.00,    # From 15 studies
-                'raw_materials': 2.00,         # From 2 studies
-                'water_regulation': 15.00,    # From 6 studies
-                'erosion': 25.00,       # From 11 studies
-                'pollution': 10.00,     # From 4 studies
-                'cultural': 80.00,      # From 23 studies (high cultural/spiritual)
-                'habitat': 40.00,       # From 18 studies
-                # NEW: Unique coefficients to eliminate double counting
-                'genetic_resources': 22.00,     # Desert plant genetic diversity
-                'aesthetic_value': 65.00,       # Desert landscape beauty (high value)
-                'spiritual_value': 120.00,      # Very high spiritual value in desert cultures
-                'soil_formation': 8.00,         # Minimal soil building in deserts
-                'nutrient_cycling': 12.00,      # Limited nutrient cycling
-                # MISSING 8 TEEB SERVICES - Desert ecosystem values
-                'medicinal_resources': 85.00,   # High desert medicinal plant value
-                'ornamental_resources': 45.00,  # Desert plants for ornamental use
-                'extreme_events': 15.00,        # Limited natural disaster protection
-                'water_purification': 5.00,     # Minimal water purification capacity
-                'pollination': 25.00,          # Limited pollination services
-                'biological_control': 18.00,    # Limited natural pest control
-                'nursery_services': 28.00,      # Some specialized desert species habitat
-                'primary_production': 35.00     # Low primary production in deserts
+                'food': 0.00,           # Service 1: Food
+                'water': 644.00,        # Service 2: Water
+                'raw_materials': 54.00, # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 0.00,      # Service 7: Air quality regulation
+                'climate': 0.00,        # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'water_purification': 0.00,     # Service 11: Waste treatment
+                'erosion': 0.00,        # Service 12: Erosion prevention
+                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'habitat': 60.00,       # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
+                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'cultural': 0.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
+            },
+            'polar': {
+                'food': 824.00,         # Service 1: Food
+                'water': 23.00,         # Service 2: Water
+                'raw_materials': 126.00,        # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 0.00,      # Service 7: Air quality regulation
+                'climate': 106686.00,   # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'water_purification': 0.00,     # Service 11: Waste treatment
+                'erosion': 0.00,        # Service 12: Erosion prevention
+                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'habitat': 0.00,        # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
+                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'cultural': 0.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
             },
             'marine': {
                 'climate': 108.00,       # Marine climate regulation

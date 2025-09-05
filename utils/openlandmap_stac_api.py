@@ -94,7 +94,7 @@ class OpenLandMapSTAC:
             211: "Marine",            # Marine/oceanic water bodies
             
             # Snow and Ice Classes
-            220: "Desert",          # Permanent snow and ice
+            220: "Polar",           # Permanent snow and ice
         }
         
         # Fallback ecosystem detection based on geographic patterns
