@@ -503,30 +503,28 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 0.00      # Service 22: Cognitive development
             },
             'temperate_forest': {
-                'climate': 760.00,      # Climate regulation
-                'food': 7050.00,       # Food production
-                'water': 6397.00,      # Water supply
-                'recreation': 6318.00, # Recreation and tourism
-                'raw_materials': 6172.00,      # Raw materials
-                'water_regulation': 0.00,      # Regulation of water flows
-                'erosion': 7736.00,    # Erosion prevention
-                'pollution': 496.00,   # Air quality regulation
-                'cultural': 278.00,    # Culture, art and design
-                'habitat': 6029.00,    # Maintenance of genetic diversity
-                # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 0.00,      # Genetic resources
-                'aesthetic_value': 857.00,      # Aesthetic information
-                'spiritual_value': 0.00,        # Spiritual experience
-                'soil_formation': 6340.00,      # Maintenance of soil fertility
-                'nutrient_cycling': 190.00,     # Keep existing value (not in image)
-                'medicinal_resources': 0.00,    # Medicinal resources
-                'ornamental_resources': 0.00,   # Ornamental resources
-                'extreme_events': 15746.00,     # Moderation of extreme events
-                'water_purification': 7145.00,  # Waste treatment
-                'pollination': 0.00,            # Pollination
-                'biological_control': 0.00,     # Biological control
-                'nursery_services': 2262.00,    # Maintenance of life cycles
-                'primary_production': 1556.00   # Cognitive development
+                'food': 122.00,         # Service 1: Food
+                'water': 437.00,        # Service 2: Water
+                'raw_materials': 1061.00,       # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 1394.00,   # Service 7: Air quality regulation
+                'climate': 498.00,      # Service 8: Climate regulation
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'water_purification': 0.00,     # Service 11: Waste treatment
+                'erosion': 5382.00,     # Service 12: Erosion prevention
+                'soil_formation': 58.00,        # Service 13: Maintenance of soil fertility
+                'pollination': 10792.00,        # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'habitat': 388.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
+                'recreation': 5665.00,  # Service 19: Recreation and tourism
+                'cultural': 0.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 0.00      # Service 22: Cognitive development
             },
             'boreal_forest': {
                 'climate': 520.00,      # High carbon in soils/permafrost
