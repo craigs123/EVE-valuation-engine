@@ -2150,6 +2150,11 @@ with col2:
             # Set analyze_button for processing and persist analysis state
             analyze_button = True
             st.session_state.analysis_in_progress = True
+            # Clear old water body classifications for fresh analysis
+            if 'sampling_point_data' in st.session_state:
+                for point_data in st.session_state.sampling_point_data.values():
+                    if 'user_classified' in point_data:
+                        del point_data['user_classified']
         else:
             # Check if analysis should continue from water body classification
             analyze_button = st.session_state.get('analysis_in_progress', False)
