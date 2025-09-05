@@ -431,7 +431,6 @@ def display_data_source_status(analysis_results: Dict = None):
                                 st.caption(f"Mapping: {landcover_code} → {openlandmap_description} → {esvd_ecosystem}")
                                 
                             with col2:
-                                st.write(f"• **API Ecosystem Type**: {point_data.get('ecosystem_type', 'Unknown')}")
                                 st.write(f"• **Data Source**: {point_data.get('source', 'Unknown')}")
                                 
                             # Show coordinates
