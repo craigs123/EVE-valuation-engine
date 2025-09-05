@@ -214,9 +214,11 @@ class OpenLandMapSTAC:
         
         # Grasslands (Great Plains, Pampas, Steppes)
         elif ((25 <= lat <= 45) and  
-              ((-110 <= lon <= -95) or    # Great Plains
-               (-65 <= lon <= -45) or     # Pampas  
-               (40 <= lon <= 80))):       # Steppes
+              ((-110 <= lon <= -95) or    # Great Plains (North America)
+               (40 <= lon <= 80))):       # Steppes (Eurasia)
+            return 130  # Grassland
+        # Pampas (South America) - separate rule with correct latitude
+        elif ((-40 <= lat <= -25) and (-65 <= lon <= -45)):  # Pampas (Argentina/Uruguay)
             return 130  # Grassland
         
         # Deserts (more specific to avoid ocean areas)
@@ -291,10 +293,10 @@ class OpenLandMapSTAC:
                 return True
         
         # Atlantic Ocean regions  
-        elif ((-60 <= lat <= 60) and (-60 <= lon <= 20)):
+        elif ((-60 <= lat <= 60) and (-80 <= lon <= 20)):  # Extended to include western Atlantic
             # Exclude coastal areas
             if not ((-35 <= lat <= 70 and -20 <= lon <= 20) or   # Europe/Africa coast
-                    (-60 <= lat <= 50 and -60 <= lon <= -30)):   # Americas coast
+                    (-60 <= lat <= 50 and -75 <= lon <= -30)):   # Americas coast (adjusted)
                 return True
         
         # Indian Ocean regions
@@ -364,6 +366,8 @@ class OpenLandMapSTAC:
         
         # Fallback ecosystem detection if no land cover found
         if not ecosystem_type:
+            # For debugging - let's log when we fall back to prediction
+            print(f"WARNING: No real ESA land cover data found for {lat}, {lon}. Using geographic fallback.")
             fallback_type = self._geographic_fallback_detection(lat, lon)
             # Apply forest subtyping to fallback as well
             if fallback_type == "Forest":
