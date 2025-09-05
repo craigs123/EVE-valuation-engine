@@ -2574,6 +2574,7 @@ if analyze_button and st.session_state.selected_area:
                     # If water bodies detected, prompt user for classification
                     if water_body_points and 'water_body_classifications' not in st.session_state:
                         st.session_state.water_body_classifications = {}
+                        st.session_state.water_body_user_selected = {}  # Track user selections
                         st.session_state.pending_water_classification = True
                         
                         # Show water body classification dialog
@@ -2595,17 +2596,19 @@ if analyze_button and st.session_state.selected_area:
                                 key=f"water_classification_{point_id}",
                                 help="Ocean = Marine ecosystem, River/Lake = Rivers and Lakes ecosystem, Coastal = Coastal ecosystem"
                             )
-                            # Only store valid selections (not the placeholder)
+                            # Track both the selection and whether user has made a choice
                             if water_type != "Please select...":
                                 st.session_state.water_body_classifications[point_id] = water_type
+                                st.session_state.water_body_user_selected[point_id] = True
+                            else:
+                                # User hasn't made a selection yet
+                                st.session_state.water_body_user_selected[point_id] = False
                             st.markdown("---")
                         
-                        # Check if all water bodies have been classified with valid selections
+                        # Check if all water bodies have been explicitly classified by user
                         all_classified = True
                         for point_id in water_body_points.keys():
-                            if (point_id not in st.session_state.water_body_classifications or 
-                                not st.session_state.water_body_classifications[point_id] or
-                                st.session_state.water_body_classifications[point_id] == "Please select..."):
+                            if not st.session_state.water_body_user_selected.get(point_id, False):
                                 all_classified = False
                                 break
                         
