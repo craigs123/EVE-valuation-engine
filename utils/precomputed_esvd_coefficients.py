@@ -479,31 +479,31 @@ class PrecomputedESVDCoefficients:
         
         self.coefficients = {
             'tropical_forest': {
-                'climate': 450.00,      # Highest carbon storage - rainforest biomass
-                'food': 380.00,         # High food diversity from studies
-                'water': 120.00,        # High precipitation regions
-                'recreation': 520.00,   # Ecotourism premium value
-                'raw_materials': 650.00,       # Exotic hardwoods value
-                'water_regulation': 580.00,  # Rainforest water cycling
-                'erosion': 420.00,      # Dense root systems
-                'pollution': 340.00,    # High air purification
-                'cultural': 180.00,     # Indigenous cultural values
-                'habitat': 850.00,      # Highest biodiversity value
+                'climate': 108.00,      # Climate regulation
+                'food': 1282.00,       # Food production  
+                'water': 0.00,         # Water supply
+                'recreation': 5648.00, # Recreation and tourism
+                'raw_materials': 16940.00,     # Raw materials
+                'water_regulation': 0.00,      # Regulation of water flows
+                'erosion': 3740.00,    # Erosion prevention
+                'pollution': 0.00,     # Air quality regulation
+                'cultural': 0.00,      # Culture, art and design
+                'habitat': 11249.00,   # Maintenance of genetic diversity
                 # NEW: Unique coefficients to eliminate double counting
-                'genetic_resources': 290.00,    # TEEB Service 4: Separate from habitat
-                'aesthetic_value': 245.00,      # Separate from cultural/spiritual
-                'spiritual_value': 135.00,      # TEEB cultural services - distinct from aesthetic
-                'soil_formation': 180.00,       # Separate from erosion control
-                'nutrient_cycling': 220.00,     # TEEB Service 13: Separate from soil/habitat
+                'genetic_resources': 0.00,      # Genetic resources
+                'aesthetic_value': 5800.00,     # Aesthetic information
+                'spiritual_value': 0.00,        # Spiritual experience
+                'soil_formation': 0.00,         # Maintenance of soil fertility
+                'nutrient_cycling': 220.00,     # TEEB Service 13: Keep existing value (not in image)
                 # MISSING 8 TEEB SERVICES - Now added for complete 22-service framework
-                'medicinal_resources': 320.00,  # TEEB Service 5: High medicinal plant value
-                'ornamental_resources': 185.00, # TEEB Service 6: Decorative plants/materials
-                'extreme_events': 380.00,       # TEEB Service 9: Storm/disaster protection
-                'water_purification': 420.00,   # TEEB Service 11: Water treatment services
-                'pollination': 450.00,          # TEEB Service 14: Critical pollination services
-                'biological_control': 280.00,   # TEEB Service 15: Natural pest control
-                'nursery_services': 340.00,     # TEEB Service 16: Lifecycle/breeding habitat
-                'primary_production': 520.00    # Primary production/oxygen generation
+                'medicinal_resources': 0.00,    # Medicinal resources
+                'ornamental_resources': 0.00,   # Ornamental resources
+                'extreme_events': 16553.00,     # Moderation of extreme events
+                'water_purification': 2837.00,  # Waste treatment
+                'pollination': 0.00,            # Pollination
+                'biological_control': 0.00,     # Biological control
+                'nursery_services': 1355.00,    # Maintenance of life cycles
+                'primary_production': 2248.00   # Cognitive development
             },
             'temperate_forest': {
                 'climate': 350.00,      # Moderate carbon storage
