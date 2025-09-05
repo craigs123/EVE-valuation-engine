@@ -2155,6 +2155,10 @@ with col2:
                 for point_data in st.session_state.sampling_point_data.values():
                     if 'user_classified' in point_data:
                         del point_data['user_classified']
+                    # Also clear the ecosystem_type so it doesn't use old classifications
+                    if point_data.get('landcover_class') == 210:
+                        if 'ecosystem_type' in point_data:
+                            del point_data['ecosystem_type']
         else:
             # Check if analysis should continue from water body classification
             analyze_button = st.session_state.get('analysis_in_progress', False)
