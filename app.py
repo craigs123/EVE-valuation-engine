@@ -2562,18 +2562,14 @@ if analyze_button and st.session_state.selected_area:
                     
                     # For Water Bodies mode, also trigger classification if no water bodies found but mode is active
                     if water_bodies_mode and not water_body_points:
-                        # Force classification for Water Bodies mode - simulate multiple water body detections for testing
+                        # Force classification for Water Bodies mode - simulate water body detection for all sampling points
                         if sampling_point_data:
-                            # Create multiple simulated water body points (up to 3 for testing)
-                            sample_points = list(sampling_point_data.keys())
-                            num_water_points = min(3, len(sample_points))  # Create up to 3 water body points
-                            
-                            for i in range(num_water_points):
-                                point_id = sample_points[i]
-                                point_data = sampling_point_data[point_id].copy()
-                                point_data['landcover_class'] = 210
-                                point_data['simulated_water_body'] = True
-                                water_body_points[point_id] = point_data
+                            # Use ALL sampling points for water body classification (matches user's sampling setting)
+                            for point_id, point_data in sampling_point_data.items():
+                                point_data_copy = point_data.copy()
+                                point_data_copy['landcover_class'] = 210
+                                point_data_copy['simulated_water_body'] = True
+                                water_body_points[point_id] = point_data_copy
                     
                     # If water bodies detected, prompt user for classification
                     if water_body_points and 'water_body_classifications' not in st.session_state:
