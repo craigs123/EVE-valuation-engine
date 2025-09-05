@@ -2148,7 +2148,7 @@ with col2:
         if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
             # Only clear water body classifications if this is a NEW area selection
             # Check if the current area is different from the previously analyzed area
-            current_area_key = f"{selected_coordinates}"
+            current_area_key = f"{st.session_state.get('area_coordinates', [])}"
             previous_area_key = st.session_state.get('last_analyzed_area', '')
             
             if current_area_key != previous_area_key:
