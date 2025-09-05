@@ -139,26 +139,10 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, try to get actual raster data from the collection
+                        # For land cover, don't return fake data
                         if collection['category'] == 'landcover':
-                            # Basic geographic mapping for obvious cases while STAC raster query is fixed
-                            landcover_code = self._get_basic_geographic_esa_code(lat, lon)
-                            if landcover_code > 0:
-                                return {
-                                    "collection": collection["id"],
-                                    "name": collection["name"],
-                                    "category": collection["category"],
-                                    "value": landcover_code,
-                                    "unit": collection["unit"],
-                                    "metadata": {
-                                        "title": "Basic Geographic ESA Mapping",
-                                        "description": "Temporary ESA code mapping pending proper STAC raster queries",
-                                        "license": collection_data.get("license", "")
-                                    }
-                                }
-                            else:
-                                # Return None - no data available
-                                return None
+                            # Return None - no fake data for land cover
+                            return None
                         else:
                             # For other categories, still generate values
                             sample_value = self._generate_location_based_value(lat, lon, collection['category'])
@@ -338,18 +322,6 @@ class OpenLandMapSTAC:
             return True
             
         return False
-    
-    def _get_basic_geographic_esa_code(self, lat: float, lon: float) -> int:
-        """
-        Basic geographic mapping to correct ESA codes for obvious cases
-        Temporary solution while proper STAC raster queries are implemented
-        """
-        # Ocean coordinates - should return water body code
-        if self._is_likely_ocean(lat, lon):
-            return 210  # Water bodies (ESA CCI code)
-        
-        # No mapping available - return 0 to indicate unknown
-        return 0
     
     def process_stac_data(self, lat: float, lon: float, stac_results: List[Dict]) -> Dict[str, Any]:
         """
