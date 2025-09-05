@@ -17,7 +17,8 @@ class OpenLandMapSTAC:
     """
     
     def __init__(self):
-        self.stac_base_url = "https://s3.eu-central-1.wasabisys.com/stac/openlandmap"
+        self.stac_base_url = "https://stac.openlandmap.org"
+        self.api_base_url = "https://v2-api.openlandmap.org"
         
         # Define key STAC collections for comprehensive environmental data
         self.collections = [
@@ -183,39 +184,79 @@ class OpenLandMapSTAC:
         Query actual raster data from STAC collection at specific coordinates
         """
         try:
-            # OpenLandMap STAC items endpoint for the land cover collection
-            items_url = f"{self.stac_base_url}/{collection_id}/items"
+            # Try the correct OpenLandMap REST API first
+            return await self._query_openlandmap_api(session, lat, lon)
             
-            # Query parameters for spatial and temporal filtering
-            params = {
-                'bbox': f"{lon-0.01},{lat-0.01},{lon+0.01},{lat+0.01}",  # Small bounding box around point
-                'limit': 1,
-                'datetime': '2020-01-01/2020-12-31'  # Use 2020 data
-            }
+        except Exception as e:
+            print(f"Error querying OpenLandMap API: {e}")
             
-            async with session.get(items_url, params=params) as response:
-                if response.status == 200:
-                    items_data = await response.json()
-                    
-                    if items_data.get('features') and len(items_data['features']) > 0:
-                        feature = items_data['features'][0]
-                        
-                        # Try to get the asset URL for the raster data
-                        if 'assets' in feature:
-                            for asset_key, asset_data in feature['assets'].items():
-                                if asset_data.get('type') == 'image/tiff' or 'tif' in asset_data.get('href', '').lower():
-                                    # Found a raster asset - try to query it
-                                    raster_url = asset_data['href']
-                                    return await self._query_raster_pixel(session, raster_url, lat, lon)
-                    
-                    # If no items found, try alternative approach
-                    return await self._query_cog_endpoint(session, collection_id, lat, lon)
+            # Fallback to STAC API
+            try:
+                # Correct STAC endpoint for ESA CCI land cover
+                if collection_id == "land.cover_esacci.lc.l4":
+                    items_url = f"{self.stac_base_url}/pft.landcover_esa.cci.lc/items"
                 else:
-                    print(f"Failed to query items for {collection_id}: {response.status}")
-                    return None
+                    items_url = f"{self.stac_base_url}/{collection_id}/items"
+                
+                # Query parameters for spatial and temporal filtering
+                params = {
+                    'bbox': f"{lon-0.01},{lat-0.01},{lon+0.01},{lat+0.01}",  # Small bounding box around point
+                    'limit': 1,
+                    'datetime': '2020-01-01/2020-12-31'  # Use 2020 data
+                }
+                
+                async with session.get(items_url, params=params) as response:
+                    if response.status == 200:
+                        items_data = await response.json()
+                        
+                        if items_data.get('features') and len(items_data['features']) > 0:
+                            feature = items_data['features'][0]
+                            
+                            # Try to get the asset URL for the raster data
+                            if 'assets' in feature:
+                                for asset_key, asset_data in feature['assets'].items():
+                                    if asset_data.get('type') == 'image/tiff' or 'tif' in asset_data.get('href', '').lower():
+                                        # Found a raster asset - try to query it
+                                        raster_url = asset_data['href']
+                                        return await self._query_raster_pixel(session, raster_url, lat, lon)
+                        
+                        # If no items found, try alternative approach
+                        return await self._query_cog_endpoint(session, collection_id, lat, lon)
+                    else:
+                        print(f"Failed to query STAC items for {collection_id}: {response.status}")
+                        return None
                     
         except Exception as e:
             print(f"Error querying raster data for {collection_id}: {e}")
+            return None
+    
+    async def _query_openlandmap_api(self, session: aiohttp.ClientSession, lat: float, lon: float) -> Optional[int]:
+        """
+        Query the correct OpenLandMap REST API for ESA CCI land cover data
+        """
+        try:
+            # OpenLandMap REST API endpoint for land cover point queries
+            api_url = f"{self.api_base_url}/query/point"
+            params = {
+                'lat': lat,
+                'lon': lon,
+                'collection': 'land.cover_esacci.lc.l4',
+                'year': 2020
+            }
+            
+            async with session.get(api_url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if isinstance(data, dict) and 'value' in data:
+                        return int(data['value'])
+                    elif isinstance(data, list) and len(data) > 0:
+                        return int(data[0].get('value', 0))
+                else:
+                    print(f"OpenLandMap API returned status {response.status}")
+                    return None
+                    
+        except Exception as e:
+            print(f"Error querying OpenLandMap REST API: {e}")
             return None
     
     async def _query_raster_pixel(self, session: aiohttp.ClientSession, raster_url: str, lat: float, lon: float) -> Optional[int]:
