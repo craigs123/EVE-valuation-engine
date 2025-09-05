@@ -506,30 +506,30 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 2248.00   # Cognitive development
             },
             'temperate_forest': {
-                'climate': 350.00,      # Moderate carbon storage
-                'food': 290.00,         # Moderate food production
-                'water': 140.00,        # Seasonal water patterns
-                'recreation': 480.00,   # Outdoor recreation value
-                'raw_materials': 920.00,       # Highest raw materials value (pine, oak)
-                'water_regulation': 380.00,  # Seasonal watershed services
-                'erosion': 280.00,      # Moderate erosion control
-                'pollution': 250.00,    # Air purification services
-                'cultural': 120.00,     # Cultural/historical value
-                'habitat': 320.00,      # Moderate biodiversity
+                'climate': 760.00,      # Climate regulation
+                'food': 7050.00,       # Food production
+                'water': 6397.00,      # Water supply
+                'recreation': 6318.00, # Recreation and tourism
+                'raw_materials': 6172.00,      # Raw materials
+                'water_regulation': 0.00,      # Regulation of water flows
+                'erosion': 7736.00,    # Erosion prevention
+                'pollution': 496.00,   # Air quality regulation
+                'cultural': 278.00,    # Culture, art and design
+                'habitat': 6029.00,    # Maintenance of genetic diversity
                 # NEW: Unique coefficients for complete 22-service framework
-                'genetic_resources': 210.00,    # Temperate forest genetic diversity
-                'aesthetic_value': 180.00,      # Seasonal landscape beauty
-                'spiritual_value': 95.00,       # Moderate spiritual connection
-                'soil_formation': 150.00,       # Good soil building capacity
-                'nutrient_cycling': 190.00,     # Moderate nutrient cycling
-                'medicinal_resources': 160.00,  # Moderate medicinal plant value
-                'ornamental_resources': 120.00, # Decorative woods/plants
-                'extreme_events': 280.00,       # Good storm protection
-                'water_purification': 320.00,   # Good water filtration
-                'pollination': 220.00,          # Forest pollination services
-                'biological_control': 180.00,   # Natural pest control
-                'nursery_services': 250.00,     # Wildlife breeding habitat
-                'primary_production': 420.00    # Moderate oxygen production
+                'genetic_resources': 0.00,      # Genetic resources
+                'aesthetic_value': 857.00,      # Aesthetic information
+                'spiritual_value': 0.00,        # Spiritual experience
+                'soil_formation': 6340.00,      # Maintenance of soil fertility
+                'nutrient_cycling': 190.00,     # Keep existing value (not in image)
+                'medicinal_resources': 0.00,    # Medicinal resources
+                'ornamental_resources': 0.00,   # Ornamental resources
+                'extreme_events': 15746.00,     # Moderation of extreme events
+                'water_purification': 7145.00,  # Waste treatment
+                'pollination': 0.00,            # Pollination
+                'biological_control': 0.00,     # Biological control
+                'nursery_services': 2262.00,    # Maintenance of life cycles
+                'primary_production': 1556.00   # Cognitive development
             },
             'boreal_forest': {
                 'climate': 520.00,      # High carbon in soils/permafrost
