@@ -218,19 +218,21 @@ class OpenLandMapSTAC:
                (40 <= lon <= 80))):       # Steppes
             return 130  # Grassland
         
-        # Deserts
-        elif ((15 <= lat <= 35) or (-35 <= lat <= -15)):
-            if ((-125 <= lon <= -105) or  # Southwestern US
-                (-10 <= lon <= 60) or     # Sahara/Middle East
-                (110 <= lon <= 140)):     # Australian outback
-                return 152  # Sparse shrub
+        # Deserts (more specific to avoid ocean areas)
+        elif ((20 <= lat <= 35) and ((-125 <= lon <= -105) or  # Southwestern US deserts
+                                     (25 <= lon <= 45))):      # Arabian Peninsula
+            return 152  # Sparse shrub
+        elif ((-35 <= lat <= -20) and (115 <= lon <= 135)):    # Australian outback
+            return 152  # Sparse shrub
+        elif ((15 <= lat <= 30) and (-5 <= lon <= 20)):        # Sahara (more specific)
+            return 152  # Sparse shrub
         
         # Arctic tundra
         elif lat > 60:
             return 140  # Lichens and mosses
         
-        # Default to mixed vegetation
-        return random.choice([70, 90, 121])  # Grassland/sparse vegetation
+        # Default: if still no match, likely ocean or water body
+        return random.choice([70, 210])  # Water Bodies
     
     def _predict_vegetation_index(self, lat: float, lon: float) -> float:
         """
