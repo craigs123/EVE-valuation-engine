@@ -1453,6 +1453,7 @@ test_area_options = [
     "🌱 Test area (Grassland)", 
     "🌲 Test area (Boreal Forest)",
     "🏜️ Test area (Desert)",
+    "🌊 Test area (Water Bodies)",
     "🌍 Test area (Multi-Ecosystem)",
     "🎲 Test area (Random Global)"
 ]
@@ -1466,7 +1467,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🏜️ Test area (Desert)"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🏜️ Test area (Desert)", "🌊 Test area (Water Bodies)"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -1571,6 +1572,11 @@ elif use_test_area_single:
             "coords": calculate_1000ha_coordinates(33.5, -112.5),
             "description": "Arizona Sonoran Desert (33.5°N, 112.5°W) | Expected: Desert ecosystem",
             "location": "Arizona Sonoran desert"
+        },
+        "🌊 Test area (Water Bodies)": {
+            "coords": calculate_1000ha_coordinates(36.685, -121.985),
+            "description": "Pacific Ocean offshore California (36.685°N, 121.985°W) | Expected: ESA Code 210, triggers water body classification",
+            "location": "Pacific Ocean offshore California"
         }
     }
     
@@ -1802,7 +1808,10 @@ with col1:
             coords = st.session_state.area_coordinates
             if use_test_area_single:
                 popup_text = f"{selected_test_area} (1000 hectares)"
-                color = '#28a745'  # Green for single ecosystem
+                if selected_test_area == "🌊 Test area (Water Bodies)":
+                    color = '#007bff'  # Blue for water bodies
+                else:
+                    color = '#28a745'  # Green for other single ecosystems
             elif use_test_area_multi:
                 popup_text = "Multi-Ecosystem Test Area (1000 hectares)"
                 color = '#17a2b8'  # Blue for multi-ecosystem
