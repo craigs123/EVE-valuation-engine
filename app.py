@@ -1765,7 +1765,12 @@ with col1:
             else:
                 # Default fallback
                 center_lat, center_lon = 40.028, -99.0185
-            zoom_level = 13
+            
+            # Use lower zoom for water bodies due to lower ocean map resolution
+            if selected_test_area == "🌊 Test area (Water Bodies)":
+                zoom_level = 9  # Less zoomed in for ocean areas
+            else:
+                zoom_level = 13  # Standard zoom for land areas
         elif use_test_area_multi:
             # Zoom to Michigan test area
             center_lat, center_lon = 42.0, -84.0
