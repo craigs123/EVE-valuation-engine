@@ -2621,12 +2621,12 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.water_bodies_already_processed = True
                             
                             st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Continuing analysis...")
-                            st.rerun()
+                            # Continue automatically with analysis - don't stop here
+                            # Analysis will proceed below without requiring another button click
                         
                         if bulk_water_type == "Please select...":
                             st.info("👆 Please select how to classify all water bodies, then click 'Classify All Water Bodies' to continue.")
-                        
-                        st.stop()  # Stop processing until user classifies all water bodies
+                            st.stop()  # Only stop if user hasn't made a selection yet
                     
                     # Store complete sampling point information for display
                     st.session_state.sampling_point_data = sampling_point_data
