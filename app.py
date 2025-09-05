@@ -2628,8 +2628,7 @@ if analyze_button and st.session_state.selected_area:
                             
                             if bulk_water_type == "Please select...":
                                 st.info("👆 Please select how to classify all water bodies, then click 'Classify All Water Bodies' to continue.")
-                            
-                            st.stop()  # Stop here until classification is done
+                                st.stop()  # Only stop if user hasn't selected anything
                     
                     # Store complete sampling point information for display
                     st.session_state.sampling_point_data = sampling_point_data
