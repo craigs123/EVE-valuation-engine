@@ -52,14 +52,16 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
      * Pollination: ESVD "Pollination", "Reproduction Support", "Crop Pollination"
      * Biological Control: ESVD "Pest Control", "Disease Regulation", "Biocontrol"
      
-     CULTURAL & SUPPORTING SERVICES:
-     * Maintenance of Life Cycles: ESVD "Habitat", "Breeding Ground", "Life Cycle Support"
-     * Maintenance of Genetic Diversity: ESVD "Biodiversity", "Species Diversity", "Conservation"
+     CULTURAL SERVICES:
      * Aesthetic Information: ESVD "Aesthetic", "Landscape Beauty", "Scenic Value"
      * Recreation and Tourism: ESVD "Recreation", "Tourism", "Outdoor Activities", "Ecotourism"
      * Culture, Art and Design: ESVD "Cultural Heritage", "Traditional Arts", "Design Inspiration"
      * Spiritual Experience: ESVD "Spiritual", "Religious", "Cultural Heritage", "Traditional"
      * Cognitive Development: ESVD "Education", "Knowledge", "Scientific Research"
+     
+     SUPPORTING SERVICES:
+     * Maintenance of Life Cycles: ESVD "Habitat", "Breeding Ground", "Life Cycle Support"
+     * Maintenance of Genetic Diversity: ESVD "Biodiversity", "Species Diversity", "Conservation"
 
    2.3 STATISTICAL AGGREGATION METHOD:
    - For each ecosystem-service combination, extract all relevant ESVD records
@@ -801,8 +803,6 @@ class PrecomputedESVDCoefficients:
                 'biological_control': 'biological_control'          # TEEB Service 15
             },
             'cultural': {
-                'maintenance_of_life_cycles': 'nursery_services',   # TEEB Service 16
-                'maintenance_of_genetic_diversity': 'habitat',      # TEEB Service 17
                 'aesthetic_information': 'aesthetic_value',         # TEEB Service 18
                 'recreation_and_tourism': 'recreation',             # TEEB Service 19
                 'culture_art_and_design': 'soil_formation',         # TEEB Service 20 (mapped to available coefficient)
@@ -810,8 +810,8 @@ class PrecomputedESVDCoefficients:
                 'cognitive_development': 'primary_production'       # TEEB Service 22 (mapped to available coefficient)
             },
             'supporting': {
-                # Supporting services moved to cultural category to match 22-service framework
-                # These are now considered cultural/supporting services
+                'maintenance_of_life_cycles': 'nursery_services',   # TEEB Service 16
+                'maintenance_of_genetic_diversity': 'habitat'       # TEEB Service 17
             }
         }
         
