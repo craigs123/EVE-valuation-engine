@@ -139,10 +139,25 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, don't return fake data
+                        # For land cover, try to query actual raster data
                         if collection['category'] == 'landcover':
-                            # Return None - no fake data for land cover
-                            return None
+                            raster_value = await self._query_raster_data(session, collection['id'], lat, lon)
+                            if raster_value is not None:
+                                return {
+                                    "collection": collection["id"],
+                                    "name": collection["name"],
+                                    "category": collection["category"],
+                                    "value": raster_value,
+                                    "unit": collection["unit"],
+                                    "metadata": {
+                                        "title": collection_data.get("title", ""),
+                                        "description": collection_data.get("description", ""),
+                                        "license": collection_data.get("license", ""),
+                                        "source": "OpenLandMap STAC API"
+                                    }
+                                }
+                            else:
+                                return None
                         else:
                             # For other categories, still generate values
                             sample_value = self._generate_location_based_value(lat, lon, collection['category'])
@@ -162,6 +177,97 @@ class OpenLandMapSTAC:
         except Exception as e:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
+    
+    async def _query_raster_data(self, session: aiohttp.ClientSession, collection_id: str, lat: float, lon: float) -> Optional[int]:
+        """
+        Query actual raster data from STAC collection at specific coordinates
+        """
+        try:
+            # OpenLandMap STAC items endpoint for the land cover collection
+            items_url = f"{self.stac_base_url}/{collection_id}/items"
+            
+            # Query parameters for spatial and temporal filtering
+            params = {
+                'bbox': f"{lon-0.01},{lat-0.01},{lon+0.01},{lat+0.01}",  # Small bounding box around point
+                'limit': 1,
+                'datetime': '2020-01-01/2020-12-31'  # Use 2020 data
+            }
+            
+            async with session.get(items_url, params=params) as response:
+                if response.status == 200:
+                    items_data = await response.json()
+                    
+                    if items_data.get('features') and len(items_data['features']) > 0:
+                        feature = items_data['features'][0]
+                        
+                        # Try to get the asset URL for the raster data
+                        if 'assets' in feature:
+                            for asset_key, asset_data in feature['assets'].items():
+                                if asset_data.get('type') == 'image/tiff' or 'tif' in asset_data.get('href', '').lower():
+                                    # Found a raster asset - try to query it
+                                    raster_url = asset_data['href']
+                                    return await self._query_raster_pixel(session, raster_url, lat, lon)
+                    
+                    # If no items found, try alternative approach
+                    return await self._query_cog_endpoint(session, collection_id, lat, lon)
+                else:
+                    print(f"Failed to query items for {collection_id}: {response.status}")
+                    return None
+                    
+        except Exception as e:
+            print(f"Error querying raster data for {collection_id}: {e}")
+            return None
+    
+    async def _query_raster_pixel(self, session: aiohttp.ClientSession, raster_url: str, lat: float, lon: float) -> Optional[int]:
+        """
+        Query pixel value from raster using COG endpoint
+        """
+        try:
+            # Try OpenLandMap's direct query endpoint format
+            query_url = f"https://query.openlandmap.org/query?"
+            params = {
+                'lon': lon,
+                'lat': lat,
+                'collection': 'land.cover_esacci.lc.l4',
+                'year': 2020
+            }
+            
+            async with session.get(query_url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if isinstance(data, dict) and 'value' in data:
+                        return int(data['value'])
+                    elif isinstance(data, list) and len(data) > 0:
+                        return int(data[0].get('value', 0))
+                        
+        except Exception as e:
+            print(f"Error querying pixel value: {e}")
+            
+        return None
+    
+    async def _query_cog_endpoint(self, session: aiohttp.ClientSession, collection_id: str, lat: float, lon: float) -> Optional[int]:
+        """
+        Alternative method to query Cloud Optimized GeoTIFF endpoint
+        """
+        try:
+            # OpenLandMap's tile server endpoint
+            tile_url = f"https://tiles.openlandmap.org/{collection_id}/point"
+            params = {
+                'lon': lon,
+                'lat': lat,
+                'year': 2020
+            }
+            
+            async with session.get(tile_url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if 'value' in data:
+                        return int(data['value'])
+                        
+        except Exception as e:
+            print(f"Error querying COG endpoint: {e}")
+            
+        return None
     
     def _generate_location_based_value(self, lat: float, lon: float, category: str) -> Any:
         """
