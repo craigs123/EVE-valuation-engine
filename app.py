@@ -1147,65 +1147,9 @@ Example: 100ha Forest
         with col2:
             st.markdown("**Current Mapping**")
         
-        # Complete ESA CCI Land Cover descriptions for tooltips
-        landcover_descriptions = {
-            # Cropland Classes
-            10: "Cropland, rainfed",
-            11: "Herbaceous cover",
-            12: "Tree or shrub cover",
-            20: "Cropland, irrigated or post-flooding", 
-            30: "Mosaic cropland (>50%) / natural vegetation (<50%)",
-            40: "Mosaic natural vegetation (>50%) / cropland (<50%)",
-            
-            # Forest Classes
-            50: "Tree cover, broadleaved, evergreen, closed to open (>15%)",
-            60: "Tree cover, broadleaved, deciduous, closed to open (>15%)",
-            61: "Tree cover, broadleaved, deciduous, closed (>40%)",
-            62: "Tree cover, broadleaved, deciduous, open (15-40%)",
-            70: "Tree cover, needleleaved, evergreen, closed to open (>15%)",
-            71: "Tree cover, needleleaved, evergreen, closed (>40%)",
-            72: "Tree cover, needleleaved, evergreen, open (15-40%)",
-            80: "Tree cover, needleleaved, deciduous, closed to open (>15%)",
-            81: "Tree cover, needleleaved, deciduous, closed (>40%)",
-            82: "Tree cover, needleleaved, deciduous, open (15-40%)",
-            90: "Tree cover, mixed leaf type (broadleaved and needleleaved)",
-            100: "Mosaic tree and shrub (>50%) / herbaceous cover (<50%)",
-            
-            # Shrubland Classes
-            110: "Mosaic herbaceous cover (>50%) / tree and shrub (<50%)",
-            120: "Shrubland",
-            121: "Shrubland evergreen",
-            122: "Shrubland deciduous",
-            
-            # Grassland Classes
-            130: "Grassland",
-            140: "Lichens and mosses",
-            
-            # Sparse Vegetation Classes
-            150: "Sparse vegetation (tree, shrub, herbaceous cover) (<15%)",
-            151: "Sparse tree (<15%)",
-            152: "Sparse shrub (<15%)",
-            153: "Sparse herbaceous cover (<15%)",
-            
-            # Wetland Classes
-            160: "Tree cover, flooded, fresh or brakish water",
-            170: "Tree cover, flooded, saline water",
-            180: "Shrub or herbaceous cover, flooded, fresh/saline/brakish water",
-            
-            # Urban Classes
-            190: "Urban areas",
-            
-            # Bare Areas Classes
-            200: "Bare areas",
-            201: "Consolidated bare areas",
-            202: "Unconsolidated bare areas",
-            
-            # Water Bodies Classes
-            210: "Water bodies",
-            
-            # Snow and Ice Classes
-            220: "Permanent snow and ice"
-        }
+        # Import centralized ESA land cover descriptions  
+        from utils.esa_landcover_codes import get_all_esa_codes
+        landcover_descriptions = get_all_esa_codes()
         
         # Display compact mapping table with tooltips
         for code in sorted(default_landcover_mapping.keys()):
@@ -1260,7 +1204,8 @@ Example: 100ha Forest
             for code in sorted([c for c in cropland_codes if c in default_landcover_mapping]):
                 col1, col2 = st.columns([2, 1])
                 with col1:
-                    description = landcover_descriptions.get(code, f"ESA {code}")
+                    from utils.esa_landcover_codes import get_esa_description
+                    description = get_esa_description(code)
                     st.markdown(f"**{code}**: {description}")
                 with col2:
                     current_value = st.session_state.esa_code_multipliers.get(code, 100)
@@ -1283,7 +1228,8 @@ Example: 100ha Forest
             for code in sorted([c for c in other_codes if c in default_landcover_mapping]):
                 col1, col2 = st.columns([2, 1])
                 with col1:
-                    description = landcover_descriptions.get(code, f"ESA {code}")
+                    from utils.esa_landcover_codes import get_esa_description
+                    description = get_esa_description(code)
                     st.markdown(f"**{code}**: {description}")
                 with col2:
                     current_value = st.session_state.esa_code_multipliers.get(code, 100)
