@@ -225,10 +225,10 @@ class OpenLandMapSTAC:
                     else:
                         print(f"Failed to query STAC items for {collection_id}: {response.status}")
                         return None
-                    
-        except Exception as e:
-            print(f"Error querying raster data for {collection_id}: {e}")
-            return None
+                        
+            except Exception as stac_error:
+                print(f"Error querying STAC API: {stac_error}")
+                return None
     
     async def _query_openlandmap_api(self, session: aiohttp.ClientSession, lat: float, lon: float) -> Optional[int]:
         """
