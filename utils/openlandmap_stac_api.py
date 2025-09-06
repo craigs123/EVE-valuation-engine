@@ -357,18 +357,29 @@ class OpenLandMapSTAC:
                     # Convert to integer land cover code
                     landcover_code = int(pixel_value)
                     
+                    # Apply forest type mapping for codes 70 & 71 based on geographic location
+                    base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
+                    if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
+                        specific_forest_type = self._determine_forest_type_from_coordinates(lat, lon)
+                        print(f"🌲 GeoTIFF Forest mapping: ESA code {landcover_code} → {specific_forest_type} at ({lat:.4f}, {lon:.4f})")
+                        # Store both the ESA code and the specific forest type
+                        ecosystem_type = specific_forest_type
+                    else:
+                        ecosystem_type = base_ecosystem_type
+                    
                     raw_response = {
                         "extraction_method": "geotiff_pixel_extraction",
                         "asset_url": asset_url,
                         "coordinates": {"lat": lat, "lon": lon},
                         "raw_pixel_value": pixel_value,
                         "landcover_code": landcover_code,
+                        "ecosystem_type": ecosystem_type,
                         "data_source": "cog_http_range_request",
                         "collection_metadata": collection_metadata
                     }
                     
                     data_source = "Real ESA Satellite Data (GeoTIFF Pixel)"
-                    print(f"🎯 REAL PIXEL DATA: Land cover code {landcover_code} extracted from GeoTIFF for ({lat}, {lon})")
+                    print(f"🎯 REAL PIXEL DATA: Land cover code {landcover_code} → {ecosystem_type} extracted from GeoTIFF for ({lat}, {lon})")
                     return landcover_code, data_source, raw_response
             
             # If pixel extraction failed, return None (no fallback)
@@ -595,9 +606,11 @@ class OpenLandMapSTAC:
                     continue
                 base_ecosystem_type = self.landcover_to_esvd.get(land_cover_code, "Unknown")
                 
-                # If mapped to Forest, determine specific forest type based on geography
-                if base_ecosystem_type == "Forest":
+                # For forest codes (especially 70 & 71), determine specific forest type based on geography
+                if (base_ecosystem_type == "Forest" or 
+                    land_cover_code in [70, 71]):  # ESA codes 70 & 71 are specific forest types
                     ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
+                    print(f"🌲 Forest mapping: ESA code {land_cover_code} → {ecosystem_type} at ({lat:.4f}, {lon:.4f})")
                 else:
                     ecosystem_type = base_ecosystem_type
                     
