@@ -656,11 +656,25 @@ def display_data_source_status(analysis_results: Dict = None):
                         code = point_data.get('landcover_class', 'Unknown')
                         code_counts[code] = code_counts.get(code, 0) + 1
                     
-                    for code, count in sorted(code_counts.items()):
-                        openlandmap_description = get_landcover_code_description(code)
+                    # Count ecosystem types (consistent with Mixed Ecosystem Composition filtering)
+                    ecosystem_counts = {}
+                    for code, count in code_counts.items():
                         esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
+                        ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
+                    
+                    st.markdown("**Ecosystem Composition (from Sample Points):**")
+                    for ecosystem_type, count in sorted(ecosystem_counts.items()):
                         percentage = (count / len(sampling_point_data)) * 100
-                        st.write(f"• **ESA Code {code}**: {openlandmap_description} → **ESVD: {esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
+                        if percentage >= 1.0:  # Apply same 1% threshold as Mixed Ecosystem Composition
+                            st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points)")
+                    
+                    # Show raw ESA codes in expandable section for transparency
+                    with st.expander("🔍 Raw ESA Code Breakdown"):
+                        for code, count in sorted(code_counts.items()):
+                            openlandmap_description = get_landcover_code_description(code)
+                            esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
+                            percentage = (count / len(sampling_point_data)) * 100
+                            st.write(f"• **ESA Code {code}**: {openlandmap_description} → **ESVD: {esvd_ecosystem}** ({count} points, {percentage:.1f}%)")
                         
                 elif landcover_codes:
                     st.markdown("**🧪 Geographic Estimation Data:**")
