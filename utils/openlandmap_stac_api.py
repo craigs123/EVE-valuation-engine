@@ -17,7 +17,7 @@ class OpenLandMapSTAC:
     """
     
     def __init__(self):
-        self.stac_base_url = "https://stac.openlandmap.org"
+        self.stac_base_url = "https://s3.eu-central-1.wasabisys.com/stac/openlandmap"
         self.api_base_url = "https://v2-api.openlandmap.org"
         
         # Define key STAC collections for comprehensive environmental data
@@ -315,8 +315,8 @@ class OpenLandMapSTAC:
         Generate realistic environmental values based on geographic location
         """
         if category == "landcover":
-            # No prediction - return error code to indicate missing data
-            return -1  # Invalid code to indicate no real data available
+            # When no real data is available, use geographic fallback instead of returning invalid code
+            return self._predict_land_cover(lat, lon)
         elif category == "vegetation":
             return self._predict_vegetation_index(lat, lon)
         elif category == "soil":
@@ -494,8 +494,8 @@ class OpenLandMapSTAC:
             elif result["category"] == "landcover":
                 # Convert land cover code to ESVD ecosystem type
                 land_cover_code = result["value"]
-                # Skip invalid prediction codes
-                if land_cover_code == -1:
+                # Skip invalid codes (though we shouldn't get them anymore)
+                if land_cover_code <= 0 or land_cover_code == -1:
                     continue
                 base_ecosystem_type = self.landcover_to_esvd.get(land_cover_code, "Unknown")
                 
@@ -520,16 +520,19 @@ class OpenLandMapSTAC:
             elif result["category"] in ["vegetation", "terrain"]:
                 climate.append(data_item)
         
-        # Require real ESA land cover data - no prediction fallback
+        # If no real data found, use geographic fallback
         if not ecosystem_type:
-            print(f"ERROR: No real ESA land cover data found for {lat}, {lon}. Cannot classify without satellite data.")
-            ecosystem_type = "Unknown"
-            confidence = 0.0
-        
-        # Extract landcover_class from the processed land cover data
-        landcover_class = 0
-        if land_cover and len(land_cover) > 0:
-            landcover_class = land_cover[0].get("code", 0)
+            print(f"No real ESA land cover data found for {lat}, {lon}. Using geographic prediction.")
+            ecosystem_type = self._geographic_fallback_detection(lat, lon)
+            confidence = 0.50
+            # Generate a valid land cover code based on geographic prediction
+            predicted_code = self._predict_land_cover(lat, lon)
+            landcover_class = predicted_code
+        else:
+            # Extract landcover_class from the processed land cover data
+            landcover_class = 130  # Default to grassland if no code found
+            if land_cover and len(land_cover) > 0:
+                landcover_class = land_cover[0].get("code", 130)
         
         return {
             "ecosystem_type": ecosystem_type,
@@ -644,13 +647,15 @@ class OpenLandMapSTAC:
                 }
         except Exception as e:
             print(f"STAC API error: {e}")
-            # No fallback - require real data
+            # Use geographic fallback when STAC API fails completely
+            ecosystem_type = self._geographic_fallback_detection(lat, lon)
+            landcover_code = self._predict_land_cover(lat, lon)
             return {
-                "ecosystem_type": "Unknown",
-                "confidence": 0.0,
-                "landcover_class": 0,
+                "ecosystem_type": ecosystem_type,
+                "confidence": 0.50,
+                "landcover_class": landcover_code,
                 "coordinates": {"lat": lat, "lon": lon},
-                "data_source": "STAC API Failed",
+                "data_source": "Geographic Fallback (STAC Failed)",
                 "error": str(e),
                 "query_time": json.dumps({"timestamp": "now"}, default=str)
             }
