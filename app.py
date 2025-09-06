@@ -524,11 +524,11 @@ def display_data_source_status(analysis_results: Dict = None):
         with col2:
             # Check if we have authentic OpenLandMap data or are using estimated values
             if analysis_results and analysis_results.get('landcover_data_source') == 'openlandmap':
-                st.success("✅ **Active Source**: OpenLandMap STAC Data")
-                st.caption("Using authentic satellite-derived landcover")
+                st.success("✅ **Active Source**: Real ESA Satellite Data")
+                st.caption("Using authentic ESA CCI land cover from satellite imagery")
             else:
-                st.info("🧪 **Active Source**: Geographic Estimation")
-                st.caption("Using location-based land use prediction")
+                st.warning("⚠️  **Active Source**: Geographic Fallback")
+                st.caption("Real ESA satellite data unavailable - using geographic estimation")
                 
         # Show detailed sampling point information if analysis data is available
         if analysis_results:
@@ -2333,9 +2333,16 @@ with col2:
         """, unsafe_allow_html=True)
         analyze_button = False
     
-    # Enhanced Results section
+    # Enhanced Results section with data source indicator
     if st.session_state.get('analysis_results'):
         st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
+        
+        # Clear data source indicator at top of results
+        if st.session_state.get('analysis_results', {}).get('landcover_data_source') == 'openlandmap':
+            st.success("🛰️ **Data Quality: AUTHENTIC ESA SATELLITE DATA** - Real land cover from ESA CCI satellite imagery")
+        else:
+            st.warning("⚠️ **Data Quality: GEOGRAPHIC ESTIMATION** - Real satellite data unavailable, using location-based prediction")
+        
         results = st.session_state.analysis_results
         
         # Safety check - ensure results is not None

@@ -145,6 +145,9 @@ class OpenLandMapSTAC:
                             # Use real API to get ESA CCI land cover value
                             sample_value = await self._query_real_landcover_api(session, lat, lon)
                             
+                            # Check if we got real API data or fell back to geographic prediction
+                            data_source = "Real ESA Satellite Data" if hasattr(self, '_last_api_success') and self._last_api_success else "Geographic Fallback (API Failed)"
+                            
                             return {
                                 "collection": collection["id"],
                                 "name": collection["name"],
@@ -155,7 +158,8 @@ class OpenLandMapSTAC:
                                     "title": collection_data.get("title", ""),
                                     "description": collection_data.get("description", ""),
                                     "license": collection_data.get("license", ""),
-                                    "source": "OpenLandMap STAC + Geographic Prediction"
+                                    "source": data_source,
+                                    "api_status": "success" if hasattr(self, '_last_api_success') and self._last_api_success else "failed"
                                 }
                             }
                         else:
@@ -206,7 +210,8 @@ class OpenLandMapSTAC:
                             for key, value in properties.items():
                                 if 'lcv_land.cover' in key and isinstance(value, (int, float)):
                                     landcover_code = int(value)
-                                    print(f"Real API returned land cover code {landcover_code} for ({lat}, {lon})")
+                                    print(f"✅ REAL ESA DATA: Land cover code {landcover_code} for ({lat}, {lon})")
+                                    self._last_api_success = True
                                     return landcover_code
                     
                     elif isinstance(data, list) and len(data) > 0:
@@ -222,13 +227,17 @@ class OpenLandMapSTAC:
                     print(f"API response format unexpected: {data}")
                     
                 else:
-                    print(f"API request failed with status {response.status}")
+                    print(f"❌ API FAILED: Status {response.status} for ({lat}, {lon})")
+                    if response.status == 400:
+                        response_text = await response.text()
+                        print(f"API Error Details: {response_text}")
+                    self._last_api_success = False
                     
         except Exception as e:
             print(f"Error querying real OpenLandMap API: {e}")
         
         # Fallback: Use geographic prediction only as last resort
-        print(f"Using geographic fallback for ({lat}, {lon})")
+        print(f"⚠️  FALLBACK: Using geographic prediction for ({lat}, {lon}) - Real ESA data not available")
         return self._predict_land_cover(lat, lon)
     
     # Simplified approach - no longer trying to extract pixel data from STAC
