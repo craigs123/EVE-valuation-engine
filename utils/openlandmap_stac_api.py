@@ -215,23 +215,41 @@ class OpenLandMapSTAC:
         Returns (landcover_code, data_source, raw_response)
         """
         try:
-            # Try multiple API endpoints to get real data
+            # Try multiple API endpoints with different configurations
             api_endpoints = [
                 {
-                    "url": "http://api.openlandmap.org/query/point",
+                    "url": "https://rest.isric.org/soilgrids/v2.0/classification",
                     "params": {
                         "lat": lat,
                         "lon": lon,
-                        "coll": "predicted250m",
-                        "regex": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif"
+                        "property": "lcv_land.cover_esacci.lc.l4_c",
+                        "depth": "0-0cm",
+                        "value": "mean"
                     }
                 },
                 {
-                    "url": "http://api.openlandmap.org/api/raw-values", 
+                    "url": "https://api.opengeohub.org/v1/query/point",
+                    "params": {
+                        "lat": lat,
+                        "lon": lon,
+                        "collection": "land.cover_esacci.lc.l4",
+                        "property": "land_cover_class"
+                    }
+                },
+                {
+                    "url": "http://webapi.openlandmap.org/v1/query",
                     "params": {
                         "lat": lat,
                         "lon": lon,
                         "collection": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif"
+                    }
+                },
+                {
+                    "url": "https://openlandmap.org/api/v1/query/point",
+                    "params": {
+                        "lat": lat,
+                        "lon": lon,
+                        "layers": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0"
                     }
                 }
             ]
@@ -245,22 +263,35 @@ class OpenLandMapSTAC:
                             # Extract land cover code from response
                             landcover_code = None
                             
+                            # Debug: Show actual response structure
+                            print(f"🔍 API Response from {endpoint['url']}: {str(data)[:300]}...")
+                            
                             # Handle different response formats
                             if isinstance(data, dict):
                                 # Check for features array (GeoJSON format)
                                 if 'features' in data and data['features']:
                                     properties = data['features'][0].get('properties', {})
                                     for key, value in properties.items():
-                                        if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                        if any(term in key.lower() for term in ['land_cover', 'landcover', 'lcv', 'class']) and isinstance(value, (int, float)):
                                             landcover_code = int(value)
                                             break
-                                # Check for direct value
-                                elif 'value' in data:
-                                    landcover_code = int(data['value'])
-                                # Check for any land cover related field
+                                # Check for properties at root level
+                                elif 'properties' in data:
+                                    properties = data['properties']
+                                    for key, value in properties.items():
+                                        if any(term in key.lower() for term in ['land_cover', 'landcover', 'lcv', 'class']) and isinstance(value, (int, float)):
+                                            landcover_code = int(value)
+                                            break
+                                # Check for direct value fields
+                                elif any(key in data for key in ['value', 'class', 'land_cover', 'landcover']):
+                                    for key in ['value', 'class', 'land_cover', 'landcover']:
+                                        if key in data and isinstance(data[key], (int, float)):
+                                            landcover_code = int(data[key])
+                                            break
+                                # Check any field that might contain land cover data
                                 else:
                                     for key, value in data.items():
-                                        if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                        if any(term in key.lower() for term in ['land_cover', 'landcover', 'lcv', 'class']) and isinstance(value, (int, float)):
                                             landcover_code = int(value)
                                             break
                             
@@ -293,10 +324,10 @@ class OpenLandMapSTAC:
                                 return landcover_code, data_source, raw_response
                             
                         else:
-                            print(f"❌ API endpoint {i+1} failed: Status {response.status}")
-                            if response.status == 400:
+                            print(f"❌ API endpoint {i+1} ({endpoint['url']}) failed: Status {response.status}")
+                            if response.status in [400, 404, 500]:
                                 error_text = await response.text()
-                                print(f"Error details: {error_text}")
+                                print(f"Error details: {error_text[:200]}...")  # Truncate long errors
                                 
                 except Exception as endpoint_error:
                     print(f"API endpoint {i+1} error: {endpoint_error}")
