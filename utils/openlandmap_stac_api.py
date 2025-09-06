@@ -417,6 +417,9 @@ class OpenLandMapSTAC:
         ecosystem_type = None
         confidence = 0.0
         
+        # Track actual data source used
+        actual_data_source = "Geographic Fallback"
+        
         # Process STAC results
         for result in stac_results:
             data_item = {
@@ -425,6 +428,10 @@ class OpenLandMapSTAC:
                 "unit": result["unit"],
                 "description": result["metadata"].get("description", result["name"])
             }
+            
+            # Extract actual data source from result metadata
+            if result["category"] == "landcover" and result.get("metadata", {}).get("source"):
+                actual_data_source = result["metadata"]["source"]
             
             if result["category"] == "soil":
                 soil.append(data_item)
@@ -474,6 +481,7 @@ class OpenLandMapSTAC:
                 ecosystem_type = base_ecosystem_type
                 
             confidence = 0.50
+            actual_data_source = "Geographic Fallback (No ESA Data)"
         else:
             # Extract landcover_class from the processed land cover data
             landcover_class = 130  # Default to grassland if no code found
@@ -488,7 +496,7 @@ class OpenLandMapSTAC:
             "climate": climate if climate else None,
             "landCover": land_cover if land_cover else None, 
             "soil": soil if soil else None,
-            "data_source": "OpenLandMap STAC API",
+            "data_source": actual_data_source,  # Use the actual source tracked from API results
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
     

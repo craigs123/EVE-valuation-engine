@@ -2725,13 +2725,17 @@ if analyze_button and st.session_state.selected_area:
                                     'landcover_class': result.get('landcover_class', 'Unknown'),
                                     'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
                                     'confidence': result.get('confidence', 0.0),
-                                    'source': result.get('source', 'Unknown'),
+                                    'source': result.get('data_source', 'Unknown'),  # Use data_source which has accurate source info
                                     'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
                                     'stac_data': result.get('stac_data', {})
                                 }
                                 sampling_point_data[f'point_{i}'] = point_data
                                 
-                                if result.get('source') in ['OpenLandMap', 'OpenLandMap STAC']:
+                                # Check for real ESA satellite data vs geographic fallback
+                                actual_source = result.get('data_source', 'Unknown')
+                                if 'Real ESA Satellite Data' in actual_source:
+                                    data_source = 'openlandmap'
+                                elif any(term in actual_source for term in ['OpenLandMap', 'STAC']):
                                     data_source = 'openlandmap'
                     
                     # Handle water body classification with automatic continuation
