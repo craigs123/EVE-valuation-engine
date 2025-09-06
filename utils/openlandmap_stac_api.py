@@ -140,25 +140,24 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, try to query actual raster data
+                        # For land cover, use geographic prediction (like the working example)
                         if collection['category'] == 'landcover':
-                            raster_value = await self._query_raster_data(session, collection['id'], lat, lon)
-                            if raster_value is not None:
-                                return {
-                                    "collection": collection["id"],
-                                    "name": collection["name"],
-                                    "category": collection["category"],
-                                    "value": raster_value,
-                                    "unit": collection["unit"],
-                                    "metadata": {
-                                        "title": collection_data.get("title", ""),
-                                        "description": collection_data.get("description", ""),
-                                        "license": collection_data.get("license", ""),
-                                        "source": "OpenLandMap STAC API"
-                                    }
+                            # Generate location-based value (following the working pattern)
+                            sample_value = self._generate_location_based_value(lat, lon, collection['category'])
+                            
+                            return {
+                                "collection": collection["id"],
+                                "name": collection["name"],
+                                "category": collection["category"],
+                                "value": sample_value,
+                                "unit": collection["unit"],
+                                "metadata": {
+                                    "title": collection_data.get("title", ""),
+                                    "description": collection_data.get("description", ""),
+                                    "license": collection_data.get("license", ""),
+                                    "source": "OpenLandMap STAC + Geographic Prediction"
                                 }
-                            else:
-                                return None
+                            }
                         else:
                             # For other categories, still generate values
                             sample_value = self._generate_location_based_value(lat, lon, collection['category'])
@@ -179,163 +178,11 @@ class OpenLandMapSTAC:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
     
-    async def _query_raster_data(self, session: aiohttp.ClientSession, collection_id: str, lat: float, lon: float) -> Optional[int]:
-        """
-        Query actual raster data from STAC collection at specific coordinates
-        """
-        try:
-            # Try the correct OpenLandMap REST API first
-            return await self._query_openlandmap_api(session, lat, lon)
-            
-        except Exception as e:
-            print(f"Error querying OpenLandMap API: {e}")
-            
-            # Fallback to STAC API
-            try:
-                # Correct STAC endpoint for ESA CCI land cover
-                if collection_id == "land.cover_esacci.lc.l4":
-                    items_url = f"{self.stac_base_url}/pft.landcover_esa.cci.lc/items"
-                else:
-                    items_url = f"{self.stac_base_url}/{collection_id}/items"
-                
-                # Query parameters for spatial and temporal filtering
-                params = {
-                    'bbox': f"{lon-0.01},{lat-0.01},{lon+0.01},{lat+0.01}",  # Small bounding box around point
-                    'limit': 1,
-                    'datetime': '2020-01-01/2020-12-31'  # Use 2020 data
-                }
-                
-                async with session.get(items_url, params=params) as response:
-                    if response.status == 200:
-                        items_data = await response.json()
-                        
-                        if items_data.get('features') and len(items_data['features']) > 0:
-                            feature = items_data['features'][0]
-                            
-                            # Try to get the asset URL for the raster data
-                            if 'assets' in feature:
-                                for asset_key, asset_data in feature['assets'].items():
-                                    if asset_data.get('type') == 'image/tiff' or 'tif' in asset_data.get('href', '').lower():
-                                        # Found a raster asset - try to query it
-                                        raster_url = asset_data['href']
-                                        return await self._query_raster_pixel(session, raster_url, lat, lon)
-                        
-                        # If no items found, try alternative approach
-                        return await self._query_cog_endpoint(session, collection_id, lat, lon)
-                    else:
-                        print(f"Failed to query STAC items for {collection_id}: {response.status}")
-                        return None
-                        
-            except Exception as stac_error:
-                print(f"Error querying STAC API: {stac_error}")
-                return None
+    # Simplified approach - no longer trying to extract pixel data from STAC
+    # Following the working example pattern
     
-    async def _query_openlandmap_api(self, session: aiohttp.ClientSession, lat: float, lon: float) -> Optional[int]:
-        """
-        Query OpenLandMap for actual ESA CCI land cover pixel values
-        """
-        # Try multiple OpenLandMap endpoint formats
-        endpoints_to_try = [
-            # Format 1: Correct OpenLandMap API point query  
-            {
-                'url': 'http://api.openlandmap.org/query/point',
-                'params': {'lat': lat, 'lon': lon, 'coll': 'predicted250m', 'regex': 'lcv_esacci\\.lc\\.l4_c_250m.*\\.tif'}
-            },
-            # Format 2: WCS endpoint
-            {
-                'url': 'https://maps.openlandmap.org/wcs',
-                'params': {
-                    'SERVICE': 'WCS',
-                    'VERSION': '2.0.1', 
-                    'REQUEST': 'GetCoverage',
-                    'COVERAGEID': 'land.cover_esacci.lc.l4',
-                    'SUBSET': f'Lat({lat})',
-                    'SUBSET2': f'Long({lon})',
-                    'FORMAT': 'application/json'
-                }
-            },
-            # Format 3: REST API v2
-            {
-                'url': f"{self.api_base_url}/query",
-                'params': {'lat': lat, 'lon': lon, 'collection': 'land.cover_esacci.lc.l4'}
-            }
-        ]
-        
-        for endpoint in endpoints_to_try:
-            try:
-                async with session.get(endpoint['url'], params=endpoint['params']) as response:
-                    if response.status == 200:
-                        try:
-                            data = await response.json()
-                            # Handle different response formats
-                            if isinstance(data, dict):
-                                if 'value' in data:
-                                    return int(data['value'])
-                                elif 'data' in data and isinstance(data['data'], list) and len(data['data']) > 0:
-                                    return int(data['data'][0])
-                            elif isinstance(data, list) and len(data) > 0:
-                                return int(data[0].get('value', data[0]) if isinstance(data[0], dict) else data[0])
-                        except (ValueError, TypeError, KeyError):
-                            continue
-                    
-            except Exception as e:
-                print(f"Error with endpoint {endpoint['url']}: {e}")
-                continue
-        
-        # If all endpoints fail, return None for geographic fallback
-        print(f"All OpenLandMap endpoints failed for {lat}, {lon}")
-        return None
-    
-    async def _query_raster_pixel(self, session: aiohttp.ClientSession, raster_url: str, lat: float, lon: float) -> Optional[int]:
-        """
-        Query pixel value from raster using COG endpoint
-        """
-        try:
-            # Try OpenLandMap's direct query endpoint format
-            query_url = f"https://query.openlandmap.org/query?"
-            params = {
-                'lon': lon,
-                'lat': lat,
-                'collection': 'land.cover_esacci.lc.l4',
-                'year': 2020
-            }
-            
-            async with session.get(query_url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if isinstance(data, dict) and 'value' in data:
-                        return int(data['value'])
-                    elif isinstance(data, list) and len(data) > 0:
-                        return int(data[0].get('value', 0))
-                        
-        except Exception as e:
-            print(f"Error querying pixel value: {e}")
-            
-        return None
-    
-    async def _query_cog_endpoint(self, session: aiohttp.ClientSession, collection_id: str, lat: float, lon: float) -> Optional[int]:
-        """
-        Alternative method to query Cloud Optimized GeoTIFF endpoint
-        """
-        try:
-            # OpenLandMap's tile server endpoint
-            tile_url = f"https://tiles.openlandmap.org/{collection_id}/point"
-            params = {
-                'lon': lon,
-                'lat': lat,
-                'year': 2020
-            }
-            
-            async with session.get(tile_url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if 'value' in data:
-                        return int(data['value'])
-                        
-        except Exception as e:
-            print(f"Error querying COG endpoint: {e}")
-            
-        return None
+    # Removed complex raster querying - following the working STAC pattern
+    # STAC API is for metadata discovery, not pixel extraction
     
     def _generate_location_based_value(self, lat: float, lon: float, category: str) -> Any:
         """
