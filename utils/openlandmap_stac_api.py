@@ -140,10 +140,10 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, generate realistic value based on STAC metadata
+                        # For land cover, query real OpenLandMap API
                         if collection['category'] == 'landcover':
-                            # Generate land cover value using collection metadata
-                            sample_value, data_source, raw_response = await self._generate_landcover_value(session, lat, lon, collection_data)
+                            # Query actual OpenLandMap API for real ESA data
+                            sample_value, data_source, raw_response = await self._query_openlandmap_api(session, lat, lon, collection_data)
                             
                             return {
                                 "collection": collection["id"],
@@ -209,28 +209,117 @@ class OpenLandMapSTAC:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
     
-    async def _generate_landcover_value(self, session: aiohttp.ClientSession, lat: float, lon: float, collection_metadata: dict) -> tuple:
+    async def _query_openlandmap_api(self, session: aiohttp.ClientSession, lat: float, lon: float, collection_metadata: dict) -> tuple:
         """
-        Generate realistic land cover value based on STAC metadata and geographic patterns
+        Actually query OpenLandMap API for real ESA CCI land cover data
         Returns (landcover_code, data_source, raw_response)
         """
-        # Generate realistic land cover based on geographic patterns
-        landcover_code = self._predict_land_cover(lat, lon)
+        try:
+            # Try multiple API endpoints to get real data
+            api_endpoints = [
+                {
+                    "url": "http://api.openlandmap.org/query/point",
+                    "params": {
+                        "lat": lat,
+                        "lon": lon,
+                        "coll": "predicted250m",
+                        "regex": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif"
+                    }
+                },
+                {
+                    "url": "http://api.openlandmap.org/api/raw-values", 
+                    "params": {
+                        "lat": lat,
+                        "lon": lon,
+                        "collection": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif"
+                    }
+                }
+            ]
+            
+            for i, endpoint in enumerate(api_endpoints):
+                try:
+                    async with session.get(endpoint["url"], params=endpoint["params"], timeout=10) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            
+                            # Extract land cover code from response
+                            landcover_code = None
+                            
+                            # Handle different response formats
+                            if isinstance(data, dict):
+                                # Check for features array (GeoJSON format)
+                                if 'features' in data and data['features']:
+                                    properties = data['features'][0].get('properties', {})
+                                    for key, value in properties.items():
+                                        if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                            landcover_code = int(value)
+                                            break
+                                # Check for direct value
+                                elif 'value' in data:
+                                    landcover_code = int(data['value'])
+                                # Check for any land cover related field
+                                else:
+                                    for key, value in data.items():
+                                        if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                            landcover_code = int(value)
+                                            break
+                            
+                            elif isinstance(data, list) and data:
+                                # Handle list response
+                                first_item = data[0]
+                                if isinstance(first_item, dict):
+                                    for key, value in first_item.items():
+                                        if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                            landcover_code = int(value)
+                                            break
+                            
+                            elif isinstance(data, (int, float)):
+                                # Direct numeric response
+                                landcover_code = int(data)
+                            
+                            if landcover_code is not None and landcover_code > 0:
+                                raw_response = {
+                                    "api_endpoint": endpoint["url"],
+                                    "query_params": endpoint["params"],
+                                    "response_data": data,
+                                    "landcover_code": landcover_code,
+                                    "api_status": "success",
+                                    "response_format": type(data).__name__,
+                                    "collection_metadata": collection_metadata
+                                }
+                                
+                                data_source = "Real ESA Satellite Data (OpenLandMap API)"
+                                print(f"✅ REAL API DATA: Land cover code {landcover_code} for ({lat}, {lon}) from {endpoint['url']}")
+                                return landcover_code, data_source, raw_response
+                            
+                        else:
+                            print(f"❌ API endpoint {i+1} failed: Status {response.status}")
+                            if response.status == 400:
+                                error_text = await response.text()
+                                print(f"Error details: {error_text}")
+                                
+                except Exception as endpoint_error:
+                    print(f"API endpoint {i+1} error: {endpoint_error}")
+                    continue
+            
+            # If all API calls failed, fall back to geographic prediction
+            print(f"⚠️ All API endpoints failed for ({lat}, {lon}), using geographic fallback")
+            
+        except Exception as e:
+            print(f"Error in API query: {e}")
         
-        # Create realistic raw response data for display
+        # Fallback to geographic prediction
+        landcover_code = self._predict_land_cover(lat, lon)
         raw_response = {
-            "collection_metadata": collection_metadata,
-            "query_coordinates": {"lat": lat, "lon": lon},
-            "landcover_value": landcover_code,
-            "processing_method": "geographic_pattern_analysis",
-            "data_quality": "high_confidence" if abs(lat) < 60 else "medium_confidence",
-            "spatial_resolution": "250m",
-            "temporal_coverage": "2020"
+            "fallback_method": "geographic_prediction",
+            "predicted_landcover": landcover_code,
+            "reason": "api_endpoints_failed",
+            "coordinates": {"lat": lat, "lon": lon},
+            "collection_metadata": collection_metadata
         }
         
-        data_source = "Real ESA Satellite Data (STAC)"
-        print(f"✅ STAC DATA: Land cover code {landcover_code} for ({lat}, {lon}) from collection metadata")
-        
+        data_source = "Geographic Fallback (API Failed)"
+        print(f"⚠️ FALLBACK: Using geographic prediction code {landcover_code} for ({lat}, {lon})")
         return landcover_code, data_source, raw_response
     
     # Simplified approach - no longer trying to extract pixel data from STAC
