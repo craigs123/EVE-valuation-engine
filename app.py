@@ -659,7 +659,15 @@ def display_data_source_status(analysis_results: Dict = None):
                     # Count ecosystem types (consistent with Mixed Ecosystem Composition filtering)
                     ecosystem_counts = {}
                     for code, count in code_counts.items():
-                        esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
+                        # Get ecosystem type from actual point data (includes forest specialization)
+                        specialized_ecosystem = None
+                        for point_data in sampling_point_data.values():
+                            if point_data.get('landcover_class') == code:
+                                specialized_ecosystem = point_data.get('ecosystem_type')
+                                break
+                        
+                        # Fallback to generic mapping if specialized type not found
+                        esvd_ecosystem = specialized_ecosystem or get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                         ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
                     
                     st.markdown("**Ecosystem Composition (from Sample Points):**")
