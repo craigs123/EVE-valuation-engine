@@ -10,6 +10,12 @@ from typing import Dict, List, Optional, Any
 import json
 import math
 import random
+import rasterio
+from rasterio.windows import Window
+import pystac_client
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+import logging
 
 class OpenLandMapSTAC:
     """
@@ -140,10 +146,10 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, query real OpenLandMap API
+                        # For land cover, extract real pixel data from GeoTIFF
                         if collection['category'] == 'landcover':
-                            # Query actual OpenLandMap API for real ESA data
-                            sample_value, data_source, raw_response = await self._query_openlandmap_api(session, lat, lon, collection_data)
+                            # Extract real pixel data from OpenLandMap GeoTIFF
+                            sample_value, data_source, raw_response = await self._extract_real_pixel_data(session, lat, lon, collection_data)
                             
                             return {
                                 "collection": collection["id"],
@@ -209,149 +215,130 @@ class OpenLandMapSTAC:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
     
-    async def _query_openlandmap_api(self, session: aiohttp.ClientSession, lat: float, lon: float, collection_metadata: dict) -> tuple:
+    def extract_pixel_value(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
         """
-        Actually query OpenLandMap API for real ESA CCI land cover data
-        Returns (landcover_code, data_source, raw_response)
+        Extract pixel value from Cloud Optimized GeoTIFF using HTTP range requests
+        Returns actual pixel value or None if extraction fails
         """
         try:
-            # Try multiple API endpoints with different configurations
-            api_endpoints = [
-                {
-                    "url": "https://rest.isric.org/soilgrids/v2.0/classification",
-                    "params": {
-                        "lat": lat,
-                        "lon": lon,
-                        "property": "lcv_land.cover_esacci.lc.l4_c",
-                        "depth": "0-0cm",
-                        "value": "mean"
-                    }
-                },
-                {
-                    "url": "https://api.opengeohub.org/v1/query/point",
-                    "params": {
-                        "lat": lat,
-                        "lon": lon,
-                        "collection": "land.cover_esacci.lc.l4",
-                        "property": "land_cover_class"
-                    }
-                },
-                {
-                    "url": "http://webapi.openlandmap.org/v1/query",
-                    "params": {
-                        "lat": lat,
-                        "lon": lon,
-                        "collection": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif"
-                    }
-                },
-                {
-                    "url": "https://openlandmap.org/api/v1/query/point",
-                    "params": {
-                        "lat": lat,
-                        "lon": lon,
-                        "layers": "lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0"
-                    }
-                }
-            ]
+            # Open COG directly from HTTP URL
+            with rasterio.open(asset_url) as dataset:
+                # Get geographic bounds
+                bounds = dataset.bounds
+                width, height = dataset.width, dataset.height
+                
+                # Check coordinate bounds
+                if not (bounds.left <= lon <= bounds.right and 
+                        bounds.bottom <= lat <= bounds.top):
+                    print(f"🌍 Coordinates ({lat}, {lon}) outside data coverage for {asset_url}")
+                    return None
+                
+                # Transform geographic coordinates to pixel coordinates
+                pixel_x = int((lon - bounds.left) / (bounds.right - bounds.left) * width)
+                pixel_y = int((bounds.top - lat) / (bounds.top - bounds.bottom) * height)
+                
+                # Ensure pixel coordinates are within image bounds
+                if not (0 <= pixel_x < width and 0 <= pixel_y < height):
+                    print(f"📍 Pixel coordinates ({pixel_x}, {pixel_y}) outside image bounds")
+                    return None
+                
+                # Read pixel value using window-based reading
+                window = Window(pixel_x, pixel_y, 1, 1)
+                pixel_value = dataset.read(1, window=window)[0, 0]
+                
+                # Handle NoData values
+                if dataset.nodata is not None and pixel_value == dataset.nodata:
+                    print(f"🚫 NoData value encountered at ({lat}, {lon})")
+                    return None
+                
+                print(f"✅ PIXEL EXTRACTED: Value {pixel_value} at ({lat}, {lon}) from COG")
+                return float(pixel_value)
+                
+        except Exception as e:
+            print(f"❌ GeoTIFF extraction failed for {asset_url}: {e}")
+            return None
+    
+    def get_stac_asset_url(self, collection_id: str) -> Optional[str]:
+        """
+        Get GeoTIFF asset URL from STAC catalog
+        """
+        try:
+            # Query collection metadata
+            collection_url = f"{self.stac_base_url}/{collection_id}/collection.json"
+            response = requests.get(collection_url, timeout=10)
             
-            for i, endpoint in enumerate(api_endpoints):
-                try:
-                    async with session.get(endpoint["url"], params=endpoint["params"], timeout=10) as response:
-                        if response.status == 200:
-                            data = await response.json()
+            if response.status_code == 200:
+                collection_data = response.json()
+                
+                # Get first STAC item to extract asset URL
+                if 'links' in collection_data:
+                    for link in collection_data['links']:
+                        if link.get('rel') == 'child':
+                            item_url = link['href']
+                            # Make sure it's a full URL
+                            if not item_url.startswith('http'):
+                                item_url = f"{self.stac_base_url}/{collection_id}/{item_url}"
                             
-                            # Extract land cover code from response
-                            landcover_code = None
-                            
-                            # Debug: Show actual response structure
-                            print(f"🔍 API Response from {endpoint['url']}: {str(data)[:300]}...")
-                            
-                            # Handle different response formats
-                            if isinstance(data, dict):
-                                # Check for features array (GeoJSON format)
-                                if 'features' in data and data['features']:
-                                    properties = data['features'][0].get('properties', {})
-                                    for key, value in properties.items():
-                                        if any(term in key.lower() for term in ['land_cover', 'landcover', 'lcv', 'class']) and isinstance(value, (int, float)):
-                                            landcover_code = int(value)
-                                            break
-                                # Check for properties at root level
-                                elif 'properties' in data:
-                                    properties = data['properties']
-                                    for key, value in properties.items():
-                                        if any(term in key.lower() for term in ['land_cover', 'landcover', 'lcv', 'class']) and isinstance(value, (int, float)):
-                                            landcover_code = int(value)
-                                            break
-                                # Check for direct value fields
-                                elif any(key in data for key in ['value', 'class', 'land_cover', 'landcover']):
-                                    for key in ['value', 'class', 'land_cover', 'landcover']:
-                                        if key in data and isinstance(data[key], (int, float)):
-                                            landcover_code = int(data[key])
-                                            break
-                                # Check any field that might contain land cover data
-                                else:
-                                    for key, value in data.items():
-                                        if any(term in key.lower() for term in ['land_cover', 'landcover', 'lcv', 'class']) and isinstance(value, (int, float)):
-                                            landcover_code = int(value)
-                                            break
-                            
-                            elif isinstance(data, list) and data:
-                                # Handle list response
-                                first_item = data[0]
-                                if isinstance(first_item, dict):
-                                    for key, value in first_item.items():
-                                        if 'lcv_land.cover' in key and isinstance(value, (int, float)):
-                                            landcover_code = int(value)
-                                            break
-                            
-                            elif isinstance(data, (int, float)):
-                                # Direct numeric response
-                                landcover_code = int(data)
-                            
-                            if landcover_code is not None and landcover_code > 0:
-                                raw_response = {
-                                    "api_endpoint": endpoint["url"],
-                                    "query_params": endpoint["params"],
-                                    "response_data": data,
-                                    "landcover_code": landcover_code,
-                                    "api_status": "success",
-                                    "response_format": type(data).__name__,
-                                    "collection_metadata": collection_metadata
-                                }
+                            # Get STAC item
+                            item_response = requests.get(item_url, timeout=10)
+                            if item_response.status_code == 200:
+                                item_data = item_response.json()
                                 
-                                data_source = "Real ESA Satellite Data (OpenLandMap API)"
-                                print(f"✅ REAL API DATA: Land cover code {landcover_code} for ({lat}, {lon}) from {endpoint['url']}")
-                                return landcover_code, data_source, raw_response
-                            
-                        else:
-                            print(f"❌ API endpoint {i+1} ({endpoint['url']}) failed: Status {response.status}")
-                            if response.status in [400, 404, 500]:
-                                error_text = await response.text()
-                                print(f"Error details: {error_text[:200]}...")  # Truncate long errors
-                                
-                except Exception as endpoint_error:
-                    print(f"API endpoint {i+1} error: {endpoint_error}")
-                    continue
-            
-            # If all API calls failed, fall back to geographic prediction
-            print(f"⚠️ All API endpoints failed for ({lat}, {lon}), using geographic fallback")
+                                # Extract GeoTIFF asset URL
+                                if 'assets' in item_data:
+                                    for asset_key, asset in item_data['assets'].items():
+                                        if asset.get('type') == 'image/tiff' or asset_key in ['data', 'main', 'cog']:
+                                            asset_url = asset['href']
+                                            print(f"📁 Found GeoTIFF asset: {asset_url}")
+                                            return asset_url
+                                            
+            print(f"⚠️ No GeoTIFF asset found for collection {collection_id}")
+            return None
             
         except Exception as e:
-            print(f"Error in API query: {e}")
+            print(f"❌ STAC catalog query failed for {collection_id}: {e}")
+            return None
+    
+    async def _extract_real_pixel_data(self, session: aiohttp.ClientSession, lat: float, lon: float, collection_metadata: dict) -> tuple:
+        """
+        Extract real pixel data from OpenLandMap GeoTIFF files
+        Returns (pixel_value, data_source, raw_response)
+        """
+        collection_id = "land.cover_esacci.lc.l4"
         
-        # Fallback to geographic prediction
-        landcover_code = self._predict_land_cover(lat, lon)
-        raw_response = {
-            "fallback_method": "geographic_prediction",
-            "predicted_landcover": landcover_code,
-            "reason": "api_endpoints_failed",
-            "coordinates": {"lat": lat, "lon": lon},
-            "collection_metadata": collection_metadata
-        }
-        
-        data_source = "Geographic Fallback (API Failed)"
-        print(f"⚠️ FALLBACK: Using geographic prediction code {landcover_code} for ({lat}, {lon})")
-        return landcover_code, data_source, raw_response
+        try:
+            # Get GeoTIFF asset URL from STAC catalog
+            asset_url = self.get_stac_asset_url(collection_id)
+            
+            if asset_url:
+                # Extract pixel value from GeoTIFF
+                pixel_value = self.extract_pixel_value(asset_url, lat, lon)
+                
+                if pixel_value is not None:
+                    # Convert to integer land cover code
+                    landcover_code = int(pixel_value)
+                    
+                    raw_response = {
+                        "extraction_method": "geotiff_pixel_extraction",
+                        "asset_url": asset_url,
+                        "coordinates": {"lat": lat, "lon": lon},
+                        "raw_pixel_value": pixel_value,
+                        "landcover_code": landcover_code,
+                        "data_source": "cog_http_range_request",
+                        "collection_metadata": collection_metadata
+                    }
+                    
+                    data_source = "Real ESA Satellite Data (GeoTIFF Pixel)"
+                    print(f"🎯 REAL PIXEL DATA: Land cover code {landcover_code} extracted from GeoTIFF for ({lat}, {lon})")
+                    return landcover_code, data_source, raw_response
+            
+            # If pixel extraction failed, return None (no fallback)
+            print(f"❌ GeoTIFF pixel extraction failed for ({lat}, {lon}) - no data available")
+            return None, "No Data Available", {"error": "pixel_extraction_failed", "coordinates": {"lat": lat, "lon": lon}}
+            
+        except Exception as e:
+            print(f"❌ GeoTIFF extraction error: {e}")
+            return None, "Extraction Failed", {"error": str(e), "coordinates": {"lat": lat, "lon": lon}}
     
     # Simplified approach - no longer trying to extract pixel data from STAC
     # Following the working example pattern
@@ -590,24 +577,24 @@ class OpenLandMapSTAC:
             elif result["category"] in ["vegetation", "terrain"]:
                 climate.append(data_item)
         
-        # If no STAC data found, use geographic fallback
+        # If no real pixel data found, return None (no fallback per guidance)
         if not ecosystem_type:
-            print(f"No STAC collection data found for {lat}, {lon}. Using geographic prediction.")
-            # Generate a valid land cover code based on geographic prediction
-            predicted_code = self._predict_land_cover(lat, lon)
-            landcover_class = predicted_code
+            print(f"❌ No real pixel data available for {lat}, {lon}. No fallback data provided.")
             
-            # Use land cover mapping to get ecosystem type (consistent approach)
-            base_ecosystem_type = self.landcover_to_esvd.get(predicted_code, "Grassland")
-            
-            # If mapped to Forest, determine specific forest type based on geography
-            if base_ecosystem_type == "Forest":
-                ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
-            else:
-                ecosystem_type = base_ecosystem_type
-                
-            confidence = 0.90  # High confidence from STAC analysis
-            actual_data_source = "Real ESA Satellite Data (STAC)"
+            return {
+                "ecosystem_type": None,
+                "confidence": 0.0,
+                "landcover_class": None,
+                "coordinates": {"lat": lat, "lon": lon},
+                "data_source": "No Data Available",
+                "raw_stac_data": {
+                    "query_coordinates": {"lat": lat, "lon": lon},
+                    "error": "no_real_data_available",
+                    "stac_collections_queried": len(stac_results) if stac_results else 0,
+                    "processing_method": "geotiff_pixel_extraction_failed"
+                },
+                "query_time": json.dumps({"timestamp": "now"}, default=str)
+            }
         else:
             # Extract landcover_class from the processed land cover data
             landcover_class = 130  # Default to grassland if no code found
