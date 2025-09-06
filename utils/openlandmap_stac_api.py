@@ -225,6 +225,10 @@ class OpenLandMapSTAC:
                (20 <= lon <= 180))):     # Russia/Scandinavia  
             return random.choice([30, 50])  # Needleleaf forests
         
+        # Pacific Northwest temperate forests (Washington, Oregon, Northern California)
+        elif ((42 <= lat <= 49) and (-125 <= lon <= -115)):
+            return random.choice([61, 71])  # Temperate forest (deciduous and needleleaf)
+        
         # Mediterranean regions
         elif ((30 <= lat <= 45) and
               ((-10 <= lon <= 45) or      # Mediterranean basin
