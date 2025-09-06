@@ -2735,24 +2735,33 @@ if analyze_button and st.session_state.selected_area:
                         for i, result in enumerate(ecosystem_info['sample_results']):
                             if result:
                                 # Extract all available data from OpenLandMap API
+                                # Extract source from multiple possible fields
+                                actual_source = (result.get('source') or 
+                                               result.get('data_source') or 
+                                               result.get('stac_data', {}).get('data_source') or 
+                                               'Unknown')
+                                
                                 point_data = {
                                     'landcover_class': result.get('landcover_class', 'Unknown'),
                                     'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
                                     'confidence': result.get('confidence', 0.0),
-                                    'source': result.get('data_source', 'Unknown'),  # Use data_source which has accurate source info
+                                    'source': actual_source,  # Use the extracted source
                                     'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
                                     'stac_data': result.get('stac_data', {}),
                                     'raw_stac_data': result.get('raw_stac_data', {})  # Include raw STAC response data
                                 }
                                 sampling_point_data[f'point_{i}'] = point_data
                                 
-                                # Check for real ESA satellite data vs geographic fallback
-                                actual_source = result.get('data_source', 'Unknown')
-                                print(f"🔍 DEBUG: Checking data source: '{actual_source}' for point {i}")
-                                if 'Real ESA Satellite Data' in actual_source or 'GeoTIFF Pixel' in actual_source:
+                                # Check for real ESA satellite data vs geographic fallback using extracted source
+                                source_to_check = (result.get('source') or 
+                                                 result.get('data_source') or 
+                                                 result.get('stac_data', {}).get('data_source') or 
+                                                 'Unknown')
+                                print(f"🔍 DEBUG: Checking data source: '{source_to_check}' for point {i}")
+                                if 'Real ESA Satellite Data' in source_to_check or 'GeoTIFF Pixel' in source_to_check:
                                     data_source = 'openlandmap'
                                     print(f"✅ DEBUG: Recognized as real satellite data")
-                                elif any(term in actual_source for term in ['OpenLandMap', 'STAC']):
+                                elif any(term in source_to_check for term in ['OpenLandMap', 'STAC']):
                                     data_source = 'openlandmap'
                                     print(f"✅ DEBUG: Recognized as OpenLandMap/STAC data")
                     
