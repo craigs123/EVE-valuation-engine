@@ -428,37 +428,41 @@ def get_landcover_code_description(code: int) -> str:
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping"""
-    # ESA CCI Level 1 to ESVD mapping (matches user specifications)
+    # ESA CCI to ESVD mapping (matches OpenLandMap STAC API mapping)
     default_landcover_mapping = {
-        10: "Cropland",         # ESA code 10 → Cropland
-        20: "Forest",           # ESA code 20 → Forest (will be subtyped by location)
-        30: "Grassland",        # ESA code 30 → Grassland
-        40: "Grassland",        # ESA code 40 → Grassland (shrubland uses grassland coefficients)
-        50: "Desert",           # ESA code 50 → Desert
-        60: "Wetland",          # ESA code 60 → Wetland
-        61: "Forest",           # Tree Cover → Forest
-        62: "Forest",           # Forest (flooded) → Forest
-        70: "Coastal",          # ESA code 70 → Coastal
-        71: "Grassland",        # Herbaceous cover → Grassland
-        80: "Desert",           # ESA code 80 → Desert
-        90: "Desert",           # ESA code 90 → Desert
-        100: "Urban",           # ESA code 100 → Urban
-        110: "Wetland",         # Shrubland (flooded) → Wetland
-        120: "Grassland",       # Grassland → Grassland
-        121: "Grassland",       # Sparse vegetation → Grassland
-        122: "Grassland",       # Sparse herbaceous → Grassland
-        130: "Grassland",       # Grassland sparse → Grassland
-        140: "Grassland",       # Lichens and mosses → Grassland
-        150: "Desert",          # Sparse vegetation → Desert
-        152: "Desert",          # Bare areas → Desert
-        153: "Desert",          # Bare rock → Desert
-        160: "Desert",          # Bare soil → Desert
-        170: "Desert",          # Bare soil → Desert
-        180: "Coastal",         # Permanent water bodies → Coastal
-        190: "Wetland",         # Herbaceous wetland → Wetland
-        200: "Desert",          # Snow and ice → Desert
-        210: "Marine",          # Water bodies → Marine
-        220: "Desert",          # Snow/Ice
+        # Cropland Classes
+        10: "Cropland", 11: "Cropland", 12: "Cropland", 
+        20: "Cropland", 30: "Cropland", 40: "Grassland",
+        
+        # Forest Classes  
+        50: "Forest", 60: "Forest", 61: "Forest", 62: "Forest",
+        70: "Forest", 71: "Forest", 72: "Forest", 
+        80: "Forest", 81: "Forest", 82: "Forest",
+        90: "Forest", 100: "Forest",
+        
+        # Shrubland Classes
+        110: "Shrubland", 120: "Shrubland", 121: "Shrubland", 122: "Shrubland",
+        
+        # Grassland Classes
+        130: "Grassland", 140: "Grassland",
+        
+        # Sparse Vegetation / Desert Classes
+        150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
+        
+        # Wetland Classes
+        160: "Wetland", 170: "Wetland", 180: "Wetland",
+        
+        # Urban Classes
+        190: "Urban",
+        
+        # Bare Areas Classes
+        200: "Desert", 201: "Desert", 202: "Desert",
+        
+        # Water Bodies Classes
+        210: "Rivers and Lakes", 211: "Marine",
+        
+        # Snow and Ice Classes
+        220: "Polar",
     }
     
     base_ecosystem = default_landcover_mapping.get(code, "Unknown")
