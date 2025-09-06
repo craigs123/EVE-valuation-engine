@@ -567,6 +567,20 @@ def display_data_source_status(analysis_results: Dict = None):
                             with col2:
                                 st.write(f"• **Data Source**: {point_data.get('source', 'Unknown')}")
                                 
+                            # Show raw data if available
+                            if point_data.get('stac_data') and point_data['stac_data'].get('landCover'):
+                                land_cover_data = point_data['stac_data']['landCover'][0] if point_data['stac_data']['landCover'] else {}
+                                raw_response = land_cover_data.get('metadata', {}).get('raw_response', {})
+                                
+                                if raw_response:
+                                    with st.expander(f"🔍 Raw STAC Data - Point {point_id.replace('point_', '')}", expanded=False):
+                                        st.json(raw_response)
+                            
+                            # Check for raw_stac_data at point level
+                            elif point_data.get('raw_stac_data'):
+                                with st.expander(f"🔍 Raw STAC Data - Point {point_id.replace('point_', '')}", expanded=False):
+                                    st.json(point_data['raw_stac_data'])
+                                
                             # Show coordinates
                             coords = point_data.get('coordinates', {})
                             if coords and isinstance(coords, dict):
@@ -2727,7 +2741,8 @@ if analyze_button and st.session_state.selected_area:
                                     'confidence': result.get('confidence', 0.0),
                                     'source': result.get('data_source', 'Unknown'),  # Use data_source which has accurate source info
                                     'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
-                                    'stac_data': result.get('stac_data', {})
+                                    'stac_data': result.get('stac_data', {}),
+                                    'raw_stac_data': result.get('raw_stac_data', {})  # Include raw STAC response data
                                 }
                                 sampling_point_data[f'point_{i}'] = point_data
                                 
