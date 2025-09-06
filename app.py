@@ -2748,10 +2748,13 @@ if analyze_button and st.session_state.selected_area:
                                 
                                 # Check for real ESA satellite data vs geographic fallback
                                 actual_source = result.get('data_source', 'Unknown')
-                                if 'Real ESA Satellite Data' in actual_source:
+                                print(f"🔍 DEBUG: Checking data source: '{actual_source}' for point {i}")
+                                if 'Real ESA Satellite Data' in actual_source or 'GeoTIFF Pixel' in actual_source:
                                     data_source = 'openlandmap'
+                                    print(f"✅ DEBUG: Recognized as real satellite data")
                                 elif any(term in actual_source for term in ['OpenLandMap', 'STAC']):
                                     data_source = 'openlandmap'
+                                    print(f"✅ DEBUG: Recognized as OpenLandMap/STAC data")
                     
                     # Handle water body classification with automatic continuation
                     water_body_points = {}
