@@ -359,11 +359,6 @@ class OpenLandMapSTAC:
                     
                     # Apply forest type mapping for codes 70 & 71 based on geographic location
                     base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
-                    
-                    # DEBUG: Track ESA code 200 mapping specifically
-                    if landcover_code == 200:
-                        print(f"🔍 DEBUG ESA 200: base_ecosystem_type = '{base_ecosystem_type}' from mapping table")
-                    
                     if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
                         specific_forest_type = self._determine_forest_type_from_coordinates(lat, lon)
                         print(f"🌲 GeoTIFF Forest mapping: ESA code {landcover_code} → {specific_forest_type} at ({lat:.4f}, {lon:.4f})")
@@ -371,9 +366,6 @@ class OpenLandMapSTAC:
                         ecosystem_type = specific_forest_type
                     else:
                         ecosystem_type = base_ecosystem_type
-                        # DEBUG: Track ESA code 200 final assignment
-                        if landcover_code == 200:
-                            print(f"🔍 DEBUG ESA 200: Final ecosystem_type = '{ecosystem_type}' (should be Desert)")
                     
                     raw_response = {
                         "extraction_method": "geotiff_pixel_extraction",
