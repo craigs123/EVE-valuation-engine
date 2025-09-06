@@ -70,70 +70,6 @@ st.markdown("""
             overflow-y: auto !important;
         }
         
-        /* Modern Step-by-Step Progress Indicator */
-        .step-indicator {
-            display: flex;
-            justify-content: space-between;
-            margin: 2rem 0;
-            padding: 1rem;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border-radius: 12px;
-            border: 1px solid #0891b2;
-        }
-        
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-            position: relative;
-        }
-        
-        .step-number {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            transition: all 0.3s ease;
-        }
-        
-        .step-active .step-number {
-            background: linear-gradient(135deg, #0891b2 0%, #0c4a6e 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
-        }
-        
-        .step-completed .step-number {
-            background: linear-gradient(135deg, #059669 0%, #065f46 100%);
-            color: white;
-        }
-        
-        .step-pending .step-number {
-            background: #e5e7eb;
-            color: #6b7280;
-        }
-        
-        .step-title {
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-align: center;
-            color: #374151;
-        }
-        
-        .step-active .step-title {
-            color: #0891b2;
-            font-weight: 600;
-        }
-        
-        .step-completed .step-title {
-            color: #059669;
-            font-weight: 600;
-        }
-        
         /* Enhanced Primary Button Styling */
         .primary-action {
             background: linear-gradient(135deg, #0891b2 0%, #0c4a6e 100%) !important;
@@ -836,31 +772,6 @@ st.markdown("""
 st.title("🌱 Ecosystem Valuation Engine v2.7.1")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
-# Add step-by-step progress indicator
-def show_progress_indicator():
-    # Determine current step based on session state
-    step1_status = "completed" if st.session_state.get('selected_area') else "active"
-    step2_status = "active" if st.session_state.get('selected_area') and not st.session_state.get('analysis_results') else ("completed" if st.session_state.get('analysis_results') else "pending")
-    step3_status = "completed" if st.session_state.get('analysis_results') else "pending"
-    
-    st.markdown(f"""
-    <div class="step-indicator">
-        <div class="step step-{step1_status}">
-            <div class="step-number">1</div>
-            <div class="step-title">Select Area</div>
-        </div>
-        <div class="step step-{step2_status}">
-            <div class="step-number">2</div>
-            <div class="step-title">Configure & Calculate</div>
-        </div>
-        <div class="step step-{step3_status}">
-            <div class="step-number">3</div>
-            <div class="step-title">View Results</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-show_progress_indicator()
 
 # Initialize session state
 if 'selected_area' not in st.session_state:
