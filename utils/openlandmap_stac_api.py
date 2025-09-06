@@ -550,11 +550,20 @@ class OpenLandMapSTAC:
         # If no real data found, use geographic fallback
         if not ecosystem_type:
             print(f"No real ESA land cover data found for {lat}, {lon}. Using geographic prediction.")
-            ecosystem_type = self._geographic_fallback_detection(lat, lon)
-            confidence = 0.50
             # Generate a valid land cover code based on geographic prediction
             predicted_code = self._predict_land_cover(lat, lon)
             landcover_class = predicted_code
+            
+            # Use land cover mapping to get ecosystem type (consistent approach)
+            base_ecosystem_type = self.landcover_to_esvd.get(predicted_code, "Grassland")
+            
+            # If mapped to Forest, determine specific forest type based on geography
+            if base_ecosystem_type == "Forest":
+                ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
+            else:
+                ecosystem_type = base_ecosystem_type
+                
+            confidence = 0.50
         else:
             # Extract landcover_class from the processed land cover data
             landcover_class = 130  # Default to grassland if no code found
