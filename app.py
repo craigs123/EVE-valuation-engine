@@ -836,11 +836,12 @@ st.markdown("""
 st.title("🌱 Ecosystem Valuation Engine v2.7.1")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
-# Add step-by-step progress indicator (2 steps only)
+# Add step-by-step progress indicator
 def show_progress_indicator():
     # Determine current step based on session state
     step1_status = "completed" if st.session_state.get('selected_area') else "active"
     step2_status = "active" if st.session_state.get('selected_area') and not st.session_state.get('analysis_results') else ("completed" if st.session_state.get('analysis_results') else "pending")
+    step3_status = "completed" if st.session_state.get('analysis_results') else "pending"
     
     st.markdown(f"""
     <div class="step-indicator">
@@ -852,11 +853,14 @@ def show_progress_indicator():
             <div class="step-number">2</div>
             <div class="step-title">Configure & Calculate</div>
         </div>
+        <div class="step step-{step3_status}">
+            <div class="step-number">3</div>
+            <div class="step-title">View Results</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
 show_progress_indicator()
-
 
 # Initialize session state
 if 'selected_area' not in st.session_state:
