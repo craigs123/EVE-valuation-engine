@@ -428,44 +428,12 @@ def get_landcover_code_description(code: int) -> str:
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping"""
-    # ESA CCI to ESVD mapping (matches OpenLandMap STAC API mapping)
-    default_landcover_mapping = {
-        # Cropland Classes
-        10: "Cropland", 11: "Cropland", 12: "Cropland", 
-        20: "Cropland", 30: "Cropland", 40: "Grassland",
-        
-        # Forest Classes  
-        50: "Forest", 60: "Forest", 61: "Forest", 62: "Forest",
-        70: "Forest", 71: "Forest", 72: "Forest", 
-        80: "Forest", 81: "Forest", 82: "Forest",
-        90: "Forest", 100: "Forest",
-        
-        # Shrubland Classes
-        110: "Shrubland", 120: "Shrubland", 121: "Shrubland", 122: "Shrubland",
-        
-        # Grassland Classes
-        130: "Grassland", 140: "Grassland",
-        
-        # Sparse Vegetation / Desert Classes
-        150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
-        
-        # Wetland Classes
-        160: "Wetland", 170: "Wetland", 180: "Wetland",
-        
-        # Urban Classes
-        190: "Urban",
-        
-        # Bare Areas Classes
-        200: "Desert", 201: "Desert", 202: "Desert",
-        
-        # Water Bodies Classes
-        210: "Rivers and Lakes", 211: "Marine",
-        
-        # Snow and Ice Classes
-        220: "Polar",
-    }
+    # Import the single source of truth mapping from STAC API
+    from utils.openlandmap_stac_api import OpenLandMapSTAC
+    stac_instance = OpenLandMapSTAC()
+    landcover_mapping = stac_instance.landcover_to_esvd
     
-    base_ecosystem = default_landcover_mapping.get(code, "Unknown")
+    base_ecosystem = landcover_mapping.get(code, "Unknown")
     
     # For forests, determine the specific subtype based on detected ecosystem results
     if base_ecosystem == "Forest":
