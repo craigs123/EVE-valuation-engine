@@ -232,32 +232,59 @@ class OpenLandMapSTAC:
     
     async def _query_openlandmap_api(self, session: aiohttp.ClientSession, lat: float, lon: float) -> Optional[int]:
         """
-        Query the correct OpenLandMap REST API for ESA CCI land cover data
+        Query OpenLandMap for actual ESA CCI land cover pixel values
         """
-        try:
-            # OpenLandMap REST API endpoint for land cover point queries
-            api_url = f"{self.api_base_url}/query/point"
-            params = {
-                'lat': lat,
-                'lon': lon,
-                'collection': 'land.cover_esacci.lc.l4',
-                'year': 2020
+        # Try multiple OpenLandMap endpoint formats
+        endpoints_to_try = [
+            # Format 1: Correct OpenLandMap API point query  
+            {
+                'url': 'http://api.openlandmap.org/query/point',
+                'params': {'lat': lat, 'lon': lon, 'coll': 'predicted250m', 'regex': 'lcv_esacci\\.lc\\.l4_c_250m.*\\.tif'}
+            },
+            # Format 2: WCS endpoint
+            {
+                'url': 'https://maps.openlandmap.org/wcs',
+                'params': {
+                    'SERVICE': 'WCS',
+                    'VERSION': '2.0.1', 
+                    'REQUEST': 'GetCoverage',
+                    'COVERAGEID': 'land.cover_esacci.lc.l4',
+                    'SUBSET': f'Lat({lat})',
+                    'SUBSET2': f'Long({lon})',
+                    'FORMAT': 'application/json'
+                }
+            },
+            # Format 3: REST API v2
+            {
+                'url': f"{self.api_base_url}/query",
+                'params': {'lat': lat, 'lon': lon, 'collection': 'land.cover_esacci.lc.l4'}
             }
-            
-            async with session.get(api_url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if isinstance(data, dict) and 'value' in data:
-                        return int(data['value'])
-                    elif isinstance(data, list) and len(data) > 0:
-                        return int(data[0].get('value', 0))
-                else:
-                    print(f"OpenLandMap API returned status {response.status}")
-                    return None
+        ]
+        
+        for endpoint in endpoints_to_try:
+            try:
+                async with session.get(endpoint['url'], params=endpoint['params']) as response:
+                    if response.status == 200:
+                        try:
+                            data = await response.json()
+                            # Handle different response formats
+                            if isinstance(data, dict):
+                                if 'value' in data:
+                                    return int(data['value'])
+                                elif 'data' in data and isinstance(data['data'], list) and len(data['data']) > 0:
+                                    return int(data['data'][0])
+                            elif isinstance(data, list) and len(data) > 0:
+                                return int(data[0].get('value', data[0]) if isinstance(data[0], dict) else data[0])
+                        except (ValueError, TypeError, KeyError):
+                            continue
                     
-        except Exception as e:
-            print(f"Error querying OpenLandMap REST API: {e}")
-            return None
+            except Exception as e:
+                print(f"Error with endpoint {endpoint['url']}: {e}")
+                continue
+        
+        # If all endpoints fail, return None for geographic fallback
+        print(f"All OpenLandMap endpoints failed for {lat}, {lon}")
+        return None
     
     async def _query_raster_pixel(self, session: aiohttp.ClientSession, raster_url: str, lat: float, lon: float) -> Optional[int]:
         """
