@@ -151,20 +151,25 @@ class OpenLandMapSTAC:
                             # Extract real pixel data from OpenLandMap GeoTIFF
                             sample_value, data_source, raw_response = await self._extract_real_pixel_data(session, lat, lon, collection_data)
                             
-                            return {
-                                "collection": collection["id"],
-                                "name": collection["name"],
-                                "category": collection["category"],
-                                "value": sample_value,
-                                "unit": collection["unit"],
-                                "metadata": {
-                                    "title": collection_data.get("title", ""),
-                                    "description": collection_data.get("description", ""),
-                                    "license": collection_data.get("license", ""),
-                                    "source": data_source,
-                                    "raw_response": raw_response
+                            # Only return data if we actually extracted a real pixel value
+                            if sample_value is not None:
+                                return {
+                                    "collection": collection["id"],
+                                    "name": collection["name"],
+                                    "category": collection["category"],
+                                    "value": sample_value,
+                                    "unit": collection["unit"],
+                                    "metadata": {
+                                        "title": collection_data.get("title", ""),
+                                        "description": collection_data.get("description", ""),
+                                        "license": collection_data.get("license", ""),
+                                        "source": data_source,
+                                        "raw_response": raw_response
+                                    }
                                 }
-                            }
+                            else:
+                                print(f"🚫 No real pixel data available for land cover at ({lat}, {lon})")
+                                return None
                         # For land mask category, generate water occurrence
                         elif collection['category'] == 'landmask':
                             water_occurrence = self._generate_land_mask_water_occurrence(lat, lon)
@@ -263,36 +268,70 @@ class OpenLandMapSTAC:
         Get GeoTIFF asset URL from STAC catalog
         """
         try:
-            # Query collection metadata
+            # Try multiple approaches to find the asset URL
+            asset_url_attempts = [
+                # Direct known asset URLs for ESA CCI Land Cover
+                "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
+                "https://s3.eu-central-1.wasabisys.com/openlandmap/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
+            ]
+            
+            # First try STAC catalog query
             collection_url = f"{self.stac_base_url}/{collection_id}/collection.json"
             response = requests.get(collection_url, timeout=10)
             
             if response.status_code == 200:
                 collection_data = response.json()
+                print(f"📋 STAC collection found: {collection_data.get('title', collection_id)}")
                 
-                # Get first STAC item to extract asset URL
+                # Debug: Show collection structure
+                print(f"🔍 Collection keys: {list(collection_data.keys())}")
+                
+                # Get STAC items to extract asset URL
                 if 'links' in collection_data:
                     for link in collection_data['links']:
-                        if link.get('rel') == 'child':
+                        if link.get('rel') in ['child', 'item']:
                             item_url = link['href']
                             # Make sure it's a full URL
                             if not item_url.startswith('http'):
                                 item_url = f"{self.stac_base_url}/{collection_id}/{item_url}"
                             
+                            print(f"🔗 Trying STAC item: {item_url}")
+                            
                             # Get STAC item
                             item_response = requests.get(item_url, timeout=10)
                             if item_response.status_code == 200:
                                 item_data = item_response.json()
+                                print(f"📄 Item keys: {list(item_data.keys())}")
                                 
                                 # Extract GeoTIFF asset URL
                                 if 'assets' in item_data:
+                                    print(f"🎯 Available assets: {list(item_data['assets'].keys())}")
                                     for asset_key, asset in item_data['assets'].items():
-                                        if asset.get('type') == 'image/tiff' or asset_key in ['data', 'main', 'cog']:
+                                        asset_type = asset.get('type', '')
+                                        asset_href = asset.get('href', '')
+                                        print(f"📦 Asset {asset_key}: type={asset_type}, href={asset_href[:100]}...")
+                                        
+                                        if ('image/tiff' in asset_type or 'tiff' in asset_href.lower() or 
+                                            asset_key in ['data', 'main', 'cog', 'asset']):
                                             asset_url = asset['href']
-                                            print(f"📁 Found GeoTIFF asset: {asset_url}")
+                                            print(f"✅ Found GeoTIFF asset: {asset_url}")
                                             return asset_url
-                                            
-            print(f"⚠️ No GeoTIFF asset found for collection {collection_id}")
+            
+            # If STAC catalog fails, try known asset URLs directly
+            print(f"🔄 STAC catalog search failed, trying known asset URLs...")
+            for asset_url in asset_url_attempts:
+                try:
+                    # Test if the asset URL is accessible
+                    test_response = requests.head(asset_url, timeout=5)
+                    if test_response.status_code == 200:
+                        print(f"✅ Found working asset URL: {asset_url}")
+                        return asset_url
+                    else:
+                        print(f"❌ Asset URL not accessible ({test_response.status_code}): {asset_url}")
+                except Exception as e:
+                    print(f"❌ Asset URL test failed: {e}")
+                    
+            print(f"⚠️ No accessible GeoTIFF asset found for collection {collection_id}")
             return None
             
         except Exception as e:
