@@ -204,6 +204,32 @@ class OpenLandMapSTAC:
             api_url = f"{self.api_base_url}/query/point"
             
             # Try multiple collection approaches to find working parameters
+            # Try raw values API first (as mentioned in guidance)
+            try:
+                raw_api_url = f"{self.api_base_url}/api/raw-values"
+                raw_params = {
+                    'lat': lat,
+                    'lon': lon,
+                    'collection': 'lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif'
+                }
+                
+                async with session.get(raw_api_url, params=raw_params, timeout=10) as raw_response:
+                    if raw_response.status == 200:
+                        raw_data = await raw_response.json()
+                        if isinstance(raw_data, dict) and 'value' in raw_data:
+                            landcover_code = int(raw_data['value'])
+                            print(f"✅ REAL ESA DATA: Land cover code {landcover_code} for ({lat}, {lon}) via raw-values API")
+                            self._last_api_success = True
+                            return landcover_code
+                        elif isinstance(raw_data, (int, float)):
+                            landcover_code = int(raw_data)
+                            print(f"✅ REAL ESA DATA: Land cover code {landcover_code} for ({lat}, {lon}) via raw-values API")
+                            self._last_api_success = True
+                            return landcover_code
+            except Exception as raw_error:
+                print(f"Raw values API failed: {raw_error}")
+            
+            # If raw API fails, try standard collection approaches
             collection_attempts = [
                 {
                     'coll': 'predicted1km',
