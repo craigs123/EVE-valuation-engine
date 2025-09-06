@@ -18,7 +18,7 @@ class OpenLandMapSTAC:
     
     def __init__(self):
         self.stac_base_url = "https://s3.eu-central-1.wasabisys.com/stac/openlandmap"
-        self.api_base_url = "https://v2-api.openlandmap.org"
+        self.api_base_url = "http://api.openlandmap.org"  # Real OpenLandMap API endpoint
         
         # Define key STAC collections for comprehensive environmental data
         self.collections = [
@@ -140,10 +140,10 @@ class OpenLandMapSTAC:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, use geographic prediction (like the working example)
+                        # For land cover, query the real OpenLandMap API for ESA CCI data
                         if collection['category'] == 'landcover':
-                            # Generate location-based value (following the working pattern)
-                            sample_value = self._generate_location_based_value(lat, lon, collection['category'])
+                            # Use real API to get ESA CCI land cover value
+                            sample_value = await self._query_real_landcover_api(session, lat, lon)
                             
                             return {
                                 "collection": collection["id"],
@@ -177,6 +177,59 @@ class OpenLandMapSTAC:
         except Exception as e:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
+    
+    async def _query_real_landcover_api(self, session: aiohttp.ClientSession, lat: float, lon: float) -> int:
+        """
+        Query the real OpenLandMap REST API for ESA CCI land cover data
+        """
+        try:
+            # OpenLandMap REST API point query for ESA CCI Land Cover
+            # Using the most recent ESA CCI land cover layer
+            api_url = f"{self.api_base_url}/query/point"
+            params = {
+                'lat': lat,
+                'lon': lon,
+                'coll': 'predicted250m',
+                'regex': 'lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif'
+            }
+            
+            async with session.get(api_url, params=params, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    # Extract land cover code from API response
+                    if isinstance(data, dict) and 'features' in data:
+                        features = data['features']
+                        if features and len(features) > 0:
+                            properties = features[0].get('properties', {})
+                            # The land cover value should be in the properties
+                            for key, value in properties.items():
+                                if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                    landcover_code = int(value)
+                                    print(f"Real API returned land cover code {landcover_code} for ({lat}, {lon})")
+                                    return landcover_code
+                    
+                    elif isinstance(data, list) and len(data) > 0:
+                        # Some APIs return a list directly
+                        first_result = data[0]
+                        if isinstance(first_result, dict):
+                            for key, value in first_result.items():
+                                if 'lcv_land.cover' in key and isinstance(value, (int, float)):
+                                    landcover_code = int(value)
+                                    print(f"Real API returned land cover code {landcover_code} for ({lat}, {lon})")
+                                    return landcover_code
+                    
+                    print(f"API response format unexpected: {data}")
+                    
+                else:
+                    print(f"API request failed with status {response.status}")
+                    
+        except Exception as e:
+            print(f"Error querying real OpenLandMap API: {e}")
+        
+        # Fallback: Use geographic prediction only as last resort
+        print(f"Using geographic fallback for ({lat}, {lon})")
+        return self._predict_land_cover(lat, lon)
     
     # Simplified approach - no longer trying to extract pixel data from STAC
     # Following the working example pattern
@@ -225,9 +278,6 @@ class OpenLandMapSTAC:
                (20 <= lon <= 180))):     # Russia/Scandinavia  
             return random.choice([30, 50])  # Needleleaf forests
         
-        # Pacific Northwest temperate forests (Washington, Oregon, Northern California)
-        elif ((42 <= lat <= 49) and (-125 <= lon <= -115)):
-            return random.choice([61, 71])  # Temperate forest (deciduous and needleleaf)
         
         # Mediterranean regions
         elif ((30 <= lat <= 45) and
