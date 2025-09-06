@@ -44,7 +44,7 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
-# Custom CSS to make sidebar 50% wider
+# Enhanced CSS for better UX and modern design
 st.markdown("""
     <style>
         /* Make sidebar 50% wider */
@@ -68,6 +68,140 @@ st.markdown("""
         /* Make sidebar scrollable if content overflows */
         .css-1d391kg, .css-1lcbmhc {
             overflow-y: auto !important;
+        }
+        
+        /* Modern Step-by-Step Progress Indicator */
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 2rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 12px;
+            border: 1px solid #0891b2;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .step-active .step-number {
+            background: linear-gradient(135deg, #0891b2 0%, #0c4a6e 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+        }
+        
+        .step-completed .step-number {
+            background: linear-gradient(135deg, #059669 0%, #065f46 100%);
+            color: white;
+        }
+        
+        .step-pending .step-number {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        
+        .step-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+            color: #374151;
+        }
+        
+        .step-active .step-title {
+            color: #0891b2;
+            font-weight: 600;
+        }
+        
+        .step-completed .step-title {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        /* Enhanced Primary Button Styling */
+        .primary-action {
+            background: linear-gradient(135deg, #0891b2 0%, #0c4a6e 100%) !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 0.75rem 2rem !important;
+            font-weight: 600 !important;
+            font-size: 1.1rem !important;
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .primary-action:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4) !important;
+        }
+        
+        /* Enhanced Success States */
+        .status-success {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            border: 1px solid #059669;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        /* Modern Card Design */
+        .modern-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            margin: 1rem 0;
+        }
+        
+        /* Enhanced Info Cards */
+        .info-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        /* Better Typography */
+        .section-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 2rem 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Loading Animation */
+        .loading-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
         }
     </style>
 """, unsafe_allow_html=True)
@@ -690,9 +824,35 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Title and header  
+# Enhanced Title and Progress Indicator
 st.title("🌱 Ecosystem Valuation Engine v2.6")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
+
+# Add step-by-step progress indicator
+def show_progress_indicator():
+    # Determine current step based on session state
+    step1_status = "completed" if st.session_state.get('selected_area') else "active"
+    step2_status = "active" if st.session_state.get('selected_area') and not st.session_state.get('analysis_results') else ("completed" if st.session_state.get('analysis_results') else "pending")
+    step3_status = "completed" if st.session_state.get('analysis_results') else "pending"
+    
+    st.markdown(f"""
+    <div class="step-indicator">
+        <div class="step step-{step1_status}">
+            <div class="step-number">1</div>
+            <div class="step-title">Select Area</div>
+        </div>
+        <div class="step step-{step2_status}">
+            <div class="step-number">2</div>
+            <div class="step-title">Configure & Calculate</div>
+        </div>
+        <div class="step step-{step3_status}">
+            <div class="step-number">3</div>
+            <div class="step-title">View Results</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+show_progress_indicator()
 
 # Initialize session state
 if 'selected_area' not in st.session_state:
@@ -1734,7 +1894,15 @@ else:
 col1, col2 = st.columns([3, 2])
 
 with col1:
-    st.subheader("🗺️ Step 1: Select Your Area")
+    st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
+    
+    # Enhanced instruction card
+    st.markdown("""
+    <div class="info-card">
+        <strong>🎯 Quick Start:</strong> Choose a test area to explore, or draw your own custom area on the map below.
+        Use the drawing tools in the map toolbar to select any region worldwide.
+    </div>
+    """, unsafe_allow_html=True)
     
     # Add layer selector
     col_layer1, col_layer2 = st.columns([1, 2])
@@ -2106,11 +2274,16 @@ with col1:
 
 # Right column - Preview and results
 with col2:
-    st.subheader("📊 Step 2: Configure & Calculate")
+    st.markdown('<h2 class="section-header">📊 Step 2: Configure & Calculate</h2>', unsafe_allow_html=True)
     
     # Quick configuration in main area for better UX
     if st.session_state.get('selected_area'):
-        st.success("✅ Area Selected - Ready to analyze!")
+        st.markdown("""
+        <div class="status-success">
+            <strong>✅ Area Selected - Ready to analyze!</strong><br>
+            Configure your analysis settings below and click the calculate button.
+        </div>
+        """, unsafe_allow_html=True)
         
         # Quick configuration options in main area
         col_config1, col_config2 = st.columns(2)
@@ -2144,8 +2317,9 @@ with col2:
             )
             st.session_state.analysis_detail = quick_analysis
         
-        # Prominent calculate button
-        if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True):
+        # Enhanced calculate button with modern styling
+        st.markdown("---")
+        if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True, help="Start the ecosystem analysis with your current settings"):
             # Set analyze_button for processing and persist analysis state
             analyze_button = True
             st.session_state.analysis_in_progress = True
@@ -2163,12 +2337,17 @@ with col2:
             analyze_button = st.session_state.get('analysis_in_progress', False)
             
     else:
-        st.info("👆 First, draw an area on the map above")
+        st.markdown("""
+        <div class="info-card">
+            <strong>👆 Next Step:</strong> First, draw an area on the map above using the drawing tools.<br>
+            You can also select one of the predefined test areas to get started quickly.
+        </div>
+        """, unsafe_allow_html=True)
         analyze_button = False
     
-    # Results section
+    # Enhanced Results section
     if st.session_state.get('analysis_results'):
-        st.markdown("### 📈 Step 3: Results")
+        st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
         results = st.session_state.analysis_results
         
         # Safety check - ensure results is not None
