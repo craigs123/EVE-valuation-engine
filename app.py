@@ -2289,24 +2289,12 @@ with col2:
         col_config1, col_config2 = st.columns(2)
         
         with col_config1:
-            quick_ecosystem = st.selectbox(
-                "Ecosystem Type:",
-                [
-                    "Auto-detect", 
-                    "Tropical Forest", 
-                    "Temperate Forest", 
-                    "Boreal Forest", 
-                    "Polar",
-                    "Grassland", 
-                    "Wetland", 
-                    "Agricultural", 
-                    "Coastal", 
-                    "Urban"
-                ],
-                help="Auto-detect uses satellite analysis, or choose specific forest type",
-                key="quick_ecosystem"
-            )
-            st.session_state.ecosystem_override = quick_ecosystem
+            # Use the sidebar ecosystem selection to avoid duplication
+            if 'ecosystem_override' in st.session_state:
+                st.info(f"**Selected Ecosystem:** {st.session_state.ecosystem_override}")
+                st.caption("💡 Change ecosystem type in the sidebar if needed")
+            else:
+                st.info("**Ecosystem:** Auto-detect (default)")
         
         with col_config2:
             quick_analysis = st.selectbox(
@@ -2635,10 +2623,16 @@ if analyze_button and st.session_state.selected_area:
         # Update the progress container in the right column instead of creating new sections
         with analysis_progress_container.container():
             st.markdown("### 🔄 Analysis in Progress")
-            st.warning("⏳ Please wait - Analysis running...")
+            # Enhanced loading state with modern design
+            st.markdown("""
+            <div class="modern-card loading-pulse">
+                <h4>🔄 Analyzing Your Ecosystem...</h4>
+                <p>We're processing your selected area using satellite data and scientific valuation coefficients.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
             progress_text = st.empty()
             progress_bar = st.progress(0)
-            st.info("🔍 Starting ecosystem analysis - this may take a few moments...")
         
         with st.spinner("Please wait - Analyzing ecosystem and calculating values..."):
             # Detect ecosystem type if auto-detection is enabled or convert manual selection
@@ -2684,10 +2678,14 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Update progress container for detection phase
                     with analysis_progress_container.container():
-                        st.markdown("### 🔄 Analysis in Progress")
+                        st.markdown("""
+                        <div class="modern-card">
+                            <h4>🔍 Ecosystem Detection in Progress</h4>
+                            <p>Analyzing satellite data to identify ecosystem types...</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                         progress_text = st.empty()
                         progress_bar = st.progress(0)
-                        progress_text.info("🔍 **Please wait** - Detecting ecosystem type using satellite data...")
                     
                     # Enhanced progress callback with sample count and percentage
                     def update_progress(current_point, total_points):
@@ -2911,7 +2909,11 @@ if analyze_button and st.session_state.selected_area:
                 st.markdown("### 🔄 Analysis in Progress")
                 progress_text = st.empty()
                 progress_bar = st.progress(0.9)
-                progress_text.info("💰 **Please wait** - Calculating ecosystem service values using pre-computed ESVD coefficients...")
+                progress_text.markdown("""
+                <div class="status-success">
+                    💰 <strong>Calculating Values</strong> - Computing ecosystem service values using scientific coefficients...
+                </div>
+                """, unsafe_allow_html=True)
             
             # Calculate authentic ecosystem values using pre-computed ESVD coefficients
             from utils.precomputed_esvd_coefficients import get_precomputed_coefficients
