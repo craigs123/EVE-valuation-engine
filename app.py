@@ -2271,17 +2271,12 @@ if st.session_state.get('selected_area'):
     </div>
     """, unsafe_allow_html=True)
     
-    # Quick configuration options in main area
-    col_config1, col_config2 = st.columns(2)
+    # Full width message about settings
+    st.info("Calculation parameters can be changed in the settings side bar.")
     
-    with col_config1:
-        # Use the sidebar ecosystem selection to avoid duplication
-        st.info("Calculation parameters can be changed in the settings side bar.")
-    
-    with col_config2:
-        # Analysis detail is now configured in sidebar only
-        if 'analysis_detail' not in st.session_state:
-            st.session_state.analysis_detail = "Summary Analysis"
+    # Analysis detail is now configured in sidebar only
+    if 'analysis_detail' not in st.session_state:
+        st.session_state.analysis_detail = "Summary Analysis"
     
     # Enhanced calculate button with modern styling
     st.markdown("---")
