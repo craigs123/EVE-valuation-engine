@@ -2266,13 +2266,6 @@ with col2:
             st.error("Analysis results are not available. Please run the analysis again.")
             st.stop()
         
-        # Display data source status - show clearly which method was used  
-        analysis_results_for_display = {
-            'sampling_point_data': st.session_state.get('sampling_point_data', {}),
-            'landcover_codes': st.session_state.get('landcover_codes', {}),
-            'landcover_data_source': st.session_state.get('landcover_data_source', 'estimated')
-        }
-        display_data_source_status(analysis_results_for_display)
         
         # Key metrics display with water area exclusion information
         col_metrics1, col_metrics2 = st.columns(2)
