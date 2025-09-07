@@ -1826,6 +1826,10 @@ with col_layer2:
 current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
 st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
 
+# Initialize use_test_area_zoom if not set (ensures default map shows on startup)
+if 'use_test_area_zoom' not in st.session_state:
+    st.session_state.use_test_area_zoom = False
+
 # Create optimized interactive map - use cached calculations
 if st.session_state.get('use_test_area_zoom', False):
     # Zoom to the appropriate test area
