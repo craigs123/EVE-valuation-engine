@@ -2064,40 +2064,41 @@ if st.session_state.get('selected_area') and st.session_state.get('area_coordina
         except Exception as e:
             st.error(f"Error processing coordinates: {e}")
             bbox = None
-        st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
-        st.markdown("### 📍 Selected Area Coordinates")
-        
-        # Display cached bounding box
-        if bbox:
-            st.markdown(f"""
-            <div class="coordinate-bounds">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                    <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
-                    <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
-                    <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
-                </div>
+    
+    st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
+    st.markdown("### 📍 Selected Area Coordinates")
+    
+    # Display cached bounding box
+    if bbox:
+        st.markdown(f"""
+        <div class="coordinate-bounds">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
+                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
             </div>
-            """, unsafe_allow_html=True)
-        
-        # Show all coordinates in expandable section (load on demand, with error handling)
-        with st.expander("All Coordinates"):
-            coords = st.session_state.area_coordinates
-            try:
-                # Limit to prevent performance issues
-                display_coords = coords[:-1] if len(coords) > 1 else coords
-                for i, coord in enumerate(display_coords[:50]):  # Limit to 50 points max
-                    if len(coord) >= 2:
-                        st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
-                if len(display_coords) > 50:
-                    st.markdown(f"<small>... and {len(display_coords) - 50} more points</small>", unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"Error displaying coordinates: {e}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
+            <div style="display: flex; justify-content: space-between;">
+                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
+                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Show all coordinates in expandable section (load on demand, with error handling)
+    with st.expander("All Coordinates"):
+        coords = st.session_state.area_coordinates
+        try:
+            # Limit to prevent performance issues
+            display_coords = coords[:-1] if len(coords) > 1 else coords
+            for i, coord in enumerate(display_coords[:50]):  # Limit to 50 points max
+                if len(coord) >= 2:
+                    st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
+            if len(display_coords) > 50:
+                st.markdown(f"<small>... and {len(display_coords) - 50} more points</small>", unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error displaying coordinates: {e}")
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
     # Sustainability Assessment Questions in collapsible panel
     with st.expander("🌱 **Sustainability Assessment**"):
