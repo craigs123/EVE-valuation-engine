@@ -1988,16 +1988,26 @@ if False and st.session_state.get('use_test_area_zoom', False):
         m.fit_bounds(bounds, padding=[50, 50])  # Reduced padding for speed
     else:
         # Default optimized map view
-        m = get_folium_map(40.0, -100.0, 4, map_layer)
-        draw_tools = create_drawing_tools()
-        draw_tools.add_to(m)
+        st.write("🔍 DEBUG: About to create default map...")
+        try:
+            m = get_folium_map(40.0, -100.0, 4, map_layer)
+            st.write("✅ DEBUG: Map created successfully")
+            st.write(f"Map type: {type(m)}")
+        except Exception as e:
+            st.error(f"❌ Map creation error: {e}")
+            return
+        
+        st.write("🔍 DEBUG: About to add drawing tools...")
+        try:
+            draw_tools = create_drawing_tools()
+            draw_tools.add_to(m)
+            st.write("✅ DEBUG: Drawing tools added")
+        except Exception as e:
+            st.error(f"❌ Drawing tools error: {e}")
     
     # Ultra-optimized map display with performance settings
+    st.write("🔍 DEBUG: About to display map with st_folium...")
     from streamlit_folium import st_folium
-    
-    # Debug: Show map creation status
-    st.write(f"Map created successfully: {m is not None}")
-    st.write(f"Map type: {type(m)}")
     
     try:
         map_data = st_folium(
@@ -2009,9 +2019,11 @@ if False and st.session_state.get('use_test_area_zoom', False):
             feature_group_to_add=None,  # Reduce memory usage
             debug=False  # Disable debug for performance
         )
-        st.write("Map display successful")
+        st.write("✅ DEBUG: st_folium call completed successfully")
     except Exception as e:
-        st.error(f"Map display error: {e}")
+        st.error(f"❌ st_folium error: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         map_data = {'all_drawings': []}
     
     # Process map interactions with optimized state checking
