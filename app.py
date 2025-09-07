@@ -432,7 +432,8 @@ def display_data_source_status(analysis_results: Dict = None):
         
         with col2:
             # Check if we have authentic OpenLandMap data or are using estimated values
-            if analysis_results and analysis_results.get('landcover_data_source') == 'openlandmap':
+            data_source_active = st.session_state.get('landcover_data_source', analysis_results.get('landcover_data_source', '') if analysis_results else '')
+            if data_source_active == 'openlandmap':
                 st.success("✅ **Active Source**: Real ESA Satellite Data")
                 st.caption("Using authentic ESA CCI land cover from satellite imagery")
             else:
@@ -446,7 +447,8 @@ def display_data_source_status(analysis_results: Dict = None):
             data_source = analysis_results.get('landcover_data_source', 'estimated')
             
             with st.expander("📊 Sampling Points Analysis Details", expanded=False):
-                if data_source == 'openlandmap' and sampling_point_data:
+                data_source_check = st.session_state.get('landcover_data_source', data_source)
+                if data_source_check == 'openlandmap' and sampling_point_data:
                     st.markdown("**🌍 OpenLandMap STAC Data:**")
                     st.write(f"• Data Source: Authentic satellite-derived landcover classifications")
                     st.write(f"• Sample Points Analyzed: {len(sampling_point_data)} points")
@@ -2251,7 +2253,8 @@ with col2:
         st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
         
         # Clear data source indicator at top of results
-        if st.session_state.get('analysis_results', {}).get('landcover_data_source') == 'openlandmap':
+        data_source_check = st.session_state.get('landcover_data_source', st.session_state.get('analysis_results', {}).get('landcover_data_source', ''))
+        if data_source_check == 'openlandmap':
             st.success("🛰️ **Data Quality: AUTHENTIC ESA SATELLITE DATA** - Real land cover from ESA CCI satellite imagery")
         else:
             st.warning("⚠️ **Data Quality: GEOGRAPHIC ESTIMATION** - Real satellite data unavailable, using location-based prediction")
@@ -2629,6 +2632,7 @@ if analyze_button and st.session_state.selected_area:
                     # Extract complete sampling point data from ecosystem detection
                     sampling_point_data = {}
                     data_source = 'estimated'
+                    has_real_satellite_data = False  # Track if we find any real satellite data
                     
                     if ecosystem_info and 'sample_results' in ecosystem_info:
                         for i, result in enumerate(ecosystem_info['sample_results']):
@@ -2658,11 +2662,16 @@ if analyze_button and st.session_state.selected_area:
                                                  'Unknown')
                                 print(f"🔍 DEBUG: Checking data source: '{source_to_check}' for point {i}")
                                 if 'Real ESA Satellite Data' in source_to_check or 'GeoTIFF Pixel' in source_to_check:
-                                    data_source = 'openlandmap'
+                                    has_real_satellite_data = True
                                     print(f"✅ DEBUG: Recognized as real satellite data")
                                 elif any(term in source_to_check for term in ['OpenLandMap', 'STAC']):
-                                    data_source = 'openlandmap'
+                                    has_real_satellite_data = True
                                     print(f"✅ DEBUG: Recognized as OpenLandMap/STAC data")
+                        
+                        # Set final data source based on whether we found any real satellite data
+                        if has_real_satellite_data:
+                            data_source = 'openlandmap'
+                            print(f"🎯 DEBUG: Final decision - Real satellite data detected, setting data_source = 'openlandmap'")
                     
                     # Handle water body classification with automatic continuation
                     water_body_points = {}
@@ -2741,6 +2750,7 @@ if analyze_button and st.session_state.selected_area:
                     # Store complete sampling point information for display
                     st.session_state.sampling_point_data = sampling_point_data
                     st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
+                    print(f"🔧 DEBUG: Final data_source being stored: '{data_source}'")
                     st.session_state.landcover_data_source = data_source
                     
                     # Show completion in progress container
