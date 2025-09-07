@@ -1166,12 +1166,16 @@ Example: 100ha Forest
             # Urban/Built-up Classes
             190: "Urban",           # Urban areas
             
+            # Bare Areas Classes
+            200: "Desert",          # Bare areas
+            201: "Desert",          # Consolidated bare areas
+            202: "Desert",          # Unconsolidated bare areas
+            
             # Water Body Classes
-            200: "Coastal",         # Bare areas
-            201: "Coastal",         # Consolidated bare areas
-            202: "Coastal",         # Unconsolidated bare areas
             210: "Marine",          # Water bodies
-            220: "Coastal",         # Permanent snow and ice
+            
+            # Snow and Ice Classes  
+            220: "Polar",           # Permanent snow and ice
             
             # Additional missing codes that may be returned by ESA CCI
             52: "Shrubland",        # Shrub/Scrub
