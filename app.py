@@ -782,7 +782,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Enhanced Title and Progress Indicator
-st.title("🌱 Ecosystem Valuation Engine v2.7.1")
+st.title("🌱 Ecosystem Valuation Engine v2.7.2")
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
 
