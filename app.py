@@ -2586,8 +2586,7 @@ elif st.session_state.get('selected_area'):
         else:
             st.info("Ready for analysis - click 'Calculate Value' button")
     else:
-        st.warning("⚠️ No area selected")
-        st.write("Select an area on the map to begin analysis")
+        pass
     
     # Progress display container for analysis (will be updated during analysis)
     analysis_progress_container = st.empty()
