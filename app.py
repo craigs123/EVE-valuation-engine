@@ -2262,58 +2262,57 @@ if st.session_state.get('analysis_results'):
     # Key metrics display with water area exclusion information
     col_metrics1, col_metrics2 = st.columns(2)
     with col_metrics1:
-            total_value = results.get('total_value', 0)
-            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Value:</strong> ${total_value:,.0f} /year</p>', unsafe_allow_html=True)
-            
-            # Display area information with water exclusion details
-            # Use cached area for consistency, fallback to results if not available
-            if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha:
-                land_area = st.session_state.cached_area_ha
-            else:
-                land_area = results.get('area_ha', results.get('area_hectares', 0))
-            total_area = results.get('total_area_hectares', land_area if land_area else 0)
-            water_area = results.get('water_area_hectares', 0)
-            
-            if water_area and water_area > 0 and total_area > 0:
-                st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Land Area Analyzed:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
-                st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
-            else:
-                st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+        total_value = results.get('total_value', 0)
+        st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Value:</strong> ${total_value:,.0f} /year</p>', unsafe_allow_html=True)
         
-        with col_metrics2:
-            value_per_ha = results.get('value_per_ha', 0)
-            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Value per Hectare:</strong> ${value_per_ha:,.0f} /ha/year</p>', unsafe_allow_html=True)
-            
-            # Enhanced ecosystem type display with forest classification
-            if results.get('forest_classification'):
-                forest_info = results['forest_classification']
-                if forest_info and forest_info.get('detected_type'):
-                    ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
-                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>🌲 Forest Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
-                else:
-                    st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> Classification Pending</p>', unsafe_allow_html=True)
-            else:
-                ecosystem_type = results.get('ecosystem_type', 'Unknown')
-                ecosystem_display = ecosystem_type.replace('_', ' ').title()
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
+        # Display area information with water exclusion details
+        # Use cached area for consistency, fallback to results if not available
+        if 'cached_area_ha' in st.session_state and st.session_state.cached_area_ha:
+            land_area = st.session_state.cached_area_ha
+        else:
+            land_area = results.get('area_ha', results.get('area_hectares', 0))
+        total_area = results.get('total_area_hectares', land_area if land_area else 0)
+        water_area = results.get('water_area_hectares', 0)
         
-        # Enhanced forest type information section
-        if 'forest_classification' in results:
+        if water_area and water_area > 0 and total_area > 0:
+            st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Land Area Analyzed:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+            st.caption(f"🌊 Water area excluded: {water_area:,.0f} ha ({water_area/total_area*100:.1f}% of total)")
+        else:
+            st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {land_area:,.0f} hectares</p>', unsafe_allow_html=True)
+    
+    with col_metrics2:
+        value_per_ha = results.get('value_per_ha', 0)
+        st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Value per Hectare:</strong> ${value_per_ha:,.0f} /ha/year</p>', unsafe_allow_html=True)
+        
+        # Enhanced ecosystem type display with forest classification
+        if results.get('forest_classification'):
             forest_info = results['forest_classification']
-            st.markdown("---")
-            st.markdown("### 🌲 Forest Type Classification")
+            if forest_info and forest_info.get('detected_type'):
+                ecosystem_display = f"{forest_info['detected_type'].replace('_', ' ').title()}"
+                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>🌲 Forest Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
+            else:
+                st.markdown('<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> Classification Pending</p>', unsafe_allow_html=True)
+        else:
+            ecosystem_type = results.get('ecosystem_type', 'Unknown')
+            ecosystem_display = ecosystem_type.replace('_', ' ').title()
+            st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {ecosystem_display}</p>', unsafe_allow_html=True)
+    
+    # Enhanced forest type information section
+    if 'forest_classification' in results:
+        forest_info = results['forest_classification']
+        st.markdown("---")
+        st.markdown("### 🌲 Forest Type Classification")
+        
+        col_forest1, col_forest2 = st.columns([2, 1])
+        with col_forest1:
+            st.success(f"""
+            **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
             
-            col_forest1, col_forest2 = st.columns([2, 1])
-            with col_forest1:
-                st.success(f"""
-                **{forest_info['detected_type'].replace('_', ' ').title()} Detected**
-                
-                **Climate Zone**: {forest_info['climate_zone']}  
-                **Detection Method**: {forest_info.get('selection_method', 'Geographic coordinate analysis')}  
-**Detection Method**: Coordinate-based forest classification
-                
-                *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
-                """)
+            **Climate Zone**: {forest_info['climate_zone']}  
+            **Detection Method**: {forest_info.get('selection_method', 'Geographic coordinate analysis')}  
+            
+            *This forest type uses specialized ecosystem service coefficients based on your location's climate and geographic characteristics, providing more accurate valuations than generic forest values.*
+            """)
             
             with col_forest2:
                 # Show forest type characteristics
