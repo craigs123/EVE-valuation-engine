@@ -1991,15 +1991,25 @@ if False and st.session_state.get('use_test_area_zoom', False):
     
     # Ultra-optimized map display with performance settings
     from streamlit_folium import st_folium
-    map_data = st_folium(
-        m, 
-        width=700, 
-        height=400,
-        returned_objects=["all_drawings"],
-        key="area_map",
-        feature_group_to_add=None,  # Reduce memory usage
-        debug=False  # Disable debug for performance
-    )
+    
+    # Debug: Show map creation status
+    st.write(f"Map created successfully: {m is not None}")
+    st.write(f"Map type: {type(m)}")
+    
+    try:
+        map_data = st_folium(
+            m, 
+            width=700, 
+            height=400,
+            returned_objects=["all_drawings"],
+            key="area_map",
+            feature_group_to_add=None,  # Reduce memory usage
+            debug=False  # Disable debug for performance
+        )
+        st.write("Map display successful")
+    except Exception as e:
+        st.error(f"Map display error: {e}")
+        map_data = {'all_drawings': []}
     
     # Process map interactions with optimized state checking
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
