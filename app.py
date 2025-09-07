@@ -1812,88 +1812,82 @@ else:
     # Clear test area flag when unchecked
     st.session_state.use_test_area_zoom = False
 
-# Map and preview in columns
-col1, col2 = st.columns([3, 2])
+# Map section
+st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
-with col1:
-    st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
-    
-    
-    # Add layer selector
-    col_layer1, col_layer2 = st.columns([1, 2])
-    with col_layer1:
-        map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
-    with col_layer2:
-        st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
-    
-    # Performance-optimized sampling display  
-    current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
-    st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
-    
+# Add layer selector
+col_layer1, col_layer2 = st.columns([1, 2])
+with col_layer1:
+    map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
+with col_layer2:
+    st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
 
-    
-    # Create optimized interactive map - use cached calculations
-    if st.session_state.get('use_test_area_zoom', False):
-        # Zoom to the appropriate test area
-        if use_test_area_single:
-            # Zoom to selected single ecosystem test area
-            ecosystem_zoom_coords = {
-                "🌾 Test area (Agricultural)": (40.0, -99.0),      # Nebraska
-                "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
-                "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
-                "🏜️ Test area (Desert)": (33.5, -112.5),          # Arizona
-                "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
-            }
-            if selected_test_area in ecosystem_zoom_coords:
-                center_lat, center_lon = ecosystem_zoom_coords[selected_test_area]
-            else:
-                # Default fallback
-                center_lat, center_lon = 40.028, -99.0185
-            
-            # Use moderate zoom for water bodies due to lower ocean map resolution
-            if selected_test_area == "🌊 Test area (Water Bodies)":
-                zoom_level = 12  # Moderate-close zoom for ocean areas
-            else:
-                zoom_level = 13  # Standard zoom for land areas
-        elif use_test_area_multi:
-            # Zoom to Michigan test area
-            center_lat, center_lon = 42.0, -84.0
-            zoom_level = 13
-        elif use_test_area_random:
-            # Zoom to random global test area
-            if st.session_state.get('cached_bbox'):
-                bbox = st.session_state.cached_bbox
-                center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
-                center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-                zoom_level = 13
-            else:
-                # Fallback if bbox not available
-                center_lat, center_lon = 0, 0
-                zoom_level = 2
-        elif use_load_saved_area:
-            # Zoom to loaded saved area
-            if st.session_state.get('cached_bbox'):
-                bbox = st.session_state.cached_bbox
-                center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
-                center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-                zoom_level = 13
-            else:
-                # Fallback if bbox not available
-                center_lat, center_lon = 40.0, -100.0
-                zoom_level = 5
+# Performance-optimized sampling display  
+current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
+st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
+
+# Create optimized interactive map - use cached calculations
+if st.session_state.get('use_test_area_zoom', False):
+    # Zoom to the appropriate test area
+    if use_test_area_single:
+        # Zoom to selected single ecosystem test area
+        ecosystem_zoom_coords = {
+            "🌾 Test area (Agricultural)": (40.0, -99.0),      # Nebraska
+            "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
+            "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
+            "🏜️ Test area (Desert)": (33.5, -112.5),          # Arizona
+            "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
+        }
+        if selected_test_area in ecosystem_zoom_coords:
+            center_lat, center_lon = ecosystem_zoom_coords[selected_test_area]
         else:
-            # Default to Sweden if no specific area selected
-            center_lat, center_lon = 60.0, 15.0
+            # Default fallback
+            center_lat, center_lon = 40.028, -99.0185
+        
+        # Use moderate zoom for water bodies due to lower ocean map resolution
+        if selected_test_area == "🌊 Test area (Water Bodies)":
+            zoom_level = 12  # Moderate-close zoom for ocean areas
+        else:
+            zoom_level = 13  # Standard zoom for land areas
+    elif use_test_area_multi:
+        # Zoom to Michigan test area
+        center_lat, center_lon = 42.0, -84.0
+        zoom_level = 13
+    elif use_test_area_random:
+        # Zoom to random global test area
+        if st.session_state.get('cached_bbox'):
+            bbox = st.session_state.cached_bbox
+            center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
+            center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
             zoom_level = 13
-        
-        m = get_folium_map(center_lat, center_lon, zoom_level, map_layer)
-        
-        # Add drawing tools for test area map
-        draw_tools = create_drawing_tools()
-        draw_tools.add_to(m)
-        
-        # Show test area polygon if coordinates are set
-        if st.session_state.get('area_coordinates'):
+        else:
+            # Fallback if bbox not available
+            center_lat, center_lon = 0, 0
+            zoom_level = 2
+    elif use_load_saved_area:
+        # Zoom to loaded saved area
+        if st.session_state.get('cached_bbox'):
+            bbox = st.session_state.cached_bbox
+            center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
+            center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
+            zoom_level = 13
+        else:
+            # Fallback if bbox not available
+            center_lat, center_lon = 40.0, -100.0
+            zoom_level = 5
+    else:
+        # Default to Sweden if no specific area selected
+        center_lat, center_lon = 60.0, 15.0
+        zoom_level = 13
+    
+    m = get_folium_map(center_lat, center_lon, zoom_level, map_layer)
+    
+    # Add drawing tools for test area map
+    draw_tools = create_drawing_tools()
+    draw_tools.add_to(m)
+    
+    # Show test area polygon if coordinates are set
+    if st.session_state.get('area_coordinates'):
             import folium
             coords = st.session_state.area_coordinates
             if use_test_area_single:
@@ -2187,69 +2181,68 @@ with col1:
     
     # Analysis controls have been moved to sidebar to eliminate duplicate interfaces
 
-# Right column - Preview and results
-with col2:
-    st.markdown('<h2 class="section-header">📊 Step 2: Configure & Calculate</h2>', unsafe_allow_html=True)
+# Configuration and Calculate section
+st.markdown('<h2 class="section-header">📊 Step 2: Configure & Calculate</h2>', unsafe_allow_html=True)
+
+# Quick configuration in main area for better UX
+if st.session_state.get('selected_area'):
+    st.markdown("""
+    <div class="status-success">
+        <strong>✅ Area Selected - Ready to analyze!</strong><br>
+        Once you have selected an area, click on the red 'Calculate' button.
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Quick configuration in main area for better UX
-    if st.session_state.get('selected_area'):
-        st.markdown("""
-        <div class="status-success">
-            <strong>✅ Area Selected - Ready to analyze!</strong><br>
-            Once you have selected an area, click on the red 'Calculate' button.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Quick configuration options in main area
-        col_config1, col_config2 = st.columns(2)
-        
-        with col_config1:
-            # Use the sidebar ecosystem selection to avoid duplication
-            if 'ecosystem_override' in st.session_state:
-                st.info(f"**Selected Ecosystem:** {st.session_state.ecosystem_override}")
-                st.caption("💡 Change ecosystem type in the sidebar if needed")
-            else:
-                st.info("**Ecosystem:** Auto-detect (default)")
-        
-        with col_config2:
-            quick_analysis = st.selectbox(
-                "Analysis Type:",
-                ["Summary Analysis", "Detailed Analysis"],
-                help="Summary: key metrics only. Detailed: full breakdown",
-                key="quick_analysis"
-            )
-            st.session_state.analysis_detail = quick_analysis
-        
-        # Enhanced calculate button with modern styling
-        st.markdown("---")
-        if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True, help="Start the ecosystem analysis with your current settings"):
-            # Set analyze_button for processing and persist analysis state
-            analyze_button = True
-            st.session_state.analysis_in_progress = True
-            # Clear old water body classifications for fresh analysis
-            if 'sampling_point_data' in st.session_state:
-                for point_data in st.session_state.sampling_point_data.values():
-                    if 'user_classified' in point_data:
-                        del point_data['user_classified']
-                    # Also clear the ecosystem_type so it doesn't use old classifications
-                    if point_data.get('landcover_class') == 210:
-                        if 'ecosystem_type' in point_data:
-                            del point_data['ecosystem_type']
+    # Quick configuration options in main area
+    col_config1, col_config2 = st.columns(2)
+    
+    with col_config1:
+        # Use the sidebar ecosystem selection to avoid duplication
+        if 'ecosystem_override' in st.session_state:
+            st.info(f"**Selected Ecosystem:** {st.session_state.ecosystem_override}")
+            st.caption("💡 Change ecosystem type in the sidebar if needed")
         else:
-            # Check if analysis should continue from water body classification
-            analyze_button = st.session_state.get('analysis_in_progress', False)
-            
-    else:
-        st.markdown("""
-        <div class="info-card">
-            <strong>👆 Next Step:</strong> First, draw an area on the map above using the drawing tools.<br>
-            You can also select one of the predefined test areas to get started quickly.
-        </div>
-        """, unsafe_allow_html=True)
-        analyze_button = False
+            st.info("**Ecosystem:** Auto-detect (default)")
     
-    # Enhanced Results section with data source indicator
-    if st.session_state.get('analysis_results'):
+    with col_config2:
+        quick_analysis = st.selectbox(
+            "Analysis Type:",
+            ["Summary Analysis", "Detailed Analysis"],
+            help="Summary: key metrics only. Detailed: full breakdown",
+            key="quick_analysis"
+        )
+        st.session_state.analysis_detail = quick_analysis
+    
+    # Enhanced calculate button with modern styling
+    st.markdown("---")
+    if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True, help="Start the ecosystem analysis with your current settings"):
+        # Set analyze_button for processing and persist analysis state
+        analyze_button = True
+        st.session_state.analysis_in_progress = True
+        # Clear old water body classifications for fresh analysis
+        if 'sampling_point_data' in st.session_state:
+            for point_data in st.session_state.sampling_point_data.values():
+                if 'user_classified' in point_data:
+                    del point_data['user_classified']
+                # Also clear the ecosystem_type so it doesn't use old classifications
+                if point_data.get('landcover_class') == 210:
+                    if 'ecosystem_type' in point_data:
+                        del point_data['ecosystem_type']
+    else:
+        # Check if analysis should continue from water body classification
+        analyze_button = st.session_state.get('analysis_in_progress', False)
+        
+else:
+    st.markdown("""
+    <div class="info-card">
+        <strong>👆 Next Step:</strong> First, draw an area on the map above using the drawing tools.<br>
+        You can also select one of the predefined test areas to get started quickly.
+    </div>
+    """, unsafe_allow_html=True)
+    analyze_button = False
+
+# Enhanced Results section with data source indicator
+if st.session_state.get('analysis_results'):
         st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
         
         # Clear data source indicator at top of results
