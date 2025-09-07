@@ -2194,7 +2194,7 @@ with col2:
         st.markdown("""
         <div class="status-success">
             <strong>✅ Area Selected - Ready to analyze!</strong><br>
-            Configure your analysis settings below and click the calculate button.
+            Once you have selected an area, click on the red 'Calculate' button.
         </div>
         """, unsafe_allow_html=True)
         
