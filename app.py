@@ -1812,6 +1812,9 @@ else:
     # Clear test area flag when unchecked
     st.session_state.use_test_area_zoom = False
 
+# DEBUG: Check if we reach the map section
+st.write("🔍 DEBUG: Reached map section!")
+
 # Map section
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
