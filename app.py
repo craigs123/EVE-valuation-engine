@@ -1831,7 +1831,8 @@ if 'use_test_area_zoom' not in st.session_state:
     st.session_state.use_test_area_zoom = False
 
 # Create optimized interactive map - use cached calculations
-if st.session_state.get('use_test_area_zoom', False):
+# TEMP: Force default map to always show for debugging
+if False and st.session_state.get('use_test_area_zoom', False):
     # Zoom to the appropriate test area
     if use_test_area_single:
         # Zoom to selected single ecosystem test area
