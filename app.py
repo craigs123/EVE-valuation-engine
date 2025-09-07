@@ -1995,7 +1995,7 @@ if False and st.session_state.get('use_test_area_zoom', False):
             st.write(f"Map type: {type(m)}")
         except Exception as e:
             st.error(f"❌ Map creation error: {e}")
-            return
+            st.stop()
         
         st.write("🔍 DEBUG: About to add drawing tools...")
         try:
