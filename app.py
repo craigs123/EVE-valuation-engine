@@ -2043,6 +2043,12 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                     # Pre-cache all calculations to speed up future operations
                     st.session_state.cached_area_ha = area_ha
                     st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
+                    
+                    # Enable map zoom to user-drawn area
+                    st.session_state.use_test_area_zoom = True
+                    
+                    # Trigger map zoom to selected area
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error calculating area: {e}")
                     # Reset to prevent hanging
