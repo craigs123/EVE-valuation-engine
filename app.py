@@ -2278,7 +2278,6 @@ if st.session_state.get('selected_area'):
         # Use the sidebar ecosystem selection to avoid duplication
         if 'ecosystem_override' in st.session_state:
             st.info(f"**Selected Ecosystem:** {st.session_state.ecosystem_override}")
-            st.caption("💡 Change ecosystem type in the sidebar if needed")
         else:
             st.info("💡 **Calculation parameters can be tweaked in the Settings Side Bar accessed by clicking on '>>'**")
     
