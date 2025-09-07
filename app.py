@@ -2576,8 +2576,9 @@ elif st.session_state.get('selected_area'):
     else:
         pass
     
-    # Progress display container for analysis (will be updated during analysis)
-    analysis_progress_container = st.empty()
+
+# Progress display container for analysis (always available)
+analysis_progress_container = st.empty()
 
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
