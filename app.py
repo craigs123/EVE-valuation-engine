@@ -155,7 +155,7 @@ st.markdown("""
 
 # Production-optimized map caching with extended TTL
 @st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
-def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satellite"):
+def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=3, layer_type="Satellite"):
     """Create and cache folium map with maximum performance optimizations"""
     import folium
     
