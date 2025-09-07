@@ -1840,8 +1840,14 @@ if 'use_test_area_zoom' not in st.session_state:
 st.write("🔍 DEBUG: use_test_area_zoom initialized")
 
 # Create optimized interactive map - use cached calculations
+st.write("🔍 DEBUG: About to check map conditional logic")
+st.write(f"🔍 DEBUG: use_test_area_zoom = {st.session_state.get('use_test_area_zoom', 'NOT SET')}")
+
 # TEMP: Force default map to always show for debugging
 if False and st.session_state.get('use_test_area_zoom', False):
+    st.write("🔍 DEBUG: Entering test area zoom branch (this should NOT appear)")
+else:
+    st.write("🔍 DEBUG: Entering DEFAULT map creation branch")
     # Zoom to the appropriate test area
     if use_test_area_single:
         # Zoom to selected single ecosystem test area
