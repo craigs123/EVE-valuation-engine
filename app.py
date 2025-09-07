@@ -1816,13 +1816,6 @@ col1, col2 = st.columns([3, 2])
 with col1:
     st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
     
-    # Enhanced instruction card
-    st.markdown("""
-    <div class="info-card">
-        <strong>🎯 Quick Start:</strong> Choose a test area to explore, or draw your own custom area on the map below.
-        Use the drawing tools in the map toolbar to select any region worldwide.
-    </div>
-    """, unsafe_allow_html=True)
     
     # Add layer selector
     col_layer1, col_layer2 = st.columns([1, 2])
