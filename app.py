@@ -1999,71 +1999,71 @@ map_data = st_folium(
     feature_group_to_add=None,  # Reduce memory usage
     debug=False  # Disable debug for performance
 )
+
+# Process map interactions with optimized state checking
+if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
+    latest_drawing = map_data['all_drawings'][-1]
     
-    # Process map interactions with optimized state checking
-    if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
-        latest_drawing = map_data['all_drawings'][-1]
+    if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
+        coordinates = latest_drawing['geometry']['coordinates'][0]
         
-        if latest_drawing['geometry']['type'] in ['Polygon', 'Rectangle']:
-            coordinates = latest_drawing['geometry']['coordinates'][0]
+        # Only process if coordinates actually changed (prevent hanging)
+        current_coords = st.session_state.get('area_coordinates', [])
+        
+        # Simplified comparison to prevent hanging
+        coords_hash = hash(str(coordinates))
+        current_hash = st.session_state.get('coords_hash', None)
+        
+        if coords_hash != current_hash:
+            # Save the new selection with batch state updates
+            st.session_state.update({
+                'selected_area': {
+                    'type': latest_drawing['geometry']['type'],
+                    'coordinates': coordinates
+                },
+                'area_coordinates': coordinates,
+                'coords_hash': coords_hash,  # Store hash to prevent reprocessing
+                'analysis_results': None,
+                # Clear caches to force recalculation
+                'cached_bbox': None,
+                'cached_area_ha': None,
+                'cached_ecosystem_results': None
+            })
             
-            # Only process if coordinates actually changed (prevent hanging)
-            current_coords = st.session_state.get('area_coordinates', [])
+            # Reset default area name for new area selection
+            if 'default_area_name' in st.session_state:
+                del st.session_state['default_area_name']
             
-            # Simplified comparison to prevent hanging
-            coords_hash = hash(str(coordinates))
-            current_hash = st.session_state.get('coords_hash', None)
-            
-            if coords_hash != current_hash:
-                # Save the new selection with batch state updates
-                st.session_state.update({
-                    'selected_area': {
-                        'type': latest_drawing['geometry']['type'],
-                        'coordinates': coordinates
-                    },
-                    'area_coordinates': coordinates,
-                    'coords_hash': coords_hash,  # Store hash to prevent reprocessing
-                    'analysis_results': None,
-                    # Clear caches to force recalculation
-                    'cached_bbox': None,
-                    'cached_area_ha': None,
-                    'cached_ecosystem_results': None
-                })
-                
-                # Reset default area name for new area selection
-                if 'default_area_name' in st.session_state:
-                    del st.session_state['default_area_name']
-                
-                # Quick area display using optimized calculation (cached)
-                if len(coordinates) > 2:
-                    try:
-                        area_ha = calculate_area_optimized(coordinates)
-                        st.success(f"Area selected: {area_ha:.0f} hectares")
-                        
-                        # Pre-cache all calculations to speed up future operations
-                        st.session_state.cached_area_ha = area_ha
-                        st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
-                    except Exception as e:
-                        st.error(f"Error calculating area: {e}")
-                        # Reset to prevent hanging
-                        st.session_state.coords_hash = None
-        else:
-            st.warning("Please draw a polygon or rectangle area")
+            # Quick area display using optimized calculation (cached)
+            if len(coordinates) > 2:
+                try:
+                    area_ha = calculate_area_optimized(coordinates)
+                    st.success(f"Area selected: {area_ha:.0f} hectares")
+                    
+                    # Pre-cache all calculations to speed up future operations
+                    st.session_state.cached_area_ha = area_ha
+                    st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
+                except Exception as e:
+                    st.error(f"Error calculating area: {e}")
+                    # Reset to prevent hanging
+                    st.session_state.coords_hash = None
+    else:
+        st.warning("Please draw a polygon or rectangle area")
+
+# Display coordinates of selected area using pre-cached calculations
+if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+    coords = st.session_state.area_coordinates
     
-    # Display coordinates of selected area using pre-cached calculations
-    if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-        coords = st.session_state.area_coordinates
-        
-        # Use pre-cached bbox if available, otherwise calculate (with error handling)
-        if 'cached_bbox' in st.session_state and st.session_state.cached_bbox:
-            bbox = st.session_state.cached_bbox
-        else:
-            try:
-                bbox = calculate_bbox_optimized(coords)
-                st.session_state.cached_bbox = bbox
-            except Exception as e:
-                st.error(f"Error processing coordinates: {e}")
-                bbox = None
+    # Use pre-cached bbox if available, otherwise calculate (with error handling)
+    if 'cached_bbox' in st.session_state and st.session_state.cached_bbox:
+        bbox = st.session_state.cached_bbox
+    else:
+        try:
+            bbox = calculate_bbox_optimized(coords)
+            st.session_state.cached_bbox = bbox
+        except Exception as e:
+            st.error(f"Error processing coordinates: {e}")
+            bbox = None
         st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
         st.markdown("### 📍 Selected Area Coordinates")
         
