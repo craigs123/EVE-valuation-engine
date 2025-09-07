@@ -1822,7 +1822,7 @@ with col1:
     with col_layer1:
         map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
     with col_layer2:
-        st.info("💡 **Quick start**: Use the rectangle tool (📐) in the map toolbar to draw your area, or use the test area checkbox above")
+        st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
     
     # Performance-optimized sampling display  
     current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
