@@ -1816,22 +1816,28 @@ else:
 st.write("🔍 DEBUG: Reached map section!")
 
 # Map section
+st.write("🔍 DEBUG: About to show Step 1 header")
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
+st.write("🔍 DEBUG: About to create layer selector")
 # Add layer selector
 col_layer1, col_layer2 = st.columns([1, 2])
 with col_layer1:
     map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
+    st.write("🔍 DEBUG: Layer selector created")
 with col_layer2:
     st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
 
+st.write("🔍 DEBUG: About to show sampling display")
 # Performance-optimized sampling display  
 current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
 st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
 
+st.write("🔍 DEBUG: About to initialize use_test_area_zoom")
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
     st.session_state.use_test_area_zoom = False
+st.write("🔍 DEBUG: use_test_area_zoom initialized")
 
 # Create optimized interactive map - use cached calculations
 # TEMP: Force default map to always show for debugging
