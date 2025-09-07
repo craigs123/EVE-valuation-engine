@@ -44,6 +44,16 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
+# Initialize session state variables early to prevent AttributeError
+if 'sustainability_responses' not in st.session_state:
+    st.session_state.sustainability_responses = {
+        'minimize_soil_disturbance': False,
+        'maintain_living_roots': False,
+        'cover_bare_soil': False,
+        'maximize_diversity': False,
+        'integrate_livestock': False
+    }
+
 # Enhanced CSS for better UX and modern design
 st.markdown("""
     <style>
