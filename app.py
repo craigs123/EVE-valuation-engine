@@ -2109,15 +2109,77 @@ if st.session_state.get('selected_area') and st.session_state.get('area_coordina
         except Exception as e:
             st.error(f"Error displaying coordinates: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Sustainability Assessment Questions in collapsible panel (when area IS selected)
+    with st.expander("🌱 **Sustainability Assessment**"):
+        st.markdown("*Please answer these questions about your land management practices*")
+        
+        # Initialize sustainability responses in session state if not present
+        if 'sustainability_responses' not in st.session_state:
+            st.session_state.sustainability_responses = {
+                'minimize_soil_disturbance': False,
+                'maintain_living_roots': False,
+                'cover_bare_soil': False,
+                'maximize_diversity': False,
+                'integrate_livestock': False
+            }
+        
+        sustainability_questions = [
+            ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
+            ("maintain_living_roots", "Do you maintain living roots in the soil?"),
+            ("cover_bare_soil", "Do you continuously cover bare soil?"),
+            ("maximize_diversity", "Do you maximize diversity, with emphasis on crops, soil microbes, and pollinators?"),
+            ("integrate_livestock", "Do you integrate livestock where feasible?")
+        ]
+        
+        # Display questions in a compact grid layout
+        col_q1, col_q2 = st.columns(2)
+        
+        with col_q1:
+            for i, (key, question) in enumerate(sustainability_questions[:3]):
+                st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                st.session_state.sustainability_responses[key] = st.radio(
+                    question,
+                    options=[True, False],
+                    format_func=lambda x: "Yes" if x else "No",
+                    key=f"sustainability_{key}",
+                    index=0 if st.session_state.sustainability_responses[key] else 1,
+                    label_visibility="collapsed"
+                )
+        
+        with col_q2:
+            for i, (key, question) in enumerate(sustainability_questions[3:], 3):
+                st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                st.session_state.sustainability_responses[key] = st.radio(
+                    question,
+                    options=[True, False],
+                    format_func=lambda x: "Yes" if x else "No",
+                    key=f"sustainability_{key}",
+                    index=0 if st.session_state.sustainability_responses[key] else 1,
+                    label_visibility="collapsed"
+                )
+        
+        # Show completion status and score
+        total_count = len(sustainability_questions)
+        yes_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is True)
+        score_percentage = (yes_count / total_count) * 100
+        
+        st.success(f"✅ Sustainability assessment complete")
+        st.metric("Current Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
+        
+        if score_percentage >= 80:
+            st.success("🌟 Excellent sustainability practices!")
+        elif score_percentage >= 60:
+            st.warning("⚡ Good sustainability practices with room for improvement")
+        else:
+            st.error("📈 Consider adopting more sustainable practices")
+
 else:
     st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
     
-    # Sustainability Assessment Questions in collapsible panel
+    # Show disabled sustainability assessment for no area selected
     with st.expander("🌱 **Sustainability Assessment**"):
-        # Check if area is selected
-        area_selected = ('selected_area' in st.session_state and st.session_state.selected_area is not None) or ('area_coordinates' in st.session_state and st.session_state.area_coordinates is not None)
-        
-        if not area_selected:
+        if True:
             st.markdown("*Please select an area on the map above to complete the sustainability assessment*")
             # Display greyed out questions
             st.markdown("""
@@ -2133,18 +2195,6 @@ else:
             <p style="margin-bottom: 0;"><em>📍 Select an area on the map to activate these questions.</em></p>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.markdown("*Please answer these questions about your land management practices*")
-            
-            # Initialize sustainability responses in session state if not present
-            if 'sustainability_responses' not in st.session_state:
-                st.session_state.sustainability_responses = {
-                    'minimize_soil_disturbance': False,
-                    'maintain_living_roots': False,
-                    'cover_bare_soil': False,
-                    'maximize_diversity': False,
-                    'integrate_livestock': False
-                }
             
             sustainability_questions = [
                 ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
