@@ -1812,42 +1812,26 @@ else:
     # Clear test area flag when unchecked
     st.session_state.use_test_area_zoom = False
 
-# DEBUG: Check if we reach the map section
-st.write("🔍 DEBUG: Reached map section!")
-
 # Map section
-st.write("🔍 DEBUG: About to show Step 1 header")
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
-st.write("🔍 DEBUG: About to create layer selector")
 # Add layer selector
 col_layer1, col_layer2 = st.columns([1, 2])
 with col_layer1:
     map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
-    st.write("🔍 DEBUG: Layer selector created")
 with col_layer2:
     st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
 
-st.write("🔍 DEBUG: About to show sampling display")
 # Performance-optimized sampling display  
 current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
 st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
 
-st.write("🔍 DEBUG: About to initialize use_test_area_zoom")
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
     st.session_state.use_test_area_zoom = False
-st.write("🔍 DEBUG: use_test_area_zoom initialized")
 
 # Create optimized interactive map - use cached calculations
-st.write("🔍 DEBUG: About to check map conditional logic")
-st.write(f"🔍 DEBUG: use_test_area_zoom = {st.session_state.get('use_test_area_zoom', 'NOT SET')}")
-
-# TEMP: Force default map to always show for debugging
-if False and st.session_state.get('use_test_area_zoom', False):
-    st.write("🔍 DEBUG: Entering test area zoom branch (this should NOT appear)")
-else:
-    st.write("🔍 DEBUG: Entering DEFAULT map creation branch")
+if st.session_state.get('use_test_area_zoom', False):
     # Zoom to the appropriate test area
     if use_test_area_single:
         # Zoom to selected single ecosystem test area
@@ -1998,45 +1982,23 @@ else:
             [float(coords_array[:, 1].max()), float(coords_array[:, 0].max())]
         ]
         m.fit_bounds(bounds, padding=[50, 50])  # Reduced padding for speed
-    else:
-        # Default optimized map view
-        st.write("🔍 DEBUG: About to create default map...")
-        try:
-            m = get_folium_map(40.0, -100.0, 4, map_layer)
-            st.write("✅ DEBUG: Map created successfully")
-            st.write(f"Map type: {type(m)}")
-        except Exception as e:
-            st.error(f"❌ Map creation error: {e}")
-            st.stop()
-        
-        st.write("🔍 DEBUG: About to add drawing tools...")
-        try:
-            draw_tools = create_drawing_tools()
-            draw_tools.add_to(m)
-            st.write("✅ DEBUG: Drawing tools added")
-        except Exception as e:
-            st.error(f"❌ Drawing tools error: {e}")
-    
-    # Ultra-optimized map display with performance settings
-    st.write("🔍 DEBUG: About to display map with st_folium...")
-    from streamlit_folium import st_folium
-    
-    try:
-        map_data = st_folium(
-            m, 
-            width=700, 
-            height=400,
-            returned_objects=["all_drawings"],
-            key="area_map",
-            feature_group_to_add=None,  # Reduce memory usage
-            debug=False  # Disable debug for performance
-        )
-        st.write("✅ DEBUG: st_folium call completed successfully")
-    except Exception as e:
-        st.error(f"❌ st_folium error: {e}")
-        import traceback
-        st.error(traceback.format_exc())
-        map_data = {'all_drawings': []}
+else:
+    # Default optimized map view
+    m = get_folium_map(40.0, -100.0, 4, map_layer)
+    draw_tools = create_drawing_tools()
+    draw_tools.add_to(m)
+
+# Ultra-optimized map display with performance settings
+from streamlit_folium import st_folium
+map_data = st_folium(
+    m, 
+    width=700, 
+    height=400,
+    returned_objects=["all_drawings"],
+    key="area_map",
+    feature_group_to_add=None,  # Reduce memory usage
+    debug=False  # Disable debug for performance
+)
     
     # Process map interactions with optimized state checking
     if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
