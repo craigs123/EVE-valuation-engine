@@ -374,13 +374,22 @@ def get_landcover_code_description(code: int) -> str:
     return get_esa_description(code)
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
-    """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping"""
+    """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping and water body user classifications"""
     # Import the single source of truth mapping from STAC API
     from utils.openlandmap_stac_api import OpenLandMapSTAC
     stac_instance = OpenLandMapSTAC()
     landcover_mapping = stac_instance.landcover_to_esvd
     
     base_ecosystem = landcover_mapping.get(code, "Unknown")
+    
+    # For water bodies (ESA code 210), check for user classifications first
+    if code == 210 and st.session_state.get('sampling_point_data'):
+        # Look for any user-classified water body to determine the classification type
+        for point_data in st.session_state.sampling_point_data.values():
+            if (point_data.get('landcover_class') == 210 and 
+                point_data.get('user_classified', False) and 
+                'ecosystem_type' in point_data):
+                return point_data['ecosystem_type']
     
     # For forests, determine the specific subtype based on detected ecosystem results
     if base_ecosystem == "Forest":
