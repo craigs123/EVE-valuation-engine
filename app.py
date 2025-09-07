@@ -2243,26 +2243,25 @@ else:
 
 # Enhanced Results section with data source indicator
 if st.session_state.get('analysis_results'):
-        st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
-        
-        # Clear data source indicator at top of results
-        data_source_check = st.session_state.get('landcover_data_source', st.session_state.get('analysis_results', {}).get('landcover_data_source', ''))
-        if data_source_check == 'openlandmap':
-            st.success("🛰️ **Data Quality: AUTHENTIC ESA SATELLITE DATA** - Real land cover from ESA CCI satellite imagery")
-        else:
-            st.warning("⚠️ **Data Quality: GEOGRAPHIC ESTIMATION** - Real satellite data unavailable, using location-based prediction")
-        
-        results = st.session_state.analysis_results
-        
-        # Safety check - ensure results is not None
-        if results is None:
-            st.error("Analysis results are not available. Please run the analysis again.")
-            st.stop()
-        
-        
-        # Key metrics display with water area exclusion information
-        col_metrics1, col_metrics2 = st.columns(2)
-        with col_metrics1:
+    st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
+    
+    # Clear data source indicator at top of results
+    data_source_check = st.session_state.get('landcover_data_source', st.session_state.get('analysis_results', {}).get('landcover_data_source', ''))
+    if data_source_check == 'openlandmap':
+        st.success("🛰️ **Data Quality: AUTHENTIC ESA SATELLITE DATA** - Real land cover from ESA CCI satellite imagery")
+    else:
+        st.warning("⚠️ **Data Quality: GEOGRAPHIC ESTIMATION** - Real satellite data unavailable, using location-based prediction")
+    
+    results = st.session_state.analysis_results
+    
+    # Safety check - ensure results is not None
+    if results is None:
+        st.error("Analysis results are not available. Please run the analysis again.")
+        st.stop()
+    
+    # Key metrics display with water area exclusion information
+    col_metrics1, col_metrics2 = st.columns(2)
+    with col_metrics1:
             total_value = results.get('total_value', 0)
             st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Value:</strong> ${total_value:,.0f} /year</p>', unsafe_allow_html=True)
             
@@ -2463,16 +2462,16 @@ if st.session_state.get('analysis_results'):
             
             st.success(f"**Final Result**: ${total_value:,.0f}/year total ecosystem value")
         
-    elif st.session_state.get('selected_area'):
-        coords = st.session_state.area_coordinates
-        
-        # Calculate area in hectares (cached) with latitude correction
-        # Only recalculate if we don't have a cached area at all
-        if 'cached_area_ha' not in st.session_state or st.session_state.cached_area_ha is None:
-            # Use optimized calculation function for consistency
-            area_ha = calculate_area_optimized(coords)
-            st.session_state.cached_area_ha = area_ha
-            st.session_state.area_coords_cache = coords
+elif st.session_state.get('selected_area'):
+    coords = st.session_state.area_coordinates
+    
+    # Calculate area in hectares (cached) with latitude correction
+    # Only recalculate if we don't have a cached area at all
+    if 'cached_area_ha' not in st.session_state or st.session_state.cached_area_ha is None:
+        # Use optimized calculation function for consistency
+        area_ha = calculate_area_optimized(coords)
+        st.session_state.cached_area_ha = area_ha
+        st.session_state.area_coords_cache = coords
         
         area_ha = st.session_state.get('cached_area_ha', 0)
         if area_ha and area_ha > 0:
