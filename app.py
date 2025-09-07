@@ -2276,10 +2276,7 @@ if st.session_state.get('selected_area'):
     
     with col_config1:
         # Use the sidebar ecosystem selection to avoid duplication
-        if 'ecosystem_override' in st.session_state:
-            st.info(f"**Selected Ecosystem:** {st.session_state.ecosystem_override}")
-        else:
-            st.info("💡 **Calculation parameters can be tweaked in the Settings Side Bar accessed by clicking on '>>'**")
+        st.info("Calculation parameters can be changed in the settings side bar.")
     
     with col_config2:
         # Analysis detail is now configured in sidebar only
