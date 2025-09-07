@@ -2280,7 +2280,7 @@ if st.session_state.get('selected_area'):
             st.info(f"**Selected Ecosystem:** {st.session_state.ecosystem_override}")
             st.caption("💡 Change ecosystem type in the sidebar if needed")
         else:
-            st.info("**Ecosystem:** Auto-detect (default)")
+            st.info("💡 **Calculation parameters can be tweaked in the Settings Side Bar accessed by clicking on '>>'**")
     
     with col_config2:
         quick_analysis = st.selectbox(
