@@ -492,7 +492,13 @@ def display_data_source_status(analysis_results: Dict = None):
                                 
                                 esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(landcover_code, analysis_results)
                                 st.write(f"• **ESVD Ecosystem**: {esvd_ecosystem}")
-                                st.caption(f"Mapping: {landcover_code} → {openlandmap_description} → {esvd_ecosystem}")
+                                
+                                # Show special indicator for user-classified water bodies
+                                if landcover_code == 210 and point_data.get('user_classified', False):
+                                    st.caption(f"Mapping: ESA {landcover_code} → {openlandmap_description} → **{esvd_ecosystem}** (User classified)")
+                                    st.success(f"✅ Water body classified as '{esvd_ecosystem}' by user selection")
+                                else:
+                                    st.caption(f"Mapping: {landcover_code} → {openlandmap_description} → {esvd_ecosystem}")
                                 
                             with col2:
                                 st.write(f"• **Data Source**: {point_data.get('source', 'Unknown')}")
