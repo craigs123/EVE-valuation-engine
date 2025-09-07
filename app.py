@@ -2282,13 +2282,9 @@ if st.session_state.get('selected_area'):
             st.info("💡 **Calculation parameters can be tweaked in the Settings Side Bar accessed by clicking on '>>'**")
     
     with col_config2:
-        quick_analysis = st.selectbox(
-            "Analysis Type:",
-            ["Summary Analysis", "Detailed Analysis"],
-            help="Summary: key metrics only. Detailed: full breakdown",
-            key="quick_analysis"
-        )
-        st.session_state.analysis_detail = quick_analysis
+        # Analysis detail is now configured in sidebar only
+        if 'analysis_detail' not in st.session_state:
+            st.session_state.analysis_detail = "Summary Analysis"
     
     # Enhanced calculate button with modern styling
     st.markdown("---")
@@ -2575,7 +2571,7 @@ elif st.session_state.get('selected_area'):
                         st.write(f"   • {eco_type}: {percentage:.1f}%")
                         
             else:
-                st.info("**Ecosystem:** Will detect automatically")
+                st.info("Calculation parameters can be changed in the settings side bar.")
         else:
             st.info(f"**Ecosystem:** {st.session_state.ecosystem_override}")
         st.info(f"**Analysis:** {st.session_state.analysis_detail}")
