@@ -1809,8 +1809,9 @@ elif use_test_area_random:
     st.success("✅ **Random Global Test Area Selected!**")
     st.caption(f"🎲 Random location in {region_name} ({lat_center:.2f}°N, {lon_center:.2f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
 else:
-    # Clear test area flag when unchecked
-    st.session_state.use_test_area_zoom = False
+    # Clear test area flag when unchecked, but preserve manual area zoom
+    if not st.session_state.get('area_coordinates'):
+        st.session_state.use_test_area_zoom = False
 
 # Map section
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
