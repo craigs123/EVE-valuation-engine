@@ -724,6 +724,26 @@ def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> 
             ecosystem_type = result.get('ecosystem_type', 'Grassland')
             confidence = result.get('confidence', 0.5)
             
+            # Check if this is a user-classified water body - use user's classification
+            coordinates = result.get('coordinates', {})
+            if coordinates:
+                lat, lon = coordinates.get('lat'), coordinates.get('lon')
+                if lat and lon:
+                    # Check session state for user-classified water bodies at this coordinate
+                    import streamlit as st
+                    if st.session_state.get('sampling_point_data'):
+                        for point_data in st.session_state.sampling_point_data.values():
+                            point_coords = point_data.get('coordinates', {})
+                            point_lat, point_lon = point_coords.get('lat'), point_coords.get('lon')
+                            # Match coordinates (with small tolerance for floating point)
+                            if (point_lat and point_lon and 
+                                abs(lat - point_lat) < 0.01 and abs(lon - point_lon) < 0.01 and
+                                point_data.get('user_classified', False) and
+                                'ecosystem_type' in point_data):
+                                ecosystem_type = point_data['ecosystem_type']
+                                print(f"🔧 DEBUG: Using user classification {ecosystem_type} for point ({lat:.4f}, {lon:.4f})")
+                                break
+            
             if ecosystem_type not in ecosystem_counts:
                 ecosystem_counts[ecosystem_type] = {'count': 0, 'confidence': 0}
             
