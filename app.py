@@ -478,7 +478,16 @@ def display_data_source_status(analysis_results: Dict = None):
             
             with st.expander("📊 Sampling Points Analysis Details", expanded=False):
                 data_source_check = st.session_state.get('landcover_data_source', data_source)
-                if data_source_check == 'openlandmap' and sampling_point_data:
+                
+                # Check for real satellite data in sampling points
+                has_real_sampling_data = False
+                for point_data in sampling_point_data.values():
+                    source = point_data.get('source', '')
+                    if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+                        has_real_sampling_data = True
+                        break
+                
+                if (data_source_check == 'openlandmap' or has_real_sampling_data) and sampling_point_data:
                     st.markdown("**🌍 OpenLandMap STAC Data:**")
                     st.write(f"• Data Source: Authentic satellite-derived landcover classifications")
                     st.write(f"• Sample Points Analyzed: {len(sampling_point_data)} points")
