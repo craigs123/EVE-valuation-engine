@@ -2685,10 +2685,12 @@ if analyze_button and st.session_state.selected_area:
                     'detection_method': 'User-classified water bodies'
                 }
                 
-                # Clear the skip flag
+                # Clear the skip flag and water bodies classified flag
                 del st.session_state['skip_ecosystem_detection']
+                if 'water_bodies_classified' in st.session_state:
+                    del st.session_state['water_bodies_classified']
                 
-            elif st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode:
+            elif (st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode) and not st.session_state.get('skip_ecosystem_detection', False):
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
                     
