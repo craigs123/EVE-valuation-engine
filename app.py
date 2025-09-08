@@ -155,7 +155,7 @@ st.markdown("""
 
 # Production-optimized map caching with extended TTL
 @st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
-def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=3, layer_type="Satellite"):
+def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satellite"):
     """Create and cache folium map with maximum performance optimizations"""
     import folium
     
@@ -1907,7 +1907,7 @@ if st.session_state.get('use_test_area_zoom', False):
             zoom_level = 13
         else:
             # Fallback if bbox not available
-            center_lat, center_lon = 54.5, 15.0
+            center_lat, center_lon = 40.0, -100.0
             zoom_level = 5
     elif st.session_state.get('cached_bbox'):
         # Zoom to manually drawn area using cached bbox
@@ -2020,7 +2020,7 @@ if st.session_state.get('use_test_area_zoom', False):
         m.fit_bounds(bounds, padding=[50, 50])  # Reduced padding for speed
 else:
     # Default optimized map view
-    m = get_folium_map(layer_type=map_layer)
+    m = get_folium_map(40.0, -100.0, 4, map_layer)
     draw_tools = create_drawing_tools()
     draw_tools.add_to(m)
 
