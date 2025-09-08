@@ -452,7 +452,18 @@ def display_data_source_status(analysis_results: Dict = None):
         with col2:
             # Check if we have authentic OpenLandMap data or are using estimated values
             data_source_active = st.session_state.get('landcover_data_source', analysis_results.get('landcover_data_source', '') if analysis_results else '')
-            if data_source_active == 'openlandmap':
+            
+            # Also check sampling point data for real satellite data indicators
+            has_real_data = False
+            if analysis_results:
+                sampling_data = analysis_results.get('sampling_point_data', {})
+                for point_data in sampling_data.values():
+                    source = point_data.get('source', '')
+                    if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+                        has_real_data = True
+                        break
+            
+            if data_source_active == 'openlandmap' or has_real_data:
                 st.success("✅ **Active Source**: Real ESA Satellite Data")
                 st.caption("Using authentic ESA CCI land cover from satellite imagery")
             else:
