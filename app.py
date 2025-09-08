@@ -506,98 +506,84 @@ def display_data_source_status(analysis_results: Dict = None):
                             "Data Source": data_source
                         })
                     
-                    # Display table
+                    # Display main table
                     import pandas as pd
                     df = pd.DataFrame(table_data)
                     st.dataframe(df, use_container_width=True, hide_index=True)
+                    
+                    # Create environmental indicators table
+                    st.markdown("**Environmental Indicators Table:**")
+                    env_table_data = []
+                    for point_id, point_data in sampling_point_data.items():
+                        point_num = int(point_id.replace('point_', '')) + 1
+                        
+                        # Initialize row with sample point
+                        env_row = {"Sample Point": f"Point {point_num}"}
+                        
+                        # Extract environmental data from STAC data
+                        stac_data = point_data.get('stac_data', {})
+                        if stac_data and isinstance(stac_data, dict):
                             
-                            # Show summarized STAC data if available
-                            stac_data = point_data.get('stac_data', {})
-                            if stac_data and isinstance(stac_data, dict) and stac_data:
-                                
-                                # Extract and summarize key environmental metrics
-                                environmental_summary = {}
-                                
-                                # Process climate/vegetation data
-                                climate_data = stac_data.get('climate', [])
-                                if climate_data and isinstance(climate_data, list):
-                                    for item in climate_data:
-                                        if isinstance(item, dict):
-                                            name = item.get('name', '').lower()
-                                            value = item.get('value')
-                                            unit = item.get('unit', '')
-                                            description = item.get('description', '')
-                                            
-                                            if value is not None:
-                                                if 'vegetation' in name or 'evi' in name:
-                                                    environmental_summary['Vegetation Index'] = f"{value:.3f} {unit} - {description}"
-                                                elif 'photosynthetic' in name or 'fapar' in name:
-                                                    environmental_summary['Photosynthetic Activity'] = f"{value:.3f} {unit} - {description}"
-                                                elif 'elevation' in name or 'terrain' in name or 'dtm' in name:
-                                                    environmental_summary['Elevation'] = f"{value:.0f} {unit} - {description}"
-                                                elif 'temperature' in name:
-                                                    environmental_summary['Temperature'] = f"{value:.1f} {unit} - {description}"
-                                                elif 'precipitation' in name or 'rainfall' in name:
-                                                    environmental_summary['Precipitation'] = f"{value:.1f} {unit} - {description}"
-                                                elif 'moisture' in name or 'humidity' in name:
-                                                    environmental_summary['Moisture'] = f"{value:.2f} {unit} - {description}"
-                                                else:
-                                                    # Catch any other climate/vegetation indicators
-                                                    clean_name = name.replace('_', ' ').title()
-                                                    environmental_summary[clean_name] = f"{value:.3f} {unit} - {description}"
-                                
-                                # Process land cover data
-                                land_cover_data = stac_data.get('landCover', [])
-                                if land_cover_data and isinstance(land_cover_data, list):
-                                    for item in land_cover_data:
-                                        if isinstance(item, dict):
-                                            value = item.get('value', '')
-                                            code = item.get('code')
-                                            description = item.get('description', 'Land cover classification')
-                                            if value and code:
-                                                environmental_summary['Land Cover'] = f"{value} (Code: {code}) - {description}"
-                                
-                                # Process soil data
-                                soil_data = stac_data.get('soil', [])
-                                if soil_data and isinstance(soil_data, list):
-                                    for item in soil_data:
-                                        if isinstance(item, dict):
-                                            name = item.get('name', '').lower()
-                                            value = item.get('value')
-                                            unit = item.get('unit', '')
-                                            description = item.get('description', '')
-                                            
-                                            if value is not None:
-                                                if 'organic carbon' in name or 'oc' in name:
-                                                    environmental_summary['Soil Organic Carbon'] = f"{value:.1f} {unit} - {description}"
-                                                elif 'ph' in name:
-                                                    environmental_summary['Soil pH'] = f"{value:.2f} {unit} - {description}"
-                                                elif 'nitrogen' in name:
-                                                    environmental_summary['Soil Nitrogen'] = f"{value:.1f} {unit} - {description}"
-                                                elif 'clay' in name:
-                                                    environmental_summary['Clay Content'] = f"{value:.1f} {unit} - {description}"
-                                                elif 'sand' in name:
-                                                    environmental_summary['Sand Content'] = f"{value:.1f} {unit} - {description}"
-                                                else:
-                                                    # Catch any other soil indicators
-                                                    clean_name = name.replace('_', ' ').title()
-                                                    environmental_summary[clean_name] = f"{value:.2f} {unit} - {description}"
-                                
-                                # Display environmental summary
-                                if environmental_summary:
-                                    with st.expander(f"🌍 Environmental Indicators - Point {int(point_num) + 1}", expanded=False):
-                                        st.markdown("**Key Environmental Metrics:**")
-                                        for metric, description in environmental_summary.items():
-                                            parts = description.split(' - ', 1)
-                                            if len(parts) == 2:
-                                                value_part, desc_part = parts
-                                                st.write(f"• **{metric}**: {value_part}")
-                                                st.caption(f"  {desc_part}")
-                                            else:
-                                                st.write(f"• **{metric}**: {description}")
-                                
+                            # Process climate/vegetation data
+                            climate_data = stac_data.get('climate', [])
+                            if climate_data and isinstance(climate_data, list):
+                                for item in climate_data:
+                                    if isinstance(item, dict):
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        unit = item.get('unit', '')
+                                        
+                                        if value is not None:
+                                            if 'vegetation' in name or 'evi' in name:
+                                                env_row['Vegetation Index'] = f"{value:.3f} {unit}"
+                                            elif 'photosynthetic' in name or 'fapar' in name:
+                                                env_row['Photosynthetic Activity'] = f"{value:.3f} {unit}"
+                                            elif 'elevation' in name or 'terrain' in name or 'dtm' in name:
+                                                env_row['Elevation'] = f"{value:.0f} {unit}"
+                                            elif 'temperature' in name:
+                                                env_row['Temperature'] = f"{value:.1f} {unit}"
+                                            elif 'precipitation' in name or 'rainfall' in name:
+                                                env_row['Precipitation'] = f"{value:.1f} {unit}"
+                                            elif 'moisture' in name or 'humidity' in name:
+                                                env_row['Moisture'] = f"{value:.2f} {unit}"
                             
-                            st.divider()
+                            # Process soil data
+                            soil_data = stac_data.get('soil', [])
+                            if soil_data and isinstance(soil_data, list):
+                                for item in soil_data:
+                                    if isinstance(item, dict):
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        unit = item.get('unit', '')
+                                        
+                                        if value is not None:
+                                            if 'organic carbon' in name or 'oc' in name:
+                                                env_row['Soil Organic Carbon'] = f"{value:.1f} {unit}"
+                                            elif 'ph' in name:
+                                                env_row['Soil pH'] = f"{value:.2f} {unit}"
+                                            elif 'nitrogen' in name:
+                                                env_row['Soil Nitrogen'] = f"{value:.1f} {unit}"
+                                            elif 'clay' in name:
+                                                env_row['Clay Content'] = f"{value:.1f} {unit}"
+                                            elif 'sand' in name:
+                                                env_row['Sand Content'] = f"{value:.1f} {unit}"
+                        
+                        # Fill missing values with "N/A"
+                        expected_columns = ['Sample Point', 'Vegetation Index', 'Photosynthetic Activity', 'Elevation', 
+                                          'Temperature', 'Precipitation', 'Moisture', 'Soil Organic Carbon', 
+                                          'Soil pH', 'Soil Nitrogen', 'Clay Content', 'Sand Content']
+                        for col in expected_columns:
+                            if col not in env_row:
+                                env_row[col] = "N/A"
+                        
+                        env_table_data.append(env_row)
+                    
+                    # Display environmental indicators table
+                    if env_table_data:
+                        env_df = pd.DataFrame(env_table_data)
+                        st.dataframe(env_df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("No environmental indicator data available for sample points.")
                     
                     # Summary statistics
                     st.markdown("**📊 Summary Statistics:**")
