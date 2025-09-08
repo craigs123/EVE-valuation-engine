@@ -389,7 +389,9 @@ def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = N
             if (point_data.get('landcover_class') == 210 and 
                 point_data.get('user_classified', False) and 
                 'ecosystem_type' in point_data):
-                return point_data['ecosystem_type']
+                user_ecosystem_type = point_data['ecosystem_type']
+                print(f"🔧 DEBUG: Water body user classification found - ESA 210 → {user_ecosystem_type}")
+                return user_ecosystem_type
     
     # For forests, determine the specific subtype based on detected ecosystem results
     if base_ecosystem == "Forest":
