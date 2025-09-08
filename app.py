@@ -511,6 +511,105 @@ def display_data_source_status(analysis_results: Dict = None):
                     df = pd.DataFrame(table_data)
                     st.dataframe(df, use_container_width=True, hide_index=True)
                     
+                    # Create environmental indicators table
+                    st.markdown("**Environmental Indicators Table:**")
+                    env_table_data = []
+                    
+                    for point_id, point_data in sampling_point_data.items():
+                        point_num = int(point_id.replace('point_', '')) + 1
+                        env_row = {"Sample Point": f"Point {point_num}"}
+                        
+                        # Extract environmental data from STAC data
+                        stac_data = point_data.get('stac_data', {})
+                        raw_stac_data = point_data.get('raw_stac_data', {})
+                        
+                        # Get coordinates
+                        coords = point_data.get('coordinates', {})
+                        if coords:
+                            lat, lon = coords.get('lat', 0), coords.get('lon', 0)
+                            env_row['Coordinates'] = f"{lat:.4f}, {lon:.4f}"
+                        
+                        # Check if we have actual STAC environmental data
+                        if stac_data and isinstance(stac_data, dict):
+                            # Process climate/vegetation data
+                            climate_data = stac_data.get('climate', [])
+                            if climate_data and isinstance(climate_data, list):
+                                for item in climate_data:
+                                    if isinstance(item, dict):
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        unit = item.get('unit', '')
+                                        
+                                        if value is not None:
+                                            if 'vegetation' in name or 'evi' in name or 'ndvi' in name:
+                                                env_row['Vegetation Index'] = f"{value:.3f} {unit}"
+                                            elif 'photosynthetic' in name or 'fapar' in name:
+                                                env_row['Photosynthetic Activity'] = f"{value:.3f} {unit}"
+                                            elif 'elevation' in name or 'terrain' in name or 'dtm' in name:
+                                                env_row['Elevation'] = f"{value:.0f} {unit}"
+                                            elif 'temperature' in name:
+                                                env_row['Temperature'] = f"{value:.1f} {unit}"
+                                            elif 'precipitation' in name or 'rainfall' in name:
+                                                env_row['Precipitation'] = f"{value:.1f} {unit}"
+                                            elif 'moisture' in name or 'humidity' in name:
+                                                env_row['Moisture'] = f"{value:.2f} {unit}"
+                            
+                            # Process soil data
+                            soil_data = stac_data.get('soil', [])
+                            if soil_data and isinstance(soil_data, list):
+                                for item in soil_data:
+                                    if isinstance(item, dict):
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        unit = item.get('unit', '')
+                                        
+                                        if value is not None:
+                                            if 'organic carbon' in name or 'oc' in name:
+                                                env_row['Soil Organic Carbon'] = f"{value:.1f} {unit}"
+                                            elif 'ph' in name:
+                                                env_row['Soil pH'] = f"{value:.2f} {unit}"
+                                            elif 'nitrogen' in name:
+                                                env_row['Soil Nitrogen'] = f"{value:.1f} {unit}"
+                                            elif 'clay' in name:
+                                                env_row['Clay Content'] = f"{value:.1f} {unit}"
+                                            elif 'sand' in name:
+                                                env_row['Sand Content'] = f"{value:.1f} {unit}"
+                        
+                        # Add confidence and data source
+                        confidence = point_data.get('confidence', 0)
+                        if confidence > 0:
+                            env_row['Confidence'] = f"{confidence:.1%}"
+                        
+                        data_source = point_data.get('source', 'Unknown')
+                        env_row['Data Source'] = data_source
+                        
+                        env_table_data.append(env_row)
+                    
+                    # Display environmental indicators table
+                    if env_table_data:
+                        # Only include columns that have actual data (not all N/A)
+                        env_df = pd.DataFrame(env_table_data)
+                        
+                        # Remove columns that are all N/A or empty
+                        for col in env_df.columns:
+                            if col != 'Sample Point' and env_df[col].isna().all():
+                                env_df = env_df.drop(columns=[col])
+                        
+                        st.dataframe(env_df, use_container_width=True, hide_index=True)
+                        
+                        # Show raw STAC data in expandable section for debugging
+                        with st.expander("🔍 Raw STAC Data (for debugging)", expanded=False):
+                            for point_id, point_data in sampling_point_data.items():
+                                point_num = int(point_id.replace('point_', '')) + 1
+                                st.markdown(f"**Point {point_num} Raw Data:**")
+                                stac_data = point_data.get('stac_data', {})
+                                if stac_data:
+                                    st.json(stac_data)
+                                else:
+                                    st.write("No STAC data available")
+                                st.divider()
+                    else:
+                        st.info("No environmental indicator data available for sample points.")
                     
                     # Summary statistics
                     st.markdown("**📊 Summary Statistics:**")
