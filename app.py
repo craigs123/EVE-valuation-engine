@@ -635,10 +635,12 @@ def display_data_source_status(analysis_results: Dict = None):
                         ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
                     
                     st.markdown("**Ecosystem Composition (from Sample Points):**")
+                    total_area = results.get('area_ha', results.get('area_hectares', 0))
                     for ecosystem_type, count in sorted(ecosystem_counts.items()):
                         percentage = (count / len(sampling_point_data)) * 100
+                        area_ha = total_area * (percentage / 100)
                         if percentage >= 1.0:  # Apply same 1% threshold as Mixed Ecosystem Composition
-                            st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points)")
+                            st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
                     
                     # Show raw ESA codes in expandable section for transparency
                     with st.expander("🔍 Raw ESA Code Breakdown"):
@@ -3193,15 +3195,9 @@ if st.session_state.analysis_results:
         if 'esvd_results' in results and 'metadata' in results['esvd_results']:
             metadata = results['esvd_results']['metadata']
             
-            # Check if it's a mixed ecosystem
+            # Mixed ecosystem composition is now shown in sample points summary to avoid duplication
             if 'ecosystem_composition' in metadata:
-                st.info("**🌍 Mixed Ecosystem Composition**")
-                composition = metadata['ecosystem_composition']
-                for eco_type, proportion in composition.items():
-                    percentage = proportion * 100
-                    area_for_type = results['area_ha'] * proportion
-                    st.write(f"   • **{eco_type}**: {percentage:.1f}% ({area_for_type:.1f} hectares)")
-                st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+                pass  # Skip mixed composition display - shown in sample points summary instead
             else:
                 # Single ecosystem - make sure to show the actual detected type
                 ecosystem_display = results['ecosystem_type']
