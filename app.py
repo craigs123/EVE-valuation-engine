@@ -2654,7 +2654,42 @@ if analyze_button and st.session_state.selected_area:
             # Handle Water Bodies selection - behave like auto-detect but focus on water
             water_bodies_mode = (st.session_state.ecosystem_override == "Water Bodies")
             
-            if st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode:
+            # Skip ecosystem detection if water bodies are already classified
+            if st.session_state.get('skip_ecosystem_detection', False):
+                # Use existing sample point data with user classifications
+                st.info("🌊 Using existing sample data with water body classifications...")
+                sampling_point_data = st.session_state.get('sampling_point_data', {})
+                data_source = st.session_state.get('landcover_data_source', 'openlandmap')
+                
+                # Create ecosystem_info from existing data
+                ecosystem_counts = {}
+                for point_data in sampling_point_data.values():
+                    eco_type = point_data.get('ecosystem_type', 'Grassland')
+                    if eco_type not in ecosystem_counts:
+                        ecosystem_counts[eco_type] = {'count': 0, 'confidence': 0}
+                    ecosystem_counts[eco_type]['count'] += 1
+                    ecosystem_counts[eco_type]['confidence'] += point_data.get('confidence', 0.9)
+                
+                # Calculate averages
+                for eco_type in ecosystem_counts:
+                    count = ecosystem_counts[eco_type]['count']
+                    ecosystem_counts[eco_type]['confidence'] = ecosystem_counts[eco_type]['confidence'] / count
+                
+                primary_ecosystem = max(ecosystem_counts.items(), key=lambda x: x[1]['count'])[0]
+                
+                ecosystem_info = {
+                    'primary_ecosystem': primary_ecosystem,
+                    'confidence': ecosystem_counts[primary_ecosystem]['confidence'],
+                    'successful_queries': len(sampling_point_data),
+                    'ecosystem_distribution': ecosystem_counts,
+                    'total_samples': len(sampling_point_data),
+                    'detection_method': 'User-classified water bodies'
+                }
+                
+                # Clear the skip flag
+                del st.session_state['skip_ecosystem_detection']
+                
+            elif st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode:
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
                     
@@ -2811,8 +2846,9 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                             
                             st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Analysis continues below...")
-                            # Keep analysis flag active so it continues after page rerun
-                            st.session_state.analysis_in_progress = True
+                            # Skip re-sampling and go directly to valuation with updated classifications
+                            st.session_state.water_bodies_classified = True
+                            st.session_state.skip_ecosystem_detection = True
                         else:
                             st.info("👆 Please select how to classify all water bodies above.")
                             st.stop()  # Only stop if user hasn't selected anything
