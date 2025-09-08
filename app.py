@@ -471,58 +471,45 @@ def display_data_source_status(analysis_results: Dict = None):
                     st.markdown("**🌍 OpenLandMap STAC Data:**")
                     st.write(f"• Data Source: Authentic satellite-derived landcover classifications")
                     st.write(f"• Sample Points Analyzed: {len(sampling_point_data)} points")
-                    st.markdown("**Complete Data by Sample Point:**")
+                    st.markdown("**Sample Points Summary Table:**")
                     
-                    # Display detailed information for each sampling point
+                    # Prepare data for table
+                    table_data = []
                     for point_id, point_data in sampling_point_data.items():
-                        point_num = point_id.replace('point_', '')
+                        point_num = int(point_id.replace('point_', '')) + 1
                         
-                        with st.container():
-                            st.markdown(f"**📍 Sample Point {int(point_num) + 1}**")
-                            
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                landcover_code = point_data.get('landcover_class', 0)
-                                st.write(f"• **ESA CCI Code**: {landcover_code}")
-                                
-                                # Show the mapping chain clearly
-                                openlandmap_description = get_landcover_code_description(landcover_code)
-                                st.write(f"• **ESA Level 1**: {openlandmap_description}")
-                                
-                                esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(landcover_code, analysis_results)
-                                st.write(f"• **ESVD Ecosystem**: {esvd_ecosystem}")
-                                
-                                # Show special indicator for user-classified water bodies
-                                if landcover_code == 210 and point_data.get('user_classified', False):
-                                    st.caption(f"Mapping: ESA {landcover_code} → {openlandmap_description} → **{esvd_ecosystem}** (User classified)")
-                                    st.success(f"✅ Water body classified as '{esvd_ecosystem}' by user selection")
-                                else:
-                                    st.caption(f"Mapping: {landcover_code} → {openlandmap_description} → {esvd_ecosystem}")
-                                
-                            with col2:
-                                st.write(f"• **Data Source**: {point_data.get('source', 'Unknown')}")
-                                
-                            # Show raw data if available
-                            if point_data.get('stac_data') and point_data['stac_data'].get('landCover'):
-                                land_cover_data = point_data['stac_data']['landCover'][0] if point_data['stac_data']['landCover'] else {}
-                                raw_response = land_cover_data.get('metadata', {}).get('raw_response', {})
-                                
-                                if raw_response:
-                                    with st.expander(f"🔍 Raw STAC Data - Point {point_id.replace('point_', '')}", expanded=False):
-                                        st.json(raw_response)
-                            
-                            # Check for raw_stac_data at point level
-                            elif point_data.get('raw_stac_data'):
-                                with st.expander(f"🔍 Raw STAC Data - Point {point_id.replace('point_', '')}", expanded=False):
-                                    st.json(point_data['raw_stac_data'])
-                                
-                            # Show coordinates
-                            coords = point_data.get('coordinates', {})
-                            if coords and isinstance(coords, dict):
-                                lat = coords.get('lat', 0)
-                                lon = coords.get('lon', 0)
-                                st.write(f"• **Coordinates**: {lat:.4f}, {lon:.4f}")
+                        landcover_code = point_data.get('landcover_class', 0)
+                        openlandmap_description = get_landcover_code_description(landcover_code)
+                        esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(landcover_code, analysis_results)
+                        
+                        # Get coordinates
+                        coords = point_data.get('coordinates', {})
+                        if coords and isinstance(coords, dict):
+                            lat = coords.get('lat', 0)
+                            lon = coords.get('lon', 0)
+                            coord_str = f"{lat:.4f}, {lon:.4f}"
+                        else:
+                            coord_str = "N/A"
+                        
+                        data_source = point_data.get('source', 'Unknown')
+                        
+                        # Add indicator for user-classified water bodies
+                        if landcover_code == 210 and point_data.get('user_classified', False):
+                            esvd_ecosystem += " (User classified)"
+                        
+                        table_data.append({
+                            "Sample Point": f"Point {point_num}",
+                            "ESA CCI Code": landcover_code,
+                            "ESA Level 1": openlandmap_description,
+                            "ESVD Ecosystem": esvd_ecosystem,
+                            "Coordinates": coord_str,
+                            "Data Source": data_source
+                        })
+                    
+                    # Display table
+                    import pandas as pd
+                    df = pd.DataFrame(table_data)
+                    st.dataframe(df, use_container_width=True, hide_index=True)
                             
                             # Show summarized STAC data if available
                             stac_data = point_data.get('stac_data', {})
