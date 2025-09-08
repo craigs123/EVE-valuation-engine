@@ -2780,6 +2780,9 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.detected_ecosystem = ecosystem_info
                             ecosystem_type = ecosystem_info['primary_ecosystem']
                             
+                            # Clear the classification flag to prevent future runs from skipping
+                            st.session_state.water_bodies_classified = False
+                            
                         else:
                             st.info("👆 Please select how to classify all water bodies above.")
                             st.stop()  # Only stop if user hasn't selected anything
@@ -3111,7 +3114,9 @@ if analyze_button and st.session_state.selected_area:
             analysis_progress_container.empty()
                 
         st.success("Analysis complete!")
-        st.rerun()
+        # Only rerun if this wasn't a water body classification continuation
+        if not st.session_state.get('water_bodies_classified', False):
+            st.rerun()
                 
     except Exception as e:
         st.error(f"Error processing area: {e}")
