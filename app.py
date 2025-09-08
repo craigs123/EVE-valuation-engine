@@ -2877,9 +2877,6 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.detected_ecosystem = ecosystem_info
                             ecosystem_type = ecosystem_info['primary_ecosystem']
                             
-                            # Clear the classification flag to prevent future runs from skipping
-                            st.session_state.water_bodies_classified = False
-                            
                         else:
                             st.info("👆 Please select how to classify all water bodies above.")
                             st.stop()  # Only stop if user hasn't selected anything
