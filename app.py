@@ -2681,10 +2681,8 @@ if analyze_button and st.session_state.selected_area:
                     'detection_method': 'User-classified water bodies'
                 }
                 
-                # Clear the skip flag and water bodies classified flag
-                del st.session_state['skip_ecosystem_detection']
-                if 'water_bodies_classified' in st.session_state:
-                    del st.session_state['water_bodies_classified']
+                # Keep flags until analysis is complete
+                # Don't clear the flags here - they need to persist until after valuation
                 
             elif (st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode) and not st.session_state.get('skip_ecosystem_detection', False):
                 try:
@@ -3196,6 +3194,12 @@ if analyze_button and st.session_state.selected_area:
             # Clear analysis in progress flag - analysis is now complete
             if 'analysis_in_progress' in st.session_state:
                 del st.session_state['analysis_in_progress']
+                
+            # Clear water body classification flags after analysis is complete
+            if 'skip_ecosystem_detection' in st.session_state:
+                del st.session_state['skip_ecosystem_detection']
+            if 'water_bodies_classified' in st.session_state:
+                del st.session_state['water_bodies_classified']
             
             # Show final completion
             with analysis_progress_container.container():
