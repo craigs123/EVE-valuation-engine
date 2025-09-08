@@ -1905,7 +1905,7 @@ if st.session_state.get('use_test_area_zoom', False):
             bbox = st.session_state.cached_bbox
             center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
             center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-            zoom_level = 13
+            zoom_level = 8  # Less zoom for better area overview
         else:
             # Fallback if bbox not available
             center_lat, center_lon = 40.0, -100.0
@@ -1915,7 +1915,7 @@ if st.session_state.get('use_test_area_zoom', False):
         bbox = st.session_state.cached_bbox
         center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
         center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-        zoom_level = 13
+        zoom_level = 8  # Less zoom for better area overview
     else:
         # Default to Sweden if no specific area selected
         center_lat, center_lon = 60.0, 15.0
