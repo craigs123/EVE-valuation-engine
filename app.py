@@ -575,11 +575,7 @@ def display_data_source_status(analysis_results: Dict = None):
                                             elif 'sand' in name:
                                                 env_row['Sand Content'] = f"{value:.1f} {unit}"
                         
-                        # Add confidence and data source
-                        confidence = point_data.get('confidence', 0)
-                        if confidence > 0:
-                            env_row['Confidence'] = f"{confidence:.1%}"
-                        
+                        # Add data source only
                         data_source = point_data.get('source', 'Unknown')
                         env_row['Data Source'] = data_source
                         
