@@ -2819,32 +2819,65 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                             
                             st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Analysis continues below...")
+                            
                             # Skip re-sampling and go directly to valuation with updated classifications
                             st.session_state.water_bodies_classified = True
                             st.session_state.skip_ecosystem_detection = True
+                            
+                            # Create ecosystem_info from existing classified data
+                            ecosystem_counts = {}
+                            for point_data in sampling_point_data.values():
+                                eco_type = point_data.get('ecosystem_type', 'Grassland')
+                                if eco_type not in ecosystem_counts:
+                                    ecosystem_counts[eco_type] = {'count': 0, 'confidence': 0}
+                                ecosystem_counts[eco_type]['count'] += 1
+                                ecosystem_counts[eco_type]['confidence'] += point_data.get('confidence', 0.9)
+                            
+                            # Calculate averages
+                            for eco_type in ecosystem_counts:
+                                count = ecosystem_counts[eco_type]['count']
+                                ecosystem_counts[eco_type]['confidence'] = ecosystem_counts[eco_type]['confidence'] / count
+                            
+                            primary_ecosystem = max(ecosystem_counts.items(), key=lambda x: x[1]['count'])[0]
+                            
+                            ecosystem_info = {
+                                'primary_ecosystem': primary_ecosystem,
+                                'confidence': ecosystem_counts[primary_ecosystem]['confidence'],
+                                'successful_queries': len(sampling_point_data),
+                                'ecosystem_distribution': ecosystem_counts,
+                                'total_samples': len(sampling_point_data),
+                                'detection_method': 'User-classified water bodies'
+                            }
+                            
+                            # Jump directly to ecosystem processing - skip the ecosystem detection loop
+                            st.session_state.detected_ecosystem = ecosystem_info
+                            ecosystem_type = ecosystem_info['primary_ecosystem']
+                            
                         else:
                             st.info("👆 Please select how to classify all water bodies above.")
                             st.stop()  # Only stop if user hasn't selected anything
                     
-                    # Store complete sampling point information for display
-                    st.session_state.sampling_point_data = sampling_point_data
-                    st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
-                    print(f"🔧 DEBUG: Final data_source being stored: '{data_source}'")
-                    st.session_state.landcover_data_source = data_source
-                    
-                    # Show completion in progress container
-                    with analysis_progress_container.container():
-                        st.markdown("### 🔄 Analysis in Progress")
-                        progress_text = st.empty()
-                        progress_bar = st.progress(1.0)
-                        progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']}/{ecosystem_info['total_samples']} samples (100%)")
-                    
-                    # Brief pause to show completion (reduced for performance)
-                    import time
-                    time.sleep(0.3)
-                    
-                    st.session_state.detected_ecosystem = ecosystem_info
-                    ecosystem_type = ecosystem_info['primary_ecosystem']
+                    # Only continue if water bodies haven't been classified yet
+                    if not st.session_state.get('water_bodies_classified', False):
+                        # Store complete sampling point information for display
+                        st.session_state.sampling_point_data = sampling_point_data
+                        st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
+                        print(f"🔧 DEBUG: Final data_source being stored: '{data_source}'")
+                        st.session_state.landcover_data_source = data_source
+                        
+                        # Show completion in progress container
+                        with analysis_progress_container.container():
+                            st.markdown("### 🔄 Analysis in Progress")
+                            progress_text = st.empty()
+                            progress_bar = st.progress(1.0)
+                            progress_text.success(f"✅ Ecosystem detection complete! Processed {ecosystem_info['total_samples']}/{ecosystem_info['total_samples']} samples (100%)")
+                        
+                        # Brief pause to show completion (reduced for performance)
+                        import time
+                        time.sleep(0.3)
+                        
+                        st.session_state.detected_ecosystem = ecosystem_info
+                        ecosystem_type = ecosystem_info['primary_ecosystem']
                     
                     # Show detection results with details
                     if ecosystem_info['successful_queries'] > 0:
