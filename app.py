@@ -1001,10 +1001,10 @@ with st.sidebar:
         # Maximum sampling limit setting (simplified approach)
         max_sampling_limit = st.slider(
             "Sample Points",
-            min_value=10,
+            min_value=9,
             max_value=100,
-            value=st.session_state.get('max_sampling_limit', 10),
-            step=10,
+            value=st.session_state.get('max_sampling_limit', 9),
+            step=1,
             help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
         )
         st.session_state.max_sampling_limit = max_sampling_limit
@@ -2007,7 +2007,7 @@ with col_layer2:
     st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
 
 # Performance-optimized sampling display  
-current_limit = st.session_state.get('max_sampling_limit', 10)
+current_limit = st.session_state.get('max_sampling_limit', 9)
 st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points</p>', unsafe_allow_html=True)
 
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
@@ -2860,7 +2860,7 @@ if analyze_button and st.session_state.selected_area:
                     area_hectares = area_ha
                     
                     # Ultra-optimized sampling with user-configurable limits
-                    max_limit = st.session_state.get('max_sampling_limit', 10)
+                    max_limit = st.session_state.get('max_sampling_limit', 9)
                     expected_points = max_limit
                     
                     # Optimize grid generation for performance
