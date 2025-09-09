@@ -373,6 +373,40 @@ def get_landcover_code_description(code: int) -> str:
     from utils.esa_landcover_codes import get_esa_description
     return get_esa_description(code)
 
+def _get_ecosystem_intactness_multiplier(ecosystem_type: str, ecosystem_intactness: Dict) -> float:
+    """
+    Get ecosystem-specific intactness multiplier with forest subtype fallback logic
+    
+    Args:
+        ecosystem_type: The ecosystem type (may include forest subtypes)
+        ecosystem_intactness: Dictionary of ecosystem intactness percentages
+        
+    Returns:
+        Multiplier value (0.0 to 1.0)
+    """
+    # First try exact match
+    if ecosystem_type in ecosystem_intactness:
+        return ecosystem_intactness[ecosystem_type] / 100.0
+    
+    # Handle forest subtype fallbacks
+    if 'Forest' in ecosystem_type:
+        # Try specific forest type first
+        if ecosystem_type in ecosystem_intactness:
+            return ecosystem_intactness[ecosystem_type] / 100.0
+        # Fall back to generic "Forest" if it exists (backward compatibility)
+        elif 'Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Forest'] / 100.0
+        # Fall back to any available forest type
+        elif 'Temperate Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Temperate Forest'] / 100.0
+        elif 'Boreal Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Boreal Forest'] / 100.0
+        elif 'Tropical Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Tropical Forest'] / 100.0
+    
+    # Default fallback (100% intactness)
+    return 1.0
+
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping and water body user classifications"""
     # Import the single source of truth mapping from STAC API
@@ -1057,10 +1091,12 @@ with st.sidebar:
         st.markdown("**Set intactness level for each ecosystem type:**")
         st.caption("Assess ecosystem condition: 100% = totally intact, 50% = moderately degraded, 0% = totally unproductive")
         
-        # Define ecosystem types with their icons
+        # Define ecosystem types with their icons (separate forest types)
         ecosystem_types = {
             'Agricultural': '🌾',
-            'Forest': '🌲', 
+            'Temperate Forest': '🌳', 
+            'Boreal Forest': '🌲',
+            'Tropical Forest': '🌴',
             'Grassland': '🌱',
             'Desert': '🏜️',
             'Wetland': '🌿',
@@ -1071,6 +1107,11 @@ with st.sidebar:
         # Initialize ecosystem intactness in session state if not exists
         if 'ecosystem_intactness' not in st.session_state:
             st.session_state.ecosystem_intactness = {eco_type: 100 for eco_type in ecosystem_types.keys()}
+        
+        # Add any missing ecosystem types (for existing sessions)
+        for eco_type in ecosystem_types.keys():
+            if eco_type not in st.session_state.ecosystem_intactness:
+                st.session_state.ecosystem_intactness[eco_type] = 100
         
         # Create sliders for each ecosystem type
         for eco_type, icon in ecosystem_types.items():
@@ -2659,16 +2700,16 @@ if st.session_state.get('analysis_results'):
                     
                     # Check if there's a difference between category sum and actual total (indicating quality factor was applied)
                     ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Forest')
-                    user_quality_factor = ecosystem_intactness.get(ecosystem_type_for_calc, 100) / 100.0
+                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Temperate Forest')
+                    user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_calc, ecosystem_intactness)
                     
                     st.markdown(f"\n**📊 Complete Calculation Flow:**")
                     
                     # Get the regional factor for proper breakdown
                     regional_factor = results.get('regional_adjustment_factor', 1.0)
                     ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Forest')
-                    user_quality_factor = ecosystem_intactness.get(ecosystem_type_for_calc, 100) / 100.0
+                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Temperate Forest')
+                    user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_calc, ecosystem_intactness)
                     
                     # Calculate the correct step-by-step breakdown
                     # Note: The ESVD results already include regional adjustment, so we need to work backwards
@@ -3247,7 +3288,8 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
                     ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                    eco_type_multiplier = ecosystem_intactness.get(ecosystem_type, 100) / 100.0
+                    # Get multiplier with forest type fallback logic
+                    eco_type_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
                     eco_result['total_value'] = eco_result['total_value'] * eco_type_multiplier
                     
                     # Apply ESA land cover code specific multiplier if available
@@ -3321,7 +3363,7 @@ if analyze_button and st.session_state.selected_area:
                 # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
                 ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
                 ecosystem_type_for_multiplier = esvd_results.get('ecosystem_type', final_ecosystem_type)
-                user_quality_factor = ecosystem_intactness.get(ecosystem_type_for_multiplier, 100) / 100.0
+                user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_multiplier, ecosystem_intactness)
                 
                 # Apply ecosystem-specific intactness factor
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor

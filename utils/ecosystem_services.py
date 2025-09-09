@@ -13,6 +13,40 @@ import math
 from .precomputed_esvd_coefficients import get_precomputed_coefficients
 from .openlandmap_stac_api import openlandmap_stac
 
+def _get_ecosystem_intactness_multiplier(ecosystem_type: str, ecosystem_intactness: Dict) -> float:
+    """
+    Get ecosystem-specific intactness multiplier with forest subtype fallback logic
+    
+    Args:
+        ecosystem_type: The ecosystem type (may include forest subtypes)
+        ecosystem_intactness: Dictionary of ecosystem intactness percentages
+        
+    Returns:
+        Multiplier value (0.0 to 1.0)
+    """
+    # First try exact match
+    if ecosystem_type in ecosystem_intactness:
+        return ecosystem_intactness[ecosystem_type] / 100.0
+    
+    # Handle forest subtype fallbacks
+    if 'Forest' in ecosystem_type:
+        # Try specific forest type first
+        if ecosystem_type in ecosystem_intactness:
+            return ecosystem_intactness[ecosystem_type] / 100.0
+        # Fall back to generic "Forest" if it exists (backward compatibility)
+        elif 'Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Forest'] / 100.0
+        # Fall back to any available forest type
+        elif 'Temperate Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Temperate Forest'] / 100.0
+        elif 'Boreal Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Boreal Forest'] / 100.0
+        elif 'Tropical Forest' in ecosystem_intactness:
+            return ecosystem_intactness['Tropical Forest'] / 100.0
+    
+    # Default fallback (100% intactness)
+    return 1.0
+
 class EcosystemServicesCalculator:
     """
     Calculates ecosystem services values across four main categories
@@ -104,8 +138,8 @@ class EcosystemServicesCalculator:
             
             for data_point in time_series:
                 # Use ecosystem-specific quality factor if available, otherwise fallback to quality_factor
-                if ecosystem_intactness and ecosystem_type in ecosystem_intactness:
-                    quality_multiplier = ecosystem_intactness[ecosystem_type] / 100.0
+                if ecosystem_intactness:
+                    quality_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
                     quality = f"ecosystem_specific_{ecosystem_type}"
                 else:
                     quality_multiplier = quality_factor
@@ -260,8 +294,8 @@ class EcosystemServicesCalculator:
                 
                 for i, data_point in enumerate(time_series):
                     # Use ecosystem-specific quality factor if available, otherwise fallback to quality_factor
-                    if ecosystem_intactness and ecosystem_type in ecosystem_intactness:
-                        quality_multiplier = ecosystem_intactness[ecosystem_type] / 100.0
+                    if ecosystem_intactness:
+                        quality_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
                         quality = f"ecosystem_specific_{ecosystem_type}"
                     else:
                         quality_multiplier = quality_factor
