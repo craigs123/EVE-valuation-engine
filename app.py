@@ -2007,8 +2007,8 @@ with col_layer2:
     st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
 
 # Performance-optimized sampling display  
-current_limit = min(st.session_state.get('max_sampling_limit', 10), 25)
-st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points (optimized for speed)</p>', unsafe_allow_html=True)
+current_limit = st.session_state.get('max_sampling_limit', 10)
+st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points</p>', unsafe_allow_html=True)
 
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
@@ -2859,13 +2859,13 @@ if analyze_button and st.session_state.selected_area:
                     # Use cached area calculation for performance
                     area_hectares = area_ha
                     
-                    # Ultra-optimized sampling with aggressive performance settings
-                    max_limit = min(st.session_state.get('max_sampling_limit', 10), 25)  # Cap at 25 for speed
+                    # Ultra-optimized sampling with user-configurable limits
+                    max_limit = st.session_state.get('max_sampling_limit', 10)
                     expected_points = max_limit
                     
                     # Optimize grid generation for performance
                     grid_size = int(np.sqrt(expected_points))
-                    actual_expected_points = max(4, min(grid_size ** 2, 25))  # Hard cap for speed
+                    actual_expected_points = max(4, grid_size ** 2)
                     
                     # Update progress container for detection phase
                     with analysis_progress_container.container():
