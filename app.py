@@ -2445,7 +2445,17 @@ if st.session_state.get('analysis_results'):
     
     # Clear data source indicator at top of results
     data_source_check = st.session_state.get('landcover_data_source', st.session_state.get('analysis_results', {}).get('landcover_data_source', ''))
-    if data_source_check == 'openlandmap':
+    
+    # Also check sampling point data for real satellite data indicators
+    has_real_results_data = False
+    if results and results.get('sampling_point_data'):
+        for point_data in results.get('sampling_point_data', {}).values():
+            source = point_data.get('source', '')
+            if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+                has_real_results_data = True
+                break
+    
+    if data_source_check == 'openlandmap' or has_real_results_data:
         st.success("🛰️ **Data Quality: AUTHENTIC ESA SATELLITE DATA** - Real land cover from ESA CCI satellite imagery")
     else:
         st.warning("⚠️ **Data Quality: GEOGRAPHIC ESTIMATION** - Real satellite data unavailable, using location-based prediction")
