@@ -3,7 +3,12 @@
 ## Overview
 The Ecosystem Valuation Engine (EVE) is a Streamlit-based geospatial analysis application designed for environmental researchers. Its primary purpose is to measure ecosystem growth through the economic valuation of ecosystem services, focusing on provisioning, regulating, cultural, and supporting categories. EVE combines satellite imagery processing with established economic valuation coefficients to track changes in ecosystem service values over time. The project aims to provide a robust tool for assessing natural capital, enabling trend analysis, and generating insightful reports for environmental management and policy.
 
-## Recent Changes (September 6, 2025)
+## Recent Changes (September 9, 2025)
+- **Enhanced Geographic Analysis v2.7.4**: Added predominant country display to sample point summary statistics with land-only geographic distribution analysis
+- **Water Body Country Exclusion v2.7.4**: Water bodies (ESA code 210) now excluded from country assignment and geographic statistics, with clear water point exclusion reporting
+- **Data Quality Message Fix v2.7.4**: Resolved NameError and inconsistent data quality messages between status display and results section for authentic satellite data detection
+
+## Previous Changes (September 6, 2025)
 - **ESA Mapping Consistency Fix v2.7.2**: Resolved ESA code 200 (Bare Areas) incorrect mapping from "Coastal" to proper "Desert" classification, ensuring consistent ecosystem type display across all UI components
 - **Consolidated ESA Mapping v2.7.1**: Fixed ESA code 70 & 71 forest mapping consistency by consolidating to single mapping table, eliminating duplicate definitions
 - **Real ESA Satellite Data Integration v2.7**: Implemented direct GeoTIFF pixel extraction from OpenLandMap Cloud Optimized GeoTIFF files using HTTP range requests for authentic ESA CCI land cover data
