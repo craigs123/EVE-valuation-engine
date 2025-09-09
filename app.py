@@ -1053,35 +1053,54 @@ with st.sidebar:
             st.caption("Select an area to see sampling estimation")
     
     # Ecosystem Intactness Settings (expandable)
-    with st.expander("🌿 **Ecosystem Intactness**"):
-        intactness_percentage = st.slider(
-            "Ecosystem Intactness (%)",
-            min_value=0,
-            max_value=100,
-            value=st.session_state.get('intactness_percentage', 100),
-            step=5,
-            help="Assess ecosystem condition: 100% = totally intact ecosystem, 50% = moderately degraded, 0% = totally unproductive ecosystem."
-        )
-        st.session_state.intactness_percentage = intactness_percentage
+    with st.expander("🌿 **Ecosystem Intactness by Type**"):
+        st.markdown("**Set intactness level for each ecosystem type:**")
+        st.caption("Assess ecosystem condition: 100% = totally intact, 50% = moderately degraded, 0% = totally unproductive")
         
-        # Convert percentage to multiplier for calculations (0% = 0.0x, 100% = 1.0x)
-        quality_factor = intactness_percentage / 100.0
-        st.session_state.quality_factor = quality_factor
+        # Define ecosystem types with their icons
+        ecosystem_types = {
+            'Agricultural': '🌾',
+            'Forest': '🌲', 
+            'Grassland': '🌱',
+            'Desert': '🏜️',
+            'Wetland': '🌿',
+            'Coastal': '🏖️',
+            'Marine': '🌊'
+        }
         
-        # Intactness explanation
-        if intactness_percentage <= 20:
-            st.caption("🔴 Severely degraded ecosystem (0-20%)")
-        elif intactness_percentage <= 40:
-            st.caption("🟠 Poor ecosystem condition (21-40%)")
-        elif intactness_percentage <= 60:
-            st.caption("🟡 Moderate ecosystem health (41-60%)")
-        elif intactness_percentage <= 80:
-            st.caption("🟢 Good ecosystem condition (61-80%)")
-        else:
-            st.caption("💚 Excellent ecosystem intactness (81-100%)")
+        # Initialize ecosystem intactness in session state if not exists
+        if 'ecosystem_intactness' not in st.session_state:
+            st.session_state.ecosystem_intactness = {eco_type: 100 for eco_type in ecosystem_types.keys()}
         
-        # Show the multiplier for transparency
-        st.caption(f"📊 Calculation multiplier: {quality_factor:.2f}x")
+        # Create sliders for each ecosystem type
+        for eco_type, icon in ecosystem_types.items():
+            current_value = st.session_state.ecosystem_intactness.get(eco_type, 100)
+            intactness_value = st.slider(
+                f"{icon} {eco_type} Intactness (%)",
+                min_value=0,
+                max_value=100,
+                value=current_value,
+                step=5,
+                key=f"intactness_{eco_type}",
+                help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded"
+            )
+            st.session_state.ecosystem_intactness[eco_type] = intactness_value
+        
+        # Show summary of current settings
+        st.markdown("**Current Multipliers:**")
+        multiplier_text = []
+        for eco_type, icon in ecosystem_types.items():
+            percentage = st.session_state.ecosystem_intactness[eco_type]
+            multiplier = percentage / 100.0
+            multiplier_text.append(f"{icon} {eco_type}: {multiplier:.2f}x")
+        
+        # Display in two columns for better organization
+        col1, col2 = st.columns(2)
+        for i, text in enumerate(multiplier_text):
+            if i % 2 == 0:
+                col1.caption(text)
+            else:
+                col2.caption(text)
     
 
     
@@ -2639,13 +2658,17 @@ if st.session_state.get('analysis_results'):
                     category_sum = sum(category_totals.values())
                     
                     # Check if there's a difference between category sum and actual total (indicating quality factor was applied)
-                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Forest')
+                    user_quality_factor = ecosystem_intactness.get(ecosystem_type_for_calc, 100) / 100.0
                     
                     st.markdown(f"\n**📊 Complete Calculation Flow:**")
                     
                     # Get the regional factor for proper breakdown
                     regional_factor = results.get('regional_adjustment_factor', 1.0)
-                    user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Forest')
+                    user_quality_factor = ecosystem_intactness.get(ecosystem_type_for_calc, 100) / 100.0
                     
                     # Calculate the correct step-by-step breakdown
                     # Note: The ESVD results already include regional adjustment, so we need to work backwards
@@ -3222,9 +3245,10 @@ if analyze_button and st.session_state.selected_area:
                         coordinates=(center_lat, center_lon)
                     )
                     
-                    # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
-                    user_quality_factor = st.session_state.get('quality_factor', 1.0)  # Default to 100% intactness
-                    eco_result['total_value'] = eco_result['total_value'] * user_quality_factor
+                    # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
+                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                    eco_type_multiplier = ecosystem_intactness.get(ecosystem_type, 100) / 100.0
+                    eco_result['total_value'] = eco_result['total_value'] * eco_type_multiplier
                     
                     # Apply ESA land cover code specific multiplier if available
                     if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
@@ -3294,10 +3318,12 @@ if analyze_button and st.session_state.selected_area:
                 )
                 
                 
-                # Apply ecosystem intactness factor (regional adjustment already applied in ESVD calculation)
-                user_quality_factor = st.session_state.get('quality_factor', 1.0)
+                # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
+                ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                ecosystem_type_for_multiplier = esvd_results.get('ecosystem_type', final_ecosystem_type)
+                user_quality_factor = ecosystem_intactness.get(ecosystem_type_for_multiplier, 100) / 100.0
                 
-                # Apply user intactness factor
+                # Apply ecosystem-specific intactness factor
                 esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
                 esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor

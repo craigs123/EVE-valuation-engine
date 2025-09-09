@@ -35,7 +35,8 @@ class EcosystemServicesCalculator:
         }
     
     def calculate_ecosystem_services_value(self, satellite_data: Dict, area_bounds: Dict, 
-                                         ecosystem_type: str = "forest", quality_factor: float = 1.0) -> Dict[str, Any]:
+                                         ecosystem_type: str = "forest", quality_factor: float = 1.0, 
+                                         ecosystem_intactness: Dict[str, float] = None) -> Dict[str, Any]:
         """
         Calculate total ecosystem services value using ESVD coefficients and track changes over time
         
@@ -79,7 +80,7 @@ class EcosystemServicesCalculator:
                 multi_detection = satellite_data.get('multi_ecosystem_detection', {})
                 if multi_detection.get('diversity_index', 1) > 1:
                     # Multiple ecosystems detected - use multi-ecosystem calculation
-                    return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection, quality_factor)
+                    return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection, quality_factor, ecosystem_intactness)
                 else:
                     # Single ecosystem - use primary detected type
                     ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
@@ -102,9 +103,13 @@ class EcosystemServicesCalculator:
             total_values = []
             
             for data_point in time_series:
-                # Use user-defined quality factor instead of calculating from satellite data
-                quality_multiplier = quality_factor
-                quality = "user_defined"  # No longer calculated
+                # Use ecosystem-specific quality factor if available, otherwise fallback to quality_factor
+                if ecosystem_intactness and ecosystem_type in ecosystem_intactness:
+                    quality_multiplier = ecosystem_intactness[ecosystem_type] / 100.0
+                    quality = f"ecosystem_specific_{ecosystem_type}"
+                else:
+                    quality_multiplier = quality_factor
+                    quality = "user_defined"  # Fallback to single quality factor
                 
                 # Apply ESVD values with quality adjustments
                 provisioning_value = self._apply_esvd_values(
@@ -192,7 +197,8 @@ class EcosystemServicesCalculator:
 
     
     def _calculate_multi_ecosystem_values(self, satellite_data: Dict, area_bounds: Dict, 
-                                        multi_detection: Dict, quality_factor: float = 1.0) -> Dict[str, Any]:
+                                        multi_detection: Dict, quality_factor: float = 1.0,
+                                        ecosystem_intactness: Dict[str, float] = None) -> Dict[str, Any]:
         """
         Calculate ecosystem services values for areas with multiple ecosystem types
         
@@ -253,9 +259,13 @@ class EcosystemServicesCalculator:
                 ecosystem_values = []
                 
                 for i, data_point in enumerate(time_series):
-                    # Use user-defined quality factor
-                    quality_multiplier = quality_factor
-                    quality = "user_defined"  # No longer calculated
+                    # Use ecosystem-specific quality factor if available, otherwise fallback to quality_factor
+                    if ecosystem_intactness and ecosystem_type in ecosystem_intactness:
+                        quality_multiplier = ecosystem_intactness[ecosystem_type] / 100.0
+                        quality = f"ecosystem_specific_{ecosystem_type}"
+                    else:
+                        quality_multiplier = quality_factor
+                        quality = "user_defined"  # Fallback
                     
                     # Apply ESVD values with quality adjustments
                     provisioning_value = self._apply_esvd_values(
@@ -782,7 +792,8 @@ def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> 
 
 def get_ecosystem_service_values(ecosystem_type: str, coordinates: List, 
                                start_date: datetime, end_date: datetime,
-                               num_samples: int = 10) -> Dict[str, Any]:
+                               num_samples: int = 10, quality_factor: float = 1.0,
+                               ecosystem_intactness: Dict[str, float] = None) -> Dict[str, Any]:
     """
     Get ecosystem service values for a given area and time period
     """
@@ -801,7 +812,7 @@ def get_ecosystem_service_values(ecosystem_type: str, coordinates: List,
         
         # Calculate ecosystem services
         results = calculator.calculate_ecosystem_services_value(
-            satellite_data, area_bounds, ecosystem_type
+            satellite_data, area_bounds, ecosystem_type, quality_factor, ecosystem_intactness
         )
         
         return results
