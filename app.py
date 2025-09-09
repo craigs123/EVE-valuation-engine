@@ -754,6 +754,34 @@ def display_data_source_status(analysis_results: Dict = None):
                         if percentage >= 1.0:  # Apply same 1% threshold as Mixed Ecosystem Composition
                             st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
                     
+                    # Count countries from sample points
+                    country_counts = {}
+                    for point_data in sampling_point_data.values():
+                        coords = point_data.get('coordinates', {})
+                        if coords and isinstance(coords, dict):
+                            lat = coords.get('lat', 0)
+                            lon = coords.get('lon', 0)
+                            if lat != 0 or lon != 0:  # Valid coordinates
+                                country = get_country_from_coordinates(lat, lon)
+                                country_counts[country] = country_counts.get(country, 0) + 1
+                    
+                    # Display predominant country information
+                    if country_counts:
+                        st.markdown("**Geographic Distribution (from Sample Points):**")
+                        # Sort by count (descending) to show predominant country first
+                        for country, count in sorted(country_counts.items(), key=lambda x: x[1], reverse=True):
+                            percentage = (count / len(sampling_point_data)) * 100
+                            if percentage >= 5.0:  # Only show countries with 5%+ representation
+                                st.write(f"• **{country}**: {percentage:.1f}% ({count} points)")
+                        
+                        # Show predominant country
+                        predominant_country = max(country_counts.items(), key=lambda x: x[1])
+                        if predominant_country[1] > len(sampling_point_data) * 0.5:  # Majority (>50%)
+                            st.info(f"🌍 **Predominant Country**: {predominant_country[0]} ({predominant_country[1]}/{len(sampling_point_data)} points)")
+                        else:
+                            st.info(f"🌍 **Most Common Country**: {predominant_country[0]} ({predominant_country[1]}/{len(sampling_point_data)} points)")
+                    
+                    
                     # Show raw ESA codes in expandable section for transparency
                     with st.expander("🔍 Raw ESA Code Breakdown"):
                         for code, count in sorted(code_counts.items()):
