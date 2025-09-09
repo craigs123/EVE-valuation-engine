@@ -2476,6 +2476,7 @@ if st.session_state.get('analysis_results'):
     
     # Also check sampling point data for real satellite data indicators
     has_real_results_data = False
+    results = st.session_state.get('analysis_results', {})
     if results and results.get('sampling_point_data'):
         for point_data in results.get('sampling_point_data', {}).values():
             source = point_data.get('source', '')
