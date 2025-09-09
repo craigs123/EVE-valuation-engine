@@ -431,6 +431,93 @@ def preload_openlandmap_status():
             'error': str(e)
         }
 
+def get_country_from_coordinates(lat: float, lon: float) -> str:
+    """
+    Determine country from latitude/longitude coordinates
+    Uses simplified coordinate ranges for major countries
+    """
+    try:
+        # North America
+        if 49.0 <= lat <= 71.0 and -141.0 <= lon <= -52.0:
+            return "Canada"
+        elif 25.0 <= lat <= 49.0 and -125.0 <= lon <= -66.0:
+            return "United States"
+        elif 14.0 <= lat <= 33.0 and -118.0 <= lon <= -86.0:
+            return "Mexico"
+        
+        # Europe
+        elif 35.0 <= lat <= 71.0 and -10.0 <= lon <= 40.0:
+            if 54.0 <= lat <= 61.0 and -8.0 <= lon <= 2.0:
+                return "United Kingdom"
+            elif 41.0 <= lat <= 51.5 and -5.0 <= lon <= 9.0:
+                return "France"
+            elif 47.0 <= lat <= 55.0 and 5.0 <= lon <= 15.0:
+                return "Germany"
+            elif 36.0 <= lat <= 47.0 and 6.0 <= lon <= 19.0:
+                return "Italy"
+            elif 35.0 <= lat <= 44.0 and -9.5 <= lon <= -6.0:
+                return "Spain"
+            elif 55.0 <= lat <= 69.0 and 4.0 <= lon <= 31.0:
+                return "Sweden/Norway"
+            else:
+                return "Europe"
+        
+        # Asia
+        elif 8.0 <= lat <= 54.0 and 68.0 <= lon <= 180.0:
+            if 20.0 <= lat <= 54.0 and 73.0 <= lon <= 135.0:
+                return "China"
+            elif 20.0 <= lat <= 46.0 and 122.0 <= lon <= 146.0:
+                return "Japan"
+            elif 33.0 <= lat <= 43.0 and 124.0 <= lon <= 132.0:
+                return "South Korea"
+            elif 8.0 <= lat <= 37.0 and 68.0 <= lon <= 97.0:
+                return "India"
+            else:
+                return "Asia"
+        
+        # Russia (spans continents)
+        elif 41.0 <= lat <= 82.0 and 19.0 <= lon <= 180.0:
+            return "Russia"
+        elif 41.0 <= lat <= 82.0 and -180.0 <= lon <= -129.0:
+            return "Russia"
+        
+        # South America
+        elif -56.0 <= lat <= 13.0 and -82.0 <= lon <= -34.0:
+            if -55.0 <= lat <= 13.0 and -74.0 <= lon <= -34.0:
+                return "Brazil"
+            elif -55.0 <= lat <= -22.0 and -74.0 <= lon <= -53.0:
+                return "Argentina"
+            else:
+                return "South America"
+        
+        # Africa
+        elif -35.0 <= lat <= 37.0 and -18.0 <= lon <= 52.0:
+            if -35.0 <= lat <= -22.0 and 16.0 <= lon <= 33.0:
+                return "South Africa"
+            elif 22.0 <= lat <= 32.0 and 25.0 <= lon <= 37.0:
+                return "Egypt"
+            else:
+                return "Africa"
+        
+        # Australia/Oceania
+        elif -44.0 <= lat <= -10.0 and 112.0 <= lon <= 154.0:
+            return "Australia"
+        elif -47.0 <= lat <= -34.0 and 166.0 <= lon <= 179.0:
+            return "New Zealand"
+        
+        # Oceanic regions
+        elif -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+            # Check if it's over water (rough approximation)
+            if abs(lat) > 60:
+                return "Polar Region"
+            else:
+                return "Oceanic/International Waters"
+        
+        return "Unknown"
+        
+    except Exception as e:
+        return "Unknown"
+
 def display_data_source_status(analysis_results: Dict = None):
     """Display clear indicators of which data source is being used"""
     openlandmap_status = preload_openlandmap_status()
@@ -513,6 +600,14 @@ def display_data_source_status(analysis_results: Dict = None):
                         
                         data_source = point_data.get('source', 'Unknown')
                         
+                        # Get country from coordinates
+                        country = "N/A"
+                        if coords and isinstance(coords, dict):
+                            lat = coords.get('lat', 0)
+                            lon = coords.get('lon', 0)
+                            if lat != 0 or lon != 0:  # Valid coordinates
+                                country = get_country_from_coordinates(lat, lon)
+                        
                         # Add indicator for user-classified water bodies
                         if landcover_code == 210 and point_data.get('user_classified', False):
                             esvd_ecosystem += " (User classified)"
@@ -523,6 +618,7 @@ def display_data_source_status(analysis_results: Dict = None):
                             "ESA Level 1": openlandmap_description,
                             "ESVD Ecosystem": esvd_ecosystem,
                             "Coordinates": coord_str,
+                            "Country": country,
                             "Data Source": data_source
                         })
                     
@@ -543,11 +639,12 @@ def display_data_source_status(analysis_results: Dict = None):
                         stac_data = point_data.get('stac_data', {})
                         raw_stac_data = point_data.get('raw_stac_data', {})
                         
-                        # Get coordinates
+                        # Get coordinates and country
                         coords = point_data.get('coordinates', {})
                         if coords:
                             lat, lon = coords.get('lat', 0), coords.get('lon', 0)
                             env_row['Coordinates'] = f"{lat:.4f}, {lon:.4f}"
+                            env_row['Country'] = get_country_from_coordinates(lat, lon)
                         
                         # Check if we have actual STAC environmental data
                         if stac_data and isinstance(stac_data, dict):
