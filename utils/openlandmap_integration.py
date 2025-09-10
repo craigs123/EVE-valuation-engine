@@ -933,6 +933,17 @@ class OpenLandMapIntegrator:
                                 'raw_stac_data': result.get('raw_stac_data', {})  # CRITICAL FIX: Include raw STAC data for UI display
                             })
                             successful_queries += 1
+                    
+                    # Extract environmental indicators for the first successful point to populate Environmental Indicators Table
+                    if successful_queries > 0 and sample_points:
+                        print("🔍 ENVIRONMENTAL: Adding environmental indicators from first sample point")
+                        first_point = sample_points[0]
+                        environmental_data = self.get_comprehensive_environmental_data(first_point[0], first_point[1])
+                        if environmental_data and environmental_data.get('stac_data'):
+                            print(f"🔍 ENVIRONMENTAL: Successfully extracted environmental data with {len(environmental_data['stac_data'])} categories")
+                            # Add environmental data to the first result for UI display
+                            if ecosystem_results:
+                                ecosystem_results[0]['stac_data'] = environmental_data['stac_data']
                         
                         # Update progress if callback provided
                         if progress_callback:
