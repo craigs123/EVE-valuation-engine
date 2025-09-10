@@ -26,6 +26,14 @@ class OpenLandMapSTAC:
         self.stac_base_url = "https://s3.eu-central-1.wasabisys.com/stac/openlandmap"
         self.raw_values_endpoint = "/api/raw-values"  # For numerical land mask values
         
+        # Connection pooling: persistent HTTP session
+        self._session = None
+        self._session_connector = None
+        
+        # Caching
+        self._collection_cache = {}  # Cache collection metadata
+        self._asset_url_cache = {}   # Cache GeoTIFF asset URLs
+        
         # Define key STAC collections for comprehensive environmental data
         self.collections = [
             {
@@ -59,6 +67,14 @@ class OpenLandMapSTAC:
                 "unit": "meters"
             }
         ]
+        
+        # Only landcover collection for ecosystem detection (optimization)
+        self.landcover_collection = {
+            "id": "land.cover_esacci.lc.l4", 
+            "name": "Land Cover",
+            "category": "landcover",
+            "unit": "class"
+        }
         
         # Complete ESA CCI Land Cover (Level 1 & 2) to ESVD ecosystem coefficient mapping
         # Handles both Level 1 and Level 2 codes from ESA CCI Level 4 data
@@ -112,26 +128,72 @@ class OpenLandMapSTAC:
             "desert": [(-30, -20), (20, 30)] # Desert belts
         }
     
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create persistent HTTP session with connection pooling"""
+        if self._session is None or self._session.closed:
+            # Create connector with connection pooling
+            self._session_connector = aiohttp.TCPConnector(
+                limit=10,  # Total connection pool size
+                limit_per_host=5,  # Max connections per host
+                ttl_dns_cache=300,  # DNS cache TTL
+                use_dns_cache=True,
+                keepalive_timeout=30,
+                enable_cleanup_closed=True
+            )
+            
+            # Create session with timeout
+            timeout = aiohttp.ClientTimeout(total=30, connect=10)
+            self._session = aiohttp.ClientSession(
+                connector=self._session_connector,
+                timeout=timeout
+            )
+        return self._session
+    
+    async def close_session(self):
+        """Close the persistent HTTP session"""
+        if self._session and not self._session.closed:
+            await self._session.close()
+        if self._session_connector:
+            await self._session_connector.close()
+    
+    def __del__(self):
+        """Cleanup session on destruction"""
+        if self._session and not self._session.closed:
+            try:
+                import asyncio
+                asyncio.create_task(self.close_session())
+            except:
+                pass
+    
     async def query_stac_collections(self, lat: float, lon: float) -> Optional[List[Dict]]:
         """
         Query multiple OpenLandMap STAC collections for environmental data
         """
         results = []
         
-        async with aiohttp.ClientSession() as session:
-            tasks = []
-            for collection in self.collections:
-                task = self._query_single_collection(session, collection, lat, lon)
-                tasks.append(task)
-            
-            # Execute all queries in parallel
-            collection_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for collection, result in zip(self.collections, collection_results):
-                if isinstance(result, dict):
-                    results.append(result)
+        # Use persistent session instead of creating new one
+        session = await self._get_session()
+        
+        tasks = []
+        for collection in self.collections:
+            task = self._query_single_collection(session, collection, lat, lon)
+            tasks.append(task)
+        
+        # Execute all queries in parallel
+        collection_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for collection, result in zip(self.collections, collection_results):
+            if isinstance(result, dict):
+                results.append(result)
         
         return results if results else None
+
+    async def query_landcover_only(self, lat: float, lon: float) -> Optional[Dict]:
+        """
+        Optimized method to query only landcover collection for ecosystem detection
+        """
+        session = await self._get_session()
+        return await self._query_single_collection(session, self.landcover_collection, lat, lon)
     
     async def _query_single_collection(self, session: aiohttp.ClientSession, 
                                      collection: Dict, lat: float, lon: float) -> Optional[Dict]:
@@ -262,11 +324,65 @@ class OpenLandMapSTAC:
         except Exception as e:
             print(f"❌ GeoTIFF extraction failed for {asset_url}: {e}")
             return None
+
+    def extract_batch_pixel_values(self, asset_url: str, coordinates: List[tuple]) -> List[Optional[float]]:
+        """
+        Batch extract pixel values from Cloud Optimized GeoTIFF for multiple coordinates
+        Opens the file once and samples all coordinates efficiently
+        Returns list of pixel values in same order as input coordinates
+        """
+        try:
+            # Open COG directly from HTTP URL once
+            with rasterio.open(asset_url) as dataset:
+                # Get geographic bounds
+                bounds = dataset.bounds
+                width, height = dataset.width, dataset.height
+                
+                # Filter coordinates that are within bounds
+                valid_coords = []
+                coord_indices = []
+                
+                for i, (lat, lon) in enumerate(coordinates):
+                    if (bounds.left <= lon <= bounds.right and 
+                        bounds.bottom <= lat <= bounds.top):
+                        valid_coords.append((lon, lat))  # Note: rasterio expects (x, y) = (lon, lat)
+                        coord_indices.append(i)
+                
+                if not valid_coords:
+                    print(f"🌍 No coordinates within data coverage for {asset_url}")
+                    return [None] * len(coordinates)
+                
+                # Use rasterio.sample for efficient batch sampling
+                pixel_values = [None] * len(coordinates)
+                sampled_values = list(dataset.sample(valid_coords))
+                
+                # Map sampled values back to original coordinate order
+                for coord_idx, sampled_value in zip(coord_indices, sampled_values):
+                    if len(sampled_value) > 0:
+                        value = sampled_value[0]  # First band
+                        # Handle NoData values
+                        if dataset.nodata is not None and value == dataset.nodata:
+                            pixel_values[coord_idx] = None
+                        else:
+                            pixel_values[coord_idx] = float(value)
+                    else:
+                        pixel_values[coord_idx] = None
+                
+                print(f"✅ BATCH EXTRACTED: {len([v for v in pixel_values if v is not None])}/{len(coordinates)} pixels from COG")
+                return pixel_values
+                
+        except Exception as e:
+            print(f"❌ Batch GeoTIFF extraction failed for {asset_url}: {e}")
+            return [None] * len(coordinates)
     
     def get_stac_asset_url(self, collection_id: str) -> Optional[str]:
         """
-        Get GeoTIFF asset URL from STAC catalog
+        Get GeoTIFF asset URL from STAC catalog with caching
         """
+        # Check cache first
+        if collection_id in self._asset_url_cache:
+            return self._asset_url_cache[collection_id]
+        
         try:
             # Try multiple approaches to find the asset URL
             asset_url_attempts = [
@@ -315,6 +431,8 @@ class OpenLandMapSTAC:
                                             asset_key in ['data', 'main', 'cog', 'asset']):
                                             asset_url = asset['href']
                                             print(f"✅ Found GeoTIFF asset: {asset_url}")
+                                            # Cache the asset URL
+                                            self._asset_url_cache[collection_id] = asset_url
                                             return asset_url
             
             # If STAC catalog fails, try known asset URLs directly
@@ -325,6 +443,8 @@ class OpenLandMapSTAC:
                     test_response = requests.head(asset_url, timeout=5)
                     if test_response.status_code == 200:
                         print(f"✅ Found working asset URL: {asset_url}")
+                        # Cache the asset URL
+                        self._asset_url_cache[collection_id] = asset_url
                         return asset_url
                     else:
                         print(f"❌ Asset URL not accessible ({test_response.status_code}): {asset_url}")
