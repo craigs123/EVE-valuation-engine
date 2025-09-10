@@ -3447,7 +3447,7 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
                 ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                ecosystem_type_for_multiplier = esvd_results.get('ecosystem_type', final_ecosystem_type)
+                ecosystem_type_for_multiplier = esvd_results.get('ecosystem_type', ecosystem_type)
                 user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_multiplier, ecosystem_intactness)
                 
                 # Apply ecosystem-specific intactness factor
