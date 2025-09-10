@@ -880,10 +880,12 @@ class OpenLandMapSTAC:
             if asset_url:
                 # Batch extract pixel values for all coordinates
                 pixel_values = self.extract_batch_pixel_values(asset_url, coordinates)
+                print(f"🔍 BATCH DEBUG: Got {len(pixel_values)} pixel values: {pixel_values}")
                 
                 # Process each coordinate and its corresponding pixel value
                 for i, (lat, lon) in enumerate(coordinates):
                     pixel_value = pixel_values[i]
+                    print(f"🔍 BATCH DEBUG: Processing point {i}, pixel_value={pixel_value}")
                     
                     if pixel_value is not None:
                         # Convert to integer land cover code
