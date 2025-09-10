@@ -934,16 +934,21 @@ class OpenLandMapIntegrator:
                             })
                             successful_queries += 1
                     
-                    # Extract environmental indicators for the first successful point only to avoid overwhelming async system
+                    # CRITICAL FIX: Extract environmental indicators for each sample point individually
+                    # Environmental conditions (vegetation, elevation, soil) vary significantly across locations
                     if successful_queries > 0 and sample_points:
-                        print("🔍 ENVIRONMENTAL: Adding environmental indicators from first sample point")
-                        first_point = sample_points[0]
-                        environmental_data = self.get_comprehensive_environmental_data(first_point[0], first_point[1])
-                        if environmental_data and environmental_data.get('stac_data'):
-                            print(f"🔍 ENVIRONMENTAL: Successfully extracted environmental data with {len(environmental_data['stac_data'])} categories")
-                            # Add environmental data to all results for UI display (same environmental conditions apply to the area)
-                            for ecosystem_result in ecosystem_results:
-                                ecosystem_result['stac_data'] = environmental_data['stac_data']
+                        print("🔍 ENVIRONMENTAL: Extracting environmental indicators for each sample point individually")
+                        for i, ecosystem_result in enumerate(ecosystem_results):
+                            if i < len(sample_points):
+                                lat, lon = sample_points[i]
+                                print(f"🔍 ENVIRONMENTAL: Processing point {i+1}/{len(ecosystem_results)} at ({lat:.4f}, {lon:.4f})")
+                                environmental_data = self.get_comprehensive_environmental_data(lat, lon)
+                                if environmental_data and environmental_data.get('stac_data'):
+                                    ecosystem_result['stac_data'] = environmental_data['stac_data']
+                                    print(f"🔍 ENVIRONMENTAL: Point {i+1} - extracted {len(environmental_data['stac_data'])} environmental indicators")
+                                else:
+                                    print(f"🔍 ENVIRONMENTAL: Point {i+1} - no environmental data available")
+                        print(f"🔍 ENVIRONMENTAL: Completed individual extraction for {len(ecosystem_results)} points")
                         
                         # Update progress if callback provided
                         if progress_callback:
