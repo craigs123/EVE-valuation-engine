@@ -123,8 +123,15 @@ st.markdown("""
         .header-container {
             width: 100%;
             height: 200px;
-            background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCACWAyADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDlKKKK+XPjQooooAKKKKALFv8AcP1qSo7f7h+tSV69D+GikFFFFbAFFFFAENx/DUNTXH8NQ15OJ/islhRRRWABRRRQA5Pvr9atVVT76/WrVehg/hY0FFFFdowooooAKp1cqnXBjfs/MTCiiiuEQUUUUAFWLf7h+tV6sW/3D9a6cJ/EBElFFFeoUFFFFABUNx/DU1Q3H8Nc+J/hMTIaKKK8oQUUUUAFOT76/Wm05Pvr9aqHxIC1RRRXtlBRRRQAUUUUAU6KKK8IkKKKKACiiigCxb/cP1qSo7f7h+tSV69D+GikFFFFbAFFFFAENx/DUNTXH8NQ15OJ/islhRRRWABRRRQA5Pvr9atVVT76/WrVehg/hY0FFFFdowooooAKp1cqnXBjfs/MTCiiiuEQUUUUAFWLf7h+tV6sW/3D9a6cJ/EBElFFFeoUFFFFABUNx/DU1Q3H8Nc+J/hMTIaKKK8oQUUUUAFOT76/Wm05Pvr9aqHxIC1RRRXtlBRRRQAUUUUAU6KKK8IkKKKKACiiigCxb/cP1qSo7f7h+tSV69D+GikFFFFbAFFFFAENx/DUNTXH8NQ15OJ/islhRRRWABRRRQA5Pvr9atVVT76/WrVehg/hY0FFFFdowooooAKp1cqnXBjfs/MTCiiiuEQUUUUAFWLf7h+tV6sW/wBw/WunCfxARJRRRXqFBRRRQAVDcfw1NUNx/DXPif4TEyGiiivKEFFFFABTk++v1ptOT76/Wqh8SAtUUUV7ZQUUUUAFFFFAFOiiivCJCiiigAooooAsW/3D9akqO3+4frUlevQ/hopBRRRWwBRRRQBDcfw1DU1x/DUNeTif4rJYUUUVgAUUUUAOT76/WrVVU++v1q1XoYP4WNBRRRXaMKKKKACqdXKp1wY37PzEwooorhEFFFFABVi3+4frVerFv9w/WunCfxARJRRRXqFBRRRQAVDcfw1NUNx/DXPif4TEyGiiivKEFFFFABTk++v1ptOT76/Wqh8SAtUUUV7ZQUUUUAFFFFAFOiiivCJCiiigAooooAsW/wBw/WpKjt/uH61JXr0P4aKQUUUVsAUUUUAQ3H8NQ1Ncfw1DXk4n+KyWFFFFYAFFFFADk++v1q1VVPvr9atV6GD+FjQUUUV2jCiii...
-     2→');
+            background: linear-gradient(135deg, 
+                        #1b5e20 0%, 
+                        #2e7d32 25%, 
+                        #388e3c 50%, 
+                        #4caf50 75%, 
+                        #66bb6a 100%),
+                    radial-gradient(circle at 20% 80%, rgba(0, 188, 212, 0.3), transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(0, 150, 136, 0.2), transparent 60%),
+                    radial-gradient(circle at 40% 40%, rgba(76, 175, 80, 0.1), transparent 70%);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
