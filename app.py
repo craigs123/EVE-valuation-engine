@@ -2157,11 +2157,9 @@ col_layer1, col_layer2 = st.columns([1, 2])
 with col_layer1:
     map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
 with col_layer2:
-    st.info("💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above.")
-
-# Performance-optimized sampling display  
-current_limit = st.session_state.get('max_sampling_limit', 9)
-st.markdown(f'<p style="font-size: 0.8em; color: #666;">Sampling: {current_limit} points</p>', unsafe_allow_html=True)
+    # Performance-optimized sampling display  
+    current_limit = st.session_state.get('max_sampling_limit', 9)
+    st.info(f"💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above. Analysis uses {current_limit} sampling points.")
 
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
