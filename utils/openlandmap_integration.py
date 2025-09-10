@@ -68,6 +68,8 @@ class OpenLandMapIntegrator:
         try:
             from .openlandmap_stac_api import openlandmap_stac
             
+            print(f"🔍 ENVIRONMENTAL DEBUG: Starting comprehensive data extraction for ({lat:.4f}, {lon:.4f})")
+            
             # Extract data from all environmental collections
             environmental_data = {}
             
@@ -75,22 +77,29 @@ class OpenLandMapIntegrator:
             stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
             if stac_result and stac_result.get('ecosystem_type'):
                 environmental_data.update(stac_result)
+                print(f"🔍 ENVIRONMENTAL DEBUG: Got land cover result: {stac_result.get('ecosystem_type')}")
             
             # Get comprehensive environmental indicators from all collections
+            print(f"🔍 ENVIRONMENTAL DEBUG: Processing {len(openlandmap_stac.collections)} collections")
             for collection in openlandmap_stac.collections:
                 collection_id = collection['id']
                 collection_name = collection['name']
                 collection_category = collection['category']
                 collection_unit = collection['unit']
                 
+                print(f"🔍 ENVIRONMENTAL DEBUG: Processing collection {collection_id} ({collection_name})")
+                
                 # Skip land cover as we already have it
                 if collection_category == 'landcover':
+                    print(f"🔍 ENVIRONMENTAL DEBUG: Skipping land cover collection {collection_id}")
                     continue
                     
                 try:
                     # Get asset URL for this collection
+                    print(f"🔍 ENVIRONMENTAL DEBUG: Getting asset URL for {collection_id}")
                     asset_url = openlandmap_stac.get_stac_asset_url(collection_id)
                     if asset_url:
+                        print(f"🔍 ENVIRONMENTAL DEBUG: Found asset URL for {collection_id}: {asset_url[:100]}...")
                         # Extract pixel value from this collection
                         pixel_value = openlandmap_stac.extract_pixel_value(asset_url, lat, lon)
                         if pixel_value is not None:
@@ -108,7 +117,7 @@ class OpenLandMapIntegrator:
                                 'asset_url': asset_url
                             })
                             
-                            print(f"🌍 Extracted {collection_name}: {pixel_value} {collection_unit} from {collection_id}")
+                            print(f"🌍 EXTRACTED {collection_name}: {pixel_value} {collection_unit} from {collection_id}")
                         else:
                             print(f"⚠️ No pixel value extracted for {collection_name} at ({lat:.4f}, {lon:.4f})")
                     else:
@@ -116,10 +125,16 @@ class OpenLandMapIntegrator:
                 except Exception as e:
                     print(f"❌ Failed to extract data from {collection_name}: {e}")
             
+            print(f"🔍 ENVIRONMENTAL DEBUG: Final environmental_data keys: {list(environmental_data.keys())}")
+            if 'stac_data' in environmental_data:
+                print(f"🔍 ENVIRONMENTAL DEBUG: stac_data categories: {list(environmental_data['stac_data'].keys())}")
+            
             return environmental_data if environmental_data else None
             
         except Exception as e:
             print(f"❌ Comprehensive environmental data extraction failed: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
