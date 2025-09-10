@@ -939,7 +939,6 @@ def display_data_source_status(analysis_results: Dict = None):
                                         st.markdown("**🎯 Extracted Results:**")
                                         st.markdown(f"• **Landcover Code**: {point_data.get('landcover_class', 'N/A')}")
                                         st.markdown(f"• **Ecosystem Type**: {point_data.get('ecosystem_type', 'N/A')}")
-                                        st.markdown(f"• **Confidence**: {point_data.get('confidence', 0):.2f}")
                                         st.markdown(f"• **Source**: {point_data.get('source', 'N/A')}")
                                     
                                     with col2:
@@ -2993,7 +2992,7 @@ if st.session_state.get('analysis_results'):
             
             **4. Quality Assessment (OpenLandMap Detection)**
             - Quality multiplier: **{quality_factor:.2f}**
-            - Based on detection confidence and land cover accuracy
+            - Based on satellite data quality indicators
             
             **5. Final Calculation**
             ```
@@ -3034,7 +3033,7 @@ elif st.session_state.get('selected_area'):
                 primary_ecosystem = ecosystem_info['primary_ecosystem']
                 
                 # Show primary ecosystem
-                st.info(f"**Primary:** {primary_ecosystem} ({ecosystem_info['confidence']:.0%} confidence)")
+                st.info(f"**Primary:** {primary_ecosystem}")
                 
                 # Show composition if multiple ecosystems detected
                 if 'ecosystem_distribution' in ecosystem_info and len(ecosystem_info['ecosystem_distribution']) > 1:
@@ -3109,7 +3108,6 @@ if analyze_button and st.session_state.selected_area:
                     'detected_type': forest_type_mapping[ecosystem_type],
                     'climate_zone': ecosystem_type.replace(' Forest', ''),
                     'coordinates': None,  # Will be set later
-                    'confidence': 1.0,  # High confidence for manual selection
                     'selection_method': 'Manual'
                 }
                 ecosystem_type = forest_type_mapping[ecosystem_type]
@@ -3129,14 +3127,8 @@ if analyze_button and st.session_state.selected_area:
                 for point_data in sampling_point_data.values():
                     eco_type = point_data.get('ecosystem_type', 'Grassland')
                     if eco_type not in ecosystem_counts:
-                        ecosystem_counts[eco_type] = {'count': 0, 'confidence': 0}
+                        ecosystem_counts[eco_type] = {'count': 0}
                     ecosystem_counts[eco_type]['count'] += 1
-                    ecosystem_counts[eco_type]['confidence'] += point_data.get('confidence', 0.9)
-                
-                # Calculate averages
-                for eco_type in ecosystem_counts:
-                    count = ecosystem_counts[eco_type]['count']
-                    ecosystem_counts[eco_type]['confidence'] = ecosystem_counts[eco_type]['confidence'] / count
                 
                 primary_ecosystem = max(ecosystem_counts.items(), key=lambda x: x[1]['count'])[0]
                 
@@ -3365,7 +3357,7 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Show detection results with details
                     if ecosystem_info['successful_queries'] > 0:
-                        st.success(f"✅ **Primary: {ecosystem_type}** ({ecosystem_info['confidence']:.0%} confidence from {ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points)")
+                        st.success(f"✅ **Primary: {ecosystem_type}** ({ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points analyzed)")
                         
                         # Show ecosystem composition breakdown
                         if 'ecosystem_distribution' in ecosystem_info:
