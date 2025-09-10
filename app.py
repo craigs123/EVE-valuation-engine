@@ -3248,23 +3248,6 @@ if analyze_button and st.session_state.selected_area:
                                     simpson_index += proportion ** 2
                                 simpson_diversity = 1 - simpson_index
                                 
-                                # Display diversity metrics
-                                st.markdown(f"**📊 Ecosystem Diversity Metrics:**")
-                                st.markdown(f"   • **Number of ecosystem types**: {num_ecosystems}")
-                                st.markdown(f"   • **Shannon diversity index**: {shannon_diversity:.3f}")
-                                st.markdown(f"   • **Simpson diversity index**: {simpson_diversity:.3f}")
-                                
-                                # Interpret diversity levels
-                                if shannon_diversity > 1.5:
-                                    diversity_level = "Very High"
-                                elif shannon_diversity > 1.0:
-                                    diversity_level = "High" 
-                                elif shannon_diversity > 0.5:
-                                    diversity_level = "Moderate"
-                                else:
-                                    diversity_level = "Low"
-                                
-                                st.markdown(f"   • **Diversity level**: {diversity_level}")
                                 
                                 st.markdown("**🌍 Ecosystem Composition Breakdown:**")
                                 
