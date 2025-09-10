@@ -3249,21 +3249,6 @@ if analyze_button and st.session_state.selected_area:
                                 simpson_diversity = 1 - simpson_index
                                 
                                 
-                                st.markdown("**🌍 Ecosystem Composition Breakdown:**")
-                                
-                                # Create a more detailed breakdown with percentages (optimized)
-                                composition_lines = []
-                                for eco_type, data in ecosystem_distribution.items():
-                                    percentage = (data['count'] / total_samples) * 100
-                                    confidence_avg = data['confidence'] / data['count']
-                                    composition_lines.append(
-                                        f"   • **{eco_type}**: {percentage:.1f}% ({data['count']}/{total_samples} points, {confidence_avg:.0%} confidence)"
-                                    )
-                                
-                                # Display as pre-formatted text for better performance
-                                st.markdown('\n'.join(composition_lines))
-                                    
-                                st.caption(f"📊 **Analysis Method**: Grid sampling with {total_samples} points | **Source**: Geographic analysis | **Diversity Calculation**: Shannon & Simpson indices")
                             else:
                                 # Single ecosystem type
                                 percentage = (ecosystem_distribution[ecosystem_type]['count'] / total_samples) * 100
