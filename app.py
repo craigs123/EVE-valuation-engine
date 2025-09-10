@@ -2933,12 +2933,6 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Update progress container for detection phase
                     with analysis_progress_container.container():
-                        st.markdown("""
-                        <div class="modern-card">
-                            <h4>🔍 Ecosystem Detection in Progress</h4>
-                            <p>Analyzing satellite data to identify ecosystem types...</p>
-                        </div>
-                        """, unsafe_allow_html=True)
                         progress_text = st.empty()
                         progress_bar = st.progress(0)
                     
