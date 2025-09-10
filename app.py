@@ -767,85 +767,50 @@ def display_data_source_status(analysis_results: Dict = None):
                         ecosystem_type = point_data.get('ecosystem_type', 'Unknown')
                         landcover_code = point_data.get('landcover_class', 0)
                         
-                        # Vegetation Density Indicator
-                        vegetation_density = {
-                            'Forest': 'High (>80%)',
-                            'Boreal Forest': 'High (>75%)', 
-                            'Temperate Forest': 'High (>80%)',
-                            'Tropical Forest': 'Very High (>90%)',
-                            'Grassland': 'Medium (40-60%)',
-                            'Shrubland': 'Medium (30-50%)',
-                            'Cropland': 'Variable (20-70%)',
-                            'Agricultural': 'Variable (20-70%)',
-                            'Urban': 'Low (<20%)',
-                            'Desert': 'Very Low (<10%)',
-                            'Wetland': 'High (>70%)',
-                            'Coastal': 'Medium (30-60%)',
-                            'Marine': 'N/A',
-                            'Rivers and Lakes': 'N/A'
-                        }
-                        env_row['Vegetation Density'] = vegetation_density.get(ecosystem_type, 'N/A')
+                        # ESA CCI Land Cover Code (actual measured data)
+                        if landcover_code and landcover_code != 0:
+                            env_row['ESA CCI Code'] = int(landcover_code)
+                            
+                            # Map ESA code to land cover description
+                            from utils.esa_landcover_codes import get_esa_description
+                            try:
+                                esa_description = get_esa_description(landcover_code)
+                                if esa_description:
+                                    env_row['Land Cover Type'] = esa_description
+                            except:
+                                pass  # Skip if description not available
                         
-                        # Carbon Sequestration Potential
-                        carbon_seq = {
-                            'Forest': 'High',
-                            'Boreal Forest': 'High',
-                            'Temperate Forest': 'Very High',
-                            'Tropical Forest': 'Very High',
-                            'Grassland': 'Medium',
-                            'Shrubland': 'Low-Medium',
-                            'Cropland': 'Low',
-                            'Agricultural': 'Low',
-                            'Urban': 'Very Low',
-                            'Desert': 'Very Low',
-                            'Wetland': 'High',
-                            'Coastal': 'Medium',
-                            'Marine': 'High',
-                            'Rivers and Lakes': 'Medium'
-                        }
-                        env_row['Carbon Seq.'] = carbon_seq.get(ecosystem_type, 'N/A')
+                        # Calculate area diversity from actual ecosystem distribution
+                        if hasattr(st.session_state, 'detected_ecosystem') and 'ecosystem_distribution' in st.session_state.detected_ecosystem:
+                            ecosystem_dist = st.session_state.detected_ecosystem['ecosystem_distribution']
+                            if len(ecosystem_dist) > 1:
+                                # Calculate Simpson diversity index from real data
+                                total_samples = st.session_state.detected_ecosystem['successful_queries']
+                                simpson_index = 0
+                                for eco_type, data in ecosystem_dist.items():
+                                    proportion = data['count'] / total_samples
+                                    simpson_index += proportion ** 2
+                                simpson_diversity = 1 - simpson_index
+                                env_row['Area Diversity (Simpson)'] = f"{simpson_diversity:.3f}"
+                            else:
+                                env_row['Area Diversity (Simpson)'] = "0.000 (homogeneous)"
                         
-                        # Water Regulation Services
-                        water_reg = {
-                            'Forest': 'High',
-                            'Boreal Forest': 'High',
-                            'Temperate Forest': 'High',
-                            'Tropical Forest': 'Very High',
-                            'Grassland': 'Medium',
-                            'Shrubland': 'Low',
-                            'Cropland': 'Low',
-                            'Agricultural': 'Low',
-                            'Urban': 'Very Low',
-                            'Desert': 'Very Low',
-                            'Wetland': 'Very High',
-                            'Coastal': 'High',
-                            'Marine': 'N/A',
-                            'Rivers and Lakes': 'Very High'
-                        }
-                        env_row['Water Reg.'] = water_reg.get(ecosystem_type, 'N/A')
+                        # Show actual ecosystem classification from satellite data
+                        if ecosystem_type and ecosystem_type != 'Unknown':
+                            env_row['Ecosystem Type'] = ecosystem_type
                         
-                        # Biodiversity Support
-                        biodiversity = {
-                            'Forest': 'Excellent',
-                            'Boreal Forest': 'Excellent',
-                            'Temperate Forest': 'Excellent',
-                            'Tropical Forest': 'Exceptional',
-                            'Grassland': 'Good',
-                            'Shrubland': 'Good',
-                            'Cropland': 'Poor',
-                            'Agricultural': 'Poor',
-                            'Urban': 'Very Poor',
-                            'Desert': 'Moderate',
-                            'Wetland': 'Excellent',
-                            'Coastal': 'Very Good',
-                            'Marine': 'Very Good',
-                            'Rivers and Lakes': 'Good'
-                        }
-                        env_row['Biodiversity'] = biodiversity.get(ecosystem_type, 'N/A')
+                        # Show source attribution for transparency
+                        if data_source and data_source != 'Unknown':
+                            # Clean up data source for display
+                            if 'openlandmap' in data_source.lower():
+                                env_row['Data Source'] = 'OpenLandMap ESA CCI'
+                            elif 'esa' in data_source.lower() or 'satellite' in data_source.lower():
+                                env_row['Data Source'] = 'ESA Satellite Data'
+                            else:
+                                env_row['Data Source'] = data_source
                         
-                        # Add data source only
+                        # Get data source for processing (handled above in source attribution section)
                         data_source = point_data.get('source', 'Unknown')
-                        env_row['Data Source'] = data_source
                         
                         # Add raw STAC data to the table
                         raw_stac_data = point_data.get('raw_stac_data', {})

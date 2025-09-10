@@ -212,37 +212,27 @@ class OpenLandMapSTAC:
                         collection_data = await response.json()
                     
                     if collection_data.get('links'):
-                        # For land cover, extract real pixel data from GeoTIFF
-                        if collection['category'] == 'landcover':
-                            # Extract real pixel data from OpenLandMap GeoTIFF
-                            sample_value, data_source, raw_response = await self._extract_real_pixel_data(session, lat, lon, collection_data)
-                            
-                            # Only return data if we actually extracted a real pixel value
-                            if sample_value is not None:
-                                return {
-                                    "collection": collection["id"],
-                                    "name": collection["name"],
-                                    "category": collection["category"],
-                                    "value": sample_value,
-                                    "unit": collection["unit"],
-                                    "metadata": {
-                                        "title": collection_data.get("title", ""),
-                                        "description": collection_data.get("description", ""),
-                                        "license": collection_data.get("license", ""),
-                                        "source": data_source,
-                                        "raw_response": raw_response
-                                    }
+                        # Extract real pixel data from GeoTIFF for all collection types
+                        sample_value, data_source, raw_response = await self._extract_real_pixel_data(session, lat, lon, collection_data)
+                        
+                        # Only return data if we actually extracted a real pixel value
+                        if sample_value is not None:
+                            return {
+                                "collection": collection["id"],
+                                "name": collection["name"],
+                                "category": collection["category"],
+                                "value": sample_value,
+                                "unit": collection["unit"],
+                                "metadata": {
+                                    "title": collection_data.get("title", ""),
+                                    "description": collection_data.get("description", ""),
+                                    "license": collection_data.get("license", ""),
+                                    "source": data_source,
+                                    "raw_response": raw_response
                                 }
-                            else:
-                                print(f"🚫 No real pixel data available for land cover at ({lat}, {lon})")
-                                return None
-                        # No synthetic data generation for landmask - only return real STAC data
-                        elif collection['category'] == 'landmask':
-                            print(f"❌ No synthetic data generation for landmask category at ({lat}, {lon})")
-                            return None
-                        # No synthetic data generation for other categories - only return real STAC data  
+                            }
                         else:
-                            print(f"❌ No synthetic data generation for {collection['category']} category at ({lat}, {lon})")
+                            print(f"🚫 No real pixel data available for {collection['name']} at ({lat}, {lon})")
                             return None
             except Exception as e:
                 if attempt < max_retries - 1:
