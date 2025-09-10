@@ -2347,7 +2347,7 @@ if st.session_state.get('selected_area') and st.session_state.get('area_coordina
             display_coords = coords[:-1] if len(coords) > 1 else coords
             for i, coord in enumerate(display_coords[:50]):  # Limit to 50 points max
                 if len(coord) >= 2:
-                    st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {coord[0]:.6f}°E</small>", unsafe_allow_html=True)
+                    st.markdown(f"<small>Point {i+1}: {coord[1]:.6f}°N, {abs(coord[0]):.6f}°{'E' if coord[0] >= 0 else 'W'}</small>", unsafe_allow_html=True)
             if len(display_coords) > 50:
                 st.markdown(f"<small>... and {len(display_coords) - 50} more points</small>", unsafe_allow_html=True)
         except Exception as e:
@@ -3039,7 +3039,7 @@ if analyze_button and st.session_state.selected_area:
                             point_num = point_id.replace('point_', '')
                             coords = point_data.get('coordinates', {})
                             lat, lon = coords.get('lat', 0), coords.get('lon', 0)
-                            st.write(f"• Sample Point {int(point_num) + 1}: {lat:.4f}°N, {lon:.4f}°W")
+                            st.write(f"• Sample Point {int(point_num) + 1}: {lat:.4f}°N, {abs(lon):.4f}°{'E' if lon >= 0 else 'W'}")
                         
                         st.markdown("---")
                         st.info("**Classify all water bodies at once:**")
