@@ -3230,8 +3230,6 @@ if analyze_button and st.session_state.selected_area:
                             total_samples = ecosystem_info['successful_queries']
                             
                             if len(ecosystem_distribution) > 1:
-                                st.info("🌍 **Multi-Ecosystem Area Detected:**")
-                                
                                 # Calculate and display diversity metrics
                                 num_ecosystems = len(ecosystem_distribution)
                                 
@@ -4106,7 +4104,7 @@ if st.session_state.analysis_results:
                                         st.markdown(f"**Total {category.title()} Services**: ${total:,.0f}/year")
                                     
                 else:
-                    st.info("📊 Multi-ecosystem area detected, but ecosystem services breakdown is not available in the current data format.")
+                    st.info("📊 Ecosystem services breakdown is not available in the current data format.")
             else:
                 # Original logic for ecosystem_data structure
                 # Aggregate categories from all ecosystems
