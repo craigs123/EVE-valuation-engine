@@ -8,16 +8,24 @@ import asyncio
 import aiohttp
 import time
 import random
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import json
 import math
 import rasterio
 from rasterio.windows import Window
+from rasterio.crs import CRS
+from rasterio.warp import transform_bounds, transform
 import pystac_client
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import certifi
+from functools import lru_cache
+from collections import OrderedDict
+import threading
+import gc
+import weakref
+from contextlib import contextmanager
 
 # Enhanced GDAL environment configuration for reliable HTTP COG access
 HTTP_ENV = {
@@ -40,7 +48,7 @@ class OpenLandMapSTAC:
     OpenLandMap STAC API integration for ecosystem detection
     """
     
-    def __init__(self):
+    def __init__(self, max_dataset_cache_size: int = 15):
         self.stac_base_url = "https://s3.eu-central-1.wasabisys.com/stac/openlandmap"
         self.raw_values_endpoint = "/api/raw-values"  # For numerical land mask values
         
@@ -51,6 +59,27 @@ class OpenLandMapSTAC:
         # Caching - clear cache to force new asset URL discovery with updated logic
         self._collection_cache = {}  # Cache collection metadata
         self._asset_url_cache = {}   # Cache GeoTIFF asset URLs
+        
+        # Performance optimization: LRU Dataset Cache with STRONG references
+        # CRITICAL FIX: Use strong references instead of weak ones for actual caching
+        self._dataset_cache_size = max_dataset_cache_size
+        self._dataset_cache = OrderedDict()  # Manual LRU implementation: url -> dataset
+        self._cache_metadata = OrderedDict()  # url -> {opened_at, access_count, last_access}
+        
+        # Thread safety: Lock for cache operations
+        self._cache_lock = threading.RLock()  # Reentrant lock for nested calls
+        
+        # Thread pool for async I/O offloading
+        self._thread_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="raster_io")
+        
+        # Cache statistics for validation
+        self._cache_stats = {
+            'hits': 0,
+            'misses': 0, 
+            'evictions': 0,
+            'opens': 0,
+            'closes': 0
+        }
         
         # Define key STAC collections for comprehensive environmental data
         # Based on technical brief specifications
@@ -149,9 +178,108 @@ class OpenLandMapSTAC:
     
     def clear_cache(self):
         """Clear all caches to force fresh STAC catalog queries"""
-        self._collection_cache.clear()
-        self._asset_url_cache.clear()
-        print("🧹 STAC cache cleared - will use updated date prioritization logic")
+        with self._cache_lock:
+            self._collection_cache.clear()
+            self._asset_url_cache.clear()
+            self._clear_dataset_cache_unsafe()  # Already holds lock
+            print("🧹 STAC cache cleared - will use updated date prioritization logic")
+    
+    def _clear_dataset_cache(self):
+        """Clear dataset cache and close all open datasets - thread-safe version"""
+        with self._cache_lock:
+            self._clear_dataset_cache_unsafe()
+    
+    def _clear_dataset_cache_unsafe(self):
+        """Clear dataset cache without acquiring lock - use when lock already held"""
+        closed_count = 0
+        for asset_url, dataset in self._dataset_cache.items():
+            if dataset and not dataset.closed:
+                try:
+                    dataset.close()
+                    closed_count += 1
+                    self._cache_stats['closes'] += 1
+                except Exception as e:
+                    print(f"⚠️ Failed to close dataset {asset_url[:50]}: {e}")
+        
+        self._dataset_cache.clear()
+        self._cache_metadata.clear()
+        
+        # Reset cache statistics
+        self._cache_stats.update({
+            'hits': 0, 'misses': 0, 'evictions': 0, 'opens': 0, 'closes': 0
+        })
+        
+        gc.collect()  # Force garbage collection
+        print(f"🧹 Dataset cache cleared: {closed_count} COG handles closed")
+    
+    def _get_cached_dataset(self, asset_url: str):
+        """Get dataset from cache or open new one with LRU management - THREAD SAFE VERSION"""
+        with self._cache_lock:
+            # Check if dataset is in cache
+            if asset_url in self._dataset_cache:
+                dataset = self._dataset_cache[asset_url]
+                
+                # Verify dataset is still valid (not closed)
+                if dataset and not dataset.closed:
+                    # Move to end (most recently used) for LRU
+                    self._dataset_cache.move_to_end(asset_url)
+                    
+                    # Update metadata
+                    metadata = self._cache_metadata.get(asset_url, {})
+                    metadata['access_count'] = metadata.get('access_count', 0) + 1
+                    metadata['last_access'] = time.time()
+                    self._cache_metadata[asset_url] = metadata
+                    self._cache_metadata.move_to_end(asset_url)
+                    
+                    self._cache_stats['hits'] += 1
+                    print(f"📂 CACHE HIT: {asset_url[:50]}... (hits: {self._cache_stats['hits']})")
+                    return dataset
+                else:
+                    # Dataset was closed, remove from cache
+                    print(f"🚫 Stale dataset removed: {asset_url[:50]}...")
+                    self._dataset_cache.pop(asset_url, None)
+                    self._cache_metadata.pop(asset_url, None)
+            
+            # Cache miss - need to open new dataset
+            self._cache_stats['misses'] += 1
+            print(f"📂 CACHE MISS: {asset_url[:50]}... (misses: {self._cache_stats['misses']})")
+            
+            try:
+                # Open dataset with GDAL environment
+                with rasterio.Env(**HTTP_ENV):
+                    dataset = rasterio.open(asset_url)
+                    self._cache_stats['opens'] += 1
+                    
+                    # Check if cache is full and needs eviction
+                    if len(self._dataset_cache) >= self._dataset_cache_size:
+                        # Remove oldest (least recently used) dataset
+                        oldest_url, oldest_dataset = self._dataset_cache.popitem(last=False)
+                        self._cache_metadata.pop(oldest_url, None)
+                        
+                        # Close evicted dataset
+                        if oldest_dataset and not oldest_dataset.closed:
+                            try:
+                                oldest_dataset.close()
+                                self._cache_stats['closes'] += 1
+                                self._cache_stats['evictions'] += 1
+                                print(f"🗑️ EVICTED: {oldest_url[:50]}... (evictions: {self._cache_stats['evictions']})")
+                            except Exception as e:
+                                print(f"⚠️ Failed to close evicted dataset: {e}")
+                    
+                    # Add new dataset to cache with STRONG reference
+                    self._dataset_cache[asset_url] = dataset  # STRONG REFERENCE
+                    self._cache_metadata[asset_url] = {
+                        'opened_at': time.time(),
+                        'access_count': 1,
+                        'last_access': time.time()
+                    }
+                    
+                    print(f"📂 CACHED NEW: {asset_url[:50]}... ({len(self._dataset_cache)}/{self._dataset_cache_size}) [opens: {self._cache_stats['opens']}]")
+                    return dataset
+                    
+            except Exception as e:
+                print(f"❌ Failed to open dataset {asset_url}: {e}")
+                return None
     
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create persistent HTTP session with connection pooling"""
@@ -175,20 +303,74 @@ class OpenLandMapSTAC:
         return self._session
     
     async def close_session(self):
-        """Close the persistent HTTP session"""
+        """Close the persistent HTTP session and cleanup resources"""
         if self._session and not self._session.closed:
             await self._session.close()
         if self._session_connector:
             await self._session_connector.close()
+        
+        # Clean up dataset cache and thread pool
+        self._clear_dataset_cache()
+        self.shutdown()
+    
+    def shutdown(self):
+        """Explicit shutdown method that works without async event loop"""
+        # Close all cached datasets
+        self._clear_dataset_cache()
+        
+        # Shutdown thread pool
+        if hasattr(self, '_thread_pool') and self._thread_pool:
+            try:
+                self._thread_pool.shutdown(wait=True)
+                print("🧹 Thread pool shutdown complete")
+            except Exception as e:
+                print(f"⚠️ Thread pool shutdown error: {e}")
+        
+        # Close session if possible (non-async)
+        if hasattr(self, '_session') and self._session and not self._session.closed:
+            try:
+                # Try to close session synchronously if possible
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if not loop.is_running():
+                        loop.run_until_complete(self._session.close())
+                        if self._session_connector:
+                            loop.run_until_complete(self._session_connector.close())
+                except:
+                    # Can't close session cleanly, will be cleaned up by GC
+                    pass
+            except Exception as e:
+                print(f"⚠️ Session cleanup warning: {e}")
+        
+        print(f"🧹 STAC API shutdown complete - Cache stats: {self._cache_stats}")
+    
+    def get_cache_stats(self):
+        """Get cache statistics safely"""
+        with self._cache_lock:
+            return dict(self._cache_stats)  # Return copy
+    
+    def print_cache_stats(self):
+        """Print cache statistics for debugging"""
+        stats = self.get_cache_stats()
+        cache_size = len(self._dataset_cache)
+        hit_rate = stats['hits'] / (stats['hits'] + stats['misses']) if (stats['hits'] + stats['misses']) > 0 else 0
+        print(f"📊 CACHE STATS - Size: {cache_size}/{self._dataset_cache_size}, Hit Rate: {hit_rate:.2%}, "
+              f"Hits: {stats['hits']}, Misses: {stats['misses']}, Opens: {stats['opens']}, "
+              f"Closes: {stats['closes']}, Evictions: {stats['evictions']}")
     
     def __del__(self):
-        """Cleanup session on destruction"""
-        if self._session and not self._session.closed:
+        """Cleanup session and resources on destruction - FIXED VERSION"""
+        try:
+            # Use explicit shutdown that works without async event loop
+            if hasattr(self, 'shutdown'):
+                self.shutdown()
+        except Exception as e:
+            # Don't raise exceptions in __del__
             try:
-                import asyncio
-                asyncio.create_task(self.close_session())
+                print(f"⚠️ Cleanup warning during destruction: {e}")
             except:
-                pass
+                pass  # Even print might fail during shutdown
     
     async def query_stac_collections(self, lat: float, lon: float) -> Optional[List[Dict]]:
         """
@@ -303,142 +485,178 @@ class OpenLandMapSTAC:
         print(f"❌ Failed to query collection {collection['id']} after {max_retries} attempts")
         return None
     
+    async def extract_pixel_value_async(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
+        """Async version of pixel value extraction with thread offloading - PERFORMANCE OPTIMIZED"""
+        # Offload blocking I/O to thread pool
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self._thread_pool, 
+            self.extract_pixel_value, 
+            asset_url, lat, lon
+        )
+    
     def extract_pixel_value(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
         """
-        Extract pixel value from Cloud Optimized GeoTIFF using HTTP range requests
+        Extract pixel value from Cloud Optimized GeoTIFF using optimized caching and transforms
+        OPTIMIZED: Uses dataset cache, proper CRS transforms, and error handling
         Returns actual pixel value or None if extraction fails
-        Enhanced with proper nodata handling for ESA land cover data
         """
         try:
-            # Open COG directly from HTTP URL with enhanced GDAL HTTP configuration
-            with rasterio.Env(**HTTP_ENV):
-                with rasterio.open(asset_url) as dataset:
-                    # Get geographic bounds
-                    bounds = dataset.bounds
-                    width, height = dataset.width, dataset.height
-                    
-                    # Check coordinate bounds
-                    if not (bounds.left <= lon <= bounds.right and 
-                            bounds.bottom <= lat <= bounds.top):
-                        print(f"🌍 Coordinates ({lat}, {lon}) outside data coverage for {asset_url}")
+            # Get cached dataset or open new one with LRU management
+            dataset = self._get_cached_dataset(asset_url)
+            if not dataset:
+                return None
+            
+            # Use transform-aware coordinate conversion instead of bounds math
+            # This handles CRS transformations properly
+            try:
+                # Check if coordinates are within dataset bounds first
+                bounds = dataset.bounds
+                if not (bounds.left <= lon <= bounds.right and 
+                        bounds.bottom <= lat <= bounds.top):
+                    print(f"🌍 Coordinates ({lat:.4f}, {lon:.4f}) outside data coverage")
+                    return None
+                
+                # Transform geographic coordinates to dataset pixel coordinates
+                # This is CRS-aware and handles projection transformations
+                if dataset.crs != CRS.from_epsg(4326):
+                    # Transform coordinates to dataset CRS if needed
+                    from rasterio.warp import transform_geom
+                    lon_transformed, lat_transformed = transform(
+                        CRS.from_epsg(4326), dataset.crs, [lon], [lat]
+                    )
+                    lon, lat = lon_transformed[0], lat_transformed[0]
+                
+                # Use dataset.index() for proper coordinate-to-pixel conversion
+                # This uses the dataset's affine transform matrix
+                row, col = dataset.index(lon, lat)
+                
+                # Ensure pixel coordinates are within image bounds
+                if not (0 <= row < dataset.height and 0 <= col < dataset.width):
+                    print(f"📍 Transform result ({row}, {col}) outside image bounds ({dataset.height}, {dataset.width})")
+                    return None
+                
+                # Read pixel value using precise window-based reading
+                window = Window(col, row, 1, 1)
+                pixel_data = dataset.read(1, window=window)
+                
+                if pixel_data.size == 0:
+                    print(f"🚫 No data read from window at ({row}, {col})")
+                    return None
+                
+                pixel_value = pixel_data[0, 0]
+                
+                # Enhanced NoData handling for ESA land cover data
+                if dataset.nodata is not None and pixel_value == dataset.nodata:
+                    print(f"🚫 Dataset NoData value ({dataset.nodata}) encountered at ({lat:.4f}, {lon:.4f})")
+                    return None
+                
+                # ESA CCI Land Cover specific nodata values
+                if pixel_value in [0, 255]:
+                    print(f"🚫 ESA NoData value ({pixel_value}) encountered at ({lat:.4f}, {lon:.4f})")
+                    return None
+                
+                # Convert to integer for land cover classification codes
+                try:
+                    pixel_value_int = int(round(pixel_value))
+                    # Validate range for ESA CCI codes (typically 10-220)
+                    if pixel_value_int < 1 or pixel_value_int > 250:
+                        print(f"🚫 Invalid ESA land cover code ({pixel_value_int}) at ({lat:.4f}, {lon:.4f})")
                         return None
                     
-                    # Transform geographic coordinates to pixel coordinates
-                    pixel_x = int((lon - bounds.left) / (bounds.right - bounds.left) * width)
-                    pixel_y = int((bounds.top - lat) / (bounds.top - bounds.bottom) * height)
+                    print(f"✅ PIXEL EXTRACTED: ESA code {pixel_value_int} (raw: {pixel_value}) at ({lat:.4f}, {lon:.4f}) [CACHED]")
+                    return float(pixel_value_int)
                     
-                    # Ensure pixel coordinates are within image bounds
-                    if not (0 <= pixel_x < width and 0 <= pixel_y < height):
-                        print(f"📍 Pixel coordinates ({pixel_x}, {pixel_y}) outside image bounds")
-                        return None
+                except (ValueError, OverflowError):
+                    print(f"🚫 Failed to convert pixel value ({pixel_value}) to integer at ({lat:.4f}, {lon:.4f})")
+                    return None
                     
-                    # Read pixel value using window-based reading
-                    window = Window(pixel_x, pixel_y, 1, 1)
-                    pixel_value = dataset.read(1, window=window)[0, 0]
-                    
-                    # Enhanced NoData handling for ESA land cover data
-                    # Check dataset nodata first
-                    if dataset.nodata is not None and pixel_value == dataset.nodata:
-                        print(f"🚫 Dataset NoData value ({dataset.nodata}) encountered at ({lat}, {lon})")
-                        return None
-                    
-                    # ESA CCI Land Cover specific nodata values
-                    # Common nodata values: 0 (no data), 255 (missing data)
-                    if pixel_value in [0, 255]:
-                        print(f"🚫 ESA NoData value ({pixel_value}) encountered at ({lat}, {lon})")
-                        return None
-                    
-                    # Convert to integer for land cover classification codes
-                    # ESA land cover codes should be integers
-                    try:
-                        pixel_value_int = int(round(pixel_value))
-                        # Validate range for ESA CCI codes (typically 10-220)
-                        if pixel_value_int < 1 or pixel_value_int > 250:
-                            print(f"🚫 Invalid ESA land cover code ({pixel_value_int}) at ({lat}, {lon})")
-                            return None
-                        
-                        print(f"✅ PIXEL EXTRACTED: ESA code {pixel_value_int} (raw: {pixel_value}) at ({lat}, {lon}) from COG")
-                        return float(pixel_value_int)  # Return as float for consistency but ensure it's integer value
-                        
-                    except (ValueError, OverflowError):
-                        print(f"🚫 Failed to convert pixel value ({pixel_value}) to integer at ({lat}, {lon})")
-                        return None
+            except Exception as transform_error:
+                print(f"❌ Coordinate transformation failed: {transform_error}")
+                # Fallback to original bounds-based method if transform fails
+                return self._extract_pixel_value_fallback(dataset, lat, lon)
                 
         except Exception as e:
-            print(f"❌ GeoTIFF extraction failed for {asset_url}: {e}")
+            print(f"❌ Optimized pixel extraction failed for {asset_url}: {e}")
+            return None
+    
+    def _extract_pixel_value_fallback(self, dataset, lat: float, lon: float) -> Optional[float]:
+        """
+        Fallback pixel extraction using original bounds-based method
+        Used when transform-aware method fails
+        """
+        try:
+            bounds = dataset.bounds
+            width, height = dataset.width, dataset.height
+            
+            # Original bounds-based coordinate conversion
+            pixel_x = int((lon - bounds.left) / (bounds.right - bounds.left) * width)
+            pixel_y = int((bounds.top - lat) / (bounds.top - bounds.bottom) * height)
+            
+            if not (0 <= pixel_x < width and 0 <= pixel_y < height):
+                return None
+            
+            window = Window(pixel_x, pixel_y, 1, 1)
+            pixel_value = dataset.read(1, window=window)[0, 0]
+            
+            # Basic nodata handling
+            if dataset.nodata is not None and pixel_value == dataset.nodata:
+                return None
+            if pixel_value in [0, 255]:
+                return None
+            
+            try:
+                pixel_value_int = int(round(pixel_value))
+                if 1 <= pixel_value_int <= 250:
+                    print(f"✅ FALLBACK EXTRACTED: ESA code {pixel_value_int} at ({lat:.4f}, {lon:.4f})")
+                    return float(pixel_value_int)
+            except (ValueError, OverflowError):
+                pass
+            
+            return None
+            
+        except Exception as e:
+            print(f"❌ Fallback extraction failed: {e}")
             return None
 
     def extract_batch_pixel_values(self, asset_url: str, coordinates: List[tuple]) -> List[Optional[float]]:
         """
         Batch extract pixel values from Cloud Optimized GeoTIFF for multiple coordinates
-        Opens the file once and samples all coordinates efficiently
+        OPTIMIZED: Now uses dataset cache and transform-aware coordinate conversion
+        Backward compatible wrapper for the optimized implementation
         Returns list of pixel values in same order as input coordinates
         Enhanced with proper nodata handling for ESA land cover data
         """
         try:
-            # Open COG directly from HTTP URL once with enhanced GDAL HTTP configuration
-            with rasterio.Env(**HTTP_ENV):
-                with rasterio.open(asset_url) as dataset:
-                    # Get geographic bounds
-                    bounds = dataset.bounds
-                    width, height = dataset.width, dataset.height
-                    
-                    # Filter coordinates that are within bounds
-                    valid_coords = []
-                    coord_indices = []
-                    
-                    for i, (lat, lon) in enumerate(coordinates):
-                        if (bounds.left <= lon <= bounds.right and 
-                            bounds.bottom <= lat <= bounds.top):
-                            valid_coords.append((lon, lat))  # Note: rasterio expects (x, y) = (lon, lat)
-                            coord_indices.append(i)
-                    
-                    if not valid_coords:
-                        print(f"🌍 No coordinates within data coverage for {asset_url}")
-                        return [None] * len(coordinates)
-                    
-                    # Use rasterio.sample for efficient batch sampling
-                    pixel_values = [None] * len(coordinates)
-                    sampled_values = list(dataset.sample(valid_coords))
-                    
-                    # Map sampled values back to original coordinate order with enhanced nodata handling
-                    for coord_idx, sampled_value in zip(coord_indices, sampled_values):
-                        if len(sampled_value) > 0:
-                            value = sampled_value[0]  # First band
-                            
-                            # Enhanced NoData handling for ESA land cover data
-                            # Check dataset nodata first
-                            if dataset.nodata is not None and value == dataset.nodata:
-                                pixel_values[coord_idx] = None
-                                continue
-                            
-                            # ESA CCI Land Cover specific nodata values
-                            if value in [0, 255]:
-                                pixel_values[coord_idx] = None
-                                continue
-                            
-                            # Convert to integer for land cover classification codes
-                            try:
-                                value_int = int(round(value))
-                                # Validate range for ESA CCI codes
-                                if value_int < 1 or value_int > 250:
-                                    pixel_values[coord_idx] = None
-                                    continue
-                                
-                                pixel_values[coord_idx] = float(value_int)  # Store as float but ensure integer value
-                                
-                            except (ValueError, OverflowError):
-                                pixel_values[coord_idx] = None
-                        else:
-                            pixel_values[coord_idx] = None
-                    
-                    valid_count = len([v for v in pixel_values if v is not None])
-                    print(f"✅ BATCH EXTRACTED: {valid_count}/{len(coordinates)} valid ESA codes from COG")
-                    return pixel_values
-                
+            # Convert tuple coordinates to proper format if needed
+            if coordinates and isinstance(coordinates[0], tuple) and len(coordinates[0]) == 2:
+                # Convert from (lat, lon) tuples to List[Tuple[float, float]]
+                typed_coordinates = [(float(lat), float(lon)) for lat, lon in coordinates]
+            else:
+                typed_coordinates = coordinates
+            
+            # Use the optimized implementation with dataset caching
+            result = self.extract_batch_pixel_values_optimized(asset_url, typed_coordinates)
+            
+            # Log performance improvement notice
+            valid_count = len([v for v in result if v is not None])
+            print(f"✅ BATCH EXTRACTED: {valid_count}/{len(coordinates)} valid ESA codes [OPTIMIZED-CACHED]")
+            
+            return result
+            
         except Exception as e:
-            print(f"❌ Batch GeoTIFF extraction failed for {asset_url}: {e}")
-            return [None] * len(coordinates)
+            print(f"❌ Optimized batch extraction wrapper failed for {asset_url}: {e}")
+            # Fallback to basic individual extraction if optimized version fails
+            print(f"🔄 Falling back to individual pixel extraction...")
+            result = []
+            for lat, lon in coordinates:
+                try:
+                    pixel_value = self.extract_pixel_value(asset_url, lat, lon)
+                    result.append(pixel_value)
+                except Exception as individual_error:
+                    print(f"❌ Individual extraction failed for ({lat}, {lon}): {individual_error}")
+                    result.append(None)
+            return result
     
     def get_stac_asset_url(self, collection_id: str) -> Optional[str]:
         """
@@ -621,20 +839,134 @@ class OpenLandMapSTAC:
             print(f"❌ STAC catalog query failed for {collection_id}: {e}")
             return None
     
+    async def extract_pixel_value_async(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
+        """
+        Async version of pixel extraction with thread offloading for blocking I/O
+        OPTIMIZED: Prevents blocking the event loop during raster operations
+        """
+        try:
+            # Offload blocking raster I/O to thread pool to prevent event loop blocking
+            pixel_value = await asyncio.to_thread(
+                self.extract_pixel_value, asset_url, lat, lon
+            )
+            return pixel_value
+        except Exception as e:
+            print(f"❌ Async pixel extraction failed for {asset_url}: {e}")
+            return None
+    
+    async def extract_batch_pixel_values_async(self, asset_url: str, coordinates: List[Tuple[float, float]]) -> List[Optional[float]]:
+        """
+        Async batch pixel extraction with thread offloading
+        OPTIMIZED: Uses dataset cache and prevents event loop blocking
+        """
+        try:
+            # Offload blocking batch raster I/O to thread pool
+            pixel_values = await asyncio.to_thread(
+                self.extract_batch_pixel_values_optimized, asset_url, coordinates
+            )
+            return pixel_values
+        except Exception as e:
+            print(f"❌ Async batch extraction failed for {asset_url}: {e}")
+            return [None] * len(coordinates)
+    
+    def extract_batch_pixel_values_optimized(self, asset_url: str, coordinates: List[Tuple[float, float]]) -> List[Optional[float]]:
+        """
+        Optimized batch pixel extraction using dataset cache and transform-aware conversion
+        OPTIMIZED: Uses cached dataset and proper coordinate transforms
+        """
+        try:
+            # Get cached dataset or open new one with LRU management
+            dataset = self._get_cached_dataset(asset_url)
+            if not dataset:
+                return [None] * len(coordinates)
+            
+            # Filter coordinates that are within bounds
+            bounds = dataset.bounds
+            valid_coords = []
+            coord_indices = []
+            
+            for i, (lat, lon) in enumerate(coordinates):
+                if (bounds.left <= lon <= bounds.right and 
+                    bounds.bottom <= lat <= bounds.top):
+                    
+                    # Handle CRS transformation if needed
+                    if dataset.crs != CRS.from_epsg(4326):
+                        try:
+                            lon_transformed, lat_transformed = transform(
+                                CRS.from_epsg(4326), dataset.crs, [lon], [lat]
+                            )
+                            valid_coords.append((lon_transformed[0], lat_transformed[0]))
+                        except:
+                            # Skip coordinates that fail transformation
+                            continue
+                    else:
+                        valid_coords.append((lon, lat))
+                    
+                    coord_indices.append(i)
+            
+            if not valid_coords:
+                print(f"🌍 No coordinates within data coverage for batch extraction")
+                return [None] * len(coordinates)
+            
+            # Use rasterio.sample for efficient batch sampling with cached dataset
+            pixel_values = [None] * len(coordinates)
+            try:
+                sampled_values = list(dataset.sample(valid_coords))
+                
+                # Process sampled values with enhanced nodata handling
+                for coord_idx, sampled_value in zip(coord_indices, sampled_values):
+                    if len(sampled_value) > 0:
+                        value = sampled_value[0]
+                        
+                        # Enhanced NoData handling
+                        if dataset.nodata is not None and value == dataset.nodata:
+                            continue
+                        if value in [0, 255]:
+                            continue
+                        
+                        # Convert to integer for land cover codes
+                        try:
+                            value_int = int(round(value))
+                            if 1 <= value_int <= 250:
+                                pixel_values[coord_idx] = float(value_int)
+                        except (ValueError, OverflowError):
+                            continue
+                
+                valid_count = len([v for v in pixel_values if v is not None])
+                print(f"✅ BATCH EXTRACTED: {valid_count}/{len(coordinates)} valid ESA codes [CACHED]")
+                return pixel_values
+                
+            except Exception as sample_error:
+                print(f"❌ Batch sampling failed: {sample_error}")
+                # Fallback to individual extraction
+                for i, (lat, lon) in enumerate(coordinates):
+                    if i in coord_indices:
+                        pixel_values[i] = self.extract_pixel_value(asset_url, lat, lon)
+                return pixel_values
+                
+        except Exception as e:
+            print(f"❌ Optimized batch extraction failed for {asset_url}: {e}")
+            return [None] * len(coordinates)
+    
     async def _extract_real_pixel_data(self, session: aiohttp.ClientSession, lat: float, lon: float, collection_metadata: dict) -> tuple:
         """
-        Extract real pixel data from OpenLandMap GeoTIFF files
+        Extract real pixel data from OpenLandMap GeoTIFF files - ASYNC OFFLOADED VERSION
         Returns (pixel_value, data_source, raw_response)
         """
         collection_id = "land.cover_esacci.lc.l4"
         
         try:
-            # Get GeoTIFF asset URL from STAC catalog
+            # Get GeoTIFF asset URL from STAC catalog (this is fast, no need to offload)
             asset_url = self.get_stac_asset_url(collection_id)
             
             if asset_url:
-                # Extract pixel value from GeoTIFF
-                pixel_value = self.extract_pixel_value(asset_url, lat, lon)
+                # CRITICAL FIX: Offload blocking I/O operations to thread pool
+                loop = asyncio.get_event_loop()
+                pixel_value = await loop.run_in_executor(
+                    self._thread_pool, 
+                    self.extract_pixel_value, 
+                    asset_url, lat, lon
+                )
                 
                 if pixel_value is not None:
                     # Convert to integer land cover code
