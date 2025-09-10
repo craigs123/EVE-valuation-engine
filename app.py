@@ -203,7 +203,7 @@ st.markdown("""
         
         /* Better Typography */
         [data-testid="stMarkdownContainer"] h2.section-header {
-            font-size: 1.1rem !important;
+            font-size: 1.3rem !important;
             font-weight: 700;
             color: #1f2937;
             margin: 2rem 0 1rem 0 !important;
