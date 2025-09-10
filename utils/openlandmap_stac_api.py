@@ -524,8 +524,9 @@ class OpenLandMapSTAC:
         ecosystem_type = None
         confidence = 0.0
         
-        # Track actual data source used
+        # Track actual data source used and preserve raw response
         actual_data_source = "Geographic Fallback"
+        raw_response_data = None  # Preserve the actual raw response from pixel extraction
         
         # Process STAC results
         for result in stac_results:
@@ -536,9 +537,11 @@ class OpenLandMapSTAC:
                 "description": result["metadata"].get("description", result["name"])
             }
             
-            # Extract actual data source from result metadata
+            # Extract actual data source from result metadata AND preserve raw response
             if result["category"] == "landcover" and result.get("metadata", {}).get("source"):
                 actual_data_source = result["metadata"]["source"]
+                # CRITICAL: Preserve the raw response from pixel extraction
+                raw_response_data = result["metadata"].get("raw_response", {})
             
             if result["category"] == "soil":
                 soil.append(data_item)
@@ -597,6 +600,21 @@ class OpenLandMapSTAC:
             if land_cover and len(land_cover) > 0:
                 landcover_class = land_cover[0].get("code", 130)
         
+        # Construct raw_stac_data that preserves the genuine pixel extraction data
+        raw_stac_data = {
+            "query_coordinates": {"lat": lat, "lon": lon},
+            "landcover_code": landcover_class,
+            "ecosystem_detected": ecosystem_type,
+            "confidence_level": confidence,
+            "stac_collections_queried": len(stac_results) if stac_results else 0,
+            "processing_method": "stac_metadata_analysis"
+        }
+        
+        # CRITICAL FIX: Add the raw response from pixel extraction if available
+        if raw_response_data:
+            raw_stac_data["raw_response"] = raw_response_data
+            print(f"🔍 THREADING FIX: Raw response preserved for UI debugging: {raw_response_data.get('extraction_method', 'unknown')}")
+        
         return {
             "ecosystem_type": ecosystem_type,
             "confidence": confidence,
@@ -606,14 +624,7 @@ class OpenLandMapSTAC:
             "landCover": land_cover if land_cover else None, 
             "soil": soil if soil else None,
             "data_source": actual_data_source,
-            "raw_stac_data": {
-                "query_coordinates": {"lat": lat, "lon": lon},
-                "landcover_code": landcover_class,
-                "ecosystem_detected": ecosystem_type,
-                "confidence_level": confidence,
-                "stac_collections_queried": len(stac_results) if stac_results else 0,
-                "processing_method": "stac_metadata_analysis"
-            },  # Raw data for debugging
+            "raw_stac_data": raw_stac_data,  # Now contains the preserved raw response
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
     
@@ -695,12 +706,26 @@ class OpenLandMapSTAC:
                             ecosystem_type = base_ecosystem_type
                         
                         print(f"🔍 BATCH DEBUG: Point {i}, landcover_code={landcover_code}, ecosystem_type={ecosystem_type}")
+                        
+                        # Create raw response data for UI debugging (similar to single-point extraction)
+                        raw_response = {
+                            "extraction_method": "geotiff_batch_pixel_extraction",
+                            "asset_url": asset_url,
+                            "coordinates": {"lat": lat, "lon": lon},
+                            "raw_pixel_value": pixel_value,
+                            "landcover_code": landcover_code,
+                            "ecosystem_type": ecosystem_type,
+                            "data_source": "cog_http_range_request",
+                            "batch_index": i
+                        }
+                        
                         results.append({
                             "ecosystem_type": ecosystem_type,
                             "confidence": 0.9,
                             "landcover_class": landcover_code,
                             "coordinates": {"lat": lat, "lon": lon},
                             "data_source": "Real ESA Satellite Data (GeoTIFF Pixel)",
+                            "raw_stac_data": {"raw_response": raw_response},  # Add raw data for UI debugging
                             "query_time": json.dumps({"timestamp": "now"}, default=str)
                         })
                     else:
