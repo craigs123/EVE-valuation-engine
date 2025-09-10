@@ -663,7 +663,14 @@ def display_data_source_status(analysis_results: Dict = None):
                 sampling_data = analysis_results.get('sampling_point_data', {})
                 for point_data in sampling_data.values():
                     source = point_data.get('source', '')
+                    # Check for explicit real data markers
                     if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+                        has_real_data = True
+                        break
+                    # CRITICAL FIX: Also check if environmental indicators were successfully extracted
+                    stac_data = point_data.get('stac_data', {})
+                    if stac_data and len(stac_data) > 0:
+                        # If we have any environmental indicators, we have real data
                         has_real_data = True
                         break
             
@@ -687,7 +694,14 @@ def display_data_source_status(analysis_results: Dict = None):
                 has_real_sampling_data = False
                 for point_data in sampling_point_data.values():
                     source = point_data.get('source', '')
+                    # Check for explicit real data markers
                     if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+                        has_real_sampling_data = True
+                        break
+                    # CRITICAL FIX: Also check if environmental indicators were successfully extracted
+                    stac_data = point_data.get('stac_data', {})
+                    if stac_data and len(stac_data) > 0:
+                        # If we have any environmental indicators, we have real data
                         has_real_sampling_data = True
                         break
                 
