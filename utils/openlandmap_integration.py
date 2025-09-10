@@ -833,18 +833,63 @@ class OpenLandMapIntegrator:
             ecosystem_results = []
             successful_queries = 0
             
-            for i, (lat, lon) in enumerate(sample_points):
-                # Update progress if callback provided
-                if progress_callback:
-                    progress_callback(i + 1, len(sample_points))
+            # PERFORMANCE OPTIMIZATION: Use batch processing instead of individual point queries
+            try:
+                # Try batch STAC API processing first (much faster)
+                from .openlandmap_stac_api import openlandmap_stac
+                import asyncio
                 
-                result = self.get_land_cover_point(lat, lon)
-                if result:
-                    ecosystem_results.append(result)
-                    successful_queries += 1
+                # Create new event loop for batch processing
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
                 
-                # Remove delays for development environment - significantly faster processing
-                # Development optimization: no delays for faster sampling
+                try:
+                    batch_results = loop.run_until_complete(
+                        openlandmap_stac.get_batch_ecosystem_types(sample_points)
+                    )
+                    
+                    # Convert batch results to expected format
+                    for i, result in enumerate(batch_results):
+                        if result and result.get('ecosystem_type'):
+                            ecosystem_results.append({
+                                'ecosystem_type': result['ecosystem_type'],
+                                'confidence': result.get('confidence', 0.85),
+                                'source': result.get('data_source', 'Batch STAC API'),
+                                'landcover_class': result.get('landcover_class', 0),
+                                'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]})
+                            })
+                            successful_queries += 1
+                        
+                        # Update progress if callback provided
+                        if progress_callback:
+                            progress_callback(i + 1, len(sample_points))
+                            
+                finally:
+                    loop.close()
+                    # Clean up the session
+                    try:
+                        loop2 = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop2)
+                        try:
+                            loop2.run_until_complete(openlandmap_stac.close_session())
+                        finally:
+                            loop2.close()
+                    except:
+                        pass
+                
+            except Exception as batch_error:
+                print(f"Batch processing failed: {batch_error}, falling back to individual point queries")
+                
+                # Fallback: Individual point processing (original method)
+                for i, (lat, lon) in enumerate(sample_points):
+                    # Update progress if callback provided
+                    if progress_callback:
+                        progress_callback(i + 1, len(sample_points))
+                    
+                    result = self.get_land_cover_point(lat, lon)
+                    if result:
+                        ecosystem_results.append(result)
+                        successful_queries += 1
             
             if not ecosystem_results:
                 raise RuntimeError("No valid ecosystem data retrieved from any sample points. OpenLandMap API may be unavailable or coordinates may be invalid.")
