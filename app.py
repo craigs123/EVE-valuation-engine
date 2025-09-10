@@ -1875,12 +1875,15 @@ test_area_options = [
     "🎲 Test area (Random Global)"
 ]
 
-selected_test_area = st.selectbox(
-    "**Choose a 1000 hectare test area, load saved area, or draw your own on the map:**",
-    test_area_options,
-    index=0,
-    help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
-)
+# Create centered columns for area selection dropdown
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    selected_test_area = st.selectbox(
+        "**Choose a 1000 hectare test area, load saved area, or draw your own on the map:**",
+        test_area_options,
+        index=0,
+        help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
+    )
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
@@ -1901,12 +1904,15 @@ if use_load_saved_area:
             saved_area_names = [f"{area['name']} ({area['area_hectares']:.1f} ha)" for area in saved_areas]
             saved_area_names.insert(0, "Select a saved area...")
             
-            selected_saved_area = st.selectbox(
-                "Choose a saved area to load:",
-                saved_area_names,
-                key="saved_area_selector",
-                help="Select a previously saved area to load onto the map"
-            )
+            # Use the same column layout for consistency
+            col1_saved, col2_saved, col3_saved = st.columns([1, 2, 1])
+            with col2_saved:
+                selected_saved_area = st.selectbox(
+                    "Choose a saved area to load:",
+                    saved_area_names,
+                    key="saved_area_selector",
+                    help="Select a previously saved area to load onto the map"
+                )
             
             # Load selected saved area
             if selected_saved_area != "Select a saved area...":
@@ -2328,17 +2334,19 @@ else:
     draw_tools = create_drawing_tools()
     draw_tools.add_to(m)
 
-# Ultra-optimized map display with performance settings
+# Ultra-optimized map display with performance settings - centered
 from streamlit_folium import st_folium
-map_data = st_folium(
-    m, 
-    width=700, 
-    height=400,
-    returned_objects=["all_drawings"],
-    key="area_map",
-    feature_group_to_add=None,  # Reduce memory usage
-    debug=False  # Disable debug for performance
-)
+col1_map, col2_map, col3_map = st.columns([1, 2, 1])
+with col2_map:
+    map_data = st_folium(
+        m, 
+        width=700, 
+        height=400,
+        returned_objects=["all_drawings"],
+        key="area_map",
+        feature_group_to_add=None,  # Reduce memory usage
+        debug=False  # Disable debug for performance
+    )
 
 # Process map interactions with optimized state checking
 if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
