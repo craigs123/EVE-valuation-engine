@@ -1878,8 +1878,9 @@ test_area_options = [
 # Create centered columns for area selection dropdown
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
+    st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0.5rem;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
     selected_test_area = st.selectbox(
-        "**Choose a 1000 hectare test area, load saved area, or draw your own on the map:**",
+        "",
         test_area_options,
         index=0,
         help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
