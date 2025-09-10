@@ -7,6 +7,7 @@ import requests
 import asyncio
 import aiohttp
 import time
+import random
 from typing import Dict, List, Optional, Any
 import json
 import math
@@ -18,14 +19,20 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 import certifi
 
-# GDAL environment configuration for HTTP COG access
+# Enhanced GDAL environment configuration for reliable HTTP COG access
 HTTP_ENV = {
     'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
     'CPL_VSIL_CURL_USE_HEAD': 'NO', 
     'CPL_VSIL_CURL_ALLOWED_EXTENSIONS': '.tif,.tiff',
     'VSI_CACHE': 'TRUE',
     'VSI_CACHE_SIZE': '10000000',
-    'SSL_CERT_FILE': certifi.where()
+    'SSL_CERT_FILE': certifi.where(),
+    # Add timeout and retry configuration for reliability
+    'GDAL_HTTP_TIMEOUT': '30',
+    'GDAL_HTTP_CONNECTTIMEOUT': '10', 
+    'GDAL_HTTP_MAX_RETRY': '3',
+    'GDAL_HTTP_RETRY_DELAY': '1',
+    'CPL_VSIL_CURL_RETRY_DELAY': '1'
 }
 
 class OpenLandMapSTAC:
@@ -216,57 +223,94 @@ class OpenLandMapSTAC:
     async def _query_single_collection(self, session: aiohttp.ClientSession, 
                                      collection: Dict, lat: float, lon: float) -> Optional[Dict]:
         """
-        Query a single STAC collection with retry logic
+        Query a single STAC collection with enhanced retry logic and proper error handling
         """
         max_retries = 3
-        retry_delay = 1  # seconds
+        base_delay = 1  # seconds
         
         for attempt in range(max_retries):
             try:
                 collection_url = f"{self.stac_base_url}/{collection['id']}/collection.json"
                 
                 async with session.get(collection_url) as response:
+                    # FIX: Proper handling of non-200 responses
                     if response.status == 200:
                         collection_data = await response.json()
-                    
-                    if collection_data.get('links'):
-                        # Extract real pixel data from GeoTIFF for all collection types
-                        sample_value, data_source, raw_response = await self._extract_real_pixel_data(session, lat, lon, collection_data)
                         
-                        # Only return data if we actually extracted a real pixel value
-                        if sample_value is not None:
-                            return {
-                                "collection": collection["id"],
-                                "name": collection["name"],
-                                "category": collection["category"],
-                                "value": sample_value,
-                                "unit": collection["unit"],
-                                "metadata": {
-                                    "title": collection_data.get("title", ""),
-                                    "description": collection_data.get("description", ""),
-                                    "license": collection_data.get("license", ""),
-                                    "source": data_source,
-                                    "raw_response": raw_response
+                        # Only proceed if we have valid collection data with links
+                        if collection_data and collection_data.get('links'):
+                            # Extract real pixel data from GeoTIFF for all collection types
+                            sample_value, data_source, raw_response = await self._extract_real_pixel_data(session, lat, lon, collection_data)
+                            
+                            # Only return data if we actually extracted a real pixel value
+                            if sample_value is not None:
+                                return {
+                                    "collection": collection["id"],
+                                    "name": collection["name"],
+                                    "category": collection["category"],
+                                    "value": sample_value,
+                                    "unit": collection["unit"],
+                                    "metadata": {
+                                        "title": collection_data.get("title", ""),
+                                        "description": collection_data.get("description", ""),
+                                        "license": collection_data.get("license", ""),
+                                        "source": data_source,
+                                        "raw_response": raw_response
+                                    }
                                 }
-                            }
+                            else:
+                                print(f"🚫 No real pixel data available for {collection['name']} at ({lat}, {lon})")
+                                return None
                         else:
-                            print(f"🚫 No real pixel data available for {collection['name']} at ({lat}, {lon})")
-                            return None
-            except Exception as e:
+                            print(f"⚠️ Collection data missing or invalid for {collection['id']}")
+                            # Continue to retry logic below
+                    elif response.status == 429:
+                        # Rate limiting - use longer backoff
+                        print(f"⚠️ Rate limited (429) for collection {collection['id']}, attempt {attempt + 1}/{max_retries}")
+                        if attempt < max_retries - 1:
+                            # Exponential backoff with jitter for rate limiting
+                            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                            await asyncio.sleep(delay)
+                            continue
+                    elif 500 <= response.status < 600:
+                        # Server errors - retry with backoff
+                        print(f"⚠️ Server error ({response.status}) for collection {collection['id']}, attempt {attempt + 1}/{max_retries}")
+                        if attempt < max_retries - 1:
+                            # Exponential backoff with jitter for server errors
+                            delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+                            await asyncio.sleep(delay)
+                            continue
+                    else:
+                        # Client errors (4xx) - don't retry
+                        print(f"❌ Client error ({response.status}) for collection {collection['id']} - not retrying")
+                        return None
+                        
+            except asyncio.TimeoutError:
+                print(f"⏰ Timeout for collection {collection['id']}, attempt {attempt + 1}/{max_retries}")
                 if attempt < max_retries - 1:
-                    print(f"⚠️ Attempt {attempt + 1}/{max_retries} failed for collection {collection['id']}: {e}. Retrying...")
-                    await asyncio.sleep(retry_delay * (attempt + 1))  # Exponential backoff
-                else:
-                    print(f"❌ Failed to query collection {collection['id']} after {max_retries} attempts: {e}")
-                    return None
+                    # Exponential backoff with jitter for timeouts
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+                    await asyncio.sleep(delay)
+                    continue
+            except Exception as e:
+                print(f"⚠️ Attempt {attempt + 1}/{max_retries} failed for collection {collection['id']}: {e}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff with jitter for general errors
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+                    await asyncio.sleep(delay)
+                    continue
+                    
+        print(f"❌ Failed to query collection {collection['id']} after {max_retries} attempts")
+        return None
     
     def extract_pixel_value(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
         """
         Extract pixel value from Cloud Optimized GeoTIFF using HTTP range requests
         Returns actual pixel value or None if extraction fails
+        Enhanced with proper nodata handling for ESA land cover data
         """
         try:
-            # Open COG directly from HTTP URL with GDAL HTTP configuration
+            # Open COG directly from HTTP URL with enhanced GDAL HTTP configuration
             with rasterio.Env(**HTTP_ENV):
                 with rasterio.open(asset_url) as dataset:
                     # Get geographic bounds
@@ -292,13 +336,33 @@ class OpenLandMapSTAC:
                     window = Window(pixel_x, pixel_y, 1, 1)
                     pixel_value = dataset.read(1, window=window)[0, 0]
                     
-                    # Handle NoData values
+                    # Enhanced NoData handling for ESA land cover data
+                    # Check dataset nodata first
                     if dataset.nodata is not None and pixel_value == dataset.nodata:
-                        print(f"🚫 NoData value encountered at ({lat}, {lon})")
+                        print(f"🚫 Dataset NoData value ({dataset.nodata}) encountered at ({lat}, {lon})")
                         return None
                     
-                    print(f"✅ PIXEL EXTRACTED: Value {pixel_value} at ({lat}, {lon}) from COG")
-                    return float(pixel_value)
+                    # ESA CCI Land Cover specific nodata values
+                    # Common nodata values: 0 (no data), 255 (missing data)
+                    if pixel_value in [0, 255]:
+                        print(f"🚫 ESA NoData value ({pixel_value}) encountered at ({lat}, {lon})")
+                        return None
+                    
+                    # Convert to integer for land cover classification codes
+                    # ESA land cover codes should be integers
+                    try:
+                        pixel_value_int = int(round(pixel_value))
+                        # Validate range for ESA CCI codes (typically 10-220)
+                        if pixel_value_int < 1 or pixel_value_int > 250:
+                            print(f"🚫 Invalid ESA land cover code ({pixel_value_int}) at ({lat}, {lon})")
+                            return None
+                        
+                        print(f"✅ PIXEL EXTRACTED: ESA code {pixel_value_int} (raw: {pixel_value}) at ({lat}, {lon}) from COG")
+                        return float(pixel_value_int)  # Return as float for consistency but ensure it's integer value
+                        
+                    except (ValueError, OverflowError):
+                        print(f"🚫 Failed to convert pixel value ({pixel_value}) to integer at ({lat}, {lon})")
+                        return None
                 
         except Exception as e:
             print(f"❌ GeoTIFF extraction failed for {asset_url}: {e}")
@@ -309,9 +373,10 @@ class OpenLandMapSTAC:
         Batch extract pixel values from Cloud Optimized GeoTIFF for multiple coordinates
         Opens the file once and samples all coordinates efficiently
         Returns list of pixel values in same order as input coordinates
+        Enhanced with proper nodata handling for ESA land cover data
         """
         try:
-            # Open COG directly from HTTP URL once with GDAL HTTP configuration
+            # Open COG directly from HTTP URL once with enhanced GDAL HTTP configuration
             with rasterio.Env(**HTTP_ENV):
                 with rasterio.open(asset_url) as dataset:
                     # Get geographic bounds
@@ -336,19 +401,39 @@ class OpenLandMapSTAC:
                     pixel_values = [None] * len(coordinates)
                     sampled_values = list(dataset.sample(valid_coords))
                     
-                    # Map sampled values back to original coordinate order
+                    # Map sampled values back to original coordinate order with enhanced nodata handling
                     for coord_idx, sampled_value in zip(coord_indices, sampled_values):
                         if len(sampled_value) > 0:
                             value = sampled_value[0]  # First band
-                            # Handle NoData values
+                            
+                            # Enhanced NoData handling for ESA land cover data
+                            # Check dataset nodata first
                             if dataset.nodata is not None and value == dataset.nodata:
                                 pixel_values[coord_idx] = None
-                            else:
-                                pixel_values[coord_idx] = float(value)
+                                continue
+                            
+                            # ESA CCI Land Cover specific nodata values
+                            if value in [0, 255]:
+                                pixel_values[coord_idx] = None
+                                continue
+                            
+                            # Convert to integer for land cover classification codes
+                            try:
+                                value_int = int(round(value))
+                                # Validate range for ESA CCI codes
+                                if value_int < 1 or value_int > 250:
+                                    pixel_values[coord_idx] = None
+                                    continue
+                                
+                                pixel_values[coord_idx] = float(value_int)  # Store as float but ensure integer value
+                                
+                            except (ValueError, OverflowError):
+                                pixel_values[coord_idx] = None
                         else:
                             pixel_values[coord_idx] = None
                     
-                    print(f"✅ BATCH EXTRACTED: {len([v for v in pixel_values if v is not None])}/{len(coordinates)} pixels from COG")
+                    valid_count = len([v for v in pixel_values if v is not None])
+                    print(f"✅ BATCH EXTRACTED: {valid_count}/{len(coordinates)} valid ESA codes from COG")
                     return pixel_values
                 
         except Exception as e:
@@ -366,11 +451,11 @@ class OpenLandMapSTAC:
         try:
             # Collection-specific fallback URLs for different data types
             collection_fallback_urls = {
-                # Land Cover Collection  
+                # Land Cover Collection - Updated URLs for reliability
                 "land.cover_esacci.lc.l4": [
-                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
                     "https://s3.eu-central-1.wasabisys.com/openlandmap/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
-                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2021_v1.0.tif",
+                    "https://zenodo.org/records/3939038/files/ESACCI-LC-L4-LCCS-Map-300m-P1Y-2020-v2.1.1.tif",
+                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
                     "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2019_v1.0.tif",
                 ],
                 # Water Occurrence / Land Mask Collection
@@ -718,6 +803,44 @@ class OpenLandMapSTAC:
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
     
+    def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
+        """
+        Direct landcover extraction using fallback URLs when STAC collections fail
+        """
+        try:
+            collection_id = "land.cover_esacci.lc.l4"
+            asset_url = self.get_stac_asset_url(collection_id)
+            
+            if asset_url:
+                pixel_value = self.extract_pixel_value(asset_url, lat, lon)
+                
+                if pixel_value is not None:
+                    landcover_code = int(pixel_value)
+                    
+                    # Apply forest type mapping
+                    base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
+                    if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
+                        ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
+                    else:
+                        ecosystem_type = base_ecosystem_type
+                    
+                    return {
+                        "ecosystem_type": ecosystem_type,
+                        "landcover_class": landcover_code,
+                        "coordinates": {"lat": lat, "lon": lon},
+                        "data_source": "Direct ESA Land Cover Extraction",
+                        "raw_stac_data": {
+                            "extraction_method": "direct_landcover_fallback",
+                            "landcover_code": landcover_code,
+                            "asset_url": asset_url
+                        },
+                        "query_time": json.dumps({"timestamp": "now"}, default=str)
+                    }
+        except Exception as e:
+            print(f"❌ Direct landcover extraction failed: {e}")
+        
+        return None
+    
     def _determine_forest_type_from_coordinates(self, lat: float, lon: float) -> str:
         """
         Determine specific forest type based on coordinates using ESVD methodology
@@ -761,10 +884,11 @@ class OpenLandMapSTAC:
         return 'Temperate Forest'
     
             
-    async def get_batch_ecosystem_types(self, coordinates: List[tuple]) -> List[Dict[str, Any]]:
+    def get_batch_ecosystem_types(self, coordinates: List[tuple]) -> List[Dict[str, Any]]:
         """
         Batch ecosystem detection for multiple coordinates using optimized GeoTIFF sampling
         Opens GeoTIFF file once and samples all points efficiently
+        Fixed to be synchronous to avoid asyncio issues
         """
         results = []
         
@@ -821,7 +945,6 @@ class OpenLandMapSTAC:
                         # No synthetic data generation - return error for failed pixel extraction
                         results.append({
                             "ecosystem_type": "Unknown",
-                
                             "landcover_class": None,
                             "coordinates": {"lat": lat, "lon": lon},
                             "data_source": "Error: No Real Data Available",
@@ -833,7 +956,6 @@ class OpenLandMapSTAC:
                 for lat, lon in coordinates:
                     results.append({
                         "ecosystem_type": "Unknown",
-            
                         "landcover_class": None,
                         "coordinates": {"lat": lat, "lon": lon},
                         "data_source": "Error: STAC Asset Unavailable",
@@ -847,7 +969,6 @@ class OpenLandMapSTAC:
             for lat, lon in coordinates:
                 results.append({
                     "ecosystem_type": "Unknown",
-        
                     "landcover_class": None,
                     "coordinates": {"lat": lat, "lon": lon},
                     "data_source": "Error: Batch Processing Failed",
@@ -860,25 +981,51 @@ class OpenLandMapSTAC:
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         Main method to get ecosystem type using OpenLandMap STAC API
+        Enhanced with proper asyncio event loop management
         """
         try:
-            # Since asyncio.run can be problematic in some environments, use sync approach
             import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             
+            # Try to get existing event loop, create new one if none exists
             try:
-                stac_results = loop.run_until_complete(self.query_stac_collections(lat, lon))
-            finally:
-                loop.close()
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    # Create new loop if current one is closed
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+            except RuntimeError:
+                # No event loop in current thread, create new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Use asyncio.run for better event loop management
+            try:
+                if loop.is_running():
+                    # If loop is already running, use run_until_complete
+                    stac_results = loop.run_until_complete(self.query_stac_collections(lat, lon))
+                else:
+                    # Use asyncio.run for cleaner execution
+                    stac_results = asyncio.run(self.query_stac_collections(lat, lon))
+            except Exception as async_error:
+                print(f"⚠️ Async execution failed, falling back to fallback data sources: {async_error}")
+                stac_results = None
             
             if stac_results:
                 return self.process_stac_data(lat, lon, stac_results)
             else:
+                # Fall back to direct asset URL approach if STAC collections fail
+                print(f"📋 STAC collections failed, trying direct landcover extraction for ({lat}, {lon})")
+                try:
+                    # Try direct landcover extraction using fallback URLs
+                    landcover_result = self._extract_landcover_direct(lat, lon)
+                    if landcover_result:
+                        return landcover_result
+                except Exception as fallback_error:
+                    print(f"⚠️ Direct landcover extraction also failed: {fallback_error}")
+                
                 # No synthetic data generation - return error when STAC data unavailable
                 return {
                     "ecosystem_type": "Unknown",
-        
                     "coordinates": {"lat": lat, "lon": lon},
                     "data_source": "Error: No Real STAC Data Available", 
                     "error": "No genuine STAC collection data available for these coordinates",
@@ -889,7 +1036,6 @@ class OpenLandMapSTAC:
             # No synthetic data generation - return error when STAC API fails completely
             return {
                 "ecosystem_type": "Unknown",
-    
                 "landcover_class": None,
                 "coordinates": {"lat": lat, "lon": lon},
                 "data_source": "Error: STAC API Failed",
