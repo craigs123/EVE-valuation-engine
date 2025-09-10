@@ -3134,7 +3134,6 @@ if analyze_button and st.session_state.selected_area:
                 
                 ecosystem_info = {
                     'primary_ecosystem': primary_ecosystem,
-                    'confidence': ecosystem_counts[primary_ecosystem]['confidence'],
                     'successful_queries': len(sampling_point_data),
                     'ecosystem_distribution': ecosystem_counts,
                     'total_samples': len(sampling_point_data),
@@ -3201,7 +3200,6 @@ if analyze_button and st.session_state.selected_area:
                                 point_data = {
                                     'landcover_class': result.get('landcover_class', 'Unknown'),
                                     'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
-                                    'confidence': result.get('confidence', 0.0),
                                     'source': actual_source,  # Use the extracted source
                                     'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
                                     'stac_data': result.get('stac_data', {}),
@@ -3305,20 +3303,15 @@ if analyze_button and st.session_state.selected_area:
                             for point_data in sampling_point_data.values():
                                 eco_type = point_data.get('ecosystem_type', 'Grassland')
                                 if eco_type not in ecosystem_counts:
-                                    ecosystem_counts[eco_type] = {'count': 0, 'confidence': 0}
+                                    ecosystem_counts[eco_type] = {'count': 0}
                                 ecosystem_counts[eco_type]['count'] += 1
-                                ecosystem_counts[eco_type]['confidence'] += point_data.get('confidence', 0.9)
                             
-                            # Calculate averages
-                            for eco_type in ecosystem_counts:
-                                count = ecosystem_counts[eco_type]['count']
-                                ecosystem_counts[eco_type]['confidence'] = ecosystem_counts[eco_type]['confidence'] / count
+                            # No need to calculate averages anymore
                             
                             primary_ecosystem = max(ecosystem_counts.items(), key=lambda x: x[1]['count'])[0]
                             
                             ecosystem_info = {
                                 'primary_ecosystem': primary_ecosystem,
-                                'confidence': ecosystem_counts[primary_ecosystem]['confidence'],
                                 'successful_queries': len(sampling_point_data),
                                 'ecosystem_distribution': ecosystem_counts,
                                 'total_samples': len(sampling_point_data),
@@ -3399,7 +3392,6 @@ if analyze_button and st.session_state.selected_area:
                     # Store default detection info
                     st.session_state.detected_ecosystem = {
                         'primary_ecosystem': 'Grassland',
-                        'confidence': 0.8,
                         'successful_queries': 0,
                         'source': 'Geographic analysis',
                         'coverage_percentage': 100
@@ -3589,8 +3581,7 @@ if analyze_button and st.session_state.selected_area:
                         'original_type': display_ecosystem_type,
                         'detected_type': final_ecosystem_type,
                         'climate_zone': final_ecosystem_type.replace('_forest', '').title(),
-                        'coordinates': (center_lat, center_lon),
-                        'confidence': 0.9
+                        'coordinates': (center_lat, center_lon)
                     }
             
             # Store comprehensive analysis results
@@ -4053,8 +4044,7 @@ if st.session_state.analysis_results:
                     if 'ecosystem_distribution' in ecosystem_info:
                         st.markdown("**Sample Point Distribution**:")
                         for ecosystem, data in ecosystem_info['ecosystem_distribution'].items():
-                            confidence = data['confidence'] / data['count'] if data['count'] > 0 else 0
-                            st.markdown(f"- {ecosystem}: {data['count']} sample points, {confidence:.0%} avg confidence")
+                            st.markdown(f"- {ecosystem}: {data['count']} sample points")
                 
                 st.markdown(f"""
                 **How Detection Works**:

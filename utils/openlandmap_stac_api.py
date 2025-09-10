@@ -522,7 +522,6 @@ class OpenLandMapSTAC:
         land_cover = []
         soil = []
         ecosystem_type = None
-        confidence = 0.0
         
         # Track actual data source used and preserve raw response
         actual_data_source = "Geographic Fallback"
@@ -561,7 +560,6 @@ class OpenLandMapSTAC:
                 else:
                     ecosystem_type = base_ecosystem_type
                     
-                confidence = 0.90  # High confidence from STAC API
                 
                 # Add readable land cover type using centralized descriptions
                 from .esa_landcover_codes import get_esa_description
@@ -582,7 +580,7 @@ class OpenLandMapSTAC:
             
             return {
                 "ecosystem_type": None,
-                "confidence": 0.0,
+    
                 "landcover_class": None,
                 "coordinates": {"lat": lat, "lon": lon},
                 "data_source": "No Data Available",
@@ -617,7 +615,6 @@ class OpenLandMapSTAC:
         
         return {
             "ecosystem_type": ecosystem_type,
-            "confidence": confidence,
             "landcover_class": landcover_class,  # Add the landcover code for integration
             "coordinates": {"lat": lat, "lon": lon},
             "climate": climate if climate else None,
@@ -721,7 +718,6 @@ class OpenLandMapSTAC:
                         
                         results.append({
                             "ecosystem_type": ecosystem_type,
-                            "confidence": 0.9,
                             "landcover_class": landcover_code,
                             "coordinates": {"lat": lat, "lon": lon},
                             "data_source": "Real ESA Satellite Data (GeoTIFF Pixel)",
@@ -732,7 +728,7 @@ class OpenLandMapSTAC:
                         # No synthetic data generation - return error for failed pixel extraction
                         results.append({
                             "ecosystem_type": "Unknown",
-                            "confidence": 0.0,
+                
                             "landcover_class": None,
                             "coordinates": {"lat": lat, "lon": lon},
                             "data_source": "Error: No Real Data Available",
@@ -744,7 +740,7 @@ class OpenLandMapSTAC:
                 for lat, lon in coordinates:
                     results.append({
                         "ecosystem_type": "Unknown",
-                        "confidence": 0.0,
+            
                         "landcover_class": None,
                         "coordinates": {"lat": lat, "lon": lon},
                         "data_source": "Error: STAC Asset Unavailable",
@@ -758,7 +754,7 @@ class OpenLandMapSTAC:
             for lat, lon in coordinates:
                 results.append({
                     "ecosystem_type": "Unknown",
-                    "confidence": 0.0,
+        
                     "landcover_class": None,
                     "coordinates": {"lat": lat, "lon": lon},
                     "data_source": "Error: Batch Processing Failed",
@@ -789,7 +785,7 @@ class OpenLandMapSTAC:
                 # No synthetic data generation - return error when STAC data unavailable
                 return {
                     "ecosystem_type": "Unknown",
-                    "confidence": 0.0,
+        
                     "coordinates": {"lat": lat, "lon": lon},
                     "data_source": "Error: No Real STAC Data Available", 
                     "error": "No genuine STAC collection data available for these coordinates",
@@ -800,7 +796,7 @@ class OpenLandMapSTAC:
             # No synthetic data generation - return error when STAC API fails completely
             return {
                 "ecosystem_type": "Unknown",
-                "confidence": 0.0,
+    
                 "landcover_class": None,
                 "coordinates": {"lat": lat, "lon": lon},
                 "data_source": "Error: STAC API Failed",

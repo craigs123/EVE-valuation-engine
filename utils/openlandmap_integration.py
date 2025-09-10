@@ -77,7 +77,6 @@ class OpenLandMapIntegrator:
                     
                     return {
                         'ecosystem_type': stac_result['ecosystem_type'],
-                        'confidence': stac_result.get('confidence', 0.85),
                         'source': original_source,  # Use the actual source from pixel extraction
                         'landcover_class': stac_result.get('landcover_class', 0),
                         'coordinates': stac_result.get('coordinates', {'lat': lat, 'lon': lon}),
@@ -95,7 +94,7 @@ class OpenLandMapIntegrator:
             
             # Priority 2: Try USGS Earth Explorer API for US locations
             usgs_result = self._try_usgs_nlcd_api(lat, lon)
-            if usgs_result and usgs_result.get('confidence', 0) >= 0.90:
+            if usgs_result:
                 return usgs_result
             
             # Priority 3: Other external APIs for validation (including ESA)
@@ -109,7 +108,7 @@ class OpenLandMapIntegrator:
             for api_method in apis_to_try:
                 try:
                     result = api_method(lat, lon)
-                    if result and result.get('confidence', 0) > 0.80:
+                    if result:
                         return result
                 except Exception:
                     continue
@@ -180,7 +179,6 @@ class OpenLandMapIntegrator:
             return {
                 'landcover_class': lc_value,
                 'ecosystem_type': ecosystem_type,
-                'confidence': 0.95,  # High confidence for satellite data
                 'source': 'ESA WorldCover 2021'
             }
             
@@ -253,7 +251,6 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': nlcd_class,
                     'ecosystem_type': ecosystem_type,
-                    'confidence': 0.90,
                     'source': 'USGS NLCD'
                 }
         except:
@@ -285,7 +282,6 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': lc_class,
                     'ecosystem_type': ecosystem_type,
-                    'confidence': 0.88,
                     'source': 'ESA WorldCover'
                 }
         except:
@@ -302,7 +298,6 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': modis_class,
                     'ecosystem_type': ecosystem_type,
-                    'confidence': 0.85,
                     'source': 'MODIS Land Cover'
                 }
         except:
@@ -314,50 +309,50 @@ class OpenLandMapIntegrator:
         
         # Forest regions (expanded and more precise)
         forest_regions = [
-            {"lat_min": 45, "lat_max": 49, "lon_min": -125, "lon_max": -65, "name": "Northern Forest Belt", "confidence": 0.85},
-            {"lat_min": 35, "lat_max": 40, "lon_min": -85, "lon_max": -75, "name": "Appalachian Forests", "confidence": 0.82},
-            {"lat_min": 25, "lat_max": 35, "lon_min": -95, "lon_max": -80, "name": "Southeastern Forests", "confidence": 0.80},
-            {"lat_min": 40, "lat_max": 49, "lon_min": -125, "lon_max": -110, "name": "Pacific Northwest Forests", "confidence": 0.88},
-            {"lat_min": 35, "lat_max": 42, "lon_min": -125, "lon_max": -115, "name": "California Mountains", "confidence": 0.83}
+            {"lat_min": 45, "lat_max": 49, "lon_min": -125, "lon_max": -65, "name": "Northern Forest Belt"},
+            {"lat_min": 35, "lat_max": 40, "lon_min": -85, "lon_max": -75, "name": "Appalachian Forests"},
+            {"lat_min": 25, "lat_max": 35, "lon_min": -95, "lon_max": -80, "name": "Southeastern Forests"},
+            {"lat_min": 40, "lat_max": 49, "lon_min": -125, "lon_max": -110, "name": "Pacific Northwest Forests"},
+            {"lat_min": 35, "lat_max": 42, "lon_min": -125, "lon_max": -115, "name": "California Mountains"}
         ]
         
         for forest in forest_regions:
             if (forest["lat_min"] <= lat <= forest["lat_max"] and 
                 forest["lon_min"] <= lon <= forest["lon_max"]):
-                return {'landcover_class': 42, 'ecosystem_type': "Forest", 'confidence': forest["confidence"], 'source': forest["name"]}
+                return {'landcover_class': 42, 'ecosystem_type': "Forest", 'source': forest["name"]}
         
         # Desert regions (expanded coverage)
         desert_regions = [
-            {"lat_min": 32, "lat_max": 40, "lon_min": -125, "lon_max": -100, "name": "Southwest Desert Belt", "confidence": 0.87},
-            {"lat_min": 25, "lat_max": 35, "lon_min": -120, "lon_max": -105, "name": "Sonoran-Chihuahuan Desert", "confidence": 0.85}
+            {"lat_min": 32, "lat_max": 40, "lon_min": -125, "lon_max": -100, "name": "Southwest Desert Belt"},
+            {"lat_min": 25, "lat_max": 35, "lon_min": -120, "lon_max": -105, "name": "Sonoran-Chihuahuan Desert"}
         ]
         
         for desert in desert_regions:
             if (desert["lat_min"] <= lat <= desert["lat_max"] and 
                 desert["lon_min"] <= lon <= desert["lon_max"]):
-                return {'landcover_class': 31, 'ecosystem_type': "Desert", 'confidence': desert["confidence"], 'source': desert["name"]}
+                return {'landcover_class': 31, 'ecosystem_type': "Desert", 'source': desert["name"]}
         
         # Grassland regions (more precise boundaries)
         grassland_regions = [
-            {"lat_min": 35, "lat_max": 45, "lon_min": -105, "lon_max": -95, "name": "Great Plains Grasslands", "confidence": 0.83},
-            {"lat_min": 42, "lat_max": 49, "lon_min": -105, "lon_max": -95, "name": "Northern Prairie", "confidence": 0.81}
+            {"lat_min": 35, "lat_max": 45, "lon_min": -105, "lon_max": -95, "name": "Great Plains Grasslands"},
+            {"lat_min": 42, "lat_max": 49, "lon_min": -105, "lon_max": -95, "name": "Northern Prairie"}
         ]
         
         for grassland in grassland_regions:
             if (grassland["lat_min"] <= lat <= grassland["lat_max"] and 
                 grassland["lon_min"] <= lon <= grassland["lon_max"]):
-                return {'landcover_class': 71, 'ecosystem_type': "Grassland", 'confidence': grassland["confidence"], 'source': grassland["name"]}
+                return {'landcover_class': 71, 'ecosystem_type': "Grassland", 'source': grassland["name"]}
         
         # Agricultural regions (more conservative boundaries to avoid grassland overlap)
         agricultural_regions = [
-            {"lat_min": 39, "lat_max": 43, "lon_min": -98, "lon_max": -85, "name": "Corn Belt Core", "confidence": 0.85},
-            {"lat_min": 36, "lat_max": 40, "lon_min": -95, "lon_max": -88, "name": "Missouri-Illinois Agriculture", "confidence": 0.82}
+            {"lat_min": 39, "lat_max": 43, "lon_min": -98, "lon_max": -85, "name": "Corn Belt Core"},
+            {"lat_min": 36, "lat_max": 40, "lon_min": -95, "lon_max": -88, "name": "Missouri-Illinois Agriculture"}
         ]
         
         for ag_region in agricultural_regions:
             if (ag_region["lat_min"] <= lat <= ag_region["lat_max"] and 
                 ag_region["lon_min"] <= lon <= ag_region["lon_max"]):
-                return {'landcover_class': 82, 'ecosystem_type': "Agricultural", 'confidence': ag_region["confidence"], 'source': ag_region["name"]}
+                return {'landcover_class': 82, 'ecosystem_type': "Agricultural", 'source': ag_region["name"]}
         
         return None
     
@@ -369,7 +364,6 @@ class OpenLandMapIntegrator:
             return {
                 'landcover_class': 10,
                 'ecosystem_type': "Grassland",
-                'confidence': 0.6,
                 'source': 'Default Fallback'
             }
         return result
@@ -433,7 +427,7 @@ class OpenLandMapIntegrator:
         # Priority 5: Enhanced US-specific detection (optional refinement)
         if -180 <= lon <= -65 and 15 <= lat <= 75:  # US bounds
             us_result = self._enhanced_us_ecosystem_detection(lat, lon)
-            if us_result and us_result.get('confidence', 0) > global_result.get('confidence', 0):
+            if us_result:
                 return us_result
         
         # Return global result as primary detection
@@ -530,7 +524,6 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': 50,
                     'ecosystem_type': "Urban",
-                    'confidence': 0.85,
                     'source': f'Urban Center ({city["name"]})'
                 }
         
@@ -538,7 +531,6 @@ class OpenLandMapIntegrator:
             return {
                 'landcover_class': 50,
                 'ecosystem_type': "Urban",
-                'confidence': 0.75,
                 'source': 'Urban Pattern Detection'
             }
         
@@ -561,7 +553,6 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': 90,
                     'ecosystem_type': "Wetland",
-                    'confidence': 0.90,
                     'source': f'{wetland["name"]}'
                 }
         
@@ -609,7 +600,6 @@ class OpenLandMapIntegrator:
                             return {
                                 'landcover_class': 95,
                                 'ecosystem_type': "Coastal",
-                                'confidence': 0.78,
                                 'source': f'{coast["name"]}'
                             }
                     # If not close to actual shore, don't classify as coastal
@@ -619,7 +609,6 @@ class OpenLandMapIntegrator:
                     return {
                         'landcover_class': 95,
                         'ecosystem_type': "Coastal",
-                        'confidence': 0.78,
                         'source': f'{coast["name"]}'
                     }
         
@@ -631,17 +620,17 @@ class OpenLandMapIntegrator:
         # Tropical forests (equatorial regions)
         if abs(lat) < 25:
             if -90 <= lon <= -30:  # Central/South America
-                return {'landcover_class': 2, 'ecosystem_type': "Forest", 'confidence': 0.70, 'source': 'Tropical Americas'}
+                return {'landcover_class': 2, 'ecosystem_type': "Forest", 'source': 'Tropical Americas'}
             elif -20 <= lon <= 50:  # Africa
-                return {'landcover_class': 2, 'ecosystem_type': "Forest", 'confidence': 0.65, 'source': 'African Tropics'}
+                return {'landcover_class': 2, 'ecosystem_type': "Forest", 'source': 'African Tropics'}
             elif 90 <= lon <= 150:  # Southeast Asia
-                return {'landcover_class': 2, 'ecosystem_type': "Forest", 'confidence': 0.68, 'source': 'Southeast Asian Tropics'}
+                return {'landcover_class': 2, 'ecosystem_type': "Forest", 'source': 'Southeast Asian Tropics'}
             else:
-                return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'confidence': 0.60, 'source': 'Tropical Grasslands'}
+                return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'source': 'Tropical Grasslands'}
         
         # Boreal forests (high latitudes)
         if lat > 55 or lat < -45:
-            return {'landcover_class': 1, 'ecosystem_type': "Forest", 'confidence': 0.75, 'source': 'Boreal Forest'}
+            return {'landcover_class': 1, 'ecosystem_type': "Forest", 'source': 'Boreal Forest'}
         
         # Temperate regions (40-55°N and 30-45°S) - mixed ecosystems likely
         if (40 <= lat <= 55) or (-45 <= lat <= -30):
@@ -655,46 +644,45 @@ class OpenLandMapIntegrator:
                     spatial_key = int((lat_offset + lon_offset) % 10)
                     
                     if spatial_key < 4:  # 40% agricultural
-                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'confidence': 0.70, 'source': 'Michigan Mixed Agricultural'}
+                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'Michigan Mixed Agricultural'}
                     elif spatial_key < 7:  # 30% forest
-                        return {'landcover_class': 4, 'ecosystem_type': "Forest", 'confidence': 0.65, 'source': 'Michigan Mixed Forest'}
+                        return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'Michigan Mixed Forest'}
                     else:  # 30% grassland
-                        return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'confidence': 0.60, 'source': 'Michigan Mixed Grassland'}
+                        return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'source': 'Michigan Mixed Grassland'}
                 else:
                     # General mixed region pattern for other areas
                     coord_hash = int(((lat * 1000) + (lon * 1000)) % 10)
                     if coord_hash < 6:  # 60% agricultural for general region
-                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'confidence': 0.75, 'source': 'North American Agricultural Belt'}
+                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'North American Agricultural Belt'}
                     else:  # 40% forest for general region
-                        return {'landcover_class': 4, 'ecosystem_type': "Forest", 'confidence': 0.70, 'source': 'North American Forest'}
+                        return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'North American Forest'}
             elif -10 <= lon <= 40 and 40 <= lat <= 55:  # European agricultural belt
-                return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'confidence': 0.70, 'source': 'European Agricultural Belt'}
+                return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'European Agricultural Belt'}
             else:
-                return {'landcover_class': 4, 'ecosystem_type': "Forest", 'confidence': 0.65, 'source': 'Temperate Forest'}
+                return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'Temperate Forest'}
         
         # Mediterranean climates
         if ((30 <= lat <= 40 and -10 <= lon <= 45) or  # Mediterranean Sea
             (30 <= lat <= 40 and -125 <= lon <= -115) or  # California
             (-35 <= lat <= -30 and 15 <= lon <= 25) or  # South Africa
             (-35 <= lat <= -30 and 135 <= lon <= 150)):  # Australia
-            return {'landcover_class': 6, 'ecosystem_type': "Shrubland", 'confidence': 0.70, 'source': 'Mediterranean Climate'}
+            return {'landcover_class': 6, 'ecosystem_type': "Shrubland", 'source': 'Mediterranean Climate'}
         
         # Arid regions (deserts)
         if ((20 <= lat <= 35 and -10 <= lon <= 60) or  # Sahara and Middle East
             (15 <= lat <= 30 and -125 <= lon <= -100) or  # Southwestern US/Mexico
             (-30 <= lat <= -15 and -70 <= lon <= -60) or  # Atacama
             (-30 <= lat <= -20 and 115 <= lon <= 140)):  # Australian deserts
-            return {'landcover_class': 16, 'ecosystem_type': "Desert", 'confidence': 0.75, 'source': 'Arid Regions'}
+            return {'landcover_class': 16, 'ecosystem_type': "Desert", 'source': 'Arid Regions'}
         
         # Subtropical regions (25-40°)
         if 25 <= lat <= 40 or -40 <= lat <= -25:
-            return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'confidence': 0.65, 'source': 'Subtropical Grasslands'}
+            return {'landcover_class': 10, 'ecosystem_type': "Grassland", 'source': 'Subtropical Grasslands'}
         
         # Default: Mixed temperate (most common for populated regions)
         return {
             'landcover_class': 10,
             'ecosystem_type': "Grassland", 
-            'confidence': 0.60,
             'source': 'Global Temperate Regions'
         }
     
@@ -764,7 +752,6 @@ class OpenLandMapIntegrator:
         """
         try:
             landcover_class = 0
-            confidence = 0.85
             source = 'OpenLandMap'
             
             # Handle OpenLandMap API response format
@@ -801,7 +788,6 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': landcover_class,
                     'ecosystem_type': ecosystem_type,
-                    'confidence': confidence,
                     'source': source
                 }
             
@@ -855,7 +841,6 @@ class OpenLandMapIntegrator:
                             print(f"🔍 DEBUG BATCH RESULT {i}: landcover_class={result.get('landcover_class', 'N/A')}, ecosystem_type={result.get('ecosystem_type', 'N/A')}")
                             ecosystem_results.append({
                                 'ecosystem_type': result['ecosystem_type'],
-                                'confidence': result.get('confidence', 0.85),
                                 'source': result.get('data_source', 'Batch STAC API'),
                                 'landcover_class': result.get('landcover_class', 0),
                                 'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]}),
@@ -899,7 +884,6 @@ class OpenLandMapIntegrator:
             
             # Determine dominant ecosystem type (optimized)
             ecosystem_counts = {}
-            total_confidence = 0
             
             # Use collections.Counter for better performance
             ecosystem_types = [result['ecosystem_type'] for result in ecosystem_results]
@@ -908,16 +892,8 @@ class OpenLandMapIntegrator:
             # Pre-initialize all ecosystem types
             for ecosystem_type in type_counts:
                 ecosystem_counts[ecosystem_type] = {
-                    'count': type_counts[ecosystem_type], 
-                    'confidence': 0
+                    'count': type_counts[ecosystem_type]
                 }
-            
-            # Single pass to sum confidences
-            for result in ecosystem_results:
-                ecosystem_type = result['ecosystem_type']
-                confidence = result['confidence']
-                ecosystem_counts[ecosystem_type]['confidence'] += confidence
-                total_confidence += confidence
             
             # Find dominant ecosystem
             dominant_ecosystem = max(ecosystem_counts.keys(), 
@@ -925,12 +901,10 @@ class OpenLandMapIntegrator:
             
             # Calculate metrics
             dominant_count = ecosystem_counts[dominant_ecosystem]['count']
-            dominant_confidence = ecosystem_counts[dominant_ecosystem]['confidence'] / dominant_count
             coverage_percentage = (dominant_count / len(ecosystem_results)) * 100
             
             return {
                 'primary_ecosystem': dominant_ecosystem,
-                'confidence': dominant_confidence,
                 'coverage_percentage': coverage_percentage,
                 'successful_queries': successful_queries,
                 'total_samples': len(sample_points),
