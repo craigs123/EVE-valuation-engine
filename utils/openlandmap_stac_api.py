@@ -35,12 +35,13 @@ class OpenLandMapSTAC:
         self._asset_url_cache = {}   # Cache GeoTIFF asset URLs
         
         # Define key STAC collections for comprehensive environmental data
+        # Based on technical brief specifications
         self.collections = [
             {
-                "id": "log.oc_iso.10694",
-                "name": "Soil Organic Carbon",
-                "category": "soil",
-                "unit": "g/kg"
+                "id": "water.occurrence_jrc.surfacewater",
+                "name": "Land Mask Percentage", 
+                "category": "landmask",
+                "unit": "percentage"
             },
             {
                 "id": "land.cover_esacci.lc.l4", 
@@ -50,21 +51,27 @@ class OpenLandMapSTAC:
             },
             {
                 "id": "evi_mod13q1.tmwm.inpaint",
-                "name": "Vegetation Index",
+                "name": "Enhanced Vegetation Index",
                 "category": "vegetation", 
                 "unit": "index"
             },
             {
                 "id": "fapar_essd.lstm",
-                "name": "Photosynthetic Activity",
+                "name": "Fraction of Absorbed PAR",
                 "category": "vegetation",
                 "unit": "fraction"
             },
             {
                 "id": "dtm.bareearth_ensemble",
-                "name": "Terrain Elevation",
+                "name": "Elevation",
                 "category": "terrain",
                 "unit": "meters"
+            },
+            {
+                "id": "log.oc_iso.10694",
+                "name": "Soil Organic Carbon",
+                "category": "soil",
+                "unit": "g/kg"
             }
         ]
         
@@ -346,27 +353,37 @@ class OpenLandMapSTAC:
         try:
             # Collection-specific fallback URLs for different data types
             collection_fallback_urls = {
-                # Land Cover Collection
+                # Land Cover Collection  
                 "land.cover_esacci.lc.l4": [
                     "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
                     "https://s3.eu-central-1.wasabisys.com/openlandmap/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
                     "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2021_v1.0.tif",
                     "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2019_v1.0.tif",
                 ],
-                # Vegetation Index Collection
+                # Water Occurrence / Land Mask Collection
+                "water.occurrence_jrc.surfacewater": [
+                    "https://s3.openlandmap.org/arco/hyd_water.occurrence_jrc.surfacewater_p_250m_s0..0cm_1984..2020_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/hyd_water.occurrence_jrc.surfacewater_p_250m_s0..0cm_1984..2019_v1.0.tif",
+                ],
+                # Enhanced Vegetation Index Collection
                 "evi_mod13q1.tmwm.inpaint": [
                     "https://s3.openlandmap.org/arco/veg_evi_mod13q1.tmwm.inpaint_d_250m_s0..0cm_2014..2019_v1.0.tif",
                     "https://s3.openlandmap.org/arco/veg_evi_mod13q1.tmwm.inpaint_d_250m_s0..0cm_2013..2018_v1.0.tif",
                 ],
-                # Soil Organic Carbon Collection
-                "log.oc_iso.10694": [
-                    "https://s3.openlandmap.org/arco/sol_log.oc_iso.10694_m_250m_s0..0cm_2001..2020_v1.0.tif",
-                    "https://s3.openlandmap.org/arco/sol_log.oc_iso.10694_m_250m_s5..15cm_2001..2020_v1.0.tif",
+                # fAPAR Collection  
+                "fapar_essd.lstm": [
+                    "https://s3.openlandmap.org/arco/veg_fapar_essd.lstm_d_250m_s0..0cm_2014..2019_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/veg_fapar_essd.lstm_d_250m_s0..0cm_2013..2018_v1.0.tif",
                 ],
                 # Terrain Elevation Collection
                 "dtm.bareearth_ensemble": [
                     "https://s3.openlandmap.org/arco/dtm_dtm.bareearth_ensemble_m_250m_s0..0cm_2018..2020_v1.0.tif",
                     "https://s3.openlandmap.org/arco/dtm_elevation_bareearth_ensemble_m_250m_s0..0cm_2018..2020_v1.0.tif",
+                ],
+                # Soil Organic Carbon Collection
+                "log.oc_iso.10694": [
+                    "https://s3.openlandmap.org/arco/sol_log.oc_iso.10694_m_250m_s0..0cm_2001..2020_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/sol_log.oc_iso.10694_m_250m_s5..15cm_2001..2020_v1.0.tif",
                 ]
             }
             
@@ -463,17 +480,22 @@ class OpenLandMapSTAC:
                         if item_response and item_response.status_code == 200:
                             item_data = item_response.json()
                             
-                            # Extract GeoTIFF asset URL
+                            # Extract GeoTIFF asset URL following technical brief specifications
                             if 'assets' in item_data:
                                 print(f"🎯 Available assets in {year}: {list(item_data['assets'].keys())}")
                                 for asset_key, asset in item_data['assets'].items():
                                     asset_type = asset.get('type', '')
                                     asset_href = asset.get('href', '')
+                                    asset_roles = asset.get('roles', [])
+                                    asset_main = asset.get('main', False)
                                     
-                                    if ('image/tiff' in asset_type or 'tiff' in asset_href.lower() or 
+                                    # Follow technical brief: look for roles: ['data'] or asset.main === true
+                                    if ('data' in asset_roles or asset_main or 
+                                        'image/tiff' in asset_type or 'tiff' in asset_href.lower() or 
                                         asset_key in ['data', 'main', 'cog', 'asset']):
                                         asset_url = asset['href']
                                         print(f"✅ Found GeoTIFF asset from year {year}: {asset_url}")
+                                        print(f"   📋 Asset details: roles={asset_roles}, main={asset_main}, type={asset_type}")
                                         # Cache the asset URL
                                         self._asset_url_cache[collection_id] = asset_url
                                         return asset_url

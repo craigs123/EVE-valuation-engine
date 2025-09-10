@@ -61,6 +61,67 @@ class OpenLandMapIntegrator:
             17: "Rivers and Lakes"  # Water Bodies
         }
     
+    def get_comprehensive_environmental_data(self, lat: float, lon: float) -> Optional[Dict]:
+        """
+        Get comprehensive environmental data including all indicators from OpenLandMap STAC collections
+        """
+        try:
+            from .openlandmap_stac_api import openlandmap_stac
+            
+            # Extract data from all environmental collections
+            environmental_data = {}
+            
+            # Get land cover data (ecosystem type)
+            stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
+            if stac_result and stac_result.get('ecosystem_type'):
+                environmental_data.update(stac_result)
+            
+            # Get comprehensive environmental indicators from all collections
+            for collection in openlandmap_stac.collections:
+                collection_id = collection['id']
+                collection_name = collection['name']
+                collection_category = collection['category']
+                collection_unit = collection['unit']
+                
+                # Skip land cover as we already have it
+                if collection_category == 'landcover':
+                    continue
+                    
+                try:
+                    # Get asset URL for this collection
+                    asset_url = openlandmap_stac.get_stac_asset_url(collection_id)
+                    if asset_url:
+                        # Extract pixel value from this collection
+                        pixel_value = openlandmap_stac.extract_pixel_value(asset_url, lat, lon)
+                        if pixel_value is not None:
+                            # Store the environmental indicator data
+                            if 'stac_data' not in environmental_data:
+                                environmental_data['stac_data'] = {}
+                            if collection_category not in environmental_data['stac_data']:
+                                environmental_data['stac_data'][collection_category] = []
+                            
+                            environmental_data['stac_data'][collection_category].append({
+                                'name': collection_name,
+                                'value': pixel_value,
+                                'unit': collection_unit,
+                                'collection_id': collection_id,
+                                'asset_url': asset_url
+                            })
+                            
+                            print(f"🌍 Extracted {collection_name}: {pixel_value} {collection_unit} from {collection_id}")
+                        else:
+                            print(f"⚠️ No pixel value extracted for {collection_name} at ({lat:.4f}, {lon:.4f})")
+                    else:
+                        print(f"⚠️ No asset URL found for collection {collection_id}")
+                except Exception as e:
+                    print(f"❌ Failed to extract data from {collection_name}: {e}")
+            
+            return environmental_data if environmental_data else None
+            
+        except Exception as e:
+            print(f"❌ Comprehensive environmental data extraction failed: {e}")
+            return None
+    
     def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
         """
         Get land cover information for a specific point using OpenLandMap STAC API as primary source
@@ -68,26 +129,20 @@ class OpenLandMapIntegrator:
         try:
             # Priority 1: OpenLandMap STAC API (primary global satellite data source)
             try:
-                from .openlandmap_stac_api import openlandmap_stac
-                stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
-                if stac_result and stac_result.get('ecosystem_type'):
+                # Use comprehensive environmental data extraction
+                comprehensive_data = self.get_comprehensive_environmental_data(lat, lon)
+                if comprehensive_data and comprehensive_data.get('ecosystem_type'):
                     # Pass through the actual data source from pixel extraction
-                    original_source = stac_result.get('data_source', 'OpenLandMap STAC API')
+                    original_source = comprehensive_data.get('data_source', 'OpenLandMap STAC API')
                     print(f"🔍 Integration: STAC result data_source = '{original_source}'")
                     
                     return {
-                        'ecosystem_type': stac_result['ecosystem_type'],
+                        'ecosystem_type': comprehensive_data['ecosystem_type'],
                         'source': original_source,  # Use the actual source from pixel extraction
-                        'landcover_class': stac_result.get('landcover_class', 0),
-                        'coordinates': stac_result.get('coordinates', {'lat': lat, 'lon': lon}),
-                        'stac_data': {
-                            'climate': stac_result.get('climate', []),
-                            'landCover': stac_result.get('landCover', []),
-                            'soil': stac_result.get('soil', []),
-                            'data_source': original_source,  # Use the actual source
-                            'query_time': stac_result.get('query_time')
-                        },
-                        'raw_stac_data': stac_result.get('raw_stac_data', {})  # Include raw data for UI
+                        'landcover_class': comprehensive_data.get('landcover_class', 0),
+                        'coordinates': comprehensive_data.get('coordinates', {'lat': lat, 'lon': lon}),
+                        'stac_data': comprehensive_data.get('stac_data', {}),
+                        'raw_stac_data': comprehensive_data.get('raw_stac_data', {})
                     }
             except Exception as e:
                 print(f"STAC API query failed for ({lat}, {lon}): {e}")
