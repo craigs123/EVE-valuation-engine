@@ -344,14 +344,34 @@ class OpenLandMapSTAC:
             return self._asset_url_cache[collection_id]
         
         try:
-            # Updated fallback URLs for more recent years
-            asset_url_attempts = [
-                # Try the latest known versions first (2020-2021)
-                "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
-                "https://s3.eu-central-1.wasabisys.com/openlandmap/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
-                "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2021_v1.0.tif",
-                "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2019_v1.0.tif",
-            ]
+            # Collection-specific fallback URLs for different data types
+            collection_fallback_urls = {
+                # Land Cover Collection
+                "land.cover_esacci.lc.l4": [
+                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
+                    "https://s3.eu-central-1.wasabisys.com/openlandmap/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2021_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2019_v1.0.tif",
+                ],
+                # Vegetation Index Collection
+                "evi_mod13q1.tmwm.inpaint": [
+                    "https://s3.openlandmap.org/arco/veg_evi_mod13q1.tmwm.inpaint_d_250m_s0..0cm_2014..2019_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/veg_evi_mod13q1.tmwm.inpaint_d_250m_s0..0cm_2013..2018_v1.0.tif",
+                ],
+                # Soil Organic Carbon Collection
+                "log.oc_iso.10694": [
+                    "https://s3.openlandmap.org/arco/sol_log.oc_iso.10694_m_250m_s0..0cm_2001..2020_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/sol_log.oc_iso.10694_m_250m_s5..15cm_2001..2020_v1.0.tif",
+                ],
+                # Terrain Elevation Collection
+                "dtm.bareearth_ensemble": [
+                    "https://s3.openlandmap.org/arco/dtm_dtm.bareearth_ensemble_m_250m_s0..0cm_2018..2020_v1.0.tif",
+                    "https://s3.openlandmap.org/arco/dtm_elevation_bareearth_ensemble_m_250m_s0..0cm_2018..2020_v1.0.tif",
+                ]
+            }
+            
+            # Get fallback URLs for this collection type
+            asset_url_attempts = collection_fallback_urls.get(collection_id, [])
             
             # First try STAC catalog query with retry logic - search for most recent data
             collection_url = f"{self.stac_base_url}/{collection_id}/collection.json"

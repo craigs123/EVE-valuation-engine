@@ -780,6 +780,31 @@ def display_data_source_status(analysis_results: Dict = None):
                             except:
                                 pass  # Skip if description not available
                         
+                        # Extract real environmental indicators from STAC data
+                        if stac_data:
+                            # Vegetation Index (EVI)
+                            climate_data = stac_data.get('climate', [])
+                            if climate_data:
+                                for item in climate_data:
+                                    if 'vegetation' in item.get('name', '').lower() or 'evi' in item.get('name', '').lower():
+                                        evi_value = item.get('value')
+                                        if evi_value is not None:
+                                            env_row['Vegetation Index (EVI)'] = f"{evi_value:.3f}"
+                                    elif 'elevation' in item.get('name', '').lower() or 'terrain' in item.get('name', '').lower():
+                                        elevation_value = item.get('value')
+                                        if elevation_value is not None:
+                                            env_row['Elevation (m)'] = f"{elevation_value:.1f}"
+                            
+                            # Soil Organic Carbon
+                            soil_data = stac_data.get('soil', [])
+                            if soil_data:
+                                for item in soil_data:
+                                    if 'carbon' in item.get('name', '').lower() or 'organic' in item.get('name', '').lower():
+                                        soc_value = item.get('value')
+                                        unit = item.get('unit', 'g/kg')
+                                        if soc_value is not None:
+                                            env_row[f'Soil Organic Carbon ({unit})'] = f"{soc_value:.2f}"
+                        
                         # Calculate area diversity from actual ecosystem distribution
                         if hasattr(st.session_state, 'detected_ecosystem') and 'ecosystem_distribution' in st.session_state.detected_ecosystem:
                             ecosystem_dist = st.session_state.detected_ecosystem['ecosystem_distribution']
