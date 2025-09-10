@@ -858,7 +858,8 @@ class OpenLandMapIntegrator:
                                 'confidence': result.get('confidence', 0.85),
                                 'source': result.get('data_source', 'Batch STAC API'),
                                 'landcover_class': result.get('landcover_class', 0),
-                                'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]})
+                                'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]}),
+                                'raw_stac_data': result.get('raw_stac_data', {})  # CRITICAL FIX: Include raw STAC data for UI display
                             })
                             successful_queries += 1
                         
