@@ -3535,9 +3535,7 @@ if analyze_button and st.session_state.selected_area:
             analysis_progress_container.empty()
                 
         st.success("Analysis complete!")
-        # Only rerun if this wasn't a water body classification continuation
-        if not st.session_state.get('water_bodies_classified', False):
-            st.rerun()
+        # Streamlit will handle reruns naturally when session state changes
                 
     except Exception as e:
         st.error(f"Error processing area: {e}")
