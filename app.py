@@ -148,7 +148,7 @@ st.markdown("""
         
         .header-text {
             color: white;
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             font-weight: 700;
             text-align: center;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
