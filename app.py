@@ -2335,13 +2335,13 @@ else:
     draw_tools = create_drawing_tools()
     draw_tools.add_to(m)
 
-# Ultra-optimized map display with performance settings - centered
+# Ultra-optimized map display with performance settings - two-thirds width
 from streamlit_folium import st_folium
-col1_map, col2_map, col3_map = st.columns([1, 2, 1])
+col1_map, col2_map, col3_map = st.columns([0.5, 2, 0.5])
 with col2_map:
     map_data = st_folium(
         m, 
-        width=700, 
+        width=950, 
         height=400,
         returned_objects=["all_drawings"],
         key="area_map",
