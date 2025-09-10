@@ -1308,6 +1308,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version: 2.7.5</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; color: #666; margin-top: 0.2rem;">More information at https://eve-solutions.eu/</p>', unsafe_allow_html=True)
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
 
