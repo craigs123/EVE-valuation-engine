@@ -129,27 +129,37 @@ class OpenLandMapIntegrator:
         try:
             # Priority 1: OpenLandMap STAC API (primary global satellite data source)
             try:
+                # Get basic ecosystem type first
                 from .openlandmap_stac_api import openlandmap_stac
                 stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
                 if stac_result and stac_result.get('ecosystem_type'):
-                    # Pass through the actual data source from pixel extraction
-                    original_source = stac_result.get('data_source', 'OpenLandMap STAC API')
-                    print(f"🔍 Integration: STAC result data_source = '{original_source}'")
+                    # Now get comprehensive environmental data
+                    comprehensive_data = self.get_comprehensive_environmental_data(lat, lon)
                     
-                    return {
+                    # Merge the data, prioritizing land cover from working system
+                    final_data = {
                         'ecosystem_type': stac_result['ecosystem_type'],
-                        'source': original_source,  # Use the actual source from pixel extraction
+                        'source': stac_result.get('data_source', 'OpenLandMap STAC API'),
                         'landcover_class': stac_result.get('landcover_class', 0),
                         'coordinates': stac_result.get('coordinates', {'lat': lat, 'lon': lon}),
-                        'stac_data': {
+                        'raw_stac_data': stac_result.get('raw_stac_data', {})
+                    }
+                    
+                    # Add environmental indicators if we got them
+                    if comprehensive_data and comprehensive_data.get('stac_data'):
+                        final_data['stac_data'] = comprehensive_data['stac_data']
+                    else:
+                        # Fallback to basic structure
+                        final_data['stac_data'] = {
                             'climate': stac_result.get('climate', []),
                             'landCover': stac_result.get('landCover', []),
                             'soil': stac_result.get('soil', []),
-                            'data_source': original_source,  # Use the actual source
+                            'data_source': stac_result.get('data_source', 'OpenLandMap STAC API'),
                             'query_time': stac_result.get('query_time')
-                        },
-                        'raw_stac_data': stac_result.get('raw_stac_data', {})  # Include raw data for UI
-                    }
+                        }
+                    
+                    print(f"🔍 Integration: Combined land cover + environmental data from OpenLandMap")
+                    return final_data
             except Exception as e:
                 print(f"STAC API query failed for ({lat}, {lon}): {e}")
             
