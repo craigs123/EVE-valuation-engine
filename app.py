@@ -202,14 +202,15 @@ st.markdown("""
         }
         
         /* Better Typography */
-        .section-header {
-            font-size: 1.2rem;
+        [data-testid="stMarkdownContainer"] h2.section-header {
+            font-size: 1.1rem !important;
             font-weight: 700;
             color: #1f2937;
-            margin: 2rem 0 1rem 0;
+            margin: 2rem 0 1rem 0 !important;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            line-height: 1.3;
         }
         
         /* Loading Animation */
