@@ -634,12 +634,13 @@ def display_data_source_status(analysis_results: Dict = None):
                         
                         data_source = point_data.get('source', 'Unknown')
                         
-                        # Get country from coordinates
+                        # Get country from coordinates (exclude for Ocean/Marine points)
                         country = "N/A"
                         if coords and isinstance(coords, dict):
                             lat = coords.get('lat', 0)
                             lon = coords.get('lon', 0)
-                            if lat != 0 or lon != 0:  # Valid coordinates
+                            # Don't assign country for Ocean/Marine ecosystem types
+                            if (lat != 0 or lon != 0) and esvd_ecosystem != "Marine":  # Valid coordinates and not Ocean
                                 country = get_country_from_coordinates(lat, lon)
                         
                         # Add indicator for user-classified water bodies
