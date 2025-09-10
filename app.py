@@ -2102,7 +2102,7 @@ test_area_options = [
     "🏜️ Test area (Desert)",
     "🌊 Test area (Water Bodies)",
     "🌍 Test area (Multi-Ecosystem)",
-    "🎲 Test area (Random Global)"
+    # "🎲 Test area (Random Global)"  # Hidden but kept for later use
 ]
 
 # Left-aligned area selection dropdown
