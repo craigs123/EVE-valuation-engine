@@ -102,6 +102,23 @@ st.markdown("""
             padding-top: 0 !important;
         }
         
+        /* Reduce padding around sidebar toggle arrow */
+        .css-1rs6os .css-17eq0hr {
+            padding-top: 0.25rem !important;
+        }
+        
+        /* Target sidebar toggle button specifically */
+        button[kind="secondary"][data-testid="collapsedControl"] {
+            margin-top: 0 !important;
+            padding: 0.25rem !important;
+        }
+        
+        /* Reduce spacing around sidebar collapse area */
+        .css-1kyxreq {
+            padding-top: 0.25rem !important;
+            margin-top: 0 !important;
+        }
+        
         
         /* Enhanced Primary Button Styling */
         .primary-action {
