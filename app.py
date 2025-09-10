@@ -2220,8 +2220,8 @@ elif use_test_area_single:
             "location": "Northern Ontario boreal forest"
         },
         "🌴 Test area (Tropical Forest)": {
-            "coords": calculate_1000ha_coordinates(-3.0, -60.0),
-            "description": "Brazilian Amazon Rainforest (3.0°S, 60.0°W) | Expected: Tropical Forest ecosystem",
+            "coords": calculate_1000ha_coordinates(-3.0, -59.28),
+            "description": "Brazilian Amazon Rainforest (3.0°S, 59.3°W) | Expected: Tropical Forest ecosystem",
             "location": "Central Amazon rainforest, Brazil"
         },
         "🏜️ Test area (Desert)": {
@@ -2410,7 +2410,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌾 Test area (Agricultural)": (40.1, -87.97),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
-            "🌴 Test area (Tropical Forest)": (-3.0, -60.0),   # Brazilian Amazon
+            "🌴 Test area (Tropical Forest)": (-3.0, -59.28),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
         }
