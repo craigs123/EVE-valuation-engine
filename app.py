@@ -866,20 +866,6 @@ def display_data_source_status(analysis_results: Dict = None):
                                         env_row[f'Soil Organic Carbon ({unit})'] = safe_format_value(value, 2)
                                         break  # Take first soil carbon match
                         
-                        # Calculate area diversity from actual ecosystem distribution
-                        if hasattr(st.session_state, 'detected_ecosystem') and 'ecosystem_distribution' in st.session_state.detected_ecosystem:
-                            ecosystem_dist = st.session_state.detected_ecosystem['ecosystem_distribution']
-                            if len(ecosystem_dist) > 1:
-                                # Calculate Simpson diversity index from real data
-                                total_samples = st.session_state.detected_ecosystem['successful_queries']
-                                simpson_index = 0
-                                for eco_type, data in ecosystem_dist.items():
-                                    proportion = data['count'] / total_samples
-                                    simpson_index += proportion ** 2
-                                simpson_diversity = 1 - simpson_index
-                                env_row['Area Diversity (Simpson)'] = f"{simpson_diversity:.3f}"
-                            else:
-                                env_row['Area Diversity (Simpson)'] = "0.000 (homogeneous)"
                         
                         # Ecosystem type removed - already shown in Sample Points Summary Table
                         
