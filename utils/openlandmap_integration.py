@@ -920,31 +920,30 @@ class OpenLandMapIntegrator:
                         openlandmap_stac.get_batch_ecosystem_types(sample_points)
                     )
                     
-                    # Convert batch results to expected format and add environmental data for each point
+                    # Convert batch results to expected format
                     for i, result in enumerate(batch_results):
                         if result and result.get('ecosystem_type'):
                             # DEBUG: Log the actual result to understand what's happening
                             print(f"🔍 DEBUG BATCH RESULT {i}: landcover_class={result.get('landcover_class', 'N/A')}, ecosystem_type={result.get('ecosystem_type', 'N/A')}")
-                            
-                            # Extract environmental indicators for this sample point
-                            point_lat, point_lon = sample_points[i][0], sample_points[i][1]
-                            environmental_data = self.get_comprehensive_environmental_data(point_lat, point_lon)
-                            
-                            ecosystem_result = {
+                            ecosystem_results.append({
                                 'ecosystem_type': result['ecosystem_type'],
                                 'source': result.get('data_source', 'Batch STAC API'),
                                 'landcover_class': result.get('landcover_class', 0),
-                                'coordinates': result.get('coordinates', {'lat': point_lat, 'lon': point_lon}),
+                                'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]}),
                                 'raw_stac_data': result.get('raw_stac_data', {})  # CRITICAL FIX: Include raw STAC data for UI display
-                            }
-                            
-                            # Add environmental indicators if available
-                            if environmental_data and environmental_data.get('stac_data'):
-                                ecosystem_result['stac_data'] = environmental_data['stac_data']
-                                print(f"🔍 ENVIRONMENTAL: Added environmental data for point {i} with {len(environmental_data['stac_data'])} categories")
-                            
-                            ecosystem_results.append(ecosystem_result)
+                            })
                             successful_queries += 1
+                    
+                    # Extract environmental indicators for the first successful point only to avoid overwhelming async system
+                    if successful_queries > 0 and sample_points:
+                        print("🔍 ENVIRONMENTAL: Adding environmental indicators from first sample point")
+                        first_point = sample_points[0]
+                        environmental_data = self.get_comprehensive_environmental_data(first_point[0], first_point[1])
+                        if environmental_data and environmental_data.get('stac_data'):
+                            print(f"🔍 ENVIRONMENTAL: Successfully extracted environmental data with {len(environmental_data['stac_data'])} categories")
+                            # Add environmental data to all results for UI display (same environmental conditions apply to the area)
+                            for ecosystem_result in ecosystem_results:
+                                ecosystem_result['stac_data'] = environmental_data['stac_data']
                         
                         # Update progress if callback provided
                         if progress_callback:
