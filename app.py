@@ -1876,7 +1876,7 @@ test_area_options = [
 ]
 
 # Left-aligned area selection dropdown
-st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0.5rem;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
+st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0.1rem;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
 selected_test_area = st.selectbox(
     "",
     test_area_options,
