@@ -119,6 +119,42 @@ st.markdown("""
             margin-top: 0 !important;
         }
         
+        /* Header image with text overlay */
+        .header-container {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(34, 139, 87, 0.95), rgba(0, 100, 0, 0.85)), linear-gradient(45deg, rgba(46, 125, 50, 0.8), rgba(27, 94, 32, 0.9));
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .header-overlay {
+            background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2));
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        
+        .header-text {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 1px;
+        }
+        
         
         /* Enhanced Primary Button Styling */
         .primary-action {
@@ -1023,8 +1059,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Enhanced Title and Progress Indicator
-st.title("🌱 Ecosystem Valuation Engine v2.7.5")
+# Custom Header with Image Background
+st.markdown("""
+<div class="header-container">
+    <div class="header-overlay">
+        <div class="header-text">
+            Ecosystem Valuation Engine
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 st.markdown("**Measure the economic value of ecosystem services using scientific data**")
 
 
