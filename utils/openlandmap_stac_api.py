@@ -897,6 +897,7 @@ class OpenLandMapSTAC:
                         else:
                             ecosystem_type = base_ecosystem_type
                         
+                        print(f"🔍 BATCH DEBUG: Point {i}, landcover_code={landcover_code}, ecosystem_type={ecosystem_type}")
                         results.append({
                             "ecosystem_type": ecosystem_type,
                             "confidence": 0.9,

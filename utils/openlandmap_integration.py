@@ -851,6 +851,8 @@ class OpenLandMapIntegrator:
                     # Convert batch results to expected format
                     for i, result in enumerate(batch_results):
                         if result and result.get('ecosystem_type'):
+                            # DEBUG: Log the actual result to understand what's happening
+                            print(f"🔍 DEBUG BATCH RESULT {i}: landcover_class={result.get('landcover_class', 'N/A')}, ecosystem_type={result.get('ecosystem_type', 'N/A')}")
                             ecosystem_results.append({
                                 'ecosystem_type': result['ecosystem_type'],
                                 'confidence': result.get('confidence', 0.85),
