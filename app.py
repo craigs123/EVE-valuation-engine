@@ -206,7 +206,7 @@ st.markdown("""
             font-size: 1.3rem !important;
             font-weight: 700;
             color: #1f2937;
-            margin: 2rem 0 1rem 0 !important;
+            margin: 0 0 1rem 0 !important;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -2099,6 +2099,7 @@ test_area_options = [
     "🌾 Test area (Agricultural)",
     "🌱 Test area (Grassland)", 
     "🌲 Test area (Boreal Forest)",
+    "🌴 Test area (Tropical Forest)",
     "🏜️ Test area (Desert)",
     "🌊 Test area (Water Bodies)",
     "🌍 Test area (Multi-Ecosystem)",
@@ -2116,7 +2117,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🏜️ Test area (Desert)", "🌊 Test area (Water Bodies)"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🌊 Test area (Water Bodies)"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2217,6 +2218,11 @@ elif use_test_area_single:
             "coords": calculate_1000ha_coordinates(50.5, -85.0),
             "description": "Canadian Boreal Forest (50.5°N, 85.0°W) | Expected: Boreal Forest ecosystem",
             "location": "Northern Ontario boreal forest"
+        },
+        "🌴 Test area (Tropical Forest)": {
+            "coords": calculate_1000ha_coordinates(-3.0, -60.0),
+            "description": "Brazilian Amazon Rainforest (3.0°S, 60.0°W) | Expected: Tropical Forest ecosystem",
+            "location": "Central Amazon rainforest, Brazil"
         },
         "🏜️ Test area (Desert)": {
             "coords": calculate_1000ha_coordinates(26.0, 5.0),
@@ -2404,6 +2410,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌾 Test area (Agricultural)": (40.1, -87.97),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
+            "🌴 Test area (Tropical Forest)": (-3.0, -60.0),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
         }
