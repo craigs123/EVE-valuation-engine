@@ -122,7 +122,7 @@ st.markdown("""
         /* Header image with text overlay */
         .header-container {
             width: 100%;
-            height: 120px;
+            height: 60px;
             background: linear-gradient(135deg, 
                         #1b5e20 0%, 
                         #2e7d32 25%, 
@@ -156,11 +156,11 @@ st.markdown("""
         
         .header-text {
             color: white;
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
             text-align: center;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
         
         
