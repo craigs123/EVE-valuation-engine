@@ -2923,6 +2923,10 @@ if st.session_state.get('analysis_results'):
         value_per_ha = results.get('value_per_ha', 0)
         st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Value per Hectare:</strong> ${value_per_ha:,.0f} /ha/year</p>', unsafe_allow_html=True)
         
+        # Display regional adjustment factor
+        regional_factor = results.get('regional_adjustment_factor', results.get('regional_adjustment', 1.0))
+        st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Regional Factor:</strong> {regional_factor:.2f}x</p>', unsafe_allow_html=True)
+        
         # Enhanced ecosystem type display with forest classification
         if results.get('forest_classification'):
             forest_info = results['forest_classification']
