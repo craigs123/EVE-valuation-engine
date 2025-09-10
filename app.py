@@ -673,12 +673,11 @@ def display_data_source_status(analysis_results: Dict = None):
                         stac_data = point_data.get('stac_data', {})
                         raw_stac_data = point_data.get('raw_stac_data', {})
                         
-                        # Get coordinates and country
+                        # Get coordinates
                         coords = point_data.get('coordinates', {})
                         if coords:
                             lat, lon = coords.get('lat', 0), coords.get('lon', 0)
                             env_row['Coordinates'] = f"{lat:.4f}, {lon:.4f}"
-                            env_row['Country'] = get_country_from_coordinates(lat, lon)
                         
                         # Check if we have actual STAC environmental data
                         if stac_data and isinstance(stac_data, dict):
