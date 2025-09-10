@@ -80,6 +80,17 @@ st.markdown("""
             overflow-y: auto !important;
         }
         
+        /* Reduce top padding and move content higher */
+        .main .block-container {
+            padding-top: 1rem !important;
+        }
+        
+        /* Reduce margin on title to move it higher */
+        h1:first-of-type {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+        
         
         /* Enhanced Primary Button Styling */
         .primary-action {
