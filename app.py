@@ -763,55 +763,122 @@ def display_data_source_status(analysis_results: Dict = None):
                             lat, lon = coords.get('lat', 0), coords.get('lon', 0)
                             env_row['Coordinates'] = f"{lat:.4f}, {lon:.4f}"
                         
-                        # Check if we have actual STAC environmental data
-                        if stac_data and isinstance(stac_data, dict):
-                            # Process climate/vegetation data
-                            climate_data = stac_data.get('climate', [])
-                            if climate_data and isinstance(climate_data, list):
-                                for item in climate_data:
-                                    if isinstance(item, dict):
-                                        name = item.get('name', '').lower()
-                                        value = item.get('value')
-                                        unit = item.get('unit', '')
-                                        
-                                        if value is not None:
-                                            if 'vegetation' in name or 'evi' in name or 'ndvi' in name:
-                                                env_row['Vegetation Index'] = f"{value:.3f} {unit}"
-                                            elif 'photosynthetic' in name or 'fapar' in name:
-                                                env_row['Photosynthetic Activity'] = f"{value:.3f} {unit}"
-                                            elif 'elevation' in name or 'terrain' in name or 'dtm' in name:
-                                                env_row['Elevation'] = f"{value:.0f} {unit}"
-                                            elif 'temperature' in name:
-                                                env_row['Temperature'] = f"{value:.1f} {unit}"
-                                            elif 'precipitation' in name or 'rainfall' in name:
-                                                env_row['Precipitation'] = f"{value:.1f} {unit}"
-                                            elif 'moisture' in name or 'humidity' in name:
-                                                env_row['Moisture'] = f"{value:.2f} {unit}"
-                            
-                            # Process soil data
-                            soil_data = stac_data.get('soil', [])
-                            if soil_data and isinstance(soil_data, list):
-                                for item in soil_data:
-                                    if isinstance(item, dict):
-                                        name = item.get('name', '').lower()
-                                        value = item.get('value')
-                                        unit = item.get('unit', '')
-                                        
-                                        if value is not None:
-                                            if 'organic carbon' in name or 'oc' in name:
-                                                env_row['Soil Organic Carbon'] = f"{value:.1f} {unit}"
-                                            elif 'ph' in name:
-                                                env_row['Soil pH'] = f"{value:.2f} {unit}"
-                                            elif 'nitrogen' in name:
-                                                env_row['Soil Nitrogen'] = f"{value:.1f} {unit}"
-                                            elif 'clay' in name:
-                                                env_row['Clay Content'] = f"{value:.1f} {unit}"
-                                            elif 'sand' in name:
-                                                env_row['Sand Content'] = f"{value:.1f} {unit}"
+                        # Add environmental indicators based on ecosystem type from ESA data
+                        ecosystem_type = point_data.get('ecosystem_type', 'Unknown')
+                        landcover_code = point_data.get('landcover_class', 0)
+                        
+                        # Vegetation Density Indicator
+                        vegetation_density = {
+                            'Forest': 'High (>80%)',
+                            'Boreal Forest': 'High (>75%)', 
+                            'Temperate Forest': 'High (>80%)',
+                            'Tropical Forest': 'Very High (>90%)',
+                            'Grassland': 'Medium (40-60%)',
+                            'Shrubland': 'Medium (30-50%)',
+                            'Cropland': 'Variable (20-70%)',
+                            'Agricultural': 'Variable (20-70%)',
+                            'Urban': 'Low (<20%)',
+                            'Desert': 'Very Low (<10%)',
+                            'Wetland': 'High (>70%)',
+                            'Coastal': 'Medium (30-60%)',
+                            'Marine': 'N/A',
+                            'Rivers and Lakes': 'N/A'
+                        }
+                        env_row['Vegetation Density'] = vegetation_density.get(ecosystem_type, 'N/A')
+                        
+                        # Carbon Sequestration Potential
+                        carbon_seq = {
+                            'Forest': 'High',
+                            'Boreal Forest': 'High',
+                            'Temperate Forest': 'Very High',
+                            'Tropical Forest': 'Very High',
+                            'Grassland': 'Medium',
+                            'Shrubland': 'Low-Medium',
+                            'Cropland': 'Low',
+                            'Agricultural': 'Low',
+                            'Urban': 'Very Low',
+                            'Desert': 'Very Low',
+                            'Wetland': 'High',
+                            'Coastal': 'Medium',
+                            'Marine': 'High',
+                            'Rivers and Lakes': 'Medium'
+                        }
+                        env_row['Carbon Seq.'] = carbon_seq.get(ecosystem_type, 'N/A')
+                        
+                        # Water Regulation Services
+                        water_reg = {
+                            'Forest': 'High',
+                            'Boreal Forest': 'High',
+                            'Temperate Forest': 'High',
+                            'Tropical Forest': 'Very High',
+                            'Grassland': 'Medium',
+                            'Shrubland': 'Low',
+                            'Cropland': 'Low',
+                            'Agricultural': 'Low',
+                            'Urban': 'Very Low',
+                            'Desert': 'Very Low',
+                            'Wetland': 'Very High',
+                            'Coastal': 'High',
+                            'Marine': 'N/A',
+                            'Rivers and Lakes': 'Very High'
+                        }
+                        env_row['Water Reg.'] = water_reg.get(ecosystem_type, 'N/A')
+                        
+                        # Biodiversity Support
+                        biodiversity = {
+                            'Forest': 'Excellent',
+                            'Boreal Forest': 'Excellent',
+                            'Temperate Forest': 'Excellent',
+                            'Tropical Forest': 'Exceptional',
+                            'Grassland': 'Good',
+                            'Shrubland': 'Good',
+                            'Cropland': 'Poor',
+                            'Agricultural': 'Poor',
+                            'Urban': 'Very Poor',
+                            'Desert': 'Moderate',
+                            'Wetland': 'Excellent',
+                            'Coastal': 'Very Good',
+                            'Marine': 'Very Good',
+                            'Rivers and Lakes': 'Good'
+                        }
+                        env_row['Biodiversity'] = biodiversity.get(ecosystem_type, 'N/A')
                         
                         # Add data source only
                         data_source = point_data.get('source', 'Unknown')
                         env_row['Data Source'] = data_source
+                        
+                        # Add raw STAC data to the table
+                        raw_stac_data = point_data.get('raw_stac_data', {})
+                        if raw_stac_data:
+                            # Support multiple data formats
+                            candidate = (
+                                raw_stac_data.get('raw_response') or 
+                                raw_stac_data.get('geotiff_pixel_extraction') or 
+                                raw_stac_data
+                            )
+                            
+                            # Get pixel value
+                            pixel_value = (
+                                candidate.get('raw_pixel_value') or 
+                                candidate.get('pixel_value') or 
+                                candidate.get('value')
+                            )
+                            if pixel_value is not None:
+                                env_row['ESA Pixel Value'] = pixel_value
+                            
+                            # Get asset URL
+                            asset_url = candidate.get('asset_url', '')
+                            if asset_url:
+                                # Truncate URL for display
+                                if len(asset_url) > 50:
+                                    env_row['Asset URL'] = asset_url[:47] + '...'
+                                else:
+                                    env_row['Asset URL'] = asset_url
+                            
+                            # Get extraction method
+                            extraction_method = candidate.get('extraction_method', '')
+                            if extraction_method:
+                                env_row['Extraction Method'] = extraction_method
                         
                         env_table_data.append(env_row)
                     
@@ -3033,7 +3100,7 @@ elif st.session_state.get('selected_area'):
                 primary_ecosystem = ecosystem_info['primary_ecosystem']
                 
                 # Show primary ecosystem
-                st.info(f"**Primary:** {primary_ecosystem}")
+                st.info(f"**Predominant:** {primary_ecosystem}")
                 
                 # Show composition if multiple ecosystems detected
                 if 'ecosystem_distribution' in ecosystem_info and len(ecosystem_info['ecosystem_distribution']) > 1:
@@ -3350,7 +3417,7 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Show detection results with details
                     if ecosystem_info['successful_queries'] > 0:
-                        st.success(f"✅ **Primary: {ecosystem_type}** ({ecosystem_info['successful_queries']}/{ecosystem_info['total_samples']} sample points analyzed)")
+                        st.success(f"**Predominant: {ecosystem_type}**")
                         
                         # Show ecosystem composition breakdown
                         if 'ecosystem_distribution' in ecosystem_info:

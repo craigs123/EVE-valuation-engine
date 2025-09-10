@@ -209,7 +209,7 @@ class OpenLandMapSTAC:
                 
                 async with session.get(collection_url) as response:
                     if response.status == 200:
-                    collection_data = await response.json()
+                        collection_data = await response.json()
                     
                     if collection_data.get('links'):
                         # For land cover, extract real pixel data from GeoTIFF
@@ -645,7 +645,6 @@ class OpenLandMapSTAC:
             "query_coordinates": {"lat": lat, "lon": lon},
             "landcover_code": landcover_class,
             "ecosystem_detected": ecosystem_type,
-            "confidence_level": confidence,
             "stac_collections_queried": len(stac_results) if stac_results else 0,
             "processing_method": "stac_metadata_analysis"
         }
