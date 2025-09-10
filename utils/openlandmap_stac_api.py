@@ -608,6 +608,8 @@ class OpenLandMapSTAC:
         climate = []
         land_cover = []
         soil = []
+        terrain = []  # FIX: Separate terrain data into its own category
+        vegetation = []  # FIX: Separate vegetation data into its own category
         ecosystem_type = None
         
         # Track actual data source used and preserve raw response
@@ -658,8 +660,11 @@ class OpenLandMapSTAC:
                     "unit": "class",
                     "code": land_cover_code
                 })
-            elif result["category"] in ["vegetation", "terrain"]:
-                climate.append(data_item)
+            elif result["category"] == "vegetation":
+                vegetation.append(data_item)
+                climate.append(data_item)  # Keep backward compatibility
+            elif result["category"] == "terrain":
+                terrain.append(data_item)  # FIX: Store terrain data separately
         
         # If no real pixel data found, return None (no fallback per guidance)
         if not ecosystem_type:
@@ -704,6 +709,8 @@ class OpenLandMapSTAC:
             "landcover_class": landcover_class,  # Add the landcover code for integration
             "coordinates": {"lat": lat, "lon": lon},
             "climate": climate if climate else None,
+            "vegetation": vegetation if vegetation else None,  # FIX: Add separate vegetation category
+            "terrain": terrain if terrain else None,  # FIX: Add separate terrain category
             "landCover": land_cover if land_cover else None, 
             "soil": soil if soil else None,
             "data_source": actual_data_source,
