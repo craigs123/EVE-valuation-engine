@@ -864,6 +864,91 @@ class OpenLandMapSTAC:
             return "Grassland"  # Tundra mapped to grassland
         else:
             return "Forest"  # Default
+            
+    async def get_batch_ecosystem_types(self, coordinates: List[tuple]) -> List[Dict[str, Any]]:
+        """
+        Batch ecosystem detection for multiple coordinates using optimized GeoTIFF sampling
+        Opens GeoTIFF file once and samples all points efficiently
+        """
+        results = []
+        
+        try:
+            # Get landcover asset URL (cached)
+            collection_id = "land.cover_esacci.lc.l4"
+            asset_url = self.get_stac_asset_url(collection_id)
+            
+            if asset_url:
+                # Batch extract pixel values for all coordinates
+                pixel_values = self.extract_batch_pixel_values(asset_url, coordinates)
+                
+                # Process each coordinate and its corresponding pixel value
+                for i, (lat, lon) in enumerate(coordinates):
+                    pixel_value = pixel_values[i]
+                    
+                    if pixel_value is not None:
+                        # Convert to integer land cover code
+                        landcover_code = int(pixel_value)
+                        
+                        # Apply forest type mapping for codes 70 & 71 based on geographic location
+                        base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
+                        if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
+                            specific_forest_type = self._determine_forest_type_from_coordinates(lat, lon)
+                            ecosystem_type = specific_forest_type
+                        else:
+                            ecosystem_type = base_ecosystem_type
+                        
+                        results.append({
+                            "ecosystem_type": ecosystem_type,
+                            "confidence": 0.9,
+                            "landcover_class": landcover_code,
+                            "coordinates": {"lat": lat, "lon": lon},
+                            "data_source": "Real ESA Satellite Data (GeoTIFF Pixel)",
+                            "query_time": json.dumps({"timestamp": "now"}, default=str)
+                        })
+                    else:
+                        # Fallback to geographic detection for failed pixels
+                        ecosystem_type = self._geographic_fallback_detection(lat, lon)
+                        landcover_code = self._predict_land_cover(lat, lon)
+                        results.append({
+                            "ecosystem_type": ecosystem_type,
+                            "confidence": 0.65,
+                            "landcover_class": landcover_code,
+                            "coordinates": {"lat": lat, "lon": lon},
+                            "data_source": "Geographic Fallback",
+                            "query_time": json.dumps({"timestamp": "now"}, default=str)
+                        })
+            else:
+                # No asset URL available, use geographic fallback for all coordinates
+                for lat, lon in coordinates:
+                    ecosystem_type = self._geographic_fallback_detection(lat, lon)
+                    landcover_code = self._predict_land_cover(lat, lon)
+                    results.append({
+                        "ecosystem_type": ecosystem_type,
+                        "confidence": 0.50,
+                        "landcover_class": landcover_code,
+                        "coordinates": {"lat": lat, "lon": lon},
+                        "data_source": "Geographic Fallback (STAC Failed)",
+                        "error": "No asset URL available",
+                        "query_time": json.dumps({"timestamp": "now"}, default=str)
+                    })
+            
+        except Exception as e:
+            print(f"Batch STAC API error: {e}")
+            # Use geographic fallback for all coordinates when batch fails
+            for lat, lon in coordinates:
+                ecosystem_type = self._geographic_fallback_detection(lat, lon)
+                landcover_code = self._predict_land_cover(lat, lon)
+                results.append({
+                    "ecosystem_type": ecosystem_type,
+                    "confidence": 0.50,
+                    "landcover_class": landcover_code,
+                    "coordinates": {"lat": lat, "lon": lon},
+                    "data_source": "Geographic Fallback (Batch Failed)",
+                    "error": str(e),
+                    "query_time": json.dumps({"timestamp": "now"}, default=str)
+                })
+        
+        return results
     
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
