@@ -16,6 +16,17 @@ import pystac_client
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import certifi
+
+# GDAL environment configuration for HTTP COG access
+HTTP_ENV = {
+    'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
+    'CPL_VSIL_CURL_USE_HEAD': 'NO', 
+    'CPL_VSIL_CURL_ALLOWED_EXTENSIONS': '.tif,.tiff',
+    'VSI_CACHE': 'TRUE',
+    'VSI_CACHE_SIZE': '10000000',
+    'SSL_CERT_FILE': certifi.where()
+}
 
 class OpenLandMapSTAC:
     """
@@ -255,38 +266,39 @@ class OpenLandMapSTAC:
         Returns actual pixel value or None if extraction fails
         """
         try:
-            # Open COG directly from HTTP URL
-            with rasterio.open(asset_url) as dataset:
-                # Get geographic bounds
-                bounds = dataset.bounds
-                width, height = dataset.width, dataset.height
-                
-                # Check coordinate bounds
-                if not (bounds.left <= lon <= bounds.right and 
-                        bounds.bottom <= lat <= bounds.top):
-                    print(f"🌍 Coordinates ({lat}, {lon}) outside data coverage for {asset_url}")
-                    return None
-                
-                # Transform geographic coordinates to pixel coordinates
-                pixel_x = int((lon - bounds.left) / (bounds.right - bounds.left) * width)
-                pixel_y = int((bounds.top - lat) / (bounds.top - bounds.bottom) * height)
-                
-                # Ensure pixel coordinates are within image bounds
-                if not (0 <= pixel_x < width and 0 <= pixel_y < height):
-                    print(f"📍 Pixel coordinates ({pixel_x}, {pixel_y}) outside image bounds")
-                    return None
-                
-                # Read pixel value using window-based reading
-                window = Window(pixel_x, pixel_y, 1, 1)
-                pixel_value = dataset.read(1, window=window)[0, 0]
-                
-                # Handle NoData values
-                if dataset.nodata is not None and pixel_value == dataset.nodata:
-                    print(f"🚫 NoData value encountered at ({lat}, {lon})")
-                    return None
-                
-                print(f"✅ PIXEL EXTRACTED: Value {pixel_value} at ({lat}, {lon}) from COG")
-                return float(pixel_value)
+            # Open COG directly from HTTP URL with GDAL HTTP configuration
+            with rasterio.Env(**HTTP_ENV):
+                with rasterio.open(asset_url) as dataset:
+                    # Get geographic bounds
+                    bounds = dataset.bounds
+                    width, height = dataset.width, dataset.height
+                    
+                    # Check coordinate bounds
+                    if not (bounds.left <= lon <= bounds.right and 
+                            bounds.bottom <= lat <= bounds.top):
+                        print(f"🌍 Coordinates ({lat}, {lon}) outside data coverage for {asset_url}")
+                        return None
+                    
+                    # Transform geographic coordinates to pixel coordinates
+                    pixel_x = int((lon - bounds.left) / (bounds.right - bounds.left) * width)
+                    pixel_y = int((bounds.top - lat) / (bounds.top - bounds.bottom) * height)
+                    
+                    # Ensure pixel coordinates are within image bounds
+                    if not (0 <= pixel_x < width and 0 <= pixel_y < height):
+                        print(f"📍 Pixel coordinates ({pixel_x}, {pixel_y}) outside image bounds")
+                        return None
+                    
+                    # Read pixel value using window-based reading
+                    window = Window(pixel_x, pixel_y, 1, 1)
+                    pixel_value = dataset.read(1, window=window)[0, 0]
+                    
+                    # Handle NoData values
+                    if dataset.nodata is not None and pixel_value == dataset.nodata:
+                        print(f"🚫 NoData value encountered at ({lat}, {lon})")
+                        return None
+                    
+                    print(f"✅ PIXEL EXTRACTED: Value {pixel_value} at ({lat}, {lon}) from COG")
+                    return float(pixel_value)
                 
         except Exception as e:
             print(f"❌ GeoTIFF extraction failed for {asset_url}: {e}")
@@ -299,44 +311,45 @@ class OpenLandMapSTAC:
         Returns list of pixel values in same order as input coordinates
         """
         try:
-            # Open COG directly from HTTP URL once
-            with rasterio.open(asset_url) as dataset:
-                # Get geographic bounds
-                bounds = dataset.bounds
-                width, height = dataset.width, dataset.height
-                
-                # Filter coordinates that are within bounds
-                valid_coords = []
-                coord_indices = []
-                
-                for i, (lat, lon) in enumerate(coordinates):
-                    if (bounds.left <= lon <= bounds.right and 
-                        bounds.bottom <= lat <= bounds.top):
-                        valid_coords.append((lon, lat))  # Note: rasterio expects (x, y) = (lon, lat)
-                        coord_indices.append(i)
-                
-                if not valid_coords:
-                    print(f"🌍 No coordinates within data coverage for {asset_url}")
-                    return [None] * len(coordinates)
-                
-                # Use rasterio.sample for efficient batch sampling
-                pixel_values = [None] * len(coordinates)
-                sampled_values = list(dataset.sample(valid_coords))
-                
-                # Map sampled values back to original coordinate order
-                for coord_idx, sampled_value in zip(coord_indices, sampled_values):
-                    if len(sampled_value) > 0:
-                        value = sampled_value[0]  # First band
-                        # Handle NoData values
-                        if dataset.nodata is not None and value == dataset.nodata:
-                            pixel_values[coord_idx] = None
+            # Open COG directly from HTTP URL once with GDAL HTTP configuration
+            with rasterio.Env(**HTTP_ENV):
+                with rasterio.open(asset_url) as dataset:
+                    # Get geographic bounds
+                    bounds = dataset.bounds
+                    width, height = dataset.width, dataset.height
+                    
+                    # Filter coordinates that are within bounds
+                    valid_coords = []
+                    coord_indices = []
+                    
+                    for i, (lat, lon) in enumerate(coordinates):
+                        if (bounds.left <= lon <= bounds.right and 
+                            bounds.bottom <= lat <= bounds.top):
+                            valid_coords.append((lon, lat))  # Note: rasterio expects (x, y) = (lon, lat)
+                            coord_indices.append(i)
+                    
+                    if not valid_coords:
+                        print(f"🌍 No coordinates within data coverage for {asset_url}")
+                        return [None] * len(coordinates)
+                    
+                    # Use rasterio.sample for efficient batch sampling
+                    pixel_values = [None] * len(coordinates)
+                    sampled_values = list(dataset.sample(valid_coords))
+                    
+                    # Map sampled values back to original coordinate order
+                    for coord_idx, sampled_value in zip(coord_indices, sampled_values):
+                        if len(sampled_value) > 0:
+                            value = sampled_value[0]  # First band
+                            # Handle NoData values
+                            if dataset.nodata is not None and value == dataset.nodata:
+                                pixel_values[coord_idx] = None
+                            else:
+                                pixel_values[coord_idx] = float(value)
                         else:
-                            pixel_values[coord_idx] = float(value)
-                    else:
-                        pixel_values[coord_idx] = None
-                
-                print(f"✅ BATCH EXTRACTED: {len([v for v in pixel_values if v is not None])}/{len(coordinates)} pixels from COG")
-                return pixel_values
+                            pixel_values[coord_idx] = None
+                    
+                    print(f"✅ BATCH EXTRACTED: {len([v for v in pixel_values if v is not None])}/{len(coordinates)} pixels from COG")
+                    return pixel_values
                 
         except Exception as e:
             print(f"❌ Batch GeoTIFF extraction failed for {asset_url}: {e}")
