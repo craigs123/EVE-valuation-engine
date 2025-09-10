@@ -757,53 +757,100 @@ def display_data_source_status(analysis_results: Dict = None):
                         stac_data = point_data.get('stac_data', {})
                         raw_stac_data = point_data.get('raw_stac_data', {})
                         
-                        # Get coordinates
-                        coords = point_data.get('coordinates', {})
-                        if coords:
-                            lat, lon = coords.get('lat', 0), coords.get('lon', 0)
-                            env_row['Coordinates'] = f"{lat:.4f}, {lon:.4f}"
-                        
                         # Add environmental indicators based on ecosystem type from ESA data
                         ecosystem_type = point_data.get('ecosystem_type', 'Unknown')
                         landcover_code = point_data.get('landcover_class', 0)
                         
-                        # ESA CCI Land Cover Code (actual measured data)
-                        if landcover_code and landcover_code != 0:
-                            env_row['ESA CCI Code'] = int(landcover_code)
-                            
-                            # Map ESA code to land cover description
-                            from utils.esa_landcover_codes import get_esa_description
-                            try:
-                                esa_description = get_esa_description(landcover_code)
-                                if esa_description:
-                                    env_row['Land Cover Type'] = esa_description
-                            except:
-                                pass  # Skip if description not available
-                        
-                        # Extract real environmental indicators from STAC data
+                        # Extract real environmental indicators from STAC data with robust error handling
                         if stac_data:
-                            # Vegetation Index (EVI)
+                            def safe_format_value(value, decimal_places=2, fallback="—"):
+                                """Safely format numeric values with fallback for non-numeric data"""
+                                try:
+                                    if isinstance(value, (int, float)) and value is not None:
+                                        return f"{float(value):.{decimal_places}f}"
+                                    elif isinstance(value, str) and value.replace('.','').replace('-','').isdigit():
+                                        return f"{float(value):.{decimal_places}f}"
+                                    else:
+                                        return fallback
+                                except (ValueError, TypeError):
+                                    return fallback
+                            
+                            # Vegetation indicators (priority: EVI > FAPAR)
+                            vegetation_data = stac_data.get('vegetation', [])
+                            if vegetation_data:
+                                evi_found = False
+                                for item in vegetation_data:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if not evi_found and ('enhanced' in name or 'evi' in name):
+                                        env_row['Vegetation Index (EVI)'] = safe_format_value(value, 3)
+                                        evi_found = True
+                                        break
+                                # If no EVI found, look for FAPAR
+                                if not evi_found:
+                                    for item in vegetation_data:
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        if 'fapar' in name or 'absorbed' in name:
+                                            env_row['Vegetation Index (FAPAR)'] = safe_format_value(value, 3)
+                                            break
+                            
+                            # Terrain/Elevation indicators  
+                            terrain_data = stac_data.get('terrain', [])
+                            if terrain_data:
+                                for item in terrain_data:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'elevation' in name or 'terrain' in name or 'dtm' in name:
+                                        env_row['Elevation (m)'] = safe_format_value(value, 1)
+                                        break  # Take first elevation match
+                            
+                            # Water occurrence (will show as Water Occurrence % for clarity)
+                            hydro_data = stac_data.get('hydrology', [])
+                            if hydro_data:
+                                for item in hydro_data:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'water' in name or 'occurrence' in name:
+                                        env_row['Water Occurrence (%)'] = safe_format_value(value, 1)
+                                        break
+                            
+                            # Backwards compatibility for different data structures
                             climate_data = stac_data.get('climate', [])
-                            if climate_data:
+                            if climate_data and 'Vegetation Index (EVI)' not in env_row and 'Vegetation Index (FAPAR)' not in env_row:
                                 for item in climate_data:
-                                    if 'vegetation' in item.get('name', '').lower() or 'evi' in item.get('name', '').lower():
-                                        evi_value = item.get('value')
-                                        if evi_value is not None:
-                                            env_row['Vegetation Index (EVI)'] = f"{evi_value:.3f}"
-                                    elif 'elevation' in item.get('name', '').lower() or 'terrain' in item.get('name', '').lower():
-                                        elevation_value = item.get('value')
-                                        if elevation_value is not None:
-                                            env_row['Elevation (m)'] = f"{elevation_value:.1f}"
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'vegetation' in name or 'evi' in name:
+                                        env_row['Vegetation Index (EVI)'] = safe_format_value(value, 3)
+                                        break
+                            
+                            if climate_data and 'Elevation (m)' not in env_row:
+                                for item in climate_data:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'elevation' in name or 'terrain' in name:
+                                        env_row['Elevation (m)'] = safe_format_value(value, 1)
+                                        break
+                            
+                            if climate_data and 'Water Occurrence (%)' not in env_row:
+                                for item in climate_data:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'water' in name or 'mask' in name:
+                                        env_row['Water Occurrence (%)'] = safe_format_value(value, 1)
+                                        break
                             
                             # Soil Organic Carbon
                             soil_data = stac_data.get('soil', [])
                             if soil_data:
                                 for item in soil_data:
-                                    if 'carbon' in item.get('name', '').lower() or 'organic' in item.get('name', '').lower():
-                                        soc_value = item.get('value')
-                                        unit = item.get('unit', 'g/kg')
-                                        if soc_value is not None:
-                                            env_row[f'Soil Organic Carbon ({unit})'] = f"{soc_value:.2f}"
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    unit = item.get('unit', 'g/kg')
+                                    if 'carbon' in name or 'organic' in name:
+                                        env_row[f'Soil Organic Carbon ({unit})'] = safe_format_value(value, 2)
+                                        break  # Take first soil carbon match
                         
                         # Calculate area diversity from actual ecosystem distribution
                         if hasattr(st.session_state, 'detected_ecosystem') and 'ecosystem_distribution' in st.session_state.detected_ecosystem:
@@ -820,9 +867,7 @@ def display_data_source_status(analysis_results: Dict = None):
                             else:
                                 env_row['Area Diversity (Simpson)'] = "0.000 (homogeneous)"
                         
-                        # Show actual ecosystem classification from satellite data
-                        if ecosystem_type and ecosystem_type != 'Unknown':
-                            env_row['Ecosystem Type'] = ecosystem_type
+                        # Ecosystem type removed - already shown in Sample Points Summary Table
                         
                         # Show source attribution for transparency
                         if data_source and data_source != 'Unknown':
@@ -847,14 +892,7 @@ def display_data_source_status(analysis_results: Dict = None):
                                 raw_stac_data
                             )
                             
-                            # Get pixel value
-                            pixel_value = (
-                                candidate.get('raw_pixel_value') or 
-                                candidate.get('pixel_value') or 
-                                candidate.get('value')
-                            )
-                            if pixel_value is not None:
-                                env_row['ESA Pixel Value'] = pixel_value
+                            # ESA Pixel Value removed - already shown in Sample Points Summary Table
                             
                             # Get asset URL
                             asset_url = candidate.get('asset_url', '')
