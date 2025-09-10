@@ -1069,7 +1069,7 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown("**Measure the economic value of ecosystem services using scientific data**")
+st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version: 2.7.5</p>', unsafe_allow_html=True)
 
 
 # Initialize session state
