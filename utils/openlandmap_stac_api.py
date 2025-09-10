@@ -9,7 +9,6 @@ import aiohttp
 from typing import Dict, List, Optional, Any
 import json
 import math
-import random
 import rasterio
 from rasterio.windows import Window
 import pystac_client
@@ -120,13 +119,7 @@ class OpenLandMapSTAC:
             220: "Polar",           # Permanent snow and ice
         }
         
-        # Fallback ecosystem detection based on geographic patterns
-        self.geographic_fallbacks = {
-            "tropical": (-23.5, 23.5),      # Tropical forests
-            "temperate": (-66.5, 66.5),     # Temperate zones
-            "boreal": (50, 70),              # Boreal forests
-            "desert": [(-30, -20), (20, 30)] # Desert belts
-        }
+        # Geographic fallbacks removed - only use genuine STAC API data
     
     def clear_cache(self):
         """Clear all caches to force fresh STAC catalog queries"""
@@ -238,54 +231,14 @@ class OpenLandMapSTAC:
                             else:
                                 print(f"🚫 No real pixel data available for land cover at ({lat}, {lon})")
                                 return None
-                        # For land mask category, generate water occurrence
+                        # No synthetic data generation for landmask - only return real STAC data
                         elif collection['category'] == 'landmask':
-                            water_occurrence = self._generate_land_mask_water_occurrence(lat, lon)
-                            
-                            return {
-                                "collection": collection["id"],
-                                "name": collection["name"],
-                                "category": collection["category"],
-                                "value": water_occurrence,
-                                "unit": "percentage",
-                                "metadata": {
-                                    "title": collection_data.get("title", ""),
-                                    "description": collection_data.get("description", ""),
-                                    "license": collection_data.get("license", ""),
-                                    "source": "Land Mask Analysis",
-                                    "raw_response": {
-                                        "coordinates": {"lat": lat, "lon": lon},
-                                        "water_occurrence": water_occurrence,
-                                        "distance_from_coast": min(abs(lat % 5), abs(lon % 7)),
-                                        "method": "coastal_distance_analysis"
-                                    }
-                                }
-                            }
+                            print(f"❌ No synthetic data generation for landmask category at ({lat}, {lon})")
+                            return None
+                        # No synthetic data generation for other categories - only return real STAC data  
                         else:
-                            # For other categories, generate realistic values with enhanced logic
-                            sample_value = self._generate_location_based_value(lat, lon, collection['category'])
-                            
-                            print(f"🌍 Generated {collection['category']} value {sample_value} for ({lat}, {lon})")
-                            
-                            return {
-                                "collection": collection["id"],
-                                "name": collection["name"],
-                                "category": collection["category"],
-                                "value": sample_value,
-                                "unit": collection["unit"],
-                                "metadata": {
-                                    "title": collection_data.get("title", ""),
-                                    "description": collection_data.get("description", ""),
-                                    "license": collection_data.get("license", ""),
-                                    "source": "Geographic Analysis (Enhanced)",
-                                    "raw_response": {
-                                        "coordinates": {"lat": lat, "lon": lon},
-                                        "value": sample_value,
-                                        "category": collection['category'],
-                                        "method": "location_based_generation_enhanced"
-                                    }
-                                }
-                            }
+                            print(f"❌ No synthetic data generation for {collection['category']} category at ({lat}, {lon})")
+                            return None
         except Exception as e:
             print(f"Failed to query collection {collection['id']}: {e}")
             return None
@@ -554,188 +507,12 @@ class OpenLandMapSTAC:
     # Removed complex raster querying - following the working STAC pattern
     # STAC API is for metadata discovery, not pixel extraction
     
-    def _generate_land_mask_water_occurrence(self, lat: float, lon: float) -> int:
-        """
-        Generate water occurrence percentage using land mask approach
-        Based on coastal distance and geographic patterns
-        """
-        import math
-        
-        # Water occurrence percentage (0-100)
-        # Coastal areas and river valleys have higher water occurrence
-        distance_from_coast = min(abs(lat % 5), abs(lon % 7))
-        water_occurrence = max(0, 15 - distance_from_coast * 3)
-        return round(water_occurrence)
     
-    def _generate_location_based_value(self, lat: float, lon: float, category: str) -> Any:
-        """
-        Generate realistic environmental values based on geographic location with enhanced logic
-        """
-        if category == "landcover":
-            # When no real data is available, use geographic fallback instead of returning invalid code
-            return self._predict_land_cover(lat, lon)
-        elif category == "vegetation":
-            return self._predict_vegetation_index(lat, lon)
-        elif category == "soil":
-            return self._predict_soil_carbon(lat, lon)
-        elif category == "terrain":
-            return self._predict_elevation(lat, lon)
-        else:
-            # Return more realistic values for different categories
-            import random
-            if category in ["vegetation", "fapar"]:
-                # Vegetation-related values should be fractions between 0-1
-                return round(random.uniform(0.1, 0.8), 3)
-            elif category == "soil":
-                # Soil carbon content in g/kg
-                return round(random.uniform(5, 50), 1)
-            else:
-                return round(random.uniform(0.2, 0.9), 3)  # Better default fraction value
     
-    def _predict_land_cover(self, lat: float, lon: float) -> int:
-        """
-        Predict land cover class based on geographic location using global patterns
-        """
-        # Pyramid Lake, Nevada (specific water body)
-        if (39.8 <= lat <= 40.3) and (-119.8 <= lon <= -119.2):
-            return 210  # Water bodies (ESA standard)
-        
-        # Open ocean areas (areas far from major landmasses)
-        elif self._is_likely_ocean(lat, lon):
-            return 210  # Water bodies (ESA standard for open water)
-        
-        # Tropical forests (Amazon, Congo, Southeast Asia)
-        elif ((-10 <= lat <= 10) and 
-            ((-80 <= lon <= -40) or  # Amazon
-             (10 <= lon <= 50) or    # Central Africa  
-             (90 <= lon <= 150))):   # Southeast Asia
-            return random.choice([50, 40, 61])  # Evergreen broadleaf forest
-        
-        # Boreal forests (Canada, Russia, Scandinavia)
-        elif ((50 <= lat <= 70) and
-              ((-180 <= lon <= -60) or  # Canada
-               (20 <= lon <= 180))):     # Russia/Scandinavia  
-            return random.choice([30, 50])  # Needleleaf forests
-        
-        
-        # Mediterranean regions
-        elif ((30 <= lat <= 45) and
-              ((-10 <= lon <= 45) or      # Mediterranean basin
-               (-125 <= lon <= -115) or   # California (original range, Pyramid Lake handled separately)
-               (135 <= lon <= 150))):     # Australia
-            return random.choice([20, 70])  # Mixed forest/grassland
-        
-        # Agricultural regions (major crop belts)
-        elif ((35 <= lat <= 50) and
-              ((-110 <= lon <= -90) or    # US Midwest  
-               (20 <= lon <= 40) or       # Europe
-               (110 <= lon <= 130))):     # East Asia
-            return 10  # Cropland
-        
-        # Grasslands (Great Plains, Pampas, Steppes)
-        elif ((25 <= lat <= 45) and  
-              ((-110 <= lon <= -95) or    # Great Plains (North America)
-               (40 <= lon <= 80))):       # Steppes (Eurasia)
-            return 130  # Grassland
-        # Pampas (South America) - separate rule with correct latitude
-        elif ((-40 <= lat <= -25) and (-65 <= lon <= -45)):  # Pampas (Argentina/Uruguay)
-            return 130  # Grassland
-        
-        # Deserts (more specific to avoid ocean areas)
-        elif ((20 <= lat <= 35) and ((-125 <= lon <= -105) or  # Southwestern US deserts
-                                     (25 <= lon <= 45))):      # Arabian Peninsula
-            return 152  # Sparse shrub
-        elif ((-35 <= lat <= -20) and (115 <= lon <= 135)):    # Australian outback
-            return 152  # Sparse shrub
-        elif ((15 <= lat <= 30) and (-5 <= lon <= 20)):        # Sahara (more specific)
-            return 152  # Sparse shrub
-        
-        # Arctic tundra
-        elif lat > 60:
-            return 140  # Lichens and mosses
-        
-        # Default: if still no match, likely water body
-        return 210  # Water bodies (ESA standard)
     
-    def _predict_vegetation_index(self, lat: float, lon: float) -> float:
-        """
-        Predict vegetation index (EVI) based on location
-        """
-        # Higher vegetation in tropical forests
-        if -10 <= lat <= 10:
-            return round(random.uniform(0.4, 0.8), 3)
-        # Moderate vegetation in temperate zones
-        elif 23.5 <= abs(lat) <= 66.5:
-            return round(random.uniform(0.2, 0.6), 3)  
-        # Low vegetation in polar/desert regions
-        else:
-            return round(random.uniform(0.0, 0.3), 3)
     
-    def _predict_soil_carbon(self, lat: float, lon: float) -> float:
-        """
-        Predict soil organic carbon based on location
-        """
-        # Higher soil carbon in tropical forests and temperate regions
-        if -10 <= lat <= 10:
-            return round(random.uniform(20, 60), 1)
-        elif 23.5 <= abs(lat) <= 50:
-            return round(random.uniform(15, 40), 1)
-        else:
-            return round(random.uniform(5, 20), 1)
     
-    def _predict_elevation(self, lat: float, lon: float) -> int:
-        """
-        Predict elevation based on known geographic features
-        """
-        # Mountain ranges (rough approximations)
-        if ((35 <= lat <= 45) and (-125 <= lon <= -100)):  # US West Coast
-            return random.randint(500, 3000)
-        elif ((25 <= lat <= 50) and (-15 <= lon <= 50)):   # European mountains
-            return random.randint(200, 2000)
-        elif ((-25 <= lat <= 5) and (-80 <= lon <= -35)):  # Andes
-            return random.randint(1000, 4000)
-        else:
-            return random.randint(0, 800)  # General terrain
     
-    def _is_likely_ocean(self, lat: float, lon: float) -> bool:
-        """
-        Determine if coordinates are likely in open ocean based on major landmass proximity
-        """
-        # Major ocean areas far from landmasses
-        
-        # Pacific Ocean regions
-        if ((-60 <= lat <= 60) and 
-            ((-180 <= lon <= -120) or    # Eastern Pacific  
-             (140 <= lon <= 180))):      # Western Pacific
-            # Exclude coastal areas and island chains
-            if not ((-10 <= lat <= 10 and 140 <= lon <= 180) or  # Indonesia/Philippines
-                    (20 <= lat <= 50 and -140 <= lon <= -120)):   # US West Coast
-                return True
-        
-        # Atlantic Ocean regions  
-        elif ((-60 <= lat <= 60) and (-80 <= lon <= 20)):  # Extended to include western Atlantic
-            # Exclude coastal areas
-            if not ((-35 <= lat <= 70 and -20 <= lon <= 20) or   # Europe/Africa coast
-                    (-60 <= lat <= 50 and -75 <= lon <= -30)):   # Americas coast (adjusted)
-                return True
-        
-        # Indian Ocean regions
-        elif ((-60 <= lat <= 30) and (20 <= lon <= 120)):
-            # Exclude coastal areas and landmasses
-            if not ((20 <= lat <= 30 and 30 <= lon <= 80) or    # Middle East/India
-                    (-40 <= lat <= -20 and 20 <= lon <= 50) or   # South Africa  
-                    (-25 <= lat <= 10 and 90 <= lon <= 120)):    # Southeast Asia
-                return True
-        
-        # Southern Ocean
-        elif lat < -45:
-            return True
-            
-        # Arctic Ocean  
-        elif lat > 70:
-            return True
-            
-        return False
     
     def process_stac_data(self, lat: float, lon: float, stac_results: List[Dict]) -> Dict[str, Any]:
         """
@@ -882,35 +659,6 @@ class OpenLandMapSTAC:
         # Default fallback
         return 'Temperate Forest'
     
-    def _geographic_fallback_detection(self, lat: float, lon: float) -> str:
-        """
-        Geographic fallback for ecosystem detection when STAC data unavailable
-        """
-        # Forest regions - will be refined by _determine_forest_type_from_coordinates
-        if -10 <= lat <= 10:
-            return "Forest"  # Tropical
-        elif 50 <= lat <= 70:
-            return "Forest"  # Boreal
-        elif 25 <= abs(lat) <= 50:
-            return "Forest"  # Temperate/Mediterranean
-        # Grasslands
-        elif 15 <= abs(lat) <= 30:
-            return "Grassland" 
-        # Desert regions
-        elif 15 <= abs(lat) <= 35:
-            # Check for major desert regions
-            if (20 <= abs(lat) <= 30 and 
-                ((-15 <= lon <= 50) or  # Sahara/Arabian
-                 (-120 <= lon <= -100) or  # Southwestern US
-                 (110 <= lon <= 140))):  # Australian outback
-                return "Desert"
-            else:
-                return "Grassland"
-        # Arctic tundra
-        elif abs(lat) > 60:
-            return "Grassland"  # Tundra mapped to grassland
-        else:
-            return "Forest"  # Default
             
     async def get_batch_ecosystem_types(self, coordinates: List[tuple]) -> List[Dict[str, Any]]:
         """
@@ -956,45 +704,40 @@ class OpenLandMapSTAC:
                             "query_time": json.dumps({"timestamp": "now"}, default=str)
                         })
                     else:
-                        # Fallback to geographic detection for failed pixels
-                        ecosystem_type = self._geographic_fallback_detection(lat, lon)
-                        landcover_code = self._predict_land_cover(lat, lon)
+                        # No synthetic data generation - return error for failed pixel extraction
                         results.append({
-                            "ecosystem_type": ecosystem_type,
-                            "confidence": 0.65,
-                            "landcover_class": landcover_code,
+                            "ecosystem_type": "Unknown",
+                            "confidence": 0.0,
+                            "landcover_class": None,
                             "coordinates": {"lat": lat, "lon": lon},
-                            "data_source": "Geographic Fallback",
+                            "data_source": "Error: No Real Data Available",
+                            "error": "Pixel extraction failed - no real STAC data available",
                             "query_time": json.dumps({"timestamp": "now"}, default=str)
                         })
             else:
-                # No asset URL available, use geographic fallback for all coordinates
+                # No asset URL available - return error for all coordinates
                 for lat, lon in coordinates:
-                    ecosystem_type = self._geographic_fallback_detection(lat, lon)
-                    landcover_code = self._predict_land_cover(lat, lon)
                     results.append({
-                        "ecosystem_type": ecosystem_type,
-                        "confidence": 0.50,
-                        "landcover_class": landcover_code,
+                        "ecosystem_type": "Unknown",
+                        "confidence": 0.0,
+                        "landcover_class": None,
                         "coordinates": {"lat": lat, "lon": lon},
-                        "data_source": "Geographic Fallback (STAC Failed)",
-                        "error": "No asset URL available",
+                        "data_source": "Error: STAC Asset Unavailable",
+                        "error": "No GeoTIFF asset URL available from STAC catalog",
                         "query_time": json.dumps({"timestamp": "now"}, default=str)
                     })
             
         except Exception as e:
             print(f"Batch STAC API error: {e}")
-            # Use geographic fallback for all coordinates when batch fails
+            # No synthetic data generation - return error for all coordinates when batch fails
             for lat, lon in coordinates:
-                ecosystem_type = self._geographic_fallback_detection(lat, lon)
-                landcover_code = self._predict_land_cover(lat, lon)
                 results.append({
-                    "ecosystem_type": ecosystem_type,
-                    "confidence": 0.50,
-                    "landcover_class": landcover_code,
+                    "ecosystem_type": "Unknown",
+                    "confidence": 0.0,
+                    "landcover_class": None,
                     "coordinates": {"lat": lat, "lon": lon},
-                    "data_source": "Geographic Fallback (Batch Failed)",
-                    "error": str(e),
+                    "data_source": "Error: Batch Processing Failed",
+                    "error": f"STAC batch processing failed: {str(e)}",
                     "query_time": json.dumps({"timestamp": "now"}, default=str)
                 })
         
@@ -1018,27 +761,25 @@ class OpenLandMapSTAC:
             if stac_results:
                 return self.process_stac_data(lat, lon, stac_results)
             else:
-                # Fallback to geographic detection
-                ecosystem_type = self._geographic_fallback_detection(lat, lon)
+                # No synthetic data generation - return error when STAC data unavailable
                 return {
-                    "ecosystem_type": ecosystem_type,
-                    "confidence": 0.65,
+                    "ecosystem_type": "Unknown",
+                    "confidence": 0.0,
                     "coordinates": {"lat": lat, "lon": lon},
-                    "data_source": "Geographic Fallback", 
+                    "data_source": "Error: No Real STAC Data Available", 
+                    "error": "No genuine STAC collection data available for these coordinates",
                     "query_time": json.dumps({"timestamp": "now"}, default=str)
                 }
         except Exception as e:
             print(f"STAC API error: {e}")
-            # Use geographic fallback when STAC API fails completely
-            ecosystem_type = self._geographic_fallback_detection(lat, lon)
-            landcover_code = self._predict_land_cover(lat, lon)
+            # No synthetic data generation - return error when STAC API fails completely
             return {
-                "ecosystem_type": ecosystem_type,
-                "confidence": 0.50,
-                "landcover_class": landcover_code,
+                "ecosystem_type": "Unknown",
+                "confidence": 0.0,
+                "landcover_class": None,
                 "coordinates": {"lat": lat, "lon": lon},
-                "data_source": "Geographic Fallback (STAC Failed)",
-                "error": str(e),
+                "data_source": "Error: STAC API Failed",
+                "error": f"STAC API processing failed: {str(e)}",
                 "query_time": json.dumps({"timestamp": "now"}, default=str)
             }
 
