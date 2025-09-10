@@ -1810,7 +1810,6 @@ Example: 100ha Forest
 analyze_button = False
 
 # Test area selection dropdown
-st.markdown("**🧪 Test Areas (1000 hectares each)**")
 test_area_options = [
     "None - Draw your own area",
     "📁 Load Saved Area",
@@ -1824,7 +1823,7 @@ test_area_options = [
 ]
 
 selected_test_area = st.selectbox(
-    "Choose a test area, load saved area, or draw your own:",
+    "**Choose a 1000 hectare test area, load saved area, or draw your own on the map:**",
     test_area_options,
     index=0,
     help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
