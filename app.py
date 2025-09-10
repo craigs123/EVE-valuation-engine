@@ -203,7 +203,7 @@ st.markdown("""
         
         /* Better Typography */
         .section-header {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: #1f2937;
             margin: 2rem 0 1rem 0;
