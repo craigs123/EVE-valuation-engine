@@ -881,12 +881,31 @@ def display_data_source_status(analysis_results: Dict = None):
                             
                             for point_id, point_data in sampling_point_data.items():
                                 raw_stac_data = point_data.get('raw_stac_data', {})
-                                if raw_stac_data and 'raw_response' in raw_stac_data:
-                                    raw_response = raw_stac_data['raw_response']
-                                    if raw_response.get('raw_pixel_value') is not None:
+                                if raw_stac_data:
+                                    # Support multiple data formats: raw_response, geotiff_pixel_extraction, or direct keys
+                                    candidate = (
+                                        raw_stac_data.get('raw_response') or 
+                                        raw_stac_data.get('geotiff_pixel_extraction') or 
+                                        raw_stac_data
+                                    )
+                                    
+                                    # Check for pixel value in multiple possible keys
+                                    pixel_value = (
+                                        candidate.get('raw_pixel_value') or 
+                                        candidate.get('pixel_value') or 
+                                        candidate.get('value')
+                                    )
+                                    
+                                    if pixel_value is not None:
                                         successful_extractions += 1
-                                        pixel_values.append(raw_response.get('raw_pixel_value'))
-                                        landcover_codes.append(raw_response.get('landcover_code'))
+                                        pixel_values.append(pixel_value)
+                                        # Try to get landcover code from multiple possible keys
+                                        landcover_code = (
+                                            candidate.get('landcover_code') or
+                                            point_data.get('landcover_class') or
+                                            int(pixel_value) if isinstance(pixel_value, (int, float)) else None
+                                        )
+                                        landcover_codes.append(landcover_code)
                             
                             col1, col2, col3 = st.columns(3)
                             with col1:
