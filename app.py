@@ -3496,12 +3496,15 @@ if analyze_button and st.session_state.selected_area:
                 total_points = st.session_state.detected_ecosystem['successful_queries']
                 import math
                 shannon_div = 0
+                simpson_index = 0
                 for eco_type, data in ecosystem_distribution.items():
                     proportion = data['count'] / total_points
                     if proportion > 0:
                         shannon_div -= proportion * math.log(proportion)
+                    simpson_index += proportion ** 2
+                simpson_diversity = 1 - simpson_index
                 
-                st.info(f"🌍 **Mixed Ecosystem Detected**: {num_types} types found (diversity index: {shannon_div:.2f}) - using weighted calculation")
+                st.info(f"🌍 **Mixed Ecosystem Detected**: {num_types} types found (Simpson diversity index: {simpson_diversity:.2f}) - using weighted calculation")
                 
                 # Show detailed composition breakdown for analysis (optimized)
                 st.write("**📋 Detailed Composition for Valuation:**")
