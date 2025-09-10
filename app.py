@@ -2226,9 +2226,9 @@ elif use_test_area_single:
             "location": "Northern Ontario boreal forest"
         },
         "🏜️ Test area (Desert)": {
-            "coords": calculate_1000ha_coordinates(33.5, -112.5),
-            "description": "Arizona Sonoran Desert (33.5°N, 112.5°W) | Expected: Desert ecosystem",
-            "location": "Arizona Sonoran desert"
+            "coords": calculate_1000ha_coordinates(26.0, 5.0),
+            "description": "Sahara Desert (26.0°N, 5.0°E) | Expected: Desert ecosystem",
+            "location": "Central Sahara Desert, Algeria"
         },
         "🌊 Test area (Water Bodies)": {
             "coords": calculate_1000ha_coordinates(25.0, -65.0),
@@ -2411,7 +2411,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌾 Test area (Agricultural)": (42.0, -94.5),      # Central Iowa
             "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
-            "🏜️ Test area (Desert)": (33.5, -112.5),          # Arizona
+            "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
         }
         if selected_test_area in ecosystem_zoom_coords:
