@@ -1875,16 +1875,14 @@ test_area_options = [
     "🎲 Test area (Random Global)"
 ]
 
-# Create centered columns for area selection dropdown
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0.5rem;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
-    selected_test_area = st.selectbox(
-        "",
-        test_area_options,
-        index=0,
-        help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
-    )
+# Left-aligned area selection dropdown
+st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0.5rem;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
+selected_test_area = st.selectbox(
+    "",
+    test_area_options,
+    index=0,
+    help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
+)
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
@@ -1905,15 +1903,13 @@ if use_load_saved_area:
             saved_area_names = [f"{area['name']} ({area['area_hectares']:.1f} ha)" for area in saved_areas]
             saved_area_names.insert(0, "Select a saved area...")
             
-            # Use the same column layout for consistency
-            col1_saved, col2_saved, col3_saved = st.columns([1, 2, 1])
-            with col2_saved:
-                selected_saved_area = st.selectbox(
-                    "Choose a saved area to load:",
-                    saved_area_names,
-                    key="saved_area_selector",
-                    help="Select a previously saved area to load onto the map"
-                )
+            # Left-aligned saved area dropdown
+            selected_saved_area = st.selectbox(
+                "Choose a saved area to load:",
+                saved_area_names,
+                key="saved_area_selector",
+                help="Select a previously saved area to load onto the map"
+            )
             
             # Load selected saved area
             if selected_saved_area != "Select a saved area...":
