@@ -123,15 +123,7 @@ st.markdown("""
         .header-container {
             width: 100%;
             height: 60px;
-            background: linear-gradient(135deg, 
-                        #1b5e20 0%, 
-                        #2e7d32 25%, 
-                        #388e3c 50%, 
-                        #4caf50 75%, 
-                        #66bb6a 100%),
-                    radial-gradient(circle at 20% 80%, rgba(0, 188, 212, 0.3), transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(0, 150, 136, 0.2), transparent 60%),
-                    radial-gradient(circle at 40% 40%, rgba(76, 175, 80, 0.1), transparent 70%);
+            background: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
