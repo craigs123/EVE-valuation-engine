@@ -6,6 +6,7 @@ Replaces USGS with reliable global land cover data from OpenLandMap STAC collect
 import requests
 import asyncio
 import aiohttp
+import time
 from typing import Dict, List, Optional, Any
 import json
 import math
@@ -197,13 +198,17 @@ class OpenLandMapSTAC:
     async def _query_single_collection(self, session: aiohttp.ClientSession, 
                                      collection: Dict, lat: float, lon: float) -> Optional[Dict]:
         """
-        Query a single STAC collection
+        Query a single STAC collection with retry logic
         """
-        try:
-            collection_url = f"{self.stac_base_url}/{collection['id']}/collection.json"
-            
-            async with session.get(collection_url) as response:
-                if response.status == 200:
+        max_retries = 3
+        retry_delay = 1  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                collection_url = f"{self.stac_base_url}/{collection['id']}/collection.json"
+                
+                async with session.get(collection_url) as response:
+                    if response.status == 200:
                     collection_data = await response.json()
                     
                     if collection_data.get('links'):
@@ -239,9 +244,13 @@ class OpenLandMapSTAC:
                         else:
                             print(f"❌ No synthetic data generation for {collection['category']} category at ({lat}, {lon})")
                             return None
-        except Exception as e:
-            print(f"Failed to query collection {collection['id']}: {e}")
-            return None
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️ Attempt {attempt + 1}/{max_retries} failed for collection {collection['id']}: {e}. Retrying...")
+                    await asyncio.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+                else:
+                    print(f"❌ Failed to query collection {collection['id']} after {max_retries} attempts: {e}")
+                    return None
     
     def extract_pixel_value(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
         """
@@ -354,11 +363,28 @@ class OpenLandMapSTAC:
                 "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2019_v1.0.tif",
             ]
             
-            # First try STAC catalog query - but search for most recent data
+            # First try STAC catalog query with retry logic - search for most recent data
             collection_url = f"{self.stac_base_url}/{collection_id}/collection.json"
-            response = requests.get(collection_url, timeout=10)
             
-            if response.status_code == 200:
+            max_retries = 3
+            response = None
+            for attempt in range(max_retries):
+                try:
+                    response = requests.get(collection_url, timeout=10)
+                    if response.status_code == 200:
+                        break  # Success, exit retry loop
+                    elif attempt < max_retries - 1:
+                        print(f"⚠️ Attempt {attempt + 1}/{max_retries} failed with status {response.status_code}. Retrying...")
+                        time.sleep(1 * (attempt + 1))  # Exponential backoff
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f"⚠️ Attempt {attempt + 1}/{max_retries} failed: {e}. Retrying...")
+                        time.sleep(1 * (attempt + 1))
+                    else:
+                        print(f"❌ Failed to get collection after {max_retries} attempts: {e}")
+                        response = None
+            
+            if response and response.status_code == 200:
                 collection_data = response.json()
                 print(f"📋 STAC collection found: {collection_data.get('title', collection_id)}")
                 
@@ -406,9 +432,25 @@ class OpenLandMapSTAC:
                         
                         print(f"🔗 Trying STAC item from year {year}: {item_url}")
                         
-                        # Get STAC item
-                        item_response = requests.get(item_url, timeout=10)
-                        if item_response.status_code == 200:
+                        # Get STAC item with retry logic
+                        item_response = None
+                        for item_attempt in range(max_retries):
+                            try:
+                                item_response = requests.get(item_url, timeout=10)
+                                if item_response.status_code == 200:
+                                    break
+                                elif item_attempt < max_retries - 1:
+                                    print(f"⚠️ Item attempt {item_attempt + 1}/{max_retries} failed. Retrying...")
+                                    time.sleep(1 * (item_attempt + 1))
+                            except Exception as e:
+                                if item_attempt < max_retries - 1:
+                                    print(f"⚠️ Item attempt {item_attempt + 1}/{max_retries} failed: {e}. Retrying...")
+                                    time.sleep(1 * (item_attempt + 1))
+                                else:
+                                    print(f"❌ Failed to get item after {max_retries} attempts: {e}")
+                                    item_response = None
+                        
+                        if item_response and item_response.status_code == 200:
                             item_data = item_response.json()
                             
                             # Extract GeoTIFF asset URL
