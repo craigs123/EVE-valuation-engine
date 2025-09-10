@@ -80,14 +80,25 @@ st.markdown("""
             overflow-y: auto !important;
         }
         
-        /* Reduce top padding and move content higher */
+        /* Minimize top padding and move content to very top */
         .main .block-container {
-            padding-top: 1rem !important;
+            padding-top: 0.25rem !important;
         }
         
-        /* Reduce margin on title to move it higher */
+        /* Target all Streamlit containers for minimal spacing */
+        .stApp > div:first-child {
+            padding-top: 0 !important;
+        }
+        
+        /* Remove all margins and padding from title */
         h1:first-of-type {
             margin-top: 0 !important;
+            padding-top: 0 !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Remove spacing from main content container */
+        section.main > div {
             padding-top: 0 !important;
         }
         
