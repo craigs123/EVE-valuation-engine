@@ -2550,8 +2550,8 @@ if st.session_state.get('analysis_results'):
     results = st.session_state.get('analysis_results', {})
     if results and results.get('sampling_point_data'):
         for point_data in results.get('sampling_point_data', {}).values():
-            source = point_data.get('source', '')
-            if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+            data_source = point_data.get('data_source', '')
+            if 'Real ESA Satellite Data' in data_source or 'GeoTIFF Pixel' in data_source:
                 has_real_results_data = True
                 break
     
