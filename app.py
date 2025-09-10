@@ -1,5 +1,5 @@
 """
-Ecosystem Valuation Engine - Clean Map Implementation
+Ecological Valuation Engine - Clean Map Implementation
 """
 
 import streamlit as st
@@ -33,7 +33,7 @@ def get_database_modules():
 
 # Optimized page configuration for production
 st.set_page_config(
-    page_title="Ecosystem Valuation Engine",
+    page_title="Ecological Valuation Engine",
     page_icon="🌱",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -1302,7 +1302,7 @@ st.markdown("""
 <div class="header-container">
     <div class="header-overlay">
         <div class="header-text">
-            Ecosystem Valuation Engine
+            Ecological Valuation Engine
         </div>
     </div>
 </div>
@@ -1588,7 +1588,7 @@ $498.85/ha/year (median from 580 studies)
     # Scientific Methodology section
     with st.expander("🔬 Scientific Methodology"):
         st.markdown("""
-        **Ecosystem Valuation Engine (EVE)** combines satellite remote sensing with the world's largest ecosystem service valuation database to measure natural capital in economic terms.
+        **Ecological Valuation Engine (EVE)** combines satellite remote sensing with the world's largest ecosystem service valuation database to measure natural capital in economic terms.
         
         EVE tracks four categories of ecosystem services: **provisioning** (food, water, timber), **regulating** (climate, water regulation, erosion control), **cultural** (recreation, spiritual value), and **supporting** (soil formation, nutrient cycling).
         """)
