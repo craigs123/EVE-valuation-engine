@@ -125,13 +125,48 @@ class EcosystemServicesCalculator:
             else:
                 detection_confidence = 1.0
             
-            # Get coordinates for regional adjustment
-            coordinates = self._extract_coordinates(area_bounds)
+            # Get predominant country from sample points for more reliable regional adjustment
+            predominant_country = self._get_predominant_country_from_samples()
+            
+            # Fallback to coordinates if no sample points available
+            coordinates = None
+            if predominant_country:
+                # Create a synthetic coordinate for the country (used for forest type detection)
+                coordinates = self._extract_coordinates(area_bounds)
+            else:
+                coordinates = self._extract_coordinates(area_bounds)
             
             # Calculate values using pre-computed authentic ESVD coefficients (use effective land area)
             esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
                 ecosystem_type, effective_area_ha, coordinates if coordinates else None
             )
+            
+            # Override regional factor with predominant country if available
+            if predominant_country and predominant_country != 'global_average':
+                # Get GDP for predominant country and recalculate regional factor
+                country_gdp = self.precomputed_esvd.get_country_gdp_lookup(predominant_country)
+                global_gdp = self.precomputed_esvd.global_gdp_average
+                income_elasticity = self.precomputed_esvd.income_elasticity
+                
+                # Recalculate regional factor using predominant country
+                gdp_ratio = country_gdp / global_gdp
+                adjustment_factor = 1 + (income_elasticity * (gdp_ratio - 1))
+                regional_factor = max(0.4, min(2.5, adjustment_factor))
+                
+                # Update the results with correct regional factor
+                esvd_results['regional_adjustment_factor'] = regional_factor
+                esvd_results['country_gdp'] = country_gdp
+                
+                # Recalculate all values with correct regional factor
+                original_total = esvd_results.get('total_value', 0)
+                original_regional_factor = esvd_results.get('regional_adjustment_factor', 1.0)
+                if original_regional_factor != 0:
+                    # Remove old regional adjustment and apply new one
+                    base_value = original_total / original_regional_factor  
+                    corrected_total = base_value * regional_factor
+                    esvd_results['total_value'] = corrected_total
+                    esvd_results['total_annual_value'] = corrected_total
+                    esvd_results['current_value'] = corrected_total
             
             # No fallback needed - pre-computed coefficients always available
             
@@ -581,6 +616,45 @@ class EcosystemServicesCalculator:
             center_lon = sum(lons) / len(lons)
             
             return (center_lat, center_lon)
+        except Exception:
+            return None
+    
+    def _get_predominant_country_from_samples(self) -> Optional[str]:
+        """
+        Extract predominant country from sampling points data for more reliable regional adjustment
+        """
+        try:
+            import streamlit as st
+            sampling_point_data = st.session_state.get('sampling_point_data', {})
+            
+            if not sampling_point_data:
+                return None
+            
+            # Count countries from sample points 
+            from utils.precomputed_esvd_coefficients import get_country_from_coordinates
+            country_counts = {}
+            
+            for point_data in sampling_point_data.values():
+                coords = point_data.get('coordinates', {})
+                lat = coords.get('lat')
+                lon = coords.get('lon')
+                
+                if lat is not None and lon is not None:
+                    # Skip water points (ESA code 210)
+                    landcover_class = point_data.get('landcover_class', 0)
+                    if landcover_class == 210:  # Water bodies
+                        continue
+                        
+                    country = get_country_from_coordinates(lat, lon)
+                    country_counts[country] = country_counts.get(country, 0) + 1
+            
+            if not country_counts:
+                return None
+                
+            # Return the most common country
+            predominant_country = max(country_counts.items(), key=lambda x: x[1])[0]
+            return predominant_country
+            
         except Exception:
             return None
     
