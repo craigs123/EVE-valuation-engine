@@ -85,6 +85,11 @@ class OpenLandMapSTAC:
         # Thread safety: Lock for cache operations
         self._cache_lock = threading.RLock()  # Reentrant lock for nested calls
         
+        # THREAD-SAFETY FIX: Per-dataset locks for rasterio operations
+        # Each dataset gets its own lock to prevent concurrent read() operations
+        self._dataset_locks = {}  # url -> threading.Lock() for thread-safe dataset.read()
+        self._locks_lock = threading.Lock()  # Lock for managing the locks dict itself
+        
         # Thread pool for async I/O offloading
         self._thread_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="raster_io")
         
@@ -253,13 +258,17 @@ class OpenLandMapSTAC:
         self._dataset_cache.clear()
         self._cache_metadata.clear()
         
+        # THREAD-SAFETY FIX: Clear all dataset locks when clearing cache
+        with self._locks_lock:
+            self._dataset_locks.clear()
+        
         # Reset cache statistics
         self._cache_stats.update({
             'hits': 0, 'misses': 0, 'evictions': 0, 'opens': 0, 'closes': 0
         })
         
         gc.collect()  # Force garbage collection
-        print(f"🧹 Dataset cache cleared: {closed_count} COG handles closed")
+        print(f"🧹 Dataset cache cleared: {closed_count} COG handles closed, locks cleared")
     
     def _get_cached_dataset(self, asset_url: str):
         """Get dataset from cache or open new one with LRU management - THREAD SAFE VERSION"""
@@ -311,6 +320,11 @@ class OpenLandMapSTAC:
                         oldest_url, oldest_dataset = self._dataset_cache.popitem(last=False)
                         self._cache_metadata.pop(oldest_url, None)
                         
+                        # THREAD-SAFETY FIX: Clean up dataset lock when evicting
+                        with self._locks_lock:
+                            if oldest_url in self._dataset_locks:
+                                del self._dataset_locks[oldest_url]
+                        
                         # Close evicted dataset
                         if oldest_dataset and not oldest_dataset.closed:
                             try:
@@ -328,6 +342,11 @@ class OpenLandMapSTAC:
                         'access_count': 1,
                         'last_access': time.time()
                     }
+                    
+                    # THREAD-SAFETY FIX: Create per-dataset lock for thread-safe read operations
+                    with self._locks_lock:
+                        if asset_url not in self._dataset_locks:
+                            self._dataset_locks[asset_url] = threading.Lock()
                     
                     print(f"📂 CACHED NEW: {asset_url[:50]}... ({len(self._dataset_cache)}/{self._dataset_cache_size}) [opens: {self._cache_stats['opens']}]")
                     return dataset
@@ -1597,49 +1616,72 @@ class OpenLandMapSTAC:
             if not (0 <= row < dataset.height and 0 <= col < dataset.width):
                 return None
             
-            # Read 1x1 pixel window (following their exact pattern)
-            try:
-                pixel_data = dataset.read(1, window=((row, row+1), (col, col+1)))
-                
-                if pixel_data.size > 0:
-                    value = pixel_data[0, 0]
-                    
-                    # Enhanced NoData handling (as mentioned in guidance)
-                    if dataset.nodata is not None and value == dataset.nodata:
-                        return None
-                    
-                    # Handle masked arrays from COG
-                    if hasattr(value, 'mask') and value.mask:
-                        return None
-                    
-                    # Apply scaling factors from STAC metadata if available
-                    # (Technical guidance mentions this is needed)
-                    scaling_factor = getattr(dataset, 'scales', [1.0])[0] if hasattr(dataset, 'scales') else 1.0
-                    offset = getattr(dataset, 'offsets', [0.0])[0] if hasattr(dataset, 'offsets') else 0.0
-                    
-                    scaled_value = float(value) * scaling_factor + offset
-                    
-                    # Filter invalid values
-                    if np.isfinite(scaled_value):
-                        return scaled_value
+            # THREAD-SAFETY FIX: Synchronize dataset.read() operations with per-dataset lock
+            dataset_lock = None
+            with self._locks_lock:
+                dataset_lock = self._dataset_locks.get(asset_url)
             
-            except Exception as read_error:
-                print(f"⚠️ Pixel read failed: {read_error}")
+            if dataset_lock is None:
+                print(f"⚠️ No lock found for dataset {asset_url[:50]}...")
                 return None
+            
+            # Read 1x1 pixel window with thread synchronization
+            with dataset_lock:  # CRITICAL: Thread-safe dataset access
+                try:
+                    pixel_data = dataset.read(1, window=((row, row+1), (col, col+1)))
+                    
+                    if pixel_data.size > 0:
+                        value = pixel_data[0, 0]
+                        
+                        # Enhanced NoData handling (as mentioned in guidance)
+                        if dataset.nodata is not None and value == dataset.nodata:
+                            return None
+                        
+                        # Handle masked arrays from COG
+                        if hasattr(value, 'mask') and value.mask:
+                            return None
+                        
+                        # Apply scaling factors from STAC metadata if available
+                        # (Technical guidance mentions this is needed)
+                        scaling_factor = getattr(dataset, 'scales', [1.0])[0] if hasattr(dataset, 'scales') else 1.0
+                        offset = getattr(dataset, 'offsets', [0.0])[0] if hasattr(dataset, 'offsets') else 0.0
+                        
+                        scaled_value = float(value) * scaling_factor + offset
+                        
+                        # Detect if this is a landcover dataset for ESA validation
+                        is_landcover = ('land.cover' in asset_url.lower() or 
+                                      'lc.l4' in asset_url.lower() or
+                                      'esacci' in asset_url.lower())
+                        
+                        # Apply ESA validation ONLY to landcover datasets (SCOPING FIX)
+                        if is_landcover:
+                            # Convert to integer for land cover codes
+                            try:
+                                pixel_value_int = int(round(scaled_value))
+                                # Validate ESA CCI range (typically 10-220) only for landcover
+                                if 1 <= pixel_value_int <= 250 and np.isfinite(scaled_value):
+                                    return float(pixel_value_int)
+                                else:
+                                    print(f"⚠️ Invalid ESA landcover code: {pixel_value_int} at ({lat}, {lon})")
+                                    return None
+                            except (ValueError, OverflowError):
+                                return None
+                        else:
+                            # For non-landcover datasets, return the raw scaled value if finite
+                            if np.isfinite(scaled_value):
+                                return scaled_value
+                
+                except Exception as read_error:
+                    print(f"⚠️ Thread-safe pixel read failed: {read_error}")
+                    return None
             
             return None
             
         except Exception as e:
             print(f"❌ COG access failed for {asset_url}: {e}")
             return None
-        finally:
-            # Proper resource cleanup
-            if dataset:
-                try:
-                    dataset.close()
-                    del dataset
-                except:
-                    pass
+        # THREAD-SAFETY FIX: Remove finally block that closes cached datasets!
+        # Cached datasets must NOT be closed after each use - they stay open for reuse
     
     def _get_collection_metadata_cached(self, collection_id: str) -> Optional[Dict]:
         """
