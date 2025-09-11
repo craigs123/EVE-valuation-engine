@@ -2400,8 +2400,8 @@ elif use_test_area_single:
             "location": "Northern Ontario boreal forest"
         },
         "🌳 Test area (Temperate Forest)": {
-            "coords": calculate_1000ha_coordinates(52.7333, 23.8833),
-            "description": "Białowieża Forest (52.73°N, 23.88°E) | Expected: Temperate Forest ecosystem",
+            "coords": calculate_1000ha_coordinates(52.5536, 23.8833),
+            "description": "Białowieża Forest (52.55°N, 23.88°E) | Expected: Temperate Forest ecosystem",
             "location": "UNESCO World Heritage forest, Polish-Belarus border"
         },
         "🌴 Test area (Tropical Forest)": {
@@ -2597,7 +2597,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌾 Test area (Agricultural)": (40.1, -87.97),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
-            "🌳 Test area (Temperate Forest)": (52.7333, 23.8833),  # Białowieża Forest
+            "🌳 Test area (Temperate Forest)": (52.5536, 23.8833),  # Białowieża Forest
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
