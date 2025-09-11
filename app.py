@@ -512,8 +512,8 @@ def _get_ecosystem_intactness_multiplier(ecosystem_type: str, ecosystem_intactne
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping and water body user classifications"""
     # Import the single source of truth mapping from STAC API
-    from utils.openlandmap_stac_api import OpenLandMapSTAC
-    stac_instance = OpenLandMapSTAC()
+    from utils.openlandmap_stac_api import get_cached_openlandmap_stac
+    stac_instance = get_cached_openlandmap_stac()
     landcover_mapping = stac_instance.landcover_to_esvd
     
     base_ecosystem = landcover_mapping.get(code, "Unknown")
@@ -550,8 +550,8 @@ def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = N
 def preload_openlandmap_status():
     """Preload OpenLandMap STAC API status for instant display"""
     try:
-        from utils.openlandmap_stac_api import OpenLandMapSTAC
-        stac_client = OpenLandMapSTAC()
+        from utils.openlandmap_stac_api import get_cached_openlandmap_stac
+        stac_client = get_cached_openlandmap_stac()
         # Test with a simple coordinate query - using real STAC API
         test_result = stac_client.get_ecosystem_type(0, 0)
         return {

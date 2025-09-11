@@ -367,12 +367,22 @@ class OpenLandMapSTAC:
         # NOTE: Dataset cache and thread pool preserved for performance across reruns
         # Only call explicit cleanup when absolutely necessary
     
-    def shutdown(self):
-        """Explicit shutdown method that works without async event loop"""
-        # Close all cached datasets
-        self._clear_dataset_cache()
+    def shutdown(self, clear_caches: bool = False):
+        """
+        Explicit shutdown method that works without async event loop
         
-        # Shutdown thread pool
+        Args:
+            clear_caches: If True, clear all caches (not recommended for performance).
+                         If False (default), preserve caches for performance across reruns.
+        """
+        # Only clear caches if explicitly requested - preserve for performance by default
+        if clear_caches:
+            print("🧹 WARNING: Clearing caches as requested (will hurt performance on next run)")
+            self._clear_dataset_cache()
+        else:
+            print("📂 Preserving caches for optimal performance across reruns")
+        
+        # Shutdown thread pool without clearing caches
         if hasattr(self, '_thread_pool') and self._thread_pool:
             try:
                 self._thread_pool.shutdown(wait=True)
@@ -380,7 +390,7 @@ class OpenLandMapSTAC:
             except Exception as e:
                 print(f"⚠️ Thread pool shutdown error: {e}")
         
-        # Close session if possible (non-async)
+        # Close session if possible (non-async) but preserve caches
         if hasattr(self, '_session') and self._session and not self._session.closed:
             try:
                 # Try to close session synchronously if possible
@@ -397,7 +407,8 @@ class OpenLandMapSTAC:
             except Exception as e:
                 print(f"⚠️ Session cleanup warning: {e}")
         
-        print(f"🧹 STAC API shutdown complete - Cache stats: {self._cache_stats}")
+        cache_status = "cleared" if clear_caches else "preserved"
+        print(f"🧹 STAC API shutdown complete - Cache stats: {self._cache_stats}, Caches: {cache_status}")
     
     def get_cache_stats(self):
         """Get cache statistics safely"""
