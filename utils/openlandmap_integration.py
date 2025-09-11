@@ -27,38 +27,55 @@ class OpenLandMapIntegrator:
             'modis': '/soilgrids/v2.0/properties'
         }
         
-        # Land cover class mappings from OpenLandMap to ecosystem types
+        # Complete ESA CCI Land Cover (Level 1 & 2) to ESVD ecosystem coefficient mapping
+        # Updated to match OpenLandMap STAC API mapping for consistency
+        # Handles both Level 1 and Level 2 codes from ESA CCI Level 4 data
         self.landcover_to_ecosystem = {
-            # Copernicus Global Land Cover classes
-            10: "Forest",           # Tree cover
-            20: "Forest",           # Shrubland  
-            30: "Grassland",        # Grassland
-            40: "Agricultural",     # Cropland
-            50: "Urban",           # Built-up
-            60: "Wetland",         # Bare/sparse vegetation
-            70: "Wetland",         # Snow and ice
-            80: "Rivers and Lakes", # Permanent water bodies
-            90: "Coastal",         # Herbaceous wetland
-            100: "Forest",         # Moss and lichen
+            # Cropland Classes
+            10: "Cropland", 11: "Cropland", 12: "Cropland", 
+            20: "Cropland", 30: "Cropland", 40: "Grassland",
             
-            # MODIS Land Cover classes  
-            1: "Forest",           # Evergreen Needleleaf Forests
-            2: "Forest",           # Evergreen Broadleaf Forests
-            3: "Forest",           # Deciduous Needleleaf Forests
-            4: "Forest",           # Deciduous Broadleaf Forests
-            5: "Forest",           # Mixed Forests
-            6: "Forest",           # Closed Shrublands
-            7: "Grassland",        # Open Shrublands
-            8: "Grassland",        # Woody Savannas
-            9: "Grassland",        # Savannas
-            10: "Grassland",       # Grasslands
-            11: "Wetland",         # Permanent Wetlands
-            12: "Agricultural",    # Croplands
-            13: "Urban",           # Urban and Built-up Lands
-            14: "Agricultural",    # Cropland/Natural Vegetation Mosaics
-            15: "Desert",          # Permanent Snow and Ice
-            16: "Desert",          # Barren
-            17: "Rivers and Lakes"  # Water Bodies
+            # Forest Classes  
+            50: "Forest", 60: "Forest", 61: "Forest", 62: "Forest",
+            70: "Forest", 71: "Forest", 72: "Forest", 
+            80: "Forest", 81: "Forest", 82: "Forest",
+            90: "Forest", 100: "Forest",
+            
+            # Shrubland Classes
+            110: "Shrubland", 120: "Shrubland", 121: "Shrubland", 122: "Shrubland",
+            
+            # Grassland Classes
+            130: "Grassland", 140: "Grassland",
+            
+            # Sparse Vegetation / Desert Classes
+            150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
+            
+            # Wetland Classes
+            160: "Wetland",         # Tree cover, flooded, fresh or brakish water
+            170: "Wetland",         # Tree cover, flooded, saline water
+            180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
+            
+            # Urban Classes
+            190: "Urban",           # Urban areas
+            
+            # Bare Areas Classes
+            200: "Desert",          # Bare areas
+            201: "Desert",          # Consolidated bare areas
+            202: "Desert",          # Unconsolidated bare areas
+            
+            # Water Bodies Classes
+            210: "Rivers and Lakes",  # Water bodies (freshwater)
+            211: "Marine",            # Marine/oceanic water bodies
+            
+            # Snow and Ice Classes
+            220: "Polar",           # Permanent snow and ice
+            
+            # Legacy MODIS/Copernicus codes for backward compatibility
+            1: "Forest", 2: "Forest", 3: "Forest", 4: "Forest", 5: "Forest",
+            6: "Forest", 7: "Grassland", 8: "Grassland", 9: "Grassland",
+            13: "Urban", 14: "Cropland", 15: "Desert", 16: "Desert", 17: "Rivers and Lakes",
+            21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",
+            31: "Desert", 41: "Forest", 42: "Forest", 43: "Forest", 52: "Shrubland", 95: "Wetland"
         }
     
     def get_comprehensive_environmental_data(self, lat: float, lon: float, include_environmental_indicators: bool = True) -> Optional[Dict]:
@@ -393,6 +410,10 @@ class OpenLandMapIntegrator:
             if 'modis_class' in data:
                 modis_class = int(data['modis_class'])
                 ecosystem_type = self.landcover_to_ecosystem.get(modis_class, "Grassland")
+                
+                # Debug mapping for troubleshooting
+                if modis_class in [11, 40, 130]:
+                    print(f"🔍 MODIS MAPPING DEBUG: Code {modis_class} → {ecosystem_type}")
                 
                 return {
                     'landcover_class': modis_class,
@@ -879,8 +900,12 @@ class OpenLandMapIntegrator:
                 elif 'classification' in data:
                     landcover_class = data['classification']
             
-            # Map to ecosystem type
+            # Map to ecosystem type using updated ESA mapping
             ecosystem_type = self.landcover_to_ecosystem.get(landcover_class, "Grassland")
+            
+            # Debug mapping for troubleshooting
+            if landcover_class in [11, 40, 130]:
+                print(f"🔍 MAPPING DEBUG: ESA code {landcover_class} → {ecosystem_type} (Expected: Cropland/Grassland)")
             
             # If we got a valid landcover class, return the result
             if landcover_class > 0:

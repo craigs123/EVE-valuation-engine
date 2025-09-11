@@ -1483,18 +1483,13 @@ class OpenLandMapSTAC:
                     from .esa_landcover_codes import get_ecosystem_type_from_esa
                     ecosystem_info = get_ecosystem_type_from_esa(int(pixel_value))
                 except ImportError:
-                    # Fallback: basic ecosystem detection
+                    # Fixed fallback: use complete ESA mapping instead of limited hardcoded values
                     esa_code = int(pixel_value)
-                    if esa_code == 210:
-                        ecosystem_type = "Rivers and Lakes"
-                    elif esa_code in [70, 71]:
-                        ecosystem_type = "Temperate Forest"  
-                    elif esa_code == 120:
-                        ecosystem_type = "Shrubland"
-                    elif esa_code == 200:
-                        ecosystem_type = "Desert"
-                    else:
-                        ecosystem_type = "Unknown"
+                    ecosystem_type = self.landcover_to_esvd.get(esa_code, "Grassland")
+                    
+                    # Debug the mapping for troubleshooting ESA codes 11, 40, 130
+                    if esa_code in [11, 40, 130]:
+                        print(f"🔍 ESA MAPPING DEBUG: Code {esa_code} → {ecosystem_type} (Fixed from Unknown!)")
                     
                     ecosystem_info = {"ecosystem_type": ecosystem_type}
                 
