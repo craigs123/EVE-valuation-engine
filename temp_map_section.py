@@ -2,28 +2,57 @@
 with col1:
     st.subheader("🗺️ Select Your Area")
     
-    # Add layer selector above map
-    col_layer1, col_layer2 = st.columns(2)
-    with col_layer1:
+    # Add search functionality
+    col_search, col_layer = st.columns([2, 1])
+    with col_search:
+        location_search = st.text_input("🔍 Search for locations:", placeholder="e.g., Costa Rica, Amazon Rainforest, Great Barrier Reef", key="location_search")
+    with col_layer:
         layer_type = st.radio("🗺️ Map Style:", ["Light Map", "Satellite"], horizontal=True, key="map_layer_selector")
-    with col_layer2:
-        st.info("🔍 Use the search box to find locations, then use drawing tools to select an area")
+    
+    st.info("💡 Search for a location above, then use the drawing tools to select your analysis area")
+    
+    # Handle location search and set map center
+    map_center = [40.0, -100.0]  # Default center (USA)
+    map_zoom = 4  # Default zoom
+    
+    if location_search:
+        try:
+            from geopy.geocoders import Nominatim
+            geolocator = Nominatim(user_agent="EcosystemValuationEngine")
+            location = geolocator.geocode(location_search)
+            if location:
+                map_center = [location.latitude, location.longitude]
+                map_zoom = 10  # Zoom closer to found location
+                st.success(f"📍 Found: {location.address}")
+            else:
+                st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
+        except Exception as e:
+            st.error("⚠️ Search service temporarily unavailable. Please try again.")
     
     # Create interactive map based on selected layer
     if layer_type == "Satellite":
         m = folium.Map(
-            location=[40.0, -100.0], 
-            zoom_start=4,
+            location=map_center, 
+            zoom_start=map_zoom,
             tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
             attr='&copy; Google'
         )
     else:  # Light Map
         m = folium.Map(
-            location=[40.0, -100.0], 
-            zoom_start=4,
+            location=map_center, 
+            zoom_start=map_zoom,
             tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             attr='&copy; CARTO'
         )
+    
+    # Add search result marker if location found
+    if location_search and 'location' in locals() and location:
+        folium.Marker(
+            [location.latitude, location.longitude],
+            popup=f"📍 {location.address}",
+            tooltip=f"Searched: {location_search}",
+            icon=folium.Icon(color='red', icon='search')
+        ).add_to(m)
     
     # Add existing selection if available
     if st.session_state.selected_area and st.session_state.area_coordinates:
@@ -37,18 +66,8 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
-    # Add search functionality and drawing tools
-    from folium.plugins import Draw, Geocoder
-    
-    # Add geocoder (search box) to the map
-    Geocoder(
-        collapsed=False,
-        position="topright", 
-        placeholder="Search for places, cities, countries...",
-        add_marker=True
-    ).add_to(m)
-    
     # Add drawing tools
+    from folium.plugins import Draw
     draw = Draw(
         draw_options={
             'polyline': False,

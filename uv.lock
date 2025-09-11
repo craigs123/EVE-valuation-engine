@@ -2575,7 +2575,7 @@ wheels = [
 
 [[package]]
 name = "repl-nix-workspace"
-version = "2.3.0"
+version = "2.9.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },
