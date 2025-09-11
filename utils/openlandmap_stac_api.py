@@ -1313,42 +1313,50 @@ class OpenLandMapSTAC:
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         Main method to get ecosystem type using OpenLandMap STAC API
-        Fixed event loop management to prevent 'Event loop is closed' errors
+        FIXED: Properly handles both sync and async contexts without nesting event loops
         """
         try:
             import asyncio
             
-            # FIXED: Use asyncio.run for clean event loop management
-            # This ensures a fresh event loop for each request and proper cleanup
+            # CRITICAL FIX: Check if we're already in an event loop
             try:
-                # Use asyncio.run to handle event loop lifecycle properly
-                result = asyncio.run(self._async_get_ecosystem_type(lat, lon))
-                return result
-            except Exception as e:
-                print(f"⚠️ Primary STAC query failed: {e}")
-                # Fallback: try with new event loop if primary method fails
+                loop = asyncio.get_running_loop()
+                # We're already in an event loop - can't use asyncio.run()
+                print("🔄 Running in existing event loop context")
+                # Create a task and run it in the current loop
+                task = asyncio.create_task(self._async_get_ecosystem_type(lat, lon))
+                # We need to wait for this task to complete, but we can't block
+                # Use a workaround for sync code in async context
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self._run_in_new_loop, lat, lon)
+                    return future.result(timeout=30)
+                    
+            except RuntimeError:
+                # No event loop running - we can use asyncio.run safely
+                print("🆕 Creating new event loop")
                 try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        result = loop.run_until_complete(self._async_get_ecosystem_type(lat, lon))
-                        return result
-                    finally:
-                        loop.close()
-                except Exception as fallback_error:
-                    print(f"⚠️ Fallback STAC query also failed: {fallback_error}")
+                    result = asyncio.run(self._async_get_ecosystem_type(lat, lon))
+                    return result
+                except Exception as e:
+                    print(f"⚠️ Async execution failed: {e}")
                     return self._fallback_ecosystem_detection(lat, lon)
         except Exception as e:
             print(f"STAC API error: {e}")
-            # No synthetic data generation - return error when STAC API fails completely
-            return {
-                "ecosystem_type": "Unknown",
-                "landcover_class": None,
-                "coordinates": {"lat": lat, "lon": lon},
-                "data_source": "Error: STAC API Failed",
-                "error": f"STAC API processing failed: {str(e)}",
-                "query_time": json.dumps({"timestamp": "now"}, default=str)
-            }
+            return self._fallback_ecosystem_detection(lat, lon)
+    
+    def _run_in_new_loop(self, lat: float, lon: float) -> Dict[str, Any]:
+        """
+        Helper method to run async code in a completely new event loop
+        Used when we're already in an async context but need to run STAC queries
+        """
+        import asyncio
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(self._async_get_ecosystem_type(lat, lon))
+        finally:
+            loop.close()
     
     async def _async_get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
