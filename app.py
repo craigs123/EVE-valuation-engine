@@ -1176,7 +1176,9 @@ def display_data_source_status(analysis_results: Dict = None):
                     
                     # Show raw ESA codes in expandable section for transparency
                     with st.expander("🔍 Raw ESA Code Breakdown"):
-                        for code, count in sorted(code_counts.items()):
+                        # Filter out None keys and sort only valid integer codes
+                        valid_codes = {k: v for k, v in code_counts.items() if k is not None}
+                        for code, count in sorted(valid_codes.items()):
                             openlandmap_description = get_landcover_code_description(code)
                             esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                             percentage = (count / len(sampling_point_data)) * 100
@@ -1195,7 +1197,9 @@ def display_data_source_status(analysis_results: Dict = None):
                         code_counts[code] = code_counts.get(code, 0) + 1
                     
                     st.markdown("**Estimated Landcover Codes:**")
-                    for code, count in sorted(code_counts.items()):
+                    # Filter out None keys and sort only valid integer codes
+                    valid_codes = {k: v for k, v in code_counts.items() if k is not None}
+                    for code, count in sorted(valid_codes.items()):
                         openlandmap_description = get_landcover_code_description(code)
                         esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                         percentage = (count / len(landcover_codes)) * 100
