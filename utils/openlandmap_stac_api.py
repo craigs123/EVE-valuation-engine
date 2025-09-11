@@ -197,7 +197,7 @@ class OpenLandMapSTAC:
             # Additional NLCD/CORINE codes that may be encountered
             21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",  # Developed areas
             31: "Desert",           # Barren Land
-            41: "Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
+            41: "Temperate Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
             52: "Shrubland",        # NLCD Shrub/Scrub
             95: "Wetland",          # NLCD Emergent Herbaceous Wetlands
             

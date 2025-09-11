@@ -75,7 +75,7 @@ class OpenLandMapIntegrator:
             6: "Forest", 7: "Grassland", 8: "Grassland", 9: "Grassland",
             13: "Urban", 14: "Cropland", 15: "Desert", 16: "Desert", 17: "Rivers and Lakes",
             21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",
-            31: "Desert", 41: "Forest", 42: "Forest", 43: "Forest", 52: "Shrubland", 95: "Wetland"
+            31: "Desert", 41: "Temperate Forest", 42: "Forest", 43: "Forest", 52: "Shrubland", 95: "Wetland"
         }
     
     def get_comprehensive_environmental_data(self, lat: float, lon: float, include_environmental_indicators: bool = True) -> Optional[Dict]:
@@ -348,7 +348,7 @@ class OpenLandMapIntegrator:
                     23: "Urban",        # Developed, Medium Intensity  
                     24: "Urban",        # Developed High Intensity
                     31: "Desert",       # Barren Land
-                    41: "Forest",       # Deciduous Forest
+                    41: "Temperate Forest",  # Deciduous Forest
                     42: "Forest",       # Evergreen Forest
                     43: "Forest",       # Mixed Forest
                     51: "Forest",       # Dwarf Scrub
