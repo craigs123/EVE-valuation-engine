@@ -905,35 +905,23 @@ class OpenLandMapIntegrator:
             ecosystem_results = []
             successful_queries = 0
             
-            # PERFORMANCE OPTIMIZATION: Use batch processing instead of individual point queries
+            # FAST PROCESSING: Direct pixel extraction without complex STAC discovery
             try:
-                # Try batch STAC API processing first (much faster)
                 from .openlandmap_stac_api import openlandmap_stac
-                import asyncio
                 
-                # Use synchronous processing - no event loop needed
-                
-                try:
-                    # Use synchronous approach - no more event loops
-                    batch_results = []
-                    for lat, lon in sample_points:
-                        result = openlandmap_stac.get_ecosystem_type(lat, lon)
-                        if result:
-                            batch_results.append(result)
-                    
-                    # Convert batch results to expected format
-                    for i, result in enumerate(batch_results):
-                        if result and result.get('ecosystem_type'):
-                            # DEBUG: Log the actual result to understand what's happening
-                            print(f"🔍 DEBUG SYNC RESULT {i}: landcover_class={result.get('landcover_class', 'N/A')}, ecosystem_type={result.get('ecosystem_type', 'N/A')}")
-                            ecosystem_results.append({
-                                'ecosystem_type': result['ecosystem_type'],
-                                'source': result.get('data_source', 'Synchronous STAC API'),
-                                'landcover_class': result.get('landcover_class', 0),
-                                'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]}),
-                                'raw_stac_data': result.get('raw_stac_data', {})  # CRITICAL FIX: Include raw STAC data for UI display
-                            })
-                            successful_queries += 1
+                print(f"🚀 FAST MODE: Processing {len(sample_points)} points with direct extraction")
+                for i, (lat, lon) in enumerate(sample_points):
+                    result = openlandmap_stac.get_ecosystem_type(lat, lon)
+                    if result and result.get('ecosystem_type'):
+                        print(f"🔍 FAST RESULT {i}: {result.get('ecosystem_type', 'N/A')}")
+                        ecosystem_results.append({
+                            'ecosystem_type': result['ecosystem_type'],
+                            'source': result.get('data_source', 'Direct GeoTIFF'),
+                            'landcover_class': result.get('landcover_class', 0),
+                            'coordinates': result.get('coordinates', {'lat': lat, 'lon': lon}),
+                            'raw_stac_data': result.get('raw_stac_data', {})
+                        })
+                        successful_queries += 1
                     
                     # CRITICAL FIX: Extract environmental indicators for each sample point individually
                     # Environmental conditions (vegetation, elevation, soil) vary significantly across locations
@@ -955,12 +943,10 @@ class OpenLandMapIntegrator:
                         if progress_callback:
                             progress_callback(i + 1, len(sample_points))
                             
-                finally:
-                    # Clean up - no event loop cleanup needed for synchronous approach
-                    pass
+                print(f"🚀 FAST MODE: Completed {successful_queries}/{len(sample_points)} points")
                 
             except Exception as batch_error:
-                print(f"Batch processing failed: {batch_error}, falling back to individual point queries")
+                print(f"Fast processing failed: {batch_error}, falling back to individual point queries")
                 
                 # Fallback: Individual point processing (original method)
                 for i, (lat, lon) in enumerate(sample_points):

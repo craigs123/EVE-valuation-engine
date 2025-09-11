@@ -1320,27 +1320,17 @@ class OpenLandMapSTAC:
     
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
-        Main method to get ecosystem type using OpenLandMap STAC API
-        SIMPLIFIED: Uses synchronous approach to avoid async/event loop issues
+        FAST: Direct GeoTIFF extraction bypassing slow STAC metadata discovery
         """
         try:
-            # Use direct synchronous STAC collection query
-            stac_results = self._query_stac_collections_sync(lat, lon)
-            if stac_results:
-                return self.process_stac_data(lat, lon, stac_results)
+            # Skip complex STAC discovery - use direct landcover extraction immediately
+            landcover_result = self._extract_landcover_direct(lat, lon)
+            if landcover_result:
+                return landcover_result
             else:
-                # Fall back to direct landcover extraction
-                print(f"📋 STAC collections failed, trying direct landcover extraction for ({lat}, {lon})")
-                try:
-                    landcover_result = self._extract_landcover_direct(lat, lon)
-                    if landcover_result:
-                        return landcover_result
-                except Exception as fallback_error:
-                    print(f"⚠️ Direct landcover extraction also failed: {fallback_error}")
-                
                 return self._fallback_ecosystem_detection(lat, lon)
         except Exception as e:
-            print(f"STAC API error: {e}")
+            print(f"Direct extraction error: {e}")
             return self._fallback_ecosystem_detection(lat, lon)
     
     def _query_stac_collections_sync(self, lat: float, lon: float) -> Optional[List[Dict]]:
