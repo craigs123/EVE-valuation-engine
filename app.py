@@ -2521,14 +2521,16 @@ else:
 
 # Map section
 
-# Add layer selector
-col_layer1, col_layer2 = st.columns([1, 2])
-with col_layer1:
+# Add search and layer selector
+col_search, col_layer = st.columns([2, 1])
+with col_search:
+    location_search = st.text_input("🔍 Search for locations:", placeholder="e.g., Costa Rica, Amazon Rainforest, Great Barrier Reef", key="location_search_main")
+with col_layer:
     map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
-with col_layer2:
-    # Performance-optimized sampling display  
-    current_limit = st.session_state.get('max_sampling_limit', 9)
-    st.info(f"💡 **Quick start**: Use the rectangle tool in the map toolbar to draw your area, or select a test area from the drop-down above. Analysis uses {current_limit} sampling points.")
+
+# Performance-optimized sampling display with search info
+current_limit = st.session_state.get('max_sampling_limit', 9)
+st.info(f"💡 **Quick start**: Search for a location above, then use the rectangle tool to draw your area, or select a test area from the drop-down. Analysis uses {current_limit} sampling points.")
 
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
@@ -2694,10 +2696,38 @@ if st.session_state.get('use_test_area_zoom', False):
         ]
         m.fit_bounds(bounds, padding=[50, 50])  # Reduced padding for speed
 else:
-    # Default optimized map view
-    m = get_folium_map(40.0, -100.0, 4, map_layer)
+    # Handle location search and set map center
+    map_center = [40.0, -100.0]  # Default center (USA)
+    map_zoom = 4  # Default zoom
+    
+    if location_search:
+        try:
+            from geopy.geocoders import Nominatim
+            geolocator = Nominatim(user_agent="EcosystemValuationEngine")
+            location = geolocator.geocode(location_search)
+            if location:
+                map_center = [location.latitude, location.longitude]
+                map_zoom = 10  # Zoom closer to found location
+                st.success(f"📍 Found: {location.address}")
+            else:
+                st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
+        except Exception as e:
+            st.error("⚠️ Search service temporarily unavailable. Please try again.")
+    
+    # Default optimized map view with search location
+    m = get_folium_map(map_center[0], map_center[1], map_zoom, map_layer)
     draw_tools = create_drawing_tools()
     draw_tools.add_to(m)
+    
+    # Add search result marker if location found
+    if location_search and 'location' in locals() and location:
+        import folium
+        folium.Marker(
+            [location.latitude, location.longitude],
+            popup=f"📍 {location.address}",
+            tooltip=f"Searched: {location_search}",
+            icon=folium.Icon(color='red', icon='search')
+        ).add_to(m)
 
 # Ultra-optimized map display with performance settings - two-thirds width
 from streamlit_folium import st_folium
