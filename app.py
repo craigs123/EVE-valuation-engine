@@ -1363,7 +1363,7 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version: 2.7.6 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version: 2.8.0 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
 
