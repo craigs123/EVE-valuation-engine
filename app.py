@@ -1171,6 +1171,28 @@ def display_data_source_status(analysis_results: Dict = None):
                         else:
                             st.info(f"🌍 **Most Common Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
                         
+                        # Show resulting regional factor
+                        try:
+                            from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                            esvd_calc = PrecomputedESVDCoefficients()
+                            # Get a representative coordinate from the predominant country
+                            representative_coords = None
+                            for point_data in sampling_point_data.values():
+                                coords = point_data.get('coordinates', {})
+                                lat = coords.get('lat')
+                                lon = coords.get('lon')
+                                if lat is not None and lon is not None:
+                                    point_country = get_country_from_coordinates(lat, lon)
+                                    if point_country == predominant_country[0]:
+                                        representative_coords = (lat, lon)
+                                        break
+                            
+                            if representative_coords:
+                                regional_factor = esvd_calc.get_regional_factor(representative_coords)
+                                st.write(f"💰 **Regional Economic Factor**: {regional_factor:.2f}x (applied to all ecosystem valuations)")
+                        except Exception as e:
+                            st.write("💰 **Regional Economic Factor**: Unable to calculate")
+                        
                         # Show water exclusion info if applicable
                         water_points = len(sampling_point_data) - land_points_count
                         if water_points > 0:
