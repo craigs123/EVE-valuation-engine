@@ -50,7 +50,7 @@ def test_comprehensive_ecosystem_detection():
         print(f"Coordinates: ({location['lat']}, {location['lon']})")
         print(f"Expected: {location['expected']}")
         
-        result = integrator.get_land_cover_point(location['lat'], location['lon'])
+        result = integrator.get_land_cover_point(location['lat'], location['lon'], include_environmental_indicators=False)
         
         if result:
             detected = result['ecosystem_type']

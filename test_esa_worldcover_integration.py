@@ -51,7 +51,7 @@ def test_esa_worldcover_access():
         print(f"Coordinates: ({point['lat']}, {point['lon']})")
         print(f"Expected: {point['expected']}")
         
-        result = integrator.get_land_cover_point(point['lat'], point['lon'])
+        result = integrator.get_land_cover_point(point['lat'], point['lon'], include_environmental_indicators=False)
         
         if result:
             detected = result['ecosystem_type']

@@ -33,14 +33,22 @@ HTTP_ENV = {
     'CPL_VSIL_CURL_USE_HEAD': 'NO', 
     'CPL_VSIL_CURL_ALLOWED_EXTENSIONS': '.tif,.tiff',
     'VSI_CACHE': 'TRUE',
-    'VSI_CACHE_SIZE': '10000000',
+    'VSI_CACHE_SIZE': '50000000',  # Increased cache for large COGs
     'SSL_CERT_FILE': certifi.where(),
-    # Add timeout and retry configuration for reliability
-    'GDAL_HTTP_TIMEOUT': '30',
-    'GDAL_HTTP_CONNECTTIMEOUT': '10', 
-    'GDAL_HTTP_MAX_RETRY': '3',
-    'GDAL_HTTP_RETRY_DELAY': '1',
-    'CPL_VSIL_CURL_RETRY_DELAY': '1'
+    # Enhanced timeout and retry configuration for reliability
+    'GDAL_HTTP_TIMEOUT': '60',  # Increased timeout for large files
+    'GDAL_HTTP_CONNECTTIMEOUT': '30', 
+    'GDAL_HTTP_MAX_RETRY': '5',  # More retries
+    'GDAL_HTTP_RETRY_DELAY': '2',
+    'CPL_VSIL_CURL_RETRY_DELAY': '2',
+    # Additional SSL and HTTP configurations
+    'CURL_CA_BUNDLE': certifi.where(),
+    'GDAL_HTTP_UNSAFESSL': 'YES',  # Allow self-signed certificates
+    'GDAL_HTTP_VERSION': '2',
+    'CPL_VSIL_CURL_VERBOSE': 'NO',
+    'GDAL_NUM_THREADS': 'ALL_CPUS',
+    'VSI_CACHE_SIZE': '50000000',
+    'GDAL_CACHEMAX': 512  # Limit GDAL memory cache to 512MB
 }
 
 class OpenLandMapSTAC:
@@ -56,8 +64,8 @@ class OpenLandMapSTAC:
         self._session = None
         self._session_connector = None
         
-        # Reduced memory footprint for pixel extraction
-        self.max_cache_size_mb = 50  # Much smaller cache
+        # Optimized memory footprint for pixel extraction
+        self.max_cache_size_mb = 100  # Balanced cache size for performance
         
         # Enhanced metadata caching (as per technical guidance)
         self._collection_cache = {}  # Cache collection metadata  
@@ -70,7 +78,7 @@ class OpenLandMapSTAC:
         
         # Performance optimization: LRU Dataset Cache with STRONG references
         # CRITICAL FIX: Use strong references instead of weak ones for actual caching
-        self._dataset_cache_size = max_dataset_cache_size
+        self._dataset_cache_size = min(max_dataset_cache_size, 10)  # Limit cache size to prevent memory issues
         self._dataset_cache = OrderedDict()  # Manual LRU implementation: url -> dataset
         self._cache_metadata = OrderedDict()  # url -> {opened_at, access_count, last_access}
         
@@ -286,10 +294,16 @@ class OpenLandMapSTAC:
             print(f"📂 CACHE MISS: {asset_url[:50]}... (misses: {self._cache_stats['misses']})")
             
             try:
-                # Open dataset with GDAL environment
+                # Open dataset with enhanced GDAL environment
                 with rasterio.Env(**HTTP_ENV):
-                    dataset = rasterio.open(asset_url)
-                    self._cache_stats['opens'] += 1
+                    try:
+                        dataset = rasterio.open(asset_url)
+                        self._cache_stats['opens'] += 1
+                        print(f"✅ Successfully opened COG: {asset_url[:50]}... [Format: {dataset.driver}]")
+                    except Exception as open_error:
+                        print(f"❌ COG open failed: {open_error}")
+                        print(f"   URL: {asset_url}")
+                        return None
                     
                     # Check if cache is full and needs eviction
                     if len(self._dataset_cache) >= self._dataset_cache_size:
@@ -1440,13 +1454,29 @@ class OpenLandMapSTAC:
     
     def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
         """
-        Direct land cover extraction using cached ESA data
+        Direct land cover extraction using multiple fallback ESA data sources
         """
         try:
-            # Use the cached land cover URL if available
-            esa_url = "https://s3.openlandmap.org/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_espg.4326_v20230608.tif"
+            # Try multiple land cover data sources as fallbacks
+            landcover_urls = [
+                # Primary ESA land cover URL (updated)
+                "https://s3.eu-central-1.wasabisys.com/stac/openlandmap/land.cover_esacci.lc.l4/land.cover_esacci.lc.l4_20200101_20201231/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif",
+                # Backup URLs
+                "https://s3.openlandmap.org/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_espg.4326_v20230608.tif",
+                "https://cloud.vito.be/s3/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif"
+            ]
             
-            pixel_value = self._extract_single_pixel_safe(lat, lon, esa_url)
+            # Try each URL until one works
+            for esa_url in landcover_urls:
+                print(f"🔍 Trying land cover URL: {esa_url[:80]}...")
+            
+                pixel_value = self._extract_single_pixel_safe(lat, lon, esa_url)
+                if pixel_value is not None:
+                    print(f"✅ Successfully extracted land cover pixel value: {pixel_value}")
+                    break
+                else:
+                    print(f"⚠️ Failed to extract from {esa_url[:50]}..., trying next URL")
+            
             if pixel_value is not None:
                 # Process the ESA code through existing mapping
                 try:
@@ -1487,8 +1517,7 @@ class OpenLandMapSTAC:
     
     def _extract_single_pixel_safe(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
         """
-        Safe single pixel extraction following proven OpenLandMap architecture
-        Based on: Collection Discovery → Item Selection → Asset Resolution → COG Access → Value Extraction
+        Safe single pixel extraction with proper GDAL environment configuration
         """
         dataset = None
         try:
@@ -1496,26 +1525,16 @@ class OpenLandMapSTAC:
             import os
             import numpy as np
             
-            # Configure GDAL for better memory management
-            gdal_config = {
-                'GDAL_CACHEMAX': '64',  # Smaller cache to prevent memory issues
-                'VSI_CACHE_SIZE': '5000000',  # 5MB cache per file
-                'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
-                'CPL_VSIL_CURL_USE_HEAD': 'NO',
-                'GDAL_HTTP_TIMEOUT': '15',
-                'SSL_CERT_FILE': HTTP_ENV['SSL_CERT_FILE']
-            }
-            
-            for key, value in gdal_config.items():
-                os.environ[key] = value
-            
             # Coordinate bounds checking (as per technical guidance)
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):
                 print(f"⚠️ Out-of-bounds coordinates: ({lat}, {lon})")
                 return None
             
-            # Open COG using proven pattern
-            dataset = rasterio.open(asset_url)
+            # Use cached dataset or open new one with proper GDAL environment
+            dataset = self._get_cached_dataset(asset_url)
+            if dataset is None:
+                print(f"❌ Failed to open dataset: {asset_url[:50]}...")
+                return None
             
             # Transform lat/lon to pixel coordinates using image bounds
             try:

@@ -774,9 +774,14 @@ class EcosystemServicesCalculator:
             return {'error': f'Legacy calculation also failed: {str(e)}'}
 
 # Main ecosystem detection function that should be imported by app.py
-def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10) -> Dict[str, Any]:
+def detect_ecosystem_type_enhanced(coordinates: List, num_samples: int = 10, include_environmental_indicators: bool = True) -> Dict[str, Any]:
     """
     Enhanced ecosystem detection using OpenLandMap STAC API - replaces USGS integration
+    
+    Args:
+        coordinates: List of coordinate pairs [lon, lat]
+        num_samples: Number of sample points to analyze
+        include_environmental_indicators: If False, only get land cover data (much faster)
     """
     try:
         if not coordinates or len(coordinates) < 3:

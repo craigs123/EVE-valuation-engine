@@ -61,9 +61,14 @@ class OpenLandMapIntegrator:
             17: "Rivers and Lakes"  # Water Bodies
         }
     
-    def get_comprehensive_environmental_data(self, lat: float, lon: float) -> Optional[Dict]:
+    def get_comprehensive_environmental_data(self, lat: float, lon: float, include_environmental_indicators: bool = True) -> Optional[Dict]:
         """
         Get comprehensive environmental data including all indicators from OpenLandMap STAC collections
+        
+        Args:
+            lat: Latitude coordinate
+            lon: Longitude coordinate
+            include_environmental_indicators: If False, only get land cover data (much faster)
         """
         try:
             from .openlandmap_stac_api import openlandmap_stac
@@ -79,51 +84,54 @@ class OpenLandMapIntegrator:
                 environmental_data.update(stac_result)
                 print(f"🔍 ENVIRONMENTAL DEBUG: Got land cover result: {stac_result.get('ecosystem_type')}")
             
-            # Get comprehensive environmental indicators from all collections
-            print(f"🔍 ENVIRONMENTAL DEBUG: Processing {len(openlandmap_stac.collections)} collections")
-            for collection in openlandmap_stac.collections:
-                collection_id = collection['id']
-                collection_name = collection['name']
-                collection_category = collection['category']
-                collection_unit = collection['unit']
-                
-                print(f"🔍 ENVIRONMENTAL DEBUG: Processing collection {collection_id} ({collection_name})")
-                
-                # Skip land cover as we already have it
-                if collection_category == 'landcover':
-                    print(f"🔍 ENVIRONMENTAL DEBUG: Skipping land cover collection {collection_id}")
-                    continue
+            # Get comprehensive environmental indicators from all collections (conditionally)
+            if include_environmental_indicators:
+                print(f"🔍 ENVIRONMENTAL DEBUG: Comprehensive mode - Processing {len(openlandmap_stac.collections)} collections")
+                for collection in openlandmap_stac.collections:
+                    collection_id = collection['id']
+                    collection_name = collection['name']
+                    collection_category = collection['category']
+                    collection_unit = collection['unit']
                     
-                try:
-                    # Get asset URL for this collection
-                    print(f"🔍 ENVIRONMENTAL DEBUG: Getting asset URL for {collection_id}")
-                    asset_url = openlandmap_stac.get_stac_asset_url(collection_id)
-                    if asset_url:
-                        print(f"🔍 ENVIRONMENTAL DEBUG: Found asset URL for {collection_id}: {asset_url[:100]}...")
-                        # Extract pixel value from this collection
-                        pixel_value = openlandmap_stac.extract_pixel_value(asset_url, lat, lon)
-                        if pixel_value is not None:
-                            # Store the environmental indicator data
-                            if 'stac_data' not in environmental_data:
-                                environmental_data['stac_data'] = {}
-                            if collection_category not in environmental_data['stac_data']:
-                                environmental_data['stac_data'][collection_category] = []
-                            
-                            environmental_data['stac_data'][collection_category].append({
-                                'name': collection_name,
-                                'value': pixel_value,
-                                'unit': collection_unit,
-                                'collection_id': collection_id,
-                                'asset_url': asset_url
-                            })
-                            
-                            print(f"🌍 EXTRACTED {collection_name}: {pixel_value} {collection_unit} from {collection_id}")
+                    print(f"🔍 ENVIRONMENTAL DEBUG: Processing collection {collection_id} ({collection_name})")
+                    
+                    # Skip land cover as we already have it
+                    if collection_category == 'landcover':
+                        print(f"🔍 ENVIRONMENTAL DEBUG: Skipping land cover collection {collection_id}")
+                        continue
+                        
+                    try:
+                        # Get asset URL for this collection
+                        print(f"🔍 ENVIRONMENTAL DEBUG: Getting asset URL for {collection_id}")
+                        asset_url = openlandmap_stac.get_stac_asset_url(collection_id)
+                        if asset_url:
+                            print(f"🔍 ENVIRONMENTAL DEBUG: Found asset URL for {collection_id}: {asset_url[:100]}...")
+                            # Extract pixel value from this collection
+                            pixel_value = openlandmap_stac.extract_pixel_value(asset_url, lat, lon)
+                            if pixel_value is not None:
+                                # Store the environmental indicator data
+                                if 'stac_data' not in environmental_data:
+                                    environmental_data['stac_data'] = {}
+                                if collection_category not in environmental_data['stac_data']:
+                                    environmental_data['stac_data'][collection_category] = []
+                                
+                                environmental_data['stac_data'][collection_category].append({
+                                    'name': collection_name,
+                                    'value': pixel_value,
+                                    'unit': collection_unit,
+                                    'collection_id': collection_id,
+                                    'asset_url': asset_url
+                                })
+                                
+                                print(f"🌍 EXTRACTED {collection_name}: {pixel_value} {collection_unit} from {collection_id}")
+                            else:
+                                print(f"⚠️ No pixel value extracted for {collection_name} at ({lat:.4f}, {lon:.4f})")
                         else:
-                            print(f"⚠️ No pixel value extracted for {collection_name} at ({lat:.4f}, {lon:.4f})")
-                    else:
-                        print(f"⚠️ No asset URL found for collection {collection_id}")
-                except Exception as e:
-                    print(f"❌ Failed to extract data from {collection_name}: {e}")
+                            print(f"⚠️ No asset URL found for collection {collection_id}")
+                    except Exception as e:
+                        print(f"❌ Failed to extract data from {collection_name}: {e}")
+            else:
+                print(f"🚀 ENVIRONMENTAL DEBUG: Fast mode - Only processing land cover, skipping {len(openlandmap_stac.collections) - 1} environmental collections")
             
             print(f"🔍 ENVIRONMENTAL DEBUG: Final environmental_data keys: {list(environmental_data.keys())}")
             if 'stac_data' in environmental_data:
@@ -137,9 +145,14 @@ class OpenLandMapIntegrator:
             traceback.print_exc()
             return None
     
-    def get_land_cover_point(self, lat: float, lon: float) -> Optional[Dict]:
+    def get_land_cover_point(self, lat: float, lon: float, include_environmental_indicators: bool = True) -> Optional[Dict]:
         """
         Get land cover information for a specific point using OpenLandMap STAC API as primary source
+        
+        Args:
+            lat: Latitude coordinate
+            lon: Longitude coordinate
+            include_environmental_indicators: If False, only get land cover data (much faster)
         """
         try:
             # Priority 1: OpenLandMap STAC API (primary global satellite data source)
@@ -148,8 +161,8 @@ class OpenLandMapIntegrator:
                 from .openlandmap_stac_api import openlandmap_stac
                 stac_result = openlandmap_stac.get_ecosystem_type(lat, lon)
                 if stac_result and stac_result.get('ecosystem_type'):
-                    # Now get comprehensive environmental data
-                    comprehensive_data = self.get_comprehensive_environmental_data(lat, lon)
+                    # Now get comprehensive environmental data using the provided parameter
+                    comprehensive_data = self.get_comprehensive_environmental_data(lat, lon, include_environmental_indicators=include_environmental_indicators)
                     
                     # Merge the data, prioritizing land cover from working system
                     final_data = {
@@ -883,14 +896,16 @@ class OpenLandMapIntegrator:
         except Exception as e:
             raise RuntimeError(f"Failed to parse landcover response: {str(e)}")
     
-    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None) -> Dict:
+    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True) -> Dict:
         """
         Analyze ecosystem type for a polygon area using multiple sample points
         
         Args:
             coordinates: List of coordinate pairs defining the polygon
             sampling_frequency: Sampling density multiplier
+            max_sampling_limit: Maximum number of sample points for analysis
             progress_callback: Optional callback function for progress updates (current_point, total_points)
+            include_environmental_indicators: If False, only collect land cover data (much faster)
         """
         try:
             if not coordinates or len(coordinates) < 3:
@@ -923,21 +938,30 @@ class OpenLandMapIntegrator:
                         })
                         successful_queries += 1
                     
-                    # CRITICAL FIX: Extract environmental indicators for each sample point individually
-                    # Environmental conditions (vegetation, elevation, soil) vary significantly across locations
+                    # CRITICAL FIX: Only extract environmental indicators when explicitly requested (Fast Mode toggle)
                     if successful_queries > 0 and sample_points:
-                        print("🔍 ENVIRONMENTAL: Extracting environmental indicators for each sample point individually")
-                        for i, ecosystem_result in enumerate(ecosystem_results):
-                            if i < len(sample_points):
-                                lat, lon = sample_points[i]
-                                print(f"🔍 ENVIRONMENTAL: Processing point {i+1}/{len(ecosystem_results)} at ({lat:.4f}, {lon:.4f})")
-                                environmental_data = self.get_comprehensive_environmental_data(lat, lon)
-                                if environmental_data and environmental_data.get('stac_data'):
-                                    ecosystem_result['stac_data'] = environmental_data['stac_data']
-                                    print(f"🔍 ENVIRONMENTAL: Point {i+1} - extracted {len(environmental_data['stac_data'])} environmental indicators")
-                                else:
-                                    print(f"🔍 ENVIRONMENTAL: Point {i+1} - no environmental data available")
-                        print(f"🔍 ENVIRONMENTAL: Completed individual extraction for {len(ecosystem_results)} points")
+                        if include_environmental_indicators:
+                            print("🔍 ENVIRONMENTAL: Extracting environmental indicators for each sample point individually")
+                            for i, ecosystem_result in enumerate(ecosystem_results):
+                                if i < len(sample_points):
+                                    lat, lon = sample_points[i]
+                                    print(f"🔍 ENVIRONMENTAL: Processing point {i+1}/{len(ecosystem_results)} at ({lat:.4f}, {lon:.4f})")
+                                    environmental_data = self.get_comprehensive_environmental_data(lat, lon, include_environmental_indicators=True)
+                                    if environmental_data and environmental_data.get('stac_data'):
+                                        ecosystem_result['stac_data'] = environmental_data['stac_data']
+                                        print(f"🔍 ENVIRONMENTAL: Point {i+1} - extracted {len(environmental_data['stac_data'])} environmental indicators")
+                                    else:
+                                        print(f"🔍 ENVIRONMENTAL: Point {i+1} - no environmental data available")
+                            print(f"🔍 ENVIRONMENTAL: Completed individual extraction for {len(ecosystem_results)} points")
+                        else:
+                            print("🚀 ENVIRONMENTAL: Fast mode - Skipping environmental indicators collection to improve performance")
+                            # Add basic stac_data structure without environmental indicators
+                            for ecosystem_result in ecosystem_results:
+                                ecosystem_result['stac_data'] = {
+                                    'landcover': [{'name': 'Land Cover', 'value': ecosystem_result.get('landcover_class', 0), 'unit': 'class'}],
+                                    'data_source': 'OpenLandMap STAC API (Fast Mode)',
+                                    'query_time': time.time()
+                                }
                         
                         # Update progress if callback provided
                         if progress_callback:
@@ -954,7 +978,7 @@ class OpenLandMapIntegrator:
                     if progress_callback:
                         progress_callback(i + 1, len(sample_points))
                     
-                    result = self.get_land_cover_point(lat, lon)
+                    result = self.get_land_cover_point(lat, lon, include_environmental_indicators=include_environmental_indicators)
                     if result:
                         ecosystem_results.append(result)
                         successful_queries += 1
@@ -1075,15 +1099,16 @@ class OpenLandMapIntegrator:
         return max(4, actual_points)  # Ensure minimum of 4 points
     
 
-def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None) -> Dict:
+def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
     
     Args:
         coordinates: List of coordinate pairs defining the polygon
-        sampling_frequency: Sampling density multiplier
-        max_sampling_limit: Maximum number of sample points allowed
-        progress_callback: Optional callback function for progress updates (current_point, total_points)
+        sampling_frequency: Sampling density multiplier  
+        max_sampling_limit: Maximum number of sample points for analysis
+        progress_callback: Optional callback function for progress updates
+        include_environmental_indicators: If False, only collect land cover data (much faster)
     """
     integrator = OpenLandMapIntegrator()
-    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency, max_sampling_limit, progress_callback)
+    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency, max_sampling_limit, progress_callback, include_environmental_indicators)

@@ -18,7 +18,7 @@ def test_live_esa_worldcover():
     
     print(f"Testing point: Los Angeles ({test_lat}, {test_lon})")
     
-    result = integrator.get_land_cover_point(test_lat, test_lon)
+    result = integrator.get_land_cover_point(test_lat, test_lon, include_environmental_indicators=False)
     
     if result:
         print(f"Result: {result}")

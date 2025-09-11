@@ -30,7 +30,7 @@ def test_urban_areas():
         print(f"Coordinates: ({location['lat']}, {location['lon']})")
         
         # Test single point detection
-        result = integrator.get_land_cover_point(location['lat'], location['lon'])
+        result = integrator.get_land_cover_point(location['lat'], location['lon'], include_environmental_indicators=False)
         
         if result:
             print(f"Ecosystem Type: {result['ecosystem_type']}")

@@ -77,6 +77,9 @@ if 'income_elasticity' not in st.session_state:
 if 'time_preset' not in st.session_state:
     st.session_state.time_preset = "Current Year (2024)"
 
+if 'include_environmental_indicators' not in st.session_state:
+    st.session_state.include_environmental_indicators = False
+
 # Enhanced CSS for better UX and modern design
 st.markdown("""
     <style>
@@ -1382,6 +1385,22 @@ with st.sidebar:
             help="Auto-detection uses geographic analysis for ecosystem classification"
         )
         st.session_state.ecosystem_override = ecosystem_override
+    
+    # Performance Settings (expandable)
+    with st.expander("⚡ **Performance & Data Collection**"):
+        # Environmental indicators toggle
+        include_environmental_indicators = st.checkbox(
+            "Include Environmental Indicators",
+            value=st.session_state.get('include_environmental_indicators', False),
+            help="When enabled: Collects vegetation indices, soil carbon, elevation, and other environmental data (slower). When disabled: Only collects land cover for ecosystem detection (much faster)."
+        )
+        st.session_state.include_environmental_indicators = include_environmental_indicators
+        
+        # Performance information
+        if include_environmental_indicators:
+            st.info("🔬 **Comprehensive Mode**: Collecting 6 environmental datasets including vegetation indices, soil data, and elevation. This provides detailed environmental context but takes longer.")
+        else:
+            st.success("🚀 **Fast Mode**: Collecting only essential land cover data for ecosystem detection. Much faster processing with lower memory usage.")
     
     # Sampling Settings (expandable)
     with st.expander("🎯 **Sampling Configuration**"):
@@ -3306,7 +3325,8 @@ if analyze_button and st.session_state.selected_area:
                         st.session_state.area_coordinates, 
                         st.session_state.sampling_frequency,
                         max_sampling_limit=max_limit,
-                        progress_callback=update_progress
+                        progress_callback=update_progress,
+                        include_environmental_indicators=st.session_state.get('include_environmental_indicators', False)
                     )
                     
                     # Always do fresh sampling for each analysis
