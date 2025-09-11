@@ -2997,7 +2997,7 @@ if st.session_state.get('analysis_results'):
                 area_ha = results.get('area_ha', 0)
             ecosystem_type = results.get('ecosystem_type', 'Unknown')
             total_value = results.get('total_value', 0)
-            regional_factor = results.get('regional_factor', 1.0)
+            regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', 1.0))
             quality_factor = results.get('quality_factor', 1.0)
             
             st.markdown(f"""
@@ -3694,7 +3694,7 @@ if analyze_button and st.session_state.selected_area:
                 'esvd_results': esvd_results,
                 'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
                 'data_source': 'ESVD/TEEB Database',
-                'regional_factor': esvd_results.get('metadata', {}).get('regional_adjustment', 1.0),
+                'regional_factor': esvd_results.get('regional_adjustment_factor', esvd_results.get('metadata', {}).get('regional_adjustment', 1.0)),
                 'quality_factor': st.session_state.get('quality_factor', 1.0),  # Default to 100% intactness
                 'intactness_percentage': st.session_state.get('intactness_percentage', 100)
             }
@@ -4098,7 +4098,7 @@ if st.session_state.analysis_results:
                 services annually, including clean air, water filtration, carbon storage, recreation, and biodiversity support.
                 
                 **Regional Context**:
-                This value has been adjusted by a factor of {results.get('regional_factor', 1.0):.2f} to account for:
+                This value has been adjusted by a factor of {results.get('regional_adjustment_factor', results.get('regional_factor', 1.0)):.2f} to account for:
                 - Local income levels and purchasing power
                 - Regional cost of living differences  
                 - Data availability and quality for this geographic area
@@ -4163,7 +4163,7 @@ if st.session_state.analysis_results:
                 and combines them using area-weighted proportions based on sample point distribution.
                 """)
         # Show data source and methodology
-        st.info(f"📊 **Data Source**: Pre-computed ESVD Coefficients (Static) | **Regional Factor**: {results.get('regional_factor', 1.0):.2f}")
+        st.info(f"📊 **Data Source**: Pre-computed ESVD Coefficients (Static) | **Regional Factor**: {results.get('regional_adjustment_factor', results.get('regional_factor', 1.0)):.2f}")
         
         with st.expander("💡 Data sources and methodology"):
             st.markdown(f"""
@@ -4181,7 +4181,7 @@ if st.session_state.analysis_results:
             - Focus on policy-relevant ecosystem service values
             - All values standardized and pre-calculated for consistency
             
-            **Regional Adjustment Factor: {results.get('regional_factor', 1.0):.2f}**:
+            **Regional Adjustment Factor: {results.get('regional_adjustment_factor', results.get('regional_factor', 1.0)):.2f}**:
             This factor adjusts base ESVD values for local conditions:
             - Income adjustment: Regional purchasing power differences
             - Cost of living: Local economic conditions and price levels
