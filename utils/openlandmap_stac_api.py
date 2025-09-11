@@ -1755,5 +1755,23 @@ class OpenLandMapSTAC:
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
 
-# Global instance
-openlandmap_stac = OpenLandMapSTAC()
+# Use Streamlit cache_resource to persist instance across reruns for better performance
+def get_cached_openlandmap_stac():
+    """
+    Get persistent OpenLandMapSTAC instance using Streamlit cache_resource.
+    This ensures the HTTP session, thread pool, and dataset cache survive across reruns.
+    """
+    try:
+        import streamlit as st
+        
+        @st.cache_resource
+        def _create_openlandmap_stac():
+            return OpenLandMapSTAC()
+        
+        return _create_openlandmap_stac()
+    except ImportError:
+        # Fallback for non-Streamlit environments
+        return OpenLandMapSTAC()
+
+# Global instance with caching
+openlandmap_stac = get_cached_openlandmap_stac()
