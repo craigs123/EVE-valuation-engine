@@ -2933,9 +2933,6 @@ if st.session_state.get('analysis_results'):
         value_per_ha = results.get('value_per_ha', 0)
         st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Value per Hectare:</strong> ${value_per_ha:,.0f} /ha/year</p>', unsafe_allow_html=True)
         
-        # Display regional adjustment factor
-        regional_factor = results.get('regional_adjustment_factor', results.get('regional_adjustment', 1.0))
-        st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Regional Factor:</strong> {regional_factor:.2f}x</p>', unsafe_allow_html=True)
         
         # Enhanced ecosystem type display with forest classification
         if results.get('forest_classification'):
@@ -4071,7 +4068,7 @@ if st.session_state.analysis_results:
                 1. **Service Categories**: Sum of Provisioning + Regulating + Cultural + Supporting services
                 2. **Base Values**: ESVD coefficients ($/ha/year) for each service type
                 3. **Area Scaling**: Multiply by {results.get('area_ha', results.get('area_hectares', 0)):,.0f} hectares (land area only)
-                4. **Regional Adjustment**: Apply factor of {results.get('regional_factor', 1.0):.2f} for local conditions
+                4. **Regional Adjustment**: Applied for local economic conditions
                 
                 **Water Area Exclusion**:
                 {f"• Water areas excluded: {results.get('water_area_hectares', 0):,.0f} hectares" if results.get('water_area_hectares', 0) > 0 else "• No significant water areas detected"}
@@ -4108,7 +4105,7 @@ if st.session_state.analysis_results:
                 services annually, including clean air, water filtration, carbon storage, recreation, and biodiversity support.
                 
                 **Regional Context**:
-                This value has been adjusted by a factor of {results.get('regional_adjustment_factor', results.get('regional_factor', 1.0)):.2f} to account for:
+                This value has been adjusted to account for:
                 - Local income levels and purchasing power
                 - Regional cost of living differences  
                 - Data availability and quality for this geographic area
@@ -4173,7 +4170,7 @@ if st.session_state.analysis_results:
                 and combines them using area-weighted proportions based on sample point distribution.
                 """)
         # Show data source and methodology
-        st.info(f"📊 **Data Source**: Pre-computed ESVD Coefficients (Static) | **Regional Factor**: {results.get('regional_adjustment_factor', results.get('regional_factor', 1.0)):.2f}")
+        st.info(f"📊 **Data Source**: Pre-computed ESVD Coefficients (Static) | **Regional Adjustment**: Applied")
         
         with st.expander("💡 Data sources and methodology"):
             st.markdown(f"""
@@ -4191,8 +4188,8 @@ if st.session_state.analysis_results:
             - Focus on policy-relevant ecosystem service values
             - All values standardized and pre-calculated for consistency
             
-            **Regional Adjustment Factor: {results.get('regional_adjustment_factor', results.get('regional_factor', 1.0)):.2f}**:
-            This factor adjusts base ESVD values for local conditions:
+            **Regional Adjustment**:
+            Base ESVD values are adjusted for local conditions:
             - Income adjustment: Regional purchasing power differences
             - Cost of living: Local economic conditions and price levels
             - Data quality: Availability and reliability of regional studies
@@ -4394,9 +4391,8 @@ if st.session_state.analysis_results:
                     st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Ecosystem Services:</strong> ${total_val:,.0f}/year</p>', unsafe_allow_html=True)
                     st.caption(f"${per_ha:.0f} per hectare annually")
                 with col2:
-                    regional_factor = esvd_data.get('regional_adjustment_factor', 1.0)
-                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Regional Adjustment:</strong> {regional_factor:.2f}x</p>', unsafe_allow_html=True)
-                    st.caption("Economic adjustment factor applied")
+                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Regional Adjustment:</strong> Applied</p>', unsafe_allow_html=True)
+                    st.caption("Economic adjustment applied for local conditions")
                 
                 st.info("💡 Service category breakdown not available in current data structure. Total value shown above represents the combined economic value of all ecosystem services.")
             else:

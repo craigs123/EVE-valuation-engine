@@ -955,27 +955,13 @@ class PrecomputedESVDCoefficients:
         country_gdp = self.get_country_gdp(coordinates)
         global_gdp = self.global_gdp_average
         
-        # DEBUG: Log the calculation details
-        if coordinates:
-            lat, lon = coordinates[0], coordinates[1]
-            country_code = get_country_from_coordinates(lat, lon)
-            print(f"🌍 REGIONAL FACTOR DEBUG: coordinates=({lat:.4f}, {lon:.4f})")
-            print(f"🌍 REGIONAL FACTOR DEBUG: country_code='{country_code}'")
-            print(f"🌍 REGIONAL FACTOR DEBUG: country_gdp=${country_gdp:,.2f}")
-            print(f"🌍 REGIONAL FACTOR DEBUG: global_gdp=${global_gdp:,.2f}")
-        
         # Calculate adjustment using income elasticity method
         # Formula: 1 + (elasticity × (country_GDP/global_GDP - 1))
         gdp_ratio = country_gdp / global_gdp
         adjustment_factor = 1 + (self.income_elasticity * (gdp_ratio - 1))
         
         # Apply reasonable bounds to prevent extreme values
-        final_factor = max(0.4, min(2.5, adjustment_factor))
-        
-        print(f"🌍 REGIONAL FACTOR DEBUG: gdp_ratio={gdp_ratio:.4f}, elasticity={self.income_elasticity}")
-        print(f"🌍 REGIONAL FACTOR DEBUG: raw_factor={adjustment_factor:.4f}, final_factor={final_factor:.4f}")
-        
-        return final_factor
+        return max(0.4, min(2.5, adjustment_factor))
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple | None = None) -> dict:
