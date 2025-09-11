@@ -358,15 +358,14 @@ class OpenLandMapSTAC:
         return self._session
     
     async def close_session(self):
-        """Close the persistent HTTP session and cleanup resources"""
+        """Close the persistent HTTP session while preserving caches for performance"""
         if self._session and not self._session.closed:
             await self._session.close()
         if self._session_connector:
             await self._session_connector.close()
         
-        # Clean up dataset cache and thread pool
-        self._clear_dataset_cache()
-        self.shutdown()
+        # NOTE: Dataset cache and thread pool preserved for performance across reruns
+        # Only call explicit cleanup when absolutely necessary
     
     def shutdown(self):
         """Explicit shutdown method that works without async event loop"""
@@ -415,11 +414,25 @@ class OpenLandMapSTAC:
               f"Closes: {stats['closes']}, Evictions: {stats['evictions']}")
     
     def __del__(self):
-        """Cleanup session and resources on destruction - FIXED VERSION"""
+        """Cleanup session and resources on destruction - CACHE PRESERVATION VERSION"""
         try:
-            # Use explicit shutdown that works without async event loop
-            if hasattr(self, 'shutdown'):
-                self.shutdown()
+            # Only close session, preserve caches for performance
+            if hasattr(self, '_session') and self._session and not self._session.closed:
+                try:
+                    # Try to close session gracefully without clearing caches
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if not loop.is_running():
+                            loop.run_until_complete(self._session.close())
+                            if self._session_connector:
+                                loop.run_until_complete(self._session_connector.close())
+                    except:
+                        # Session will be cleaned up by GC
+                        pass
+                except Exception as e:
+                    pass  # Silent cleanup
+            # NOTE: Caches and thread pool preserved for performance across reruns
         except Exception as e:
             # Don't raise exceptions in __del__
             try:
