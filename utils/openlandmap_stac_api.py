@@ -180,6 +180,39 @@ class OpenLandMapSTAC:
             
             # Snow and Ice Classes
             220: "Polar",           # Permanent snow and ice
+            
+            # Additional NLCD/CORINE codes that may be encountered
+            21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",  # Developed areas
+            31: "Desert",           # Barren Land
+            41: "Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
+            52: "Shrubland",        # NLCD Shrub/Scrub
+            95: "Wetland",          # NLCD Emergent Herbaceous Wetlands
+            
+            # Extended forest coverage (ESA codes 51-99)
+            51: "Forest", 53: "Forest", 54: "Forest", 55: "Forest", 
+            63: "Forest", 64: "Forest", 65: "Forest", 66: "Forest",
+            73: "Forest", 74: "Forest", 75: "Forest", 76: "Forest",
+            83: "Forest", 84: "Forest", 85: "Forest", 86: "Forest",
+            91: "Forest", 92: "Forest", 93: "Forest", 94: "Forest",
+            96: "Forest", 97: "Forest", 98: "Forest", 99: "Forest",
+            
+            # Extended cropland coverage (ESA codes 13-29)
+            13: "Cropland", 14: "Cropland", 15: "Cropland", 16: "Cropland",
+            17: "Cropland", 18: "Cropland", 19: "Cropland", 
+            21: "Cropland", 22: "Cropland", 23: "Cropland", 24: "Cropland",
+            25: "Cropland", 26: "Cropland", 27: "Cropland", 28: "Cropland", 29: "Cropland",
+            
+            # Extended shrubland coverage (ESA codes 111-129)
+            111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",
+            115: "Shrubland", 116: "Shrubland", 117: "Shrubland", 118: "Shrubland", 119: "Shrubland",
+            123: "Shrubland", 124: "Shrubland", 125: "Shrubland", 126: "Shrubland",
+            127: "Shrubland", 128: "Shrubland", 129: "Shrubland",
+            
+            # Extended grassland coverage (ESA codes 131-149)
+            131: "Grassland", 132: "Grassland", 133: "Grassland", 134: "Grassland",
+            135: "Grassland", 136: "Grassland", 137: "Grassland", 138: "Grassland", 139: "Grassland",
+            141: "Grassland", 142: "Grassland", 143: "Grassland", 144: "Grassland",
+            145: "Grassland", 146: "Grassland", 147: "Grassland", 148: "Grassland", 149: "Grassland"
         }
         
         # Geographic fallbacks removed - only use genuine STAC API data
