@@ -13,8 +13,7 @@ import math
 from .precomputed_esvd_coefficients import get_precomputed_coefficients
 from .openlandmap_stac_api import openlandmap_stac
 
-# Clear STAC cache to ensure updated date prioritization logic takes effect
-openlandmap_stac.clear_cache()
+# Cache preserved across reruns for better performance - no longer clearing on import
 
 def _get_ecosystem_intactness_multiplier(ecosystem_type: str, ecosystem_intactness: Dict) -> float:
     """
