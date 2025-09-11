@@ -1426,8 +1426,24 @@ class OpenLandMapSTAC:
             pixel_value = self._extract_single_pixel_safe(lat, lon, esa_url)
             if pixel_value is not None:
                 # Process the ESA code through existing mapping
-                from .esa_landcover_codes import get_ecosystem_type_from_esa
-                ecosystem_info = get_ecosystem_type_from_esa(int(pixel_value))
+                try:
+                    from .esa_landcover_codes import get_ecosystem_type_from_esa
+                    ecosystem_info = get_ecosystem_type_from_esa(int(pixel_value))
+                except ImportError:
+                    # Fallback: basic ecosystem detection
+                    esa_code = int(pixel_value)
+                    if esa_code == 210:
+                        ecosystem_type = "Rivers and Lakes"
+                    elif esa_code in [70, 71]:
+                        ecosystem_type = "Temperate Forest"  
+                    elif esa_code == 120:
+                        ecosystem_type = "Shrubland"
+                    elif esa_code == 200:
+                        ecosystem_type = "Desert"
+                    else:
+                        ecosystem_type = "Unknown"
+                    
+                    ecosystem_info = {"ecosystem_type": ecosystem_type}
                 
                 return {
                     "ecosystem_type": ecosystem_info["ecosystem_type"],
@@ -1588,8 +1604,20 @@ class OpenLandMapSTAC:
             latest_item_url = None
             for link in collection_data.get('links', []):
                 if link.get('rel') == 'item':
-                    latest_item_url = link.get('href')
-                    break  # Take first/latest item
+                    href = link.get('href')
+                    if href:
+                        # Fix relative URL resolution (key issue from logs)
+                        if href.startswith('./'):
+                            # Convert relative URL to absolute
+                            base_url = f"{self.stac_base_url}/{collection_id}"
+                            latest_item_url = f"{base_url}/{href[2:]}"  # Remove './' prefix
+                        elif href.startswith('http'):
+                            latest_item_url = href
+                        else:
+                            # Relative path without './'
+                            base_url = f"{self.stac_base_url}/{collection_id}"
+                            latest_item_url = f"{base_url}/{href}"
+                        break  # Take first/latest item
             
             if latest_item_url:
                 response = requests.get(latest_item_url, timeout=10)

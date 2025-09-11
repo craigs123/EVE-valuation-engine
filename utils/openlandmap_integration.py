@@ -911,23 +911,24 @@ class OpenLandMapIntegrator:
                 from .openlandmap_stac_api import openlandmap_stac
                 import asyncio
                 
-                # Create new event loop for batch processing
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                # Use synchronous processing - no event loop needed
                 
                 try:
-                    batch_results = loop.run_until_complete(
-                        openlandmap_stac.get_batch_ecosystem_types(sample_points)
-                    )
+                    # Use synchronous approach - no more event loops
+                    batch_results = []
+                    for lat, lon in sample_points:
+                        result = openlandmap_stac.get_ecosystem_type(lat, lon)
+                        if result:
+                            batch_results.append(result)
                     
                     # Convert batch results to expected format
                     for i, result in enumerate(batch_results):
                         if result and result.get('ecosystem_type'):
                             # DEBUG: Log the actual result to understand what's happening
-                            print(f"🔍 DEBUG BATCH RESULT {i}: landcover_class={result.get('landcover_class', 'N/A')}, ecosystem_type={result.get('ecosystem_type', 'N/A')}")
+                            print(f"🔍 DEBUG SYNC RESULT {i}: landcover_class={result.get('landcover_class', 'N/A')}, ecosystem_type={result.get('ecosystem_type', 'N/A')}")
                             ecosystem_results.append({
                                 'ecosystem_type': result['ecosystem_type'],
-                                'source': result.get('data_source', 'Batch STAC API'),
+                                'source': result.get('data_source', 'Synchronous STAC API'),
                                 'landcover_class': result.get('landcover_class', 0),
                                 'coordinates': result.get('coordinates', {'lat': sample_points[i][0], 'lon': sample_points[i][1]}),
                                 'raw_stac_data': result.get('raw_stac_data', {})  # CRITICAL FIX: Include raw STAC data for UI display
@@ -955,17 +956,8 @@ class OpenLandMapIntegrator:
                             progress_callback(i + 1, len(sample_points))
                             
                 finally:
-                    loop.close()
-                    # Clean up the session
-                    try:
-                        loop2 = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop2)
-                        try:
-                            loop2.run_until_complete(openlandmap_stac.close_session())
-                        finally:
-                            loop2.close()
-                    except:
-                        pass
+                    # Clean up - no event loop cleanup needed for synchronous approach
+                    pass
                 
             except Exception as batch_error:
                 print(f"Batch processing failed: {batch_error}, falling back to individual point queries")
