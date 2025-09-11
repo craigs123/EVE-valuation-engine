@@ -1553,19 +1553,14 @@ class OpenLandMapSTAC:
             
             if pixel_value is not None:
                 # Process the ESA code through existing mapping
-                try:
-                    from .esa_landcover_codes import get_ecosystem_type_from_esa
-                    ecosystem_info = get_ecosystem_type_from_esa(int(pixel_value))
-                except ImportError:
-                    # Fixed fallback: use complete ESA mapping instead of limited hardcoded values
-                    esa_code = int(pixel_value)
-                    ecosystem_type = self.landcover_to_esvd.get(esa_code, "Grassland")
-                    
-                    # Debug the mapping for troubleshooting ESA codes 11, 40, 130
-                    if esa_code in [11, 40, 130]:
-                        print(f"🔍 ESA MAPPING DEBUG: Code {esa_code} → {ecosystem_type} (Fixed from Unknown!)")
-                    
-                    ecosystem_info = {"ecosystem_type": ecosystem_type}
+                esa_code = int(pixel_value)
+                ecosystem_type = self.landcover_to_esvd.get(esa_code, "Grassland")
+                
+                # Debug the mapping for troubleshooting ESA codes 11, 40, 130
+                if esa_code in [11, 40, 130, 41]:
+                    print(f"🔍 ESA MAPPING DEBUG: Code {esa_code} → {ecosystem_type}")
+                
+                ecosystem_info = {"ecosystem_type": ecosystem_type}
                 
                 return {
                     "ecosystem_type": ecosystem_info["ecosystem_type"],
