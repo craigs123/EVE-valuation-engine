@@ -1845,7 +1845,7 @@ Example: 100ha Forest
         
         # All possible ESVD ecosystem types (including forest subtypes)
         esvd_ecosystem_types = [
-            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest", "Mediterranean Forest",
+            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
             "Grassland", "Cropland", "Urban", "Desert", 
             "Wetland", "Coastal", "Marine", "Shrubland"
         ]
