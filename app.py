@@ -569,89 +569,149 @@ def preload_openlandmap_status():
 
 def get_country_from_coordinates(lat: float, lon: float) -> str:
     """
-    Determine country from latitude/longitude coordinates
-    Uses simplified coordinate ranges for major countries
+    Determine country from latitude/longitude coordinates using Nominatim API
+    
+    Uses OpenStreetMap's Nominatim reverse geocoding API for accurate country detection
+    with intelligent fallback to rectangular bounding box system if API fails.
+    
+    Args:
+        lat: Latitude (-90 to 90)
+        lon: Longitude (-180 to 180)
+        
+    Returns:
+        Country name string (for display purposes - different format than GDP lookup)
     """
     try:
-        # North America
-        if 49.0 <= lat <= 71.0 and -141.0 <= lon <= -52.0:
-            return "Canada"
-        elif 25.0 <= lat <= 49.0 and -125.0 <= lon <= -66.0:
-            return "United States"
-        elif 14.0 <= lat <= 33.0 and -118.0 <= lon <= -86.0:
-            return "Mexico"
+        from utils.nominatim_geocoding import get_country_from_coordinates_nominatim
         
-        # Europe
-        elif 35.0 <= lat <= 71.0 and -10.0 <= lon <= 40.0:
-            if 54.0 <= lat <= 61.0 and -8.0 <= lon <= 2.0:
-                return "United Kingdom"
-            elif 41.0 <= lat <= 51.5 and -5.0 <= lon <= 9.0:
-                return "France"
-            elif 47.0 <= lat <= 55.0 and 5.0 <= lon <= 15.0:
-                return "Germany"
-            elif 36.0 <= lat <= 47.0 and 6.0 <= lon <= 19.0:
-                return "Italy"
-            elif 35.0 <= lat <= 44.0 and -9.5 <= lon <= -6.0:
-                return "Spain"
-            elif 55.0 <= lat <= 69.0 and 4.0 <= lon <= 31.0:
-                return "Sweden/Norway"
-            else:
-                return "Europe"
+        # Get country code from Nominatim API
+        country_code = get_country_from_coordinates_nominatim(lat, lon)
         
-        # Asia
-        elif 8.0 <= lat <= 54.0 and 68.0 <= lon <= 180.0:
-            if 20.0 <= lat <= 54.0 and 73.0 <= lon <= 135.0:
-                return "China"
-            elif 20.0 <= lat <= 46.0 and 122.0 <= lon <= 146.0:
-                return "Japan"
-            elif 33.0 <= lat <= 43.0 and 124.0 <= lon <= 132.0:
-                return "South Korea"
-            elif 8.0 <= lat <= 37.0 and 68.0 <= lon <= 97.0:
-                return "India"
-            else:
-                return "Asia"
+        # Convert country code to display name for app.py usage
+        code_to_display_name = {
+            'united_states': 'United States',
+            'canada': 'Canada', 
+            'mexico': 'Mexico',
+            'united_kingdom': 'United Kingdom',
+            'france': 'France',
+            'germany': 'Germany',
+            'italy': 'Italy',
+            'spain': 'Spain',
+            'netherlands': 'Netherlands',
+            'belgium': 'Belgium',
+            'austria': 'Austria',
+            'switzerland': 'Switzerland',
+            'sweden': 'Sweden',
+            'norway': 'Norway',
+            'denmark': 'Denmark',
+            'finland': 'Finland',
+            'ireland': 'Ireland',
+            'portugal': 'Portugal',
+            'greece': 'Greece',
+            'poland': 'Poland',
+            'czech_republic': 'Czech Republic',
+            'hungary': 'Hungary',
+            'slovakia': 'Slovakia',
+            'slovenia': 'Slovenia',
+            'estonia': 'Estonia',
+            'latvia': 'Latvia',
+            'lithuania': 'Lithuania',
+            'croatia': 'Croatia',
+            'romania': 'Romania',
+            'bulgaria': 'Bulgaria',
+            'ukraine': 'Ukraine',
+            'russia': 'Russia',
+            'japan': 'Japan',
+            'australia': 'Australia',
+            'new_zealand': 'New Zealand',
+            'south_korea': 'South Korea',
+            'singapore': 'Singapore',
+            'hong_kong': 'Hong Kong',
+            'china': 'China',
+            'india': 'India',
+            'indonesia': 'Indonesia',
+            'thailand': 'Thailand',
+            'malaysia': 'Malaysia',
+            'philippines': 'Philippines',
+            'vietnam': 'Vietnam',
+            'bangladesh': 'Bangladesh',
+            'pakistan': 'Pakistan',
+            'sri_lanka': 'Sri Lanka',
+            'myanmar': 'Myanmar',
+            'cambodia': 'Cambodia',
+            'laos': 'Laos',
+            'mongolia': 'Mongolia',
+            'brazil': 'Brazil',
+            'argentina': 'Argentina',
+            'colombia': 'Colombia',
+            'peru': 'Peru',
+            'chile': 'Chile',
+            'ecuador': 'Ecuador',
+            'bolivia': 'Bolivia',
+            'paraguay': 'Paraguay',
+            'uruguay': 'Uruguay',
+            'venezuela': 'Venezuela',
+            'guatemala': 'Guatemala',
+            'honduras': 'Honduras',
+            'el_salvador': 'El Salvador',
+            'nicaragua': 'Nicaragua',
+            'costa_rica': 'Costa Rica',
+            'panama': 'Panama',
+            'saudi_arabia': 'Saudi Arabia',
+            'uae': 'United Arab Emirates',
+            'qatar': 'Qatar',
+            'kuwait': 'Kuwait',
+            'bahrain': 'Bahrain',
+            'oman': 'Oman',
+            'israel': 'Israel',
+            'turkey': 'Turkey',
+            'egypt': 'Egypt',
+            'morocco': 'Morocco',
+            'tunisia': 'Tunisia',
+            'algeria': 'Algeria',
+            'jordan': 'Jordan',
+            'lebanon': 'Lebanon',
+            'iraq': 'Iraq',
+            'iran': 'Iran',
+            'south_africa': 'South Africa',
+            'nigeria': 'Nigeria',
+            'kenya': 'Kenya',
+            'ethiopia': 'Ethiopia',
+            'ghana': 'Ghana',
+            'uganda': 'Uganda',
+            'tanzania': 'Tanzania',
+            'mozambique': 'Mozambique',
+            'madagascar': 'Madagascar',
+            'malawi': 'Malawi',
+            'zambia': 'Zambia',
+            'zimbabwe': 'Zimbabwe',
+            'botswana': 'Botswana',
+            'namibia': 'Namibia',
+            'angola': 'Angola',
+            'cameroon': 'Cameroon',
+            'ivory_coast': 'Ivory Coast',
+            'senegal': 'Senegal',
+            'burkina_faso': 'Burkina Faso',
+            'mali': 'Mali',
+            'niger': 'Niger',
+            'chad': 'Chad',
+            'central_african_republic': 'Central African Republic',
+            'democratic_republic_congo': 'Democratic Republic of Congo',
+            'rwanda': 'Rwanda',
+            'burundi': 'Burundi',
+            'global_average': 'International Waters'
+        }
         
-        # Russia (spans continents)
-        elif 41.0 <= lat <= 82.0 and 19.0 <= lon <= 180.0:
-            return "Russia"
-        elif 41.0 <= lat <= 82.0 and -180.0 <= lon <= -129.0:
-            return "Russia"
-        
-        # South America
-        elif -56.0 <= lat <= 13.0 and -82.0 <= lon <= -34.0:
-            if -55.0 <= lat <= 13.0 and -74.0 <= lon <= -34.0:
-                return "Brazil"
-            elif -55.0 <= lat <= -22.0 and -74.0 <= lon <= -53.0:
-                return "Argentina"
-            else:
-                return "South America"
-        
-        # Africa
-        elif -35.0 <= lat <= 37.0 and -18.0 <= lon <= 52.0:
-            if -35.0 <= lat <= -22.0 and 16.0 <= lon <= 33.0:
-                return "South Africa"
-            elif 22.0 <= lat <= 32.0 and 25.0 <= lon <= 37.0:
-                return "Egypt"
-            else:
-                return "Africa"
-        
-        # Australia/Oceania
-        elif -44.0 <= lat <= -10.0 and 112.0 <= lon <= 154.0:
-            return "Australia"
-        elif -47.0 <= lat <= -34.0 and 166.0 <= lon <= 179.0:
-            return "New Zealand"
-        
-        # Oceanic regions
-        elif -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
-            # Check if it's over water (rough approximation)
-            if abs(lat) > 60:
-                return "Polar Region"
-            else:
-                return "Oceanic/International Waters"
-        
-        return "Unknown"
+        # Return display name or fallback to formatted code
+        display_name = code_to_display_name.get(country_code)
+        if display_name:
+            return display_name
+        else:
+            # Format the code for display (e.g., "united_kingdom" -> "United Kingdom")
+            return country_code.replace('_', ' ').title()
         
     except Exception as e:
+        print(f"⚠️  Error in get_country_from_coordinates: {e}")
         return "Unknown"
 
 def display_data_source_status(analysis_results: Dict = None):

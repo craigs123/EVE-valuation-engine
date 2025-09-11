@@ -363,107 +363,22 @@ ESVD Database Version: APR2024 V1.1 (Target)
 
 def get_country_from_coordinates(lat: float, lon: float) -> str:
     """
-    Map coordinates to country code using geographic boundaries
+    Map coordinates to country code using OpenStreetMap Nominatim API with fallback
+    
+    This function now uses the new Nominatim-based geocoding system for accurate
+    country detection while maintaining backward compatibility.
     
     Args:
-        lat: Latitude 
-        lon: Longitude
+        lat: Latitude (-90 to 90)
+        lon: Longitude (-180 to 180)
         
     Returns:
         Country code string for GDP lookup
     """
+    # Import here to avoid circular imports
+    from .nominatim_geocoding import get_country_from_coordinates_nominatim
     
-    # North America
-    if lat >= 14 and -141 <= lon <= -52:
-        # Canada (prioritize northern latitudes)
-        if lat >= 49 and -141 <= lon <= -52:
-            return 'canada'
-        # United States (continental)  
-        elif lat >= 25 and lat <= 49 and -125 <= lon <= -66:
-            return 'united_states'
-        # Alaska (US)
-        elif lat >= 54 and lat <= 71 and -169 <= lon <= -130:
-            return 'united_states'
-        # Mexico
-        elif lat >= 14 and lat <= 32 and -118 <= lon <= -86:
-            return 'mexico'
-        # Default to US for overlapping areas
-        else:
-            return 'united_states'
-    
-    # Europe
-    elif lat >= 35 and -10 <= lon <= 50:
-        if lat >= 50 and lat <= 61 and -8 <= lon <= 2:
-            return 'united_kingdom' if lon > -3 else 'ireland'
-        elif lat >= 47 and lat <= 55 and 6 <= lon <= 15:
-            return 'germany'
-        elif lat >= 42 and lat <= 51 and -5 <= lon <= 8:
-            return 'france'
-        elif lat >= 36 and lat <= 44 and -10 <= lon <= 4:
-            return 'spain'
-        elif lat >= 36 and lat <= 47 and 6 <= lon <= 19:
-            return 'italy'
-        else:
-            return 'europe_average'
-    
-    # Asia-Pacific Developed
-    elif lat >= -50 and 110 <= lon <= 180:
-        if lat >= 24 and lat <= 46 and 123 <= lon <= 146:
-            return 'japan'
-        elif lat >= -44 and lat <= -10 and 113 <= lon <= 154:
-            return 'australia'
-        elif lat >= -47 and lat <= -34 and 166 <= lon <= 179:
-            return 'new_zealand'
-        elif lat >= 33 and lat <= 39 and 124 <= lon <= 132:
-            return 'south_korea'
-        elif lat >= 1 and lat <= 2 and 103 <= lon <= 104:
-            return 'singapore'
-    
-    # Asia Emerging  
-    elif lat >= -10 and 60 <= lon <= 140:
-        if lat >= 18 and lat <= 54 and 73 <= lon <= 135:
-            return 'china'
-        elif lat >= 8 and lat <= 37 and 68 <= lon <= 97:
-            return 'india'
-        elif lat >= -11 and lat <= 6 and 95 <= lon <= 141:
-            return 'indonesia'
-        elif lat >= 5 and lat <= 21 and 97 <= lon <= 106:
-            return 'thailand'
-        elif lat >= 8 and lat <= 24 and 102 <= lon <= 110:
-            return 'vietnam'
-        elif lat >= 1 and lat <= 7 and 100 <= lon <= 120:
-            return 'malaysia'
-        elif lat >= 5 and lat <= 21 and 116 <= lon <= 127:
-            return 'philippines'
-        else:
-            return 'china'  # Default for unmapped Asian areas
-    
-    # Latin America
-    elif lat >= -55 and -120 <= lon <= -30:
-        if lat >= -34 and lat <= 5 and -74 <= lon <= -32:
-            return 'brazil'
-        elif lat >= -55 and lat <= -22 and -74 <= lon <= -53:
-            return 'argentina'
-        elif lat >= -56 and lat <= -17 and -76 <= lon <= -66:
-            return 'chile'
-        elif lat >= -4 and lat <= 12 and -79 <= lon <= -67:
-            return 'colombia'
-        elif lat >= -18 and lat <= 0 and -81 <= lon <= -68:
-            return 'peru'
-    
-    # Sub-Saharan Africa
-    elif lat >= -35 and lat <= 15 and -20 <= lon <= 52:
-        if lat >= -35 and lat <= -22 and 16 <= lon <= 33:
-            return 'south_africa'
-        elif lat >= 4 and lat <= 14 and 3 <= lon <= 15:
-            return 'nigeria'
-        elif lat >= -5 and lat <= 5 and 34 <= lon <= 42:
-            return 'kenya'
-        elif lat >= 3 and lat <= 15 and 33 <= lon <= 48:
-            return 'ethiopia'
-    
-    # Default to global average
-    return 'global_average'
+    return get_country_from_coordinates_nominatim(lat, lon)
 
 
 class PrecomputedESVDCoefficients:
