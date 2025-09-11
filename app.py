@@ -848,6 +848,52 @@ def display_data_source_status(analysis_results: Dict = None):
                     df = pd.DataFrame(table_data)
                     st.dataframe(df, use_container_width=True, hide_index=True)
                     
+                    # Always show raw STAC data for transparency (moved outside environmental indicators toggle)
+                    st.markdown("### 🔍 Raw Satellite Data Transparency")
+                    
+                    # Raw data verification section - always visible for data authenticity verification
+                    with st.expander("📡 **View Raw STAC Data** (Click to verify data authenticity)", expanded=False):
+                        st.markdown("**This section shows the raw satellite data sources and extraction details for complete transparency.**")
+                        
+                        # Display raw data for each sample point
+                        for point_id, point_data in sampling_point_data.items():
+                            point_num = int(point_id.replace('point_', '')) + 1
+                            st.markdown(f"**Sample Point {point_num}:**")
+                            
+                            # Show raw STAC response data
+                            raw_stac_data = point_data.get('raw_stac_data', {})
+                            if raw_stac_data:
+                                st.markdown("**🔍 Raw STAC Response:**")
+                                st.json(raw_stac_data)
+                            else:
+                                st.info("No raw STAC data available for this point")
+                            
+                            # Show processed STAC data
+                            stac_data = point_data.get('stac_data', {})
+                            if stac_data:
+                                st.markdown("**📊 Processed STAC Data:**")
+                                st.json(stac_data)
+                            
+                            st.divider()
+                    
+                    # Data verification section - always visible
+                    st.markdown("### ✅ Data Verification")
+                    st.info("""
+                    **How to Verify This Data:**
+                    1. **Asset URL**: Copy the asset URL above and access it directly to verify the GeoTIFF source
+                    2. **Year**: Confirm the dataset year (2020) in the asset URL path  
+                    3. **Pixel Values**: Check that raw pixel values match ESA CCI landcover codes
+                    4. **Coordinates**: Verify sample point coordinates match your selected area
+                    5. **Collection**: Confirm data comes from ESA CCI landcover collection (land.cover_esacci.lc.l4)
+                    
+                    This transparency section provides complete traceability from raw satellite data to final results.
+                    """)
+                    
+                    if not any(point_data.get('raw_stac_data') for point_data in sampling_point_data.values()):
+                        st.warning("⚠️ No raw STAC data found. This may indicate the analysis used fallback methods instead of genuine satellite data.")
+                    else:
+                        st.success("✅ Genuine STAC satellite data detected for this analysis.")
+                    
                     # Create environmental indicators table (only if toggle is enabled)
                     if st.session_state.get('include_environmental_indicators', False):
                         st.markdown("**Environmental Indicators Table:**")
