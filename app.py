@@ -8,6 +8,7 @@ from typing import Dict, Optional, Any
 import json
 import base64
 import numpy as np
+import uuid
 
 # Ultra-fast lazy loading for production performance
 @st.cache_resource(show_spinner=False, ttl=3600)
@@ -53,6 +54,28 @@ if 'sustainability_responses' not in st.session_state:
         'maximize_diversity': False,
         'integrate_livestock': False
     }
+
+# Initialize critical variables to prevent unbound errors
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
+
+if 'system_message' not in st.session_state:
+    st.session_state.system_message = None
+
+if 'max_sampling_limit' not in st.session_state:
+    st.session_state.max_sampling_limit = 10
+    
+if 'ecosystem_override' not in st.session_state:
+    st.session_state.ecosystem_override = "Auto-detect (Recommended)"
+    
+if 'analysis_detail' not in st.session_state:
+    st.session_state.analysis_detail = "Summary Analysis"
+    
+if 'income_elasticity' not in st.session_state:
+    st.session_state.income_elasticity = 0.25
+
+if 'time_preset' not in st.session_state:
+    st.session_state.time_preset = "Current Year (2024)"
 
 # Enhanced CSS for better UX and modern design
 st.markdown("""
@@ -1192,15 +1215,9 @@ def get_analysis_modules():
             detect_ecosystem_type_enhanced, 
             get_ecosystem_service_values
         )
-        from utils.natural_capital import (
-            calculate_ecosystem_service_value,
-            generate_natural_capital_report
-        )
         return {
             'detect_ecosystem': detect_ecosystem_type_enhanced,
-            'get_service_values': get_ecosystem_service_values,
-            'calculate_value': calculate_ecosystem_service_value,
-            'generate_report': generate_natural_capital_report
+            'get_service_values': get_ecosystem_service_values
         }
     except ImportError as e:
         st.error(f"Analysis modules not available: {e}")
@@ -2119,9 +2136,10 @@ test_area_options = [
 # Left-aligned area selection dropdown
 st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0; padding-bottom: 0;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
 selected_test_area = st.selectbox(
-    "",
+    "Select Area Type",
     test_area_options,
     index=0,
+    label_visibility="hidden",
     help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
 )
 
@@ -4543,12 +4561,8 @@ if st.session_state.analysis_results:
             st.markdown(f"- **Weighted Average**: ${total_value/results['area_ha']:,.0f}/ha/year")
             st.caption("Each ecosystem contributes its proportional value based on area coverage and ecosystem-specific coefficients")
             
-            # Authentic ESVD data source information
-            try:
-                from utils.authentic_esvd_loader import get_esvd_loader
-                esvd_status = get_esvd_loader().get_data_summary()
-            except Exception:
-                esvd_status = {'authentic': False}
+            # ESVD data source information
+            esvd_status = {'authentic': False}
             
             with st.expander("ℹ️ Data Source Information"):
                 if esvd_status['authentic']:
