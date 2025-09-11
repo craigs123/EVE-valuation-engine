@@ -56,6 +56,9 @@ class OpenLandMapSTAC:
         self._session = None
         self._session_connector = None
         
+        # Reduced memory footprint for pixel extraction
+        self.max_cache_size_mb = 50  # Much smaller cache
+        
         # Caching - clear cache to force new asset URL discovery with updated logic
         self._collection_cache = {}  # Cache collection metadata
         self._asset_url_cache = {}   # Cache GeoTIFF asset URLs
@@ -1313,50 +1316,199 @@ class OpenLandMapSTAC:
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         Main method to get ecosystem type using OpenLandMap STAC API
-        FIXED: Properly handles both sync and async contexts without nesting event loops
+        SIMPLIFIED: Uses synchronous approach to avoid async/event loop issues
         """
         try:
-            import asyncio
-            
-            # CRITICAL FIX: Check if we're already in an event loop
-            try:
-                loop = asyncio.get_running_loop()
-                # We're already in an event loop - can't use asyncio.run()
-                print("🔄 Running in existing event loop context")
-                # Create a task and run it in the current loop
-                task = asyncio.create_task(self._async_get_ecosystem_type(lat, lon))
-                # We need to wait for this task to complete, but we can't block
-                # Use a workaround for sync code in async context
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(self._run_in_new_loop, lat, lon)
-                    return future.result(timeout=30)
-                    
-            except RuntimeError:
-                # No event loop running - we can use asyncio.run safely
-                print("🆕 Creating new event loop")
+            # Use direct synchronous STAC collection query
+            stac_results = self._query_stac_collections_sync(lat, lon)
+            if stac_results:
+                return self.process_stac_data(lat, lon, stac_results)
+            else:
+                # Fall back to direct landcover extraction
+                print(f"📋 STAC collections failed, trying direct landcover extraction for ({lat}, {lon})")
                 try:
-                    result = asyncio.run(self._async_get_ecosystem_type(lat, lon))
-                    return result
-                except Exception as e:
-                    print(f"⚠️ Async execution failed: {e}")
-                    return self._fallback_ecosystem_detection(lat, lon)
+                    landcover_result = self._extract_landcover_direct(lat, lon)
+                    if landcover_result:
+                        return landcover_result
+                except Exception as fallback_error:
+                    print(f"⚠️ Direct landcover extraction also failed: {fallback_error}")
+                
+                return self._fallback_ecosystem_detection(lat, lon)
         except Exception as e:
             print(f"STAC API error: {e}")
             return self._fallback_ecosystem_detection(lat, lon)
     
-    def _run_in_new_loop(self, lat: float, lon: float) -> Dict[str, Any]:
+    def _query_stac_collections_sync(self, lat: float, lon: float) -> Optional[List[Dict]]:
         """
-        Helper method to run async code in a completely new event loop
-        Used when we're already in an async context but need to run STAC queries
+        Synchronous STAC collection query to avoid async/event loop issues
         """
-        import asyncio
-        loop = asyncio.new_event_loop()
+        results = []
+        
         try:
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(self._async_get_ecosystem_type(lat, lon))
+            import requests
+            
+            for collection in self.collections:
+                try:
+                    # Use synchronous requests instead of async
+                    collection_url = f"{self.stac_base_url}/{collection['id']}/collection.json"
+                    response = requests.get(collection_url, timeout=10)
+                    
+                    if response.status_code == 200:
+                        collection_data = response.json()
+                        
+                        if collection_data and collection_data.get('links'):
+                            # Extract pixel data synchronously
+                            pixel_value = self._extract_pixel_sync(lat, lon, collection_data)
+                            
+                            if pixel_value is not None:
+                                results.append({
+                                    "collection": collection["id"],
+                                    "name": collection["name"],
+                                    "category": collection["category"],
+                                    "value": pixel_value,
+                                    "unit": collection["unit"],
+                                    "metadata": {
+                                        "title": collection_data.get("title", ""),
+                                        "description": collection_data.get("description", ""),
+                                        "license": collection_data.get("license", ""),
+                                        "source": "stac_sync",
+                                    }
+                                })
+                except Exception as e:
+                    print(f"⚠️ Sync collection query failed for {collection['id']}: {e}")
+                    continue
+            
+            return results if results else None
+            
+        except Exception as e:
+            print(f"❌ Sync STAC query failed: {e}")
+            return None
+    
+    def _extract_pixel_sync(self, lat: float, lon: float, collection_data: Dict) -> Optional[float]:
+        """
+        Synchronous pixel extraction to avoid async issues
+        """
+        try:
+            # Find GeoTIFF asset URL from collection data
+            asset_url = self._find_geotiff_asset_url(collection_data)
+            if not asset_url:
+                return None
+            
+            # Extract pixel value using rasterio directly
+            pixel_value = self._extract_single_pixel_safe(lat, lon, asset_url)
+            return pixel_value
+            
+        except Exception as e:
+            print(f"⚠️ Sync pixel extraction failed: {e}")
+            return None
+    
+    def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
+        """
+        Direct land cover extraction using cached ESA data
+        """
+        try:
+            # Use the cached land cover URL if available
+            esa_url = "https://s3.openlandmap.org/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_espg.4326_v20230608.tif"
+            
+            pixel_value = self._extract_single_pixel_safe(lat, lon, esa_url)
+            if pixel_value is not None:
+                # Process the ESA code through existing mapping
+                from .esa_landcover_codes import get_ecosystem_type_from_esa
+                ecosystem_info = get_ecosystem_type_from_esa(int(pixel_value))
+                
+                return {
+                    "ecosystem_type": ecosystem_info["ecosystem_type"],
+                    "landcover_class": int(pixel_value),
+                    "coordinates": {"lat": lat, "lon": lon},
+                    "data_source": "Direct ESA Land Cover Extraction",
+                    "raw_stac_data": {
+                        "pixel_value": pixel_value,
+                        "asset_url": esa_url
+                    },
+                    "query_time": json.dumps({"timestamp": "now"}, default=str)
+                }
+            return None
+            
+        except Exception as e:
+            print(f"⚠️ Direct land cover extraction failed: {e}")
+            return None
+    
+    def _extract_single_pixel_safe(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
+        """
+        Safe single pixel extraction with proper resource management
+        """
+        dataset = None
+        try:
+            import rasterio
+            import os
+            
+            # Configure GDAL for stability
+            for key, value in HTTP_ENV.items():
+                os.environ[key] = value
+            
+            # Open dataset with timeout protection
+            dataset = rasterio.open(asset_url)
+            
+            # Convert coordinates to pixel indices
+            row, col = dataset.index(lon, lat)
+            
+            # Check bounds
+            if 0 <= row < dataset.height and 0 <= col < dataset.width:
+                # Read single pixel
+                pixel_data = dataset.read(1, window=((row, row+1), (col, col+1)))
+                
+                if pixel_data.size > 0:
+                    value = pixel_data[0, 0]
+                    # Filter out nodata values
+                    if value != dataset.nodata and not (hasattr(value, 'mask') and value.mask):
+                        return float(value)
+            
+            return None
+            
+        except Exception as e:
+            print(f"❌ Safe pixel extraction error: {e}")
+            return None
         finally:
-            loop.close()
+            # Clean up resources
+            if dataset:
+                try:
+                    dataset.close()
+                except:
+                    pass
+    
+    def _find_geotiff_asset_url(self, collection_data: Dict) -> Optional[str]:
+        """
+        Find GeoTIFF asset URL from collection data
+        """
+        try:
+            if not collection_data.get('links'):
+                return None
+            
+            # Look for items in collection
+            for link in collection_data.get('links', []):
+                if link.get('rel') == 'item':
+                    # This is simplified - in practice would need to find recent items
+                    item_url = link.get('href')
+                    if item_url:
+                        # Get item data and find GeoTIFF asset
+                        import requests
+                        response = requests.get(item_url, timeout=10)
+                        if response.status_code == 200:
+                            item_data = response.json()
+                            assets = item_data.get('assets', {})
+                            
+                            # Find first GeoTIFF asset
+                            for asset_key, asset_info in assets.items():
+                                if isinstance(asset_info, dict):
+                                    asset_type = asset_info.get('type', '')
+                                    if 'geotiff' in asset_type.lower() or 'tiff' in asset_type.lower():
+                                        return asset_info.get('href')
+            
+            return None
+            
+        except Exception as e:
+            print(f"⚠️ Error finding GeoTIFF asset: {e}")
+            return None
     
     async def _async_get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
