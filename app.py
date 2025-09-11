@@ -1317,7 +1317,7 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version: 2.7.5 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version: 2.7.6 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
 
@@ -3850,10 +3850,10 @@ if st.session_state.analysis_results:
         # Action buttons
         col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
         
-        with col_btn1:
-            if st.button("🔍 View Detailed Analysis", type="secondary"):
-                st.session_state['analysis_detail'] = 'Detailed Analysis'
-                st.rerun()
+        # with col_btn1:
+        #     if st.button("🔍 View Detailed Analysis", type="secondary"):
+        #         st.session_state['analysis_detail'] = 'Detailed Analysis'
+        #         st.rerun()
         
         with col_btn2:
             # Social Media Infographic Generator (Summary View)
