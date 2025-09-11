@@ -1313,35 +1313,49 @@ class OpenLandMapSTAC:
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         Main method to get ecosystem type using OpenLandMap STAC API
-        Enhanced with proper asyncio event loop management
+        Fixed event loop management to prevent 'Event loop is closed' errors
         """
         try:
             import asyncio
             
-            # Try to get existing event loop, create new one if none exists
+            # FIXED: Use asyncio.run for clean event loop management
+            # This ensures a fresh event loop for each request and proper cleanup
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    # Create new loop if current one is closed
+                # Use asyncio.run to handle event loop lifecycle properly
+                result = asyncio.run(self._async_get_ecosystem_type(lat, lon))
+                return result
+            except Exception as e:
+                print(f"⚠️ Primary STAC query failed: {e}")
+                # Fallback: try with new event loop if primary method fails
+                try:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-            except RuntimeError:
-                # No event loop in current thread, create new one
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            # Use asyncio.run for better event loop management
-            try:
-                if loop.is_running():
-                    # If loop is already running, use run_until_complete
-                    stac_results = loop.run_until_complete(self.query_stac_collections(lat, lon))
-                else:
-                    # Use asyncio.run for cleaner execution
-                    stac_results = asyncio.run(self.query_stac_collections(lat, lon))
-            except Exception as async_error:
-                print(f"⚠️ Async execution failed, falling back to fallback data sources: {async_error}")
-                stac_results = None
-            
+                    try:
+                        result = loop.run_until_complete(self._async_get_ecosystem_type(lat, lon))
+                        return result
+                    finally:
+                        loop.close()
+                except Exception as fallback_error:
+                    print(f"⚠️ Fallback STAC query also failed: {fallback_error}")
+                    return self._fallback_ecosystem_detection(lat, lon)
+        except Exception as e:
+            print(f"STAC API error: {e}")
+            # No synthetic data generation - return error when STAC API fails completely
+            return {
+                "ecosystem_type": "Unknown",
+                "landcover_class": None,
+                "coordinates": {"lat": lat, "lon": lon},
+                "data_source": "Error: STAC API Failed",
+                "error": f"STAC API processing failed: {str(e)}",
+                "query_time": json.dumps({"timestamp": "now"}, default=str)
+            }
+    
+    async def _async_get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
+        """
+        Async method to handle STAC queries with proper session management
+        """
+        try:
+            stac_results = await self.query_stac_collections(lat, lon)
             if stac_results:
                 return self.process_stac_data(lat, lon, stac_results)
             else:
@@ -1355,7 +1369,7 @@ class OpenLandMapSTAC:
                 except Exception as fallback_error:
                     print(f"⚠️ Direct landcover extraction also failed: {fallback_error}")
                 
-                # No synthetic data generation - return error when STAC data unavailable
+                # Return error when STAC data unavailable
                 return {
                     "ecosystem_type": "Unknown",
                     "coordinates": {"lat": lat, "lon": lon},
@@ -1364,16 +1378,21 @@ class OpenLandMapSTAC:
                     "query_time": json.dumps({"timestamp": "now"}, default=str)
                 }
         except Exception as e:
-            print(f"STAC API error: {e}")
-            # No synthetic data generation - return error when STAC API fails completely
-            return {
-                "ecosystem_type": "Unknown",
-                "landcover_class": None,
-                "coordinates": {"lat": lat, "lon": lon},
-                "data_source": "Error: STAC API Failed",
-                "error": f"STAC API processing failed: {str(e)}",
-                "query_time": json.dumps({"timestamp": "now"}, default=str)
-            }
+            print(f"⚠️ Async STAC query failed: {e}")
+            return self._fallback_ecosystem_detection(lat, lon)
+    
+    def _fallback_ecosystem_detection(self, lat: float, lon: float) -> Dict[str, Any]:
+        """
+        Fallback ecosystem detection when STAC API completely fails
+        """
+        return {
+            "ecosystem_type": "Unknown",
+            "landcover_class": None,
+            "coordinates": {"lat": lat, "lon": lon},
+            "data_source": "Error: STAC API Failed",
+            "error": "STAC API processing failed - all methods exhausted",
+            "query_time": json.dumps({"timestamp": "now"}, default=str)
+        }
 
 # Global instance
 openlandmap_stac = OpenLandMapSTAC()
