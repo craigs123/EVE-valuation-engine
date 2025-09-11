@@ -12,7 +12,7 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
    - Each record contains: biome type, service category, valuation method, 
      geographic location, study year, currency, and normalized Int$/ha/year value
    - Database spans 1970-2024 studies from 1,100+ peer-reviewed publications
-   - All values pre-normalized to 2020 International Dollars using World Bank PPP
+   - All values pre-normalized to 2024 International Dollars using World Bank PPP
 
 2. COEFFICIENT CALCULATION METHODOLOGY
    
@@ -82,12 +82,12 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
    - This becomes our 'climate': 407.07 coefficient
 
 3. REGIONAL ADJUSTMENT METHODOLOGY
-   - Uses World Bank GDP per capita data (2020) for country-specific adjustments
+   - Uses World Bank GDP per capita data (2024) for country-specific adjustments
    - Applies income elasticity method from environmental economics literature  
    - Formula: 1 + (elasticity × (country_GDP/global_GDP - 1))
    - Default elasticity: 0.6 (user-configurable)
    - Bounded to prevent extreme values (0.4 to 2.5 multiplier range)
-   - Aligns with 2020 Int$ baseline year used in ESVD coefficients
+   - Aligns with 2024 Int$ baseline year used in ESVD coefficients
    - Country mapping uses geographic coordinate boundaries (see get_country_from_coordinates)
 
 4. QUALITY ASSURANCE MEASURES
@@ -114,13 +114,13 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
    a) Register at https://www.esvd.org/ and download APR2024 V1.1 database
    b) Load database into analysis environment (R, Python pandas, or SQL)
    c) Examine table structure: identify columns for biome, service, value, currency, year
-   d) Verify all values are normalized to 2020 International Dollars
+   d) Verify all values are normalized to 2024 International Dollars
 
    STEP 2: DATA FILTERING AND CLEANING
    a) Filter records by study quality: remove studies marked as "low confidence"
    b) Remove records with missing geographic coordinates or unclear biome classification
    c) Filter date range: include studies from 1990-2024 for contemporary relevance
-   d) Currency check: ensure all values converted to 2020 Int$/ha/year
+   d) Currency check: ensure all values converted to 2024 Int$/ha/year
 
    STEP 3: BIOME-SPECIFIC COEFFICIENT CALCULATION
    For each ecosystem type (e.g., "Tropical Forest"):
@@ -294,7 +294,7 @@ COEFFICIENT DERIVATION METHODOLOGY - DETAILED DOCUMENTATION
      * Download format: Excel spreadsheet
    
    - World Bank Open Data: https://data.worldbank.org/
-     * GDP per capita data (2020): https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.CD
+     * GDP per capita data (2024): https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.CD
      * PPP conversion factors: https://data.worldbank.org/indicator/PA.NUS.PPP
      * Country classification: https://datahelpdesk.worldbank.org/knowledgebase/articles/906519
 
@@ -764,12 +764,12 @@ class PrecomputedESVDCoefficients:
         }
         
         # Import country-specific GDP data
-        from .country_gdp_2020 import COUNTRY_GDP_2020, get_country_gdp
-        self.country_gdp_data = COUNTRY_GDP_2020
+        from .country_gdp_2024 import COUNTRY_GDP_2024, get_country_gdp
+        self.country_gdp_data = COUNTRY_GDP_2024
         self.get_country_gdp_lookup = get_country_gdp
         
         # Global average for reference
-        self.global_gdp_average = 11312  # World Bank 2020
+        self.global_gdp_average = 13673  # World Bank 2024
     
     def _determine_forest_type(self, center_lat: float, center_lon: float) -> str:
         """Determine specific forest type based on coordinates"""
@@ -847,7 +847,7 @@ class PrecomputedESVDCoefficients:
             coordinates: (latitude, longitude) tuple
             
         Returns:
-            GDP per capita for the country (2020 World Bank data)
+            GDP per capita for the country (2024 World Bank data)
         """
         if not coordinates or len(coordinates) < 2:
             return self.global_gdp_average
