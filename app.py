@@ -2400,8 +2400,8 @@ elif use_test_area_single:
             "location": "Northern Ontario boreal forest"
         },
         "🌳 Test area (Temperate Forest)": {
-            "coords": calculate_1000ha_coordinates(48.79, 127.21),
-            "description": "Lesser Khingan Mountains (48.79°N, 127.21°E) | Expected: Temperate Forest ecosystem",
+            "coords": calculate_1000ha_coordinates(48.79, 127.35),
+            "description": "Lesser Khingan Mountains (48.79°N, 127.35°E) | Expected: Temperate Forest ecosystem",
             "location": "Northeast China temperate forest region, Heilongjiang province"
         },
         "🌴 Test area (Tropical Forest)": {
@@ -2597,7 +2597,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌾 Test area (Agricultural)": (40.1, -87.97),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
-            "🌳 Test area (Temperate Forest)": (48.79, 127.21),  # Lesser Khingan Mountains, China
+            "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
