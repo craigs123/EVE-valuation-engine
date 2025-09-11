@@ -7,7 +7,7 @@ with col1:
     with col_layer1:
         layer_type = st.radio("🗺️ Map Style:", ["Light Map", "Satellite"], horizontal=True, key="map_layer_selector")
     with col_layer2:
-        st.info("Use the drawing tools (rectangle/polygon icons) in the map toolbar to select an area")
+        st.info("🔍 Use the search box to find locations, then use drawing tools to select an area")
     
     # Create interactive map based on selected layer
     if layer_type == "Satellite":
@@ -37,8 +37,18 @@ with col1:
             popup="Selected Area"
         ).add_to(m)
 
+    # Add search functionality and drawing tools
+    from folium.plugins import Draw, Geocoder
+    
+    # Add geocoder (search box) to the map
+    Geocoder(
+        collapsed=False,
+        position="topright", 
+        placeholder="Search for places, cities, countries...",
+        add_marker=True
+    ).add_to(m)
+    
     # Add drawing tools
-    from folium.plugins import Draw
     draw = Draw(
         draw_options={
             'polyline': False,
