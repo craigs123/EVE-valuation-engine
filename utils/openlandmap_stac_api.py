@@ -1192,7 +1192,13 @@ class OpenLandMapSTAC:
     
     def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
         """
-        Direct landcover extraction using fallback URLs when STAC collections fail
+        Direct landcover extraction - delegates to cached version for better performance
+        """
+        return self._extract_landcover_direct_uncached(lat, lon)
+    
+    def _extract_landcover_direct_uncached(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
+        """
+        Direct landcover extraction using fallback URLs when STAC collections fail (uncached version)
         """
         try:
             collection_id = "land.cover_esacci.lc.l4"
@@ -1370,15 +1376,40 @@ class OpenLandMapSTAC:
         FAST: Direct GeoTIFF extraction bypassing slow STAC metadata discovery
         """
         try:
-            # Skip complex STAC discovery - use direct landcover extraction immediately
+            # Use cached version for better performance
+            return self._get_ecosystem_type_cached(lat, lon)
+        except Exception as e:
+            print(f"Direct extraction error: {e}")
+            return self._fallback_ecosystem_detection(lat, lon)
+    
+    def _get_ecosystem_type_cached(self, lat: float, lon: float) -> Dict[str, Any]:
+        """
+        Cached version of ecosystem type extraction with geographic quantization
+        """
+        try:
+            import streamlit as st
+            
+            # Quantize coordinates to increase cache hit rate (1e-4 ≈ 11m resolution)
+            quantized_lat = round(lat, 4)
+            quantized_lon = round(lon, 4)
+            
+            @st.cache_data(ttl=3600, max_entries=10000)  # 1 hour TTL, 10k max entries
+            def _cached_extract_landcover(q_lat: float, q_lon: float) -> Dict[str, Any]:
+                # Skip complex STAC discovery - use direct landcover extraction immediately
+                landcover_result = self._extract_landcover_direct_uncached(q_lat, q_lon)
+                if landcover_result:
+                    return landcover_result
+                else:
+                    return self._fallback_ecosystem_detection(q_lat, q_lon)
+            
+            return _cached_extract_landcover(quantized_lat, quantized_lon)
+        except ImportError:
+            # Fallback for non-Streamlit environments
             landcover_result = self._extract_landcover_direct(lat, lon)
             if landcover_result:
                 return landcover_result
             else:
                 return self._fallback_ecosystem_detection(lat, lon)
-        except Exception as e:
-            print(f"Direct extraction error: {e}")
-            return self._fallback_ecosystem_detection(lat, lon)
     
     def _query_stac_collections_sync(self, lat: float, lon: float) -> Optional[List[Dict]]:
         """
