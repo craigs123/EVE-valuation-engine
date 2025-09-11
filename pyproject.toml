@@ -30,4 +30,5 @@ dependencies = [
     "aiohttp>=3.12.15",
     "pystac-client>=0.9.0",
     "certifi>=2025.8.3",
+    "geopy>=2.4.1",
 ]
