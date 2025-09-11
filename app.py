@@ -1616,20 +1616,20 @@ with st.sidebar:
         st.markdown("""
         **📚 Methodology:** Income elasticity of willingness to pay method from environmental economics literature  
         **🔬 Formula:** 1 + (elasticity × (regional_GDP/global_GDP - 1))  
-        **📊 Data Source:** World Bank GDP per capita (2020), aligned with ESVD baseline year  
+        **📊 Data Source:** World Bank GDP per capita (2024), aligned with ESVD baseline year  
         **🔒 Bounds:** 0.4x to 2.5x adjustment range prevents extreme values
         """)
         
         # Show country-specific examples
         if st.checkbox("Show country-specific examples", key="show_country_examples"):
             st.markdown("""
-            **Country-Specific GDP Examples (World Bank 2020):**
-            - USA: $63,593 → 2.5x adjustment
-            - Germany: $46,259 → 2.4x adjustment
-            - China: $10,500 → 0.92x adjustment
-            - Brazil: $6,797 → 0.76x adjustment
-            - Kenya: $1,838 → 0.50x adjustment
-            - Global Average: $11,312 (baseline)
+            **Country-Specific GDP Examples (World Bank 2024):**
+            - USA: $80,706 → 2.5x adjustment
+            - Germany: $53,528 → 2.4x adjustment
+            - China: $12,509 → 0.95x adjustment
+            - Brazil: $8,917 → 0.82x adjustment
+            - Kenya: $2,024 → 0.52x adjustment
+            - Global Average: $13,673 (baseline)
             
             *Note: Now uses individual country data instead of regional averages*
             """)
