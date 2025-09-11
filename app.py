@@ -1898,7 +1898,7 @@ Example: 100ha Forest
             22: "Urban",            # Developed, Low Intensity  
             23: "Urban",            # Developed, Medium Intensity
             24: "Urban",            # Developed, High Intensity
-            41: "Forest",           # Deciduous Forest
+            41: "Temperate Forest", # Deciduous Forest
             42: "Forest",           # Evergreen Forest
             43: "Forest",           # Mixed Forest
             95: "Wetland"           # Emergent Herbaceous Wetlands
