@@ -726,12 +726,21 @@ def display_data_source_status(analysis_results: Dict = None):
                         
                         # Get country from coordinates (exclude for Ocean/Marine points)
                         country = "N/A"
+                        regional_factor = "N/A"
                         if coords and isinstance(coords, dict):
                             lat = coords.get('lat', 0)
                             lon = coords.get('lon', 0)
                             # Don't assign country for Ocean/Marine ecosystem types
                             if (lat != 0 or lon != 0) and esvd_ecosystem != "Marine":  # Valid coordinates and not Ocean
                                 country = get_country_from_coordinates(lat, lon)
+                                
+                                # Calculate regional factor for this point
+                                try:
+                                    from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                                    esvd_calc = PrecomputedESVDCoefficients()
+                                    regional_factor = f"{esvd_calc.get_regional_factor((lat, lon)):.2f}x"
+                                except Exception as e:
+                                    regional_factor = "Error"
                         
                         # Add indicator for user-classified water bodies
                         if landcover_code == 210 and point_data.get('user_classified', False):
@@ -744,6 +753,7 @@ def display_data_source_status(analysis_results: Dict = None):
                             "ESVD Ecosystem": esvd_ecosystem,
                             "Coordinates": coord_str,
                             "Country": country,
+                            "Regional Factor": regional_factor,
                             "Data Source": data_source
                         })
                     
