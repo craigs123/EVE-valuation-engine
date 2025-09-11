@@ -59,9 +59,14 @@ class OpenLandMapSTAC:
         # Reduced memory footprint for pixel extraction
         self.max_cache_size_mb = 50  # Much smaller cache
         
-        # Caching - clear cache to force new asset URL discovery with updated logic
-        self._collection_cache = {}  # Cache collection metadata
+        # Enhanced metadata caching (as per technical guidance)
+        self._collection_cache = {}  # Cache collection metadata  
+        self._item_cache = {}        # Cache STAC item metadata
         self._asset_url_cache = {}   # Cache GeoTIFF asset URLs
+        
+        # Cache TTL for metadata (following guidance for performance)
+        self._cache_ttl_seconds = 3600  # 1 hour cache
+        self._cache_timestamps = {}     # Track cache age
         
         # Performance optimization: LRU Dataset Cache with STRONG references
         # CRITICAL FIX: Use strong references instead of weak ones for actual caching
@@ -1384,22 +1389,30 @@ class OpenLandMapSTAC:
             print(f"❌ Sync STAC query failed: {e}")
             return None
     
-    def _extract_pixel_sync(self, lat: float, lon: float, collection_data: Dict) -> Optional[float]:
+    def _extract_pixel_sync(self, lat: float, lon: float, collection: Dict) -> Optional[float]:
         """
-        Synchronous pixel extraction to avoid async issues
+        Synchronous pixel extraction following proven architecture
+        Implements full flow: Collection Discovery → Item Selection → Asset Resolution → COG Access → Value Extraction
         """
         try:
-            # Find GeoTIFF asset URL from collection data
-            asset_url = self._find_geotiff_asset_url(collection_data)
+            collection_id = collection['id']
+            
+            # Step 1: Collection Discovery (with caching)
+            collection_data = self._get_collection_metadata_cached(collection_id)
+            if not collection_data:
+                return None
+            
+            # Step 2 & 3: Item Selection → Asset Resolution (with caching)
+            asset_url = self._find_geotiff_asset_url(collection_data, collection_id)
             if not asset_url:
                 return None
             
-            # Extract pixel value using rasterio directly
+            # Step 4 & 5: COG Access → Value Extraction
             pixel_value = self._extract_single_pixel_safe(lat, lon, asset_url)
             return pixel_value
             
         except Exception as e:
-            print(f"⚠️ Sync pixel extraction failed: {e}")
+            print(f"⚠️ Sync pixel extraction failed for {collection.get('id', 'unknown')}: {e}")
             return None
     
     def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
@@ -1435,74 +1448,197 @@ class OpenLandMapSTAC:
     
     def _extract_single_pixel_safe(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
         """
-        Safe single pixel extraction with proper resource management
+        Safe single pixel extraction following proven OpenLandMap architecture
+        Based on: Collection Discovery → Item Selection → Asset Resolution → COG Access → Value Extraction
         """
         dataset = None
         try:
             import rasterio
             import os
+            import numpy as np
             
-            # Configure GDAL for stability
-            for key, value in HTTP_ENV.items():
+            # Configure GDAL for better memory management
+            gdal_config = {
+                'GDAL_CACHEMAX': '64',  # Smaller cache to prevent memory issues
+                'VSI_CACHE_SIZE': '5000000',  # 5MB cache per file
+                'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
+                'CPL_VSIL_CURL_USE_HEAD': 'NO',
+                'GDAL_HTTP_TIMEOUT': '15',
+                'SSL_CERT_FILE': HTTP_ENV['SSL_CERT_FILE']
+            }
+            
+            for key, value in gdal_config.items():
                 os.environ[key] = value
             
-            # Open dataset with timeout protection
+            # Coordinate bounds checking (as per technical guidance)
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                print(f"⚠️ Out-of-bounds coordinates: ({lat}, {lon})")
+                return None
+            
+            # Open COG using proven pattern
             dataset = rasterio.open(asset_url)
             
-            # Convert coordinates to pixel indices
-            row, col = dataset.index(lon, lat)
+            # Transform lat/lon to pixel coordinates using image bounds
+            try:
+                row, col = dataset.index(lon, lat)
+            except Exception as coord_error:
+                print(f"⚠️ Coordinate transformation failed for ({lat}, {lon}): {coord_error}")
+                return None
             
-            # Check bounds
-            if 0 <= row < dataset.height and 0 <= col < dataset.width:
-                # Read single pixel
+            # Check pixel bounds (out-of-bounds returns null as per guidance)
+            if not (0 <= row < dataset.height and 0 <= col < dataset.width):
+                return None
+            
+            # Read 1x1 pixel window (following their exact pattern)
+            try:
                 pixel_data = dataset.read(1, window=((row, row+1), (col, col+1)))
                 
                 if pixel_data.size > 0:
                     value = pixel_data[0, 0]
-                    # Filter out nodata values
-                    if value != dataset.nodata and not (hasattr(value, 'mask') and value.mask):
-                        return float(value)
+                    
+                    # Enhanced NoData handling (as mentioned in guidance)
+                    if dataset.nodata is not None and value == dataset.nodata:
+                        return None
+                    
+                    # Handle masked arrays from COG
+                    if hasattr(value, 'mask') and value.mask:
+                        return None
+                    
+                    # Apply scaling factors from STAC metadata if available
+                    # (Technical guidance mentions this is needed)
+                    scaling_factor = getattr(dataset, 'scales', [1.0])[0] if hasattr(dataset, 'scales') else 1.0
+                    offset = getattr(dataset, 'offsets', [0.0])[0] if hasattr(dataset, 'offsets') else 0.0
+                    
+                    scaled_value = float(value) * scaling_factor + offset
+                    
+                    # Filter invalid values
+                    if np.isfinite(scaled_value):
+                        return scaled_value
+            
+            except Exception as read_error:
+                print(f"⚠️ Pixel read failed: {read_error}")
+                return None
             
             return None
             
         except Exception as e:
-            print(f"❌ Safe pixel extraction error: {e}")
+            print(f"❌ COG access failed for {asset_url}: {e}")
             return None
         finally:
-            # Clean up resources
+            # Proper resource cleanup
             if dataset:
                 try:
                     dataset.close()
+                    del dataset
                 except:
                     pass
     
-    def _find_geotiff_asset_url(self, collection_data: Dict) -> Optional[str]:
+    def _get_collection_metadata_cached(self, collection_id: str) -> Optional[Dict]:
         """
-        Find GeoTIFF asset URL from collection data
+        Get collection metadata with caching (following technical guidance)
+        Implements: Collection Discovery step
         """
+        import time
+        import requests
+        
+        cache_key = f"collection_{collection_id}"
+        current_time = time.time()
+        
+        # Check cache validity
+        if (cache_key in self._collection_cache and 
+            cache_key in self._cache_timestamps and
+            current_time - self._cache_timestamps[cache_key] < self._cache_ttl_seconds):
+            return self._collection_cache[cache_key]
+        
         try:
-            if not collection_data.get('links'):
-                return None
+            collection_url = f"{self.stac_base_url}/{collection_id}/collection.json"
+            response = requests.get(collection_url, timeout=10)
             
-            # Look for items in collection
+            if response.status_code == 200:
+                collection_data = response.json()
+                # Cache the metadata
+                self._collection_cache[cache_key] = collection_data
+                self._cache_timestamps[cache_key] = current_time
+                return collection_data
+                
+        except Exception as e:
+            print(f"⚠️ Collection metadata fetch failed for {collection_id}: {e}")
+        
+        return None
+    
+    def _get_latest_item_cached(self, collection_data: Dict, collection_id: str) -> Optional[Dict]:
+        """
+        Get latest STAC item with caching (following technical guidance)
+        Implements: Item Selection step
+        """
+        import time
+        import requests
+        
+        cache_key = f"item_{collection_id}"
+        current_time = time.time()
+        
+        # Check cache validity
+        if (cache_key in self._item_cache and 
+            cache_key in self._cache_timestamps and
+            current_time - self._cache_timestamps[cache_key] < self._cache_ttl_seconds):
+            return self._item_cache[cache_key]
+        
+        try:
+            # Find latest item link (rel: "item") as per guidance
+            latest_item_url = None
             for link in collection_data.get('links', []):
                 if link.get('rel') == 'item':
-                    # This is simplified - in practice would need to find recent items
-                    item_url = link.get('href')
-                    if item_url:
-                        # Get item data and find GeoTIFF asset
-                        import requests
-                        response = requests.get(item_url, timeout=10)
-                        if response.status_code == 200:
-                            item_data = response.json()
-                            assets = item_data.get('assets', {})
-                            
-                            # Find first GeoTIFF asset
-                            for asset_key, asset_info in assets.items():
-                                if isinstance(asset_info, dict):
-                                    asset_type = asset_info.get('type', '')
-                                    if 'geotiff' in asset_type.lower() or 'tiff' in asset_type.lower():
-                                        return asset_info.get('href')
+                    latest_item_url = link.get('href')
+                    break  # Take first/latest item
+            
+            if latest_item_url:
+                response = requests.get(latest_item_url, timeout=10)
+                if response.status_code == 200:
+                    item_data = response.json()
+                    # Cache the item metadata
+                    self._item_cache[cache_key] = item_data
+                    self._cache_timestamps[cache_key] = current_time
+                    return item_data
+                    
+        except Exception as e:
+            print(f"⚠️ Item metadata fetch failed for {collection_id}: {e}")
+        
+        return None
+    
+    def _find_geotiff_asset_url(self, collection_data: Dict, collection_id: str = None) -> Optional[str]:
+        """
+        Find GeoTIFF asset URL following proven architecture
+        Implements: Asset Resolution step (roles: ['data'] or asset.main === true)
+        """
+        try:
+            if not collection_id:
+                return None
+            
+            # Get latest item using cached approach
+            item_data = self._get_latest_item_cached(collection_data, collection_id)
+            if not item_data:
+                return None
+            
+            assets = item_data.get('assets', {})
+            
+            # Select main data asset (following technical guidance)
+            for asset_key, asset_info in assets.items():
+                if isinstance(asset_info, dict):
+                    # Check for main data asset (roles: ['data'] or asset.main === true)
+                    roles = asset_info.get('roles', [])
+                    is_main = asset_info.get('main', False)
+                    asset_type = asset_info.get('type', '')
+                    
+                    # Priority: main data assets with GeoTIFF type
+                    if ('data' in roles or is_main) and ('geotiff' in asset_type.lower() or 'tiff' in asset_type.lower()):
+                        return asset_info.get('href')
+            
+            # Fallback: any GeoTIFF asset
+            for asset_key, asset_info in assets.items():
+                if isinstance(asset_info, dict):
+                    asset_type = asset_info.get('type', '')
+                    if 'geotiff' in asset_type.lower() or 'tiff' in asset_type.lower():
+                        return asset_info.get('href')
             
             return None
             
