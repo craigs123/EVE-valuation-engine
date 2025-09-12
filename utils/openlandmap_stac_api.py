@@ -1548,8 +1548,8 @@ class OpenLandMapSTAC:
             landcover_urls = [
                 # Primary ESA land cover URL (updated)
                 "https://s3.eu-central-1.wasabisys.com/stac/openlandmap/land.cover_esacci.lc.l4/land.cover_esacci.lc.l4_20200101_20201231/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif",
-                # Backup URLs
-                "https://s3.openlandmap.org/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_espg.4326_v20230608.tif",
+                # Backup URLs  
+                "https://s3.openlandmap.org/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif",
                 "https://cloud.vito.be/s3/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif"
             ]
             
