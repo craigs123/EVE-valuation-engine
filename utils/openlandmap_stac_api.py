@@ -767,12 +767,10 @@ class OpenLandMapSTAC:
         try:
             # Collection-specific fallback URLs for different data types
             collection_fallback_urls = {
-                # Land Cover Collection - Updated URLs for reliability
+                # Land Cover Collection - Fallback to working URLs due to SSL certificate issues
                 "land.cover_esacci.lc.l4": [
                     "https://s3.eu-central-1.wasabisys.com/openlandmap/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
                     "https://zenodo.org/records/3939038/files/ESACCI-LC-L4-LCCS-Map-300m-P1Y-2020-v2.1.1.tif",
-                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2020_v1.0.tif",
-                    "https://s3.openlandmap.org/arco/lcv_land.cover_esacci.lc.l4_c_250m_s0..0cm_2019_v1.0.tif",
                 ],
                 # Water Occurrence / Land Mask Collection
                 "water.occurrence_jrc.surfacewater": [
@@ -1398,6 +1396,7 @@ class OpenLandMapSTAC:
         
         return results
     
+    
     def _normalize_ecosystem_type(self, ecosystem_type: str) -> str:
         """
         Normalize ecosystem type to ensure consistent naming
@@ -1442,7 +1441,7 @@ class OpenLandMapSTAC:
                     return landcover_result
                 else:
                     print(f"⚠️ Direct landcover extraction failed, using fallback detection")
-                    return self._geographic_fallback(q_lat, q_lon)
+                    return self._fallback_ecosystem_detection(q_lat, q_lon)
             
             return _cached_extract_landcover(quantized_lat, quantized_lon)
         except ImportError:
@@ -1527,9 +1526,19 @@ class OpenLandMapSTAC:
     
     
     def _fix_corrupt_url(self, url: str) -> str:
-        """Fix known corrupted URLs in STAC metadata"""
+        """Fix SSL certificate issues by mapping broken domain to working mirror"""
+        # Fix typo in STAC metadata  
         if "go_espg.4326" in url:
-            return url.replace("go_espg.4326", "go_epsg.4326")
+            url = url.replace("go_espg.4326", "go_epsg.4326")
+        
+        # Map broken SSL domain to working mirror with correct file paths
+        if "s3.openlandmap.org" in url:
+            url = url.replace("s3.openlandmap.org", "s3.eu-central-1.wasabisys.com")
+            # Fix path structure - files are in /openlandmap/ not /arco/
+            if "/arco/" in url:
+                url = url.replace("/arco/", "/openlandmap/")
+            print(f"🔄 Mapped broken SSL domain to working mirror with correct path")
+        
         return url
     
     def _try_nearby_coordinates(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
@@ -1594,10 +1603,8 @@ class OpenLandMapSTAC:
             if dataset is None:
                 print(f"❌ Failed to open dataset: {asset_url[:50]}...")
                 # If this is the main STAC URL and it failed, trigger fallback to backup URLs
-                if "s3.openlandmap.org/arco/land.cover_esacci" in fixed_url:
-                    print(f"🔄 STAC URL failed, falling back to direct landcover extraction...")
-                    return None  # This will trigger the fallback in the calling function
-                return None
+                print(f"🔄 STAC URL failed, falling back to direct landcover extraction...")
+                return None  # This will trigger the fallback in the calling function
             
             # Transform lat/lon to pixel coordinates using image bounds
             try:

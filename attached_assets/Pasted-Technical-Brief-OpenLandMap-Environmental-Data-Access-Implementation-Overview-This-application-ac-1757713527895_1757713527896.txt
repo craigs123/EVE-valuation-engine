@@ -1,0 +1,65 @@
+Technical Brief: OpenLandMap Environmental Data Access Implementation
+Overview
+This application accesses OpenLandMap environmental indicators through their STAC catalog, not traditional REST APIs. It samples Cloud-Optimized GeoTIFFs (COGs) directly to extract pixel values at user-specified coordinates.
+
+Data Flow Architecture
+Entry Point: POST /api/query
+
+Input: { lat, lon, collection } (validated by coordinateQuerySchema)
+Frontend form sends coordinates to backend for processing
+Core Integration: queryOpenLandMapSTAC(lat, lon)
+
+Targets OpenLandMap STAC catalog: https://s3.eu-central-1.wasabisys.com/stac/openlandmap
+Processes multiple collection IDs simultaneously for comprehensive environmental data
+Environmental Indicator Access Methods
+1. Land Mask Percentage
+Collection ID: "water.occurrence_jrc.surfacewater"
+Source: JRC Surface Water Occurrence dataset
+Processing: Raw numeric value preserved (0=always land, 100=always water)
+Output: Categorized as landmask, displayed in Land Cover section
+2. Vegetation Indices
+EVI Collection: "evi_mod13q1.tmwm.inpaint"
+fAPAR Collection: "fapar_essd.lstm"
+Processing: Raw index/fraction values returned without scaling
+Output: Categorized as vegetation, displayed in Land Cover section
+3. Elevation Data
+Collection ID: "dtm.bareearth_ensemble"
+Source: Bare-earth Digital Terrain Model
+Units: Meters above sea level
+Output: Categorized as terrain, displayed in Climate section as "Elevation"
+4. Soil Properties
+Collection ID: "log.oc_iso.10694"
+Metric: Soil Organic Carbon
+Units: g/kg
+Output: Categorized as soil, displayed in dedicated Soil section
+Technical Implementation Details
+Pixel Sampling Process
+Collection Discovery: Fetch collection.json from STAC catalog
+Item Selection: Find latest item link (rel: "item")
+Asset Resolution: Select main data asset (roles: ['data'] or asset.main === true)
+COG Access: Use geotiff.fromUrl(asset.href) to open Cloud-Optimized GeoTIFF
+Coordinate Conversion: Transform lat/lon to pixel coordinates using image bounds
+Value Extraction: Read 1x1 pixel window via image.readRasters({ window })
+Data Processing Pipeline
+Normalization: processSTACData() converts raw values into EnvironmentalData schema
+Categorization: Routes indicators to appropriate UI sections (climate, landCover, soil, biodiversity)
+Unit Handling: Preserves original units with category-specific formatting
+Special Case: Biodiversity Intactness Index (BII)
+Data Source: Local CSV file (server/data/bii_data.csv) - not STAC
+Processing: Coordinate-to-country mapping using UN M49 area codes
+Features: Historical trend data with year-over-year analysis
+Output: Percentage display with trend visualization
+Key Technical Considerations
+Error Handling
+Out-of-bounds coordinates return null
+Failed COG reads are logged but don't break the entire response
+Graceful degradation when individual collections are unavailable
+Performance Optimizations Needed
+Caching: STAC collection/item metadata should be cached
+Scaling: Implement proper scaling factors from STAC metadata
+NoData Handling: Add NoData mask processing for cleaner results
+Security
+All external reads are over HTTPS to public datasets
+No API keys or secrets required
+Local BII CSV is read-only access
+This implementation provides real-time environmental data access while maintaining data integrity and handling the complexities of geospatial data formats.
