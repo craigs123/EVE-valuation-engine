@@ -2386,9 +2386,9 @@ elif use_test_area_single:
             "location": "Rural US Corn Belt, central Illinois"
         },
         "🌱 Test area (Grassland)": {
-            "coords": calculate_1000ha_coordinates(45.0, -110.5),
-            "description": "Montana Grassland (45.0°N, 110.5°W) | Expected: Grassland ecosystem",
-            "location": "Montana/Wyoming Great Plains"
+            "coords": calculate_1000ha_coordinates(-16.45, 126.5),
+            "description": "Australian Grassland (-16.45°S, 126.5°E) | Expected: Grassland ecosystem",
+            "location": "Western Australia"
         },
         "🌲 Test area (Boreal Forest)": {
             "coords": calculate_1000ha_coordinates(50.5, -85.0),
@@ -2691,7 +2691,7 @@ if st.session_state.get('use_test_area_zoom', False):
         # Get center coordinates for test area
         ecosystem_zoom_coords = {
             "🌾 Test area (Agricultural)": (40.1, -87.97),     # Illinois Corn Belt
-            "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
+            "🌱 Test area (Grassland)": (-16.45, 126.5),       # Western Australia
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
