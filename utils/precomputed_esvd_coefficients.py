@@ -809,7 +809,7 @@ class PrecomputedESVDCoefficients:
         ecosystem_key = ecosystem_type.lower()
         return self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
 
-    def get_coefficient(self, ecosystem_type: str, service_type: str, coordinates: tuple = None) -> float:
+    def get_coefficient(self, ecosystem_type: str, service_type: str, coordinates: tuple | None = None) -> float:
         """
         Get pre-computed coefficient for ecosystem service with forest type detection
         
@@ -875,7 +875,7 @@ class PrecomputedESVDCoefficients:
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple | None = None, urban_green_blue_multiplier: float = 1.0,
-                                 ecosystem_intactness_multiplier: float = 1.0, regional_factor_override: float = None) -> dict:
+                                 ecosystem_intactness_multiplier: float = 1.0, regional_factor_override: float | None = None) -> dict:
         """
         Calculate ecosystem service values using pre-computed coefficients with forest type detection
         
@@ -918,7 +918,7 @@ class PrecomputedESVDCoefficients:
             category_services = {}
             
             for service, esvd_service in services.items():
-                coefficient = self.get_coefficient(detected_ecosystem_type, esvd_service, coordinates)
+                coefficient = self.get_coefficient(detected_ecosystem_type, esvd_service, coordinates if coordinates else None)
                 value = coefficient * area_hectares * regional_factor
                 
                 # Apply urban green/blue infrastructure multiplier for Urban ecosystems (at service level)
