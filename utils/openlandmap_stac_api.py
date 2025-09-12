@@ -1238,21 +1238,18 @@ class OpenLandMapSTAC:
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
     
-    def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
-        """
-        Direct landcover extraction - delegates to cached version for better performance
-        """
-        return self._extract_landcover_direct_uncached(lat, lon)
     
-    def _extract_landcover_direct_uncached(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
+    def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
         """
         Direct landcover extraction using fallback URLs when STAC collections fail (uncached version)
         """
         try:
             collection_id = "land.cover_esacci.lc.l4"
             asset_url = self.get_stac_asset_url(collection_id)
+            print(f"🔍 STAC API returned URL: {asset_url}")
             
             if asset_url:
+                print(f"✅ Using STAC URL: {asset_url}")
                 pixel_value = self.extract_pixel_value(asset_url, lat, lon)
                 
                 if pixel_value is not None:
@@ -1458,12 +1455,12 @@ class OpenLandMapSTAC:
             def _cached_extract_landcover(q_lat: float, q_lon: float) -> Dict[str, Any]:
                 # Skip complex STAC discovery - use direct landcover extraction immediately
                 print(f"🔄 Fast mode: Trying direct landcover extraction for ({q_lat}, {q_lon})")
-                landcover_result = self._extract_landcover_direct_uncached(q_lat, q_lon)
+                landcover_result = self._extract_landcover_direct(q_lat, q_lon)
                 if landcover_result:
                     return landcover_result
                 else:
                     print(f"⚠️ Direct landcover extraction failed, using fallback detection")
-                    return self._fallback_ecosystem_detection(q_lat, q_lon)
+                    return self._geographic_fallback(q_lat, q_lon)
             
             return _cached_extract_landcover(quantized_lat, quantized_lon)
         except ImportError:
@@ -1546,62 +1543,6 @@ class OpenLandMapSTAC:
             print(f"⚠️ Sync pixel extraction failed for {collection.get('id', 'unknown')}: {e}")
             return None
     
-    def _extract_landcover_direct(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
-        """
-        Direct land cover extraction using multiple fallback ESA data sources
-        """
-        try:
-            # Try multiple land cover data sources as fallbacks
-            landcover_urls = [
-                # Primary ESA land cover URL (updated)
-                "https://s3.eu-central-1.wasabisys.com/stac/openlandmap/land.cover_esacci.lc.l4/land.cover_esacci.lc.l4_20200101_20201231/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif",
-                # Backup URLs  
-                "https://s3.openlandmap.org/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif",
-                "https://cloud.vito.be/s3/arco/land.cover_esacci.lc.l4_c_250m_s_20200101_20201231_go_epsg.4326_v20230608.tif"
-            ]
-            
-            # Try each URL until one works
-            for esa_url in landcover_urls:
-                print(f"🔍 Trying land cover URL: {esa_url[:80]}...")
-            
-                pixel_value = self._extract_single_pixel_safe(lat, lon, esa_url)
-                if pixel_value is not None:
-                    print(f"✅ Successfully extracted land cover pixel value: {pixel_value}")
-                    break
-                else:
-                    print(f"⚠️ Failed to extract from {esa_url[:50]}..., trying next URL")
-                    continue  # Ensure we try the next URL
-            
-            if pixel_value is not None:
-                # Process the ESA code through existing mapping
-                esa_code = int(pixel_value)
-                raw_ecosystem_type = self.landcover_to_esvd.get(esa_code, "Grassland")
-                
-                # Normalize cropland synonyms to "agricultural" (fix for Cropland vs agricultural issue)
-                ecosystem_type = self._normalize_ecosystem_type(raw_ecosystem_type)
-                
-                # Debug the mapping for troubleshooting ESA codes 11, 40, 130
-                if esa_code in [11, 40, 130, 41]:
-                    print(f"🔍 ESA MAPPING DEBUG: Code {esa_code} → raw:{raw_ecosystem_type} → normalized:{ecosystem_type}")
-                
-                ecosystem_info = {"ecosystem_type": ecosystem_type}
-                
-                return {
-                    "ecosystem_type": ecosystem_info["ecosystem_type"],
-                    "landcover_class": int(pixel_value),
-                    "coordinates": {"lat": lat, "lon": lon},
-                    "data_source": "Direct ESA Land Cover Extraction",
-                    "raw_stac_data": {
-                        "pixel_value": pixel_value,
-                        "asset_url": esa_url
-                    },
-                    "query_time": json.dumps({"timestamp": "now"}, default=str)
-                }
-            return None
-            
-        except Exception as e:
-            print(f"⚠️ Direct land cover extraction failed: {e}")
-            return None
     
     def _fix_corrupt_url(self, url: str) -> str:
         """Fix known corrupted URLs in STAC metadata"""
@@ -1912,14 +1853,29 @@ class OpenLandMapSTAC:
     
     def _fallback_ecosystem_detection(self, lat: float, lon: float) -> Dict[str, Any]:
         """
-        Fallback ecosystem detection when STAC API completely fails
+        Simple geographic-based fallback when satellite data fails
         """
+        # Basic geographic heuristics when all satellite data fails
+        abs_lat = abs(lat)
+        
+        # Simple geographic rules for basic ecosystem classification
+        if abs_lat > 66.5:  # Arctic/Antarctic
+            ecosystem_type = "Polar"
+        elif abs_lat > 55:  # Northern Canada, Siberia
+            ecosystem_type = "Boreal Forest"
+        elif abs_lat > 35:  # Mid-latitudes
+            ecosystem_type = "Temperate Forest"
+        elif abs_lat > 23.5:  # Subtropics
+            ecosystem_type = "Grassland"
+        else:  # Tropics
+            ecosystem_type = "Tropical Forest"
+            
         return {
-            "ecosystem_type": "Unknown",
+            "ecosystem_type": ecosystem_type,
             "landcover_class": None,
             "coordinates": {"lat": lat, "lon": lon},
-            "data_source": "Error: STAC API Failed",
-            "error": "STAC API processing failed - all methods exhausted",
+            "data_source": "Geographic Heuristic (Satellite Unavailable)",
+            "error": "Using basic latitude-based classification",
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
 
