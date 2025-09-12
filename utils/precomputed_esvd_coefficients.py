@@ -874,7 +874,8 @@ class PrecomputedESVDCoefficients:
         return round(bounded_factor, 2)
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
-                                 coordinates: tuple | None = None, urban_green_blue_multiplier: float = 1.0) -> dict:
+                                 coordinates: tuple | None = None, urban_green_blue_multiplier: float = 1.0,
+                                 ecosystem_intactness_multiplier: float = 1.0) -> dict:
         """
         Calculate ecosystem service values using pre-computed coefficients with forest type detection
         
@@ -883,6 +884,7 @@ class PrecomputedESVDCoefficients:
             area_hectares: Area in hectares  
             coordinates: Optional coordinates for regional adjustment and forest type detection
             urban_green_blue_multiplier: Multiplier for urban green/blue infrastructure (default 1.0)
+            ecosystem_intactness_multiplier: Ecosystem-specific intactness/biodiversity multiplier (default 1.0)
             
         Returns:
             Dictionary with calculated values by service category
@@ -920,6 +922,9 @@ class PrecomputedESVDCoefficients:
                 # Apply urban green/blue infrastructure multiplier for Urban ecosystems (at service level)
                 if detected_ecosystem_type.lower() == 'urban':
                     value *= urban_green_blue_multiplier
+                
+                # Apply ecosystem-specific intactness/biodiversity multiplier (at service level)
+                value *= ecosystem_intactness_multiplier
                 
                 category_services[service] = value
                 category_total += value

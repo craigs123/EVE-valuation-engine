@@ -3870,23 +3870,23 @@ if analyze_button and st.session_state.selected_area:
                     eco_area = area_ha * proportion
                     
                     # Calculate value for this ecosystem type with forest type detection
-                    # Pass urban green/blue multiplier for urban ecosystems
+                    # Pass both urban green/blue multiplier and ecosystem-specific intactness multiplier
                     urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
                     urban_multiplier = urban_multiplier_percent / 100.0
+                    
+                    # Get ecosystem-specific intactness multiplier
+                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                    intactness_multiplier = _get_ecosystem_intactness_multiplier(eco_type, ecosystem_intactness)
+                    
                     eco_result = coeffs.calculate_ecosystem_values(
                         ecosystem_type=eco_type,
                         area_hectares=eco_area,
                         coordinates=(center_lat, center_lon),
-                        urban_green_blue_multiplier=urban_multiplier
+                        urban_green_blue_multiplier=urban_multiplier,
+                        ecosystem_intactness_multiplier=intactness_multiplier
                     )
                     
-                    # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
-                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                    # Get multiplier with forest type fallback logic
-                    eco_type_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
-                    eco_result['total_value'] = eco_result['total_value'] * eco_type_multiplier
-                    
-                    # Urban Green/Blue Infrastructure multiplier now applied at service level in ESVD calculation
+                    # Both urban green/blue and ecosystem intactness multipliers now applied at service level in ESVD calculation
                     
                     # Apply ESA land cover code specific multiplier if available
                     if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
@@ -3949,28 +3949,24 @@ if analyze_button and st.session_state.selected_area:
             else:
                 # Single ecosystem calculation with forest type detection
                 coeffs = get_precomputed_coefficients()
-                # Pass urban green/blue multiplier for urban ecosystems
+                # Pass both urban green/blue multiplier and ecosystem-specific intactness multiplier
                 urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
                 urban_multiplier = urban_multiplier_percent / 100.0
+                
+                # Get ecosystem-specific intactness multiplier
+                ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
+                
                 esvd_results = coeffs.calculate_ecosystem_values(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
                     coordinates=(center_lat, center_lon),
-                    urban_green_blue_multiplier=urban_multiplier
+                    urban_green_blue_multiplier=urban_multiplier,
+                    ecosystem_intactness_multiplier=intactness_multiplier
                 )
                 
                 
-                # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
-                ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                ecosystem_type_for_multiplier = esvd_results.get('ecosystem_type', ecosystem_type)
-                user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_multiplier, ecosystem_intactness)
-                
-                # Apply ecosystem-specific intactness factor
-                esvd_results['total_value'] = esvd_results.get('total_value', 0) * user_quality_factor
-                esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
-                esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
-                
-                # Urban Green/Blue Infrastructure multiplier now applied at service level in ESVD calculation
+                # Both urban green/blue and ecosystem intactness multipliers now applied at service level in ESVD calculation
                 
                 # Apply ESA land cover code specific multiplier if available
                 if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
