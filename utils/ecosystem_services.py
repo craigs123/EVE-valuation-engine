@@ -138,8 +138,9 @@ class EcosystemServicesCalculator:
                 coordinates = self._extract_coordinates(area_bounds)
             
             # Calculate values using pre-computed authentic ESVD coefficients (use effective land area)
+            # Pass urban green/blue multiplier for urban ecosystems
             esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
-                ecosystem_type, effective_area_ha, coordinates if coordinates else None
+                ecosystem_type, effective_area_ha, coordinates if coordinates else None, urban_green_blue_multiplier
             )
             
             # Override regional factor with predominant country if available
@@ -184,11 +185,7 @@ class EcosystemServicesCalculator:
                     quality_multiplier = quality_factor
                     quality = "user_defined"  # Fallback to single quality factor
                 
-                # Apply urban green/blue infrastructure multiplier for Urban ecosystems
-                # This reflects that only a portion of urban areas contain actual green/blue infrastructure
-                if ecosystem_type == "Urban":
-                    quality_multiplier *= urban_green_blue_multiplier
-                    quality += f"_urban_green_blue_{urban_green_blue_multiplier:.2f}x"
+                # Urban green/blue infrastructure multiplier now applied at service level in ESVD calculation
                 
                 # Apply ESVD values with quality adjustments
                 provisioning_value = self._apply_esvd_values(
@@ -326,9 +323,9 @@ class EcosystemServicesCalculator:
                 # Calculate area for this ecosystem type (based on land area only)
                 ecosystem_area_ha = land_area_ha * (percentage / 100.0)
                 
-                # Get ESVD values for this ecosystem type
+                # Get ESVD values for this ecosystem type (pass urban multiplier)
                 esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
-                    ecosystem_type, ecosystem_area_ha, coordinates
+                    ecosystem_type, ecosystem_area_ha, coordinates, urban_green_blue_multiplier
                 )
                 
                 if 'error' in esvd_results:
@@ -347,11 +344,7 @@ class EcosystemServicesCalculator:
                         quality_multiplier = quality_factor
                         quality = "user_defined"  # Fallback
                     
-                    # Apply urban green/blue infrastructure multiplier for Urban ecosystems
-                    # This reflects that only a portion of urban areas contain actual green/blue infrastructure
-                    if ecosystem_type == "Urban":
-                        quality_multiplier *= urban_green_blue_multiplier
-                        quality += f"_urban_green_blue_{urban_green_blue_multiplier:.2f}x"
+                    # Urban green/blue infrastructure multiplier now applied at service level in ESVD calculation
                     
                     # Apply ESVD values with quality adjustments
                     provisioning_value = self._apply_esvd_values(
