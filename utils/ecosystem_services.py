@@ -164,13 +164,9 @@ class EcosystemServicesCalculator:
             # Calculate values using pre-computed authentic ESVD coefficients (use effective land area)
             # Calculate intactness multiplier first
             if ecosystem_intactness:
-                print(f"🔍 DEBUG: ecosystem_intactness dict = {ecosystem_intactness}")
-                print(f"🔍 DEBUG: ecosystem_type = {ecosystem_type}")
                 intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
-                print(f"🔍 DEBUG: intactness_multiplier = {intactness_multiplier}")
             else:
                 intactness_multiplier = quality_factor
-                print(f"🔍 DEBUG: using quality_factor = {intactness_multiplier}")
             
             # Pass urban green/blue multiplier, intactness multiplier, and regional factor override
             esvd_results = self.precomputed_esvd.calculate_ecosystem_values(

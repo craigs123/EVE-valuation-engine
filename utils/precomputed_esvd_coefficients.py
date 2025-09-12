@@ -892,8 +892,6 @@ class PrecomputedESVDCoefficients:
         """
         # Use override regional factor if provided, otherwise calculate from coordinates
         regional_factor = regional_factor_override if regional_factor_override is not None else self.get_regional_factor(coordinates)
-        print(f"🔍 DEBUG: regional_factor_override = {regional_factor_override}")
-        print(f"🔍 DEBUG: final regional_factor = {regional_factor}")
         
         # Enhanced forest type detection
         detected_ecosystem_type = ecosystem_type
@@ -921,20 +919,14 @@ class PrecomputedESVDCoefficients:
             
             for service, esvd_service in services.items():
                 coefficient = self.get_coefficient(detected_ecosystem_type, esvd_service, coordinates)
-                print(f"🔍 DEBUG: {service} - detected_ecosystem_type={detected_ecosystem_type}, esvd_service={esvd_service}")
-                print(f"🔍 DEBUG: {service} - coefficient={coefficient}, area={area_hectares}, regional_factor={regional_factor}")
                 value = coefficient * area_hectares * regional_factor
-                print(f"🔍 DEBUG: {service} - calculated value = {value}")
                 
                 # Apply urban green/blue infrastructure multiplier for Urban ecosystems (at service level)
                 if detected_ecosystem_type.lower() == 'urban':
                     value *= urban_green_blue_multiplier
                 
                 # Apply ecosystem-specific intactness/biodiversity multiplier (at service level)
-                print(f"🔍 DEBUG: ecosystem_intactness_multiplier = {ecosystem_intactness_multiplier}")
-                print(f"🔍 DEBUG: value BEFORE multiplier = {value}")
                 value *= ecosystem_intactness_multiplier
-                print(f"🔍 DEBUG: value AFTER multiplier = {value}")
                 
                 category_services[service] = value
                 category_total += value
