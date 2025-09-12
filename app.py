@@ -4520,6 +4520,10 @@ if st.session_state.analysis_results:
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
         st.markdown("### 🌿 Ecosystem Services Breakdown")
+        
+        # Add reliability warning
+        st.warning("⚠️ Although the ecosystem service values are based on the results of more than 10,000 studies, some services remain poorly understood. Be aware that some values may be based on fewer than five studies and should therefore be considered unreliable. We recommend using primary research to check suspect values.")
+        
         esvd_data = results['esvd_results']
         
         # Check if we have the expected categories directly
