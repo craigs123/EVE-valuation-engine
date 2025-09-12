@@ -1691,7 +1691,7 @@ with st.sidebar:
         
         # Initialize urban multiplier in session state if not exists
         if 'urban_green_blue_multiplier' not in st.session_state:
-            st.session_state.urban_green_blue_multiplier = 15.0  # Default 15%
+            st.session_state.urban_green_blue_multiplier = 18.0  # Default 18%
         
         urban_multiplier = st.slider(
             "🌳 Green/Blue Infrastructure Coverage (%)",
@@ -1700,7 +1700,7 @@ with st.sidebar:
             value=st.session_state.urban_green_blue_multiplier,
             step=1.0,
             key="urban_multiplier_slider",
-            help="Percentage of urban area that contains green spaces, parks, urban forests, or water features that provide ecosystem services"
+            help="Based on global satellite studies (Huang et al. 2018). The WHO minimum guidelines equate to about 10-15% of the City area (depending on population size). Many cities have much a higher percentage of green/blue infrastructure. According to the EEA (Urban Atlas 2018), European cities tend to have coverage of 30-50%. North American cities have 20%-40% coverage (US EPA 2021)."
         )
         st.session_state.urban_green_blue_multiplier = urban_multiplier
         
@@ -1710,12 +1710,12 @@ with st.sidebar:
         
         # Explanation
         st.markdown("""
-        **📚 Background:** Studies show that only 10-20% of typical urban areas consist of green and blue infrastructure:
+        **📚 Background:** Studies show that urban areas vary significantly in green and blue infrastructure coverage:
         - **Green Infrastructure**: Parks, urban forests, green roofs, tree-lined streets
         - **Blue Infrastructure**: Urban waterways, constructed wetlands, retention ponds
         - **Mixed Areas**: Green corridors, riparian zones, urban gardens
         
-        **🔬 Default (15%)**: Based on global urban analysis - only green/blue portions provide ecosystem services
+        **🔬 Default (18%)**: Based on global satellite studies (Huang et al. 2018) - only green/blue portions provide ecosystem services
         """)
         
         # Store in session state
