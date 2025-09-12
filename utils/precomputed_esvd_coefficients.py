@@ -926,7 +926,10 @@ class PrecomputedESVDCoefficients:
                     value *= urban_green_blue_multiplier
                 
                 # Apply ecosystem-specific intactness/biodiversity multiplier (at service level)
+                print(f"🔍 DEBUG: ecosystem_intactness_multiplier = {ecosystem_intactness_multiplier}")
+                print(f"🔍 DEBUG: value BEFORE multiplier = {value}")
                 value *= ecosystem_intactness_multiplier
+                print(f"🔍 DEBUG: value AFTER multiplier = {value}")
                 
                 category_services[service] = value
                 category_total += value
