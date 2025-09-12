@@ -2594,9 +2594,9 @@ def lat_to_mercator_y(lat):
     lat = max(-85.05112878, min(85.05112878, lat))  # Clamp to Web Mercator bounds
     return (1 - math.log(math.tan(math.pi/4 + math.radians(lat)/2)) / math.pi) / 2
 
-def compute_zoom_for_bbox(bbox, viewport=(1200, 700), padding=0.10, map_max_zoom=20, map_min_zoom=2):
-    """Calculate optimal zoom level for a bounding box to fit in viewport with padding
-    Optimized for areas as small as 10ha (minimum expected area size)"""
+def compute_zoom_for_bbox(bbox, viewport=(1200, 700), padding=0.02, map_max_zoom=20, map_min_zoom=2):
+    """Calculate optimal zoom level for a bounding box to almost fill the viewport
+    Areas should take up 90-95% of the map display for optimal visibility"""
     if not bbox:
         return map_min_zoom
     
@@ -2612,27 +2612,31 @@ def compute_zoom_for_bbox(bbox, viewport=(1200, 700), padding=0.10, map_max_zoom
         y2 = lat_to_mercator_y(bbox['max_lat'])
         dy_frac = abs(y2 - y1)
         
-        # Set minimum spans based on 10ha (smallest expected area)
-        # 10ha = 0.1 km² = ~316m × 316m square
-        # At equator: ~316m ≈ 0.00284° latitude ≈ 0.00284° longitude
-        min_span_deg = 0.003  # Slightly larger than 10ha span for good visibility
-        dx_frac = max(dx_frac, min_span_deg / 360.0)
-        dy_frac = max(dy_frac, min_span_deg)
+        # Prevent division by zero for extremely tiny spans
+        dx_frac = max(dx_frac, 1e-8)
+        dy_frac = max(dy_frac, 1e-8)
         
-        # Calculate zoom levels for both dimensions with optimized padding for small areas
-        # Use smaller padding for very small areas to get closer zoom
-        effective_padding = max(0.05, padding * min(1.0, dx_frac * 1000))
+        # Use very tight padding to make areas almost fill the display
+        # Smaller areas get even tighter padding for maximum visibility
+        area_size_factor = min(dx_frac * 1000, dy_frac * 1000)  # Rough size indicator
+        if area_size_factor < 0.1:  # Very small areas (10ha-1000ha range)
+            effective_padding = 0.01  # Almost no padding - fill 99% of viewport
+        else:
+            effective_padding = max(0.02, padding)  # Minimal padding for larger areas
         
-        zoom_x = math.log2(viewport[0] / (256 * (1 + effective_padding) * dx_frac)) if dx_frac > 0 else map_max_zoom
-        zoom_y = math.log2(viewport[1] / (256 * (1 + effective_padding) * dy_frac)) if dy_frac > 0 else map_max_zoom
+        # Calculate zoom levels for both dimensions
+        zoom_x = math.log2(viewport[0] / (256 * (1 + effective_padding) * dx_frac))
+        zoom_y = math.log2(viewport[1] / (256 * (1 + effective_padding) * dy_frac))
         
-        # Use the more restrictive zoom (ensures entire area fits)
-        zoom = math.floor(min(zoom_x, zoom_y))
+        # Use the more restrictive zoom (ensures entire area fits) and round up for tighter fit
+        zoom = math.ceil(min(zoom_x, zoom_y))  # Changed from floor to ceil for closer zoom
         
-        # For very small areas (10ha-100ha), ensure minimum zoom level for visibility
-        area_span = max(dx_frac * 360.0, dy_frac)  # Rough area indicator
-        if area_span < 0.01:  # Very small areas
-            zoom = max(zoom, 15)  # Ensure at least zoom 15 for small areas
+        # Ensure good zoom levels for different area sizes
+        # For 1000ha areas, we want them to almost fill the viewport
+        if dx_frac * 360.0 < 0.05 and dy_frac < 0.05:  # Areas roughly 1000ha and smaller
+            zoom = max(zoom, 16)  # Minimum zoom 16 for 1000ha areas
+        elif dx_frac * 360.0 < 0.01 and dy_frac < 0.01:  # Very small areas (10ha-100ha)
+            zoom = max(zoom, 18)  # Higher zoom for very small areas
         
         # Clamp to map limits
         return max(map_min_zoom, min(map_max_zoom, zoom))
