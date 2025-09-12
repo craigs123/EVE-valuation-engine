@@ -1457,10 +1457,12 @@ class OpenLandMapSTAC:
             @st.cache_data(ttl=3600, max_entries=10000)  # 1 hour TTL, 10k max entries
             def _cached_extract_landcover(q_lat: float, q_lon: float) -> Dict[str, Any]:
                 # Skip complex STAC discovery - use direct landcover extraction immediately
+                print(f"🔄 Fast mode: Trying direct landcover extraction for ({q_lat}, {q_lon})")
                 landcover_result = self._extract_landcover_direct_uncached(q_lat, q_lon)
                 if landcover_result:
                     return landcover_result
                 else:
+                    print(f"⚠️ Direct landcover extraction failed, using fallback detection")
                     return self._fallback_ecosystem_detection(q_lat, q_lon)
             
             return _cached_extract_landcover(quantized_lat, quantized_lon)
