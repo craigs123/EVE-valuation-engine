@@ -2594,9 +2594,9 @@ def lat_to_mercator_y(lat):
     lat = max(-85.05112878, min(85.05112878, lat))  # Clamp to Web Mercator bounds
     return (1 - math.log(math.tan(math.pi/4 + math.radians(lat)/2)) / math.pi) / 2
 
-def compute_zoom_for_bbox(bbox, viewport=(950, 400), padding=0.02, map_max_zoom=20, map_min_zoom=2):
-    """Calculate optimal zoom level for a bounding box to almost fill the viewport
-    Areas should take up 90-95% of the map display for optimal visibility"""
+def compute_zoom_for_bbox(bbox, viewport=(950, 400), padding=0.125, map_max_zoom=20, map_min_zoom=2):
+    """Calculate optimal zoom level for a bounding box to occupy 80% of the viewport
+    Areas should take up 80% of the map display for optimal visibility with good margins"""
     if not bbox:
         return map_min_zoom
     
@@ -2616,27 +2616,23 @@ def compute_zoom_for_bbox(bbox, viewport=(950, 400), padding=0.02, map_max_zoom=
         dx_frac = max(dx_frac, 1e-8)
         dy_frac = max(dy_frac, 1e-8)
         
-        # Use very tight padding to make areas almost fill the display
-        # Smaller areas get even tighter padding for maximum visibility
-        area_size_factor = min(dx_frac * 1000, dy_frac * 1000)  # Rough size indicator
-        if area_size_factor < 0.1:  # Very small areas (10ha-1000ha range)
-            effective_padding = 0.01  # Almost no padding - fill 99% of viewport
-        else:
-            effective_padding = max(0.02, padding)  # Minimal padding for larger areas
+        # Target 80% viewport occupation with consistent padding
+        # 12.5% padding on each side = 80% area occupation
+        effective_padding = 0.125  # Consistent 12.5% padding for 80% viewport usage
         
         # Calculate zoom levels for both dimensions
         zoom_x = math.log2(viewport[0] / (256 * (1 + effective_padding) * dx_frac))
         zoom_y = math.log2(viewport[1] / (256 * (1 + effective_padding) * dy_frac))
         
-        # Use the more restrictive zoom (ensures entire area fits) and round up for tighter fit
-        zoom = math.ceil(min(zoom_x, zoom_y))  # Changed from floor to ceil for closer zoom
+        # Use the more restrictive zoom (ensures entire area fits)
+        zoom = math.floor(min(zoom_x, zoom_y))  # Floor for 80% target with good margins
         
-        # Ensure good zoom levels for different area sizes
-        # For 1000ha areas, we want them to almost fill the viewport
+        # Ensure reasonable zoom levels for different area sizes
+        # Target 80% viewport occupation for all sizes
         if dx_frac * 360.0 < 0.05 and dy_frac < 0.05:  # Areas roughly 1000ha and smaller
-            zoom = max(zoom, 16)  # Minimum zoom 16 for 1000ha areas
+            zoom = max(zoom, 14)  # Minimum zoom 14 for 1000ha areas (80% occupation)
         elif dx_frac * 360.0 < 0.01 and dy_frac < 0.01:  # Very small areas (10ha-100ha)
-            zoom = max(zoom, 18)  # Higher zoom for very small areas
+            zoom = max(zoom, 16)  # Higher zoom for very small areas (80% occupation)
         
         # Clamp to map limits
         return max(map_min_zoom, min(map_max_zoom, zoom))
