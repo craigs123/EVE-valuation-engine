@@ -566,6 +566,9 @@ class EcosystemServicesCalculator:
         # Convert to hectares
         area_ha = area_km2 * 100
         
+        # Round to 1 decimal place to avoid floating-point precision issues
+        area_ha = round(area_ha, 1)
+        
         return max(1.0, area_ha)  # Minimum 1 hectare
     
     def _generate_valuation_summary(self, current_value: float, trend: float, ecosystem_type: str) -> str:

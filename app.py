@@ -403,6 +403,9 @@ def calculate_area_optimized(coordinates):
         # Convert to hectares
         area_ha = area_km2 * 100
         
+        # Round to 1 decimal place to avoid floating-point precision issues
+        area_ha = round(area_ha, 1)
+        
         return max(1.0, area_ha)  # Minimum 1 hectare
         
     except Exception as e:
