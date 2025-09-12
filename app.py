@@ -1489,6 +1489,15 @@ if 'area_coordinates' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
+# Initialize local fallbacks to prevent LSP "unbound" diagnostics
+ecosystem_override = st.session_state.get('ecosystem_override', 'Auto-detect')
+include_environmental_indicators = st.session_state.get('include_environmental_indicators', False)
+max_sampling_limit = st.session_state.get('max_sampling_limit', 9)
+analysis_detail = st.session_state.get('analysis_detail', 'Summary Analysis')
+income_elasticity = st.session_state.get('income_elasticity', 0.6)
+time_preset = st.session_state.get('time_preset', 'Current Year (2024)')
+analyze_button = False
+
 # Sidebar configuration - optimized for performance with expandable sections
 with st.sidebar:
     st.header("Analysis Settings")
