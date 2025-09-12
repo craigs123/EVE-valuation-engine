@@ -1755,52 +1755,6 @@ with st.sidebar:
         st.session_state.analysis_start_date = start_date
         st.session_state.analysis_end_date = end_date
     
-    # Pre-computed ESVD Coefficient Details (moved from main page)
-    with st.expander("🔬 **ESVD Coefficient Details**"):
-        try:
-            coeffs_status = get_precomputed_status()
-            
-            if coeffs_status['precomputed_available']:
-                st.success(f"✅ **{coeffs_status['total_records']:,} peer-reviewed values pre-calculated**")
-                st.success(f"🚀 **{coeffs_status['performance_multiplier']:,}x performance improvement**")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown("**Predominant Ecosystem Type Mapping:**")
-                    st.markdown("""
-                    - **Forest**: 1,848 records
-                    - **Wetland**: 1,845 records  
-                    - **Agricultural**: 1,286 records
-                    - **Urban**: 423 records
-                    - **Grassland**: 442 records
-                    - **Coastal**: 3,024 records
-                    """)
-                
-                with col2:
-                    st.markdown("**Service Examples:**")
-                    st.markdown("""
-                    - **Provisioning**: Food, Water, Timber
-                    - **Regulating**: Climate, Air quality
-                    - **Cultural**: Recreation, Spiritual value
-                    - **Supporting**: Habitat, Nutrient cycling
-                    """)
-                    
-                st.markdown("**Calculation Method:**")
-                st.code("""
-Final Value = COEFFICIENT × AREA × QUALITY × REGIONAL_FACTOR
-
-Example: Forest Recreation
-$498.85/ha/year (median from 580 studies)
-238,270x faster than database queries
-                """, language="text")
-                
-                st.info("**Performance**: All coefficients pre-calculated from authentic ESVD database for instant analysis")
-            else:
-                st.warning("Pre-computed ESVD coefficients not available")
-        except Exception:
-            st.info("Using pre-computed coefficients from 10,874+ peer-reviewed studies")
-    
     # Scientific Methodology section
     with st.expander("🔬 Scientific Methodology"):
         st.markdown("""
