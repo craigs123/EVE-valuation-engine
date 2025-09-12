@@ -533,7 +533,7 @@ class PrecomputedESVDCoefficients:
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 12.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
-                'pollution': 609.00,    # Service 7: Air quality regulation
+                'pollution': 605.00,    # Service 7: Air quality regulation
                 'climate': 559.00,      # Service 8: Climate regulation
                 'extreme_events': 3218.00,      # Service 9: Moderation of extreme events
                 'water_regulation': 780.00,     # Service 10: Regulation of water flows
