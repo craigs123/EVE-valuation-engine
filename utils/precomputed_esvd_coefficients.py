@@ -875,7 +875,7 @@ class PrecomputedESVDCoefficients:
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple | None = None, urban_green_blue_multiplier: float = 1.0,
-                                 ecosystem_intactness_multiplier: float = 1.0) -> dict:
+                                 ecosystem_intactness_multiplier: float = 1.0, regional_factor_override: float = None) -> dict:
         """
         Calculate ecosystem service values using pre-computed coefficients with forest type detection
         
@@ -885,11 +885,13 @@ class PrecomputedESVDCoefficients:
             coordinates: Optional coordinates for regional adjustment and forest type detection
             urban_green_blue_multiplier: Multiplier for urban green/blue infrastructure (default 1.0)
             ecosystem_intactness_multiplier: Ecosystem-specific intactness/biodiversity multiplier (default 1.0)
+            regional_factor_override: Override regional factor (use Brazil factor instead of coordinate-based)
             
         Returns:
             Dictionary with calculated values by service category
         """
-        regional_factor = self.get_regional_factor(coordinates)
+        # Use override regional factor if provided, otherwise calculate from coordinates
+        regional_factor = regional_factor_override if regional_factor_override is not None else self.get_regional_factor(coordinates)
         
         # Enhanced forest type detection
         detected_ecosystem_type = ecosystem_type

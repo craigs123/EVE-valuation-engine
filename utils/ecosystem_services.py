@@ -145,12 +145,21 @@ class EcosystemServicesCalculator:
             predominant_country = self._get_predominant_country_from_samples()
             
             # Fallback to coordinates if no sample points available
-            coordinates = None
-            if predominant_country:
-                # Create a synthetic coordinate for the country (used for forest type detection)
-                coordinates = self._extract_coordinates(area_bounds)
-            else:
-                coordinates = self._extract_coordinates(area_bounds)
+            coordinates = self._extract_coordinates(area_bounds)
+            
+            # CRITICAL FIX: Calculate Brazil regional factor BEFORE ESVD calculation
+            # Get the correct regional factor for predominant country upfront
+            regional_factor_override = None
+            if predominant_country and predominant_country != 'global_average':
+                # Calculate the regional factor using predominant country BEFORE ESVD calculation
+                country_gdp = self.precomputed_esvd.get_country_gdp_lookup(predominant_country)
+                global_gdp = self.precomputed_esvd.global_gdp_average
+                income_elasticity = self.precomputed_esvd.income_elasticity
+                
+                # Calculate regional factor using predominant country
+                gdp_ratio = country_gdp / global_gdp
+                adjustment_factor = 1 + (income_elasticity * (gdp_ratio - 1))
+                regional_factor_override = max(0.4, min(2.5, adjustment_factor))
             
             # Calculate values using pre-computed authentic ESVD coefficients (use effective land area)
             # Calculate intactness multiplier first
@@ -159,10 +168,10 @@ class EcosystemServicesCalculator:
             else:
                 intactness_multiplier = quality_factor
             
-            # Pass urban green/blue multiplier and intactness multiplier
+            # Pass urban green/blue multiplier, intactness multiplier, and regional factor override
             esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
                 ecosystem_type, effective_area_ha, coordinates if coordinates else None, 
-                urban_green_blue_multiplier, intactness_multiplier
+                urban_green_blue_multiplier, intactness_multiplier, regional_factor_override
             )
             
             # Override regional factor with predominant country if available
