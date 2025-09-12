@@ -1526,19 +1526,12 @@ class OpenLandMapSTAC:
     
     
     def _fix_corrupt_url(self, url: str) -> str:
-        """Fix SSL certificate issues by mapping broken domain to working mirror"""
-        # Fix typo in STAC metadata  
+        """Fix only essential typos - use exact asset.href as working app does"""
+        # Fix only known typos in STAC metadata  
         if "go_espg.4326" in url:
             url = url.replace("go_espg.4326", "go_epsg.4326")
         
-        # Map broken SSL domain to working mirror with correct file paths
-        if "s3.openlandmap.org" in url:
-            url = url.replace("s3.openlandmap.org", "s3.eu-central-1.wasabisys.com")
-            # Fix path structure - files are in /openlandmap/ not /arco/
-            if "/arco/" in url:
-                url = url.replace("/arco/", "/openlandmap/")
-            print(f"🔄 Mapped broken SSL domain to working mirror with correct path")
-        
+        # DO NOT rewrite domains or paths - use exact asset.href like working app
         return url
     
     def _try_nearby_coordinates(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
@@ -1587,6 +1580,10 @@ class OpenLandMapSTAC:
             import rasterio
             import os
             import numpy as np
+            
+            # Set GDAL SSL configuration to handle certificate issues (like working app)
+            os.environ['GDAL_HTTP_UNSAFESSL'] = 'YES'
+            os.environ['GDAL_HTTP_TIMEOUT'] = '30'
             
             # Coordinate bounds checking (as per technical guidance)
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):
