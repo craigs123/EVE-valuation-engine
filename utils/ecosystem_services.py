@@ -194,65 +194,45 @@ class EcosystemServicesCalculator:
             
             # No fallback needed - pre-computed coefficients always available
             
-            # Calculate services values for each time point using ESVD as baseline
-            services_time_series = []
-            total_values = []
+            # Use ESVD results directly - no time series processing needed for basic valuation
+            # ESVD already includes: base coefficient × area × regional adjustment × intactness
             
-            for data_point in time_series:
-                # Quality multiplier already applied in calculate_ecosystem_values - use 1.0 to avoid double application
-                quality_multiplier = 1.0
-                if ecosystem_intactness:
-                    quality = f"ecosystem_specific_{ecosystem_type}"
-                else:
-                    quality = "user_defined"
-                
-                # Urban green/blue infrastructure multiplier now applied at service level in ESVD calculation
-                
-                # Apply ESVD values (no additional quality adjustments - already applied)
-                provisioning_value = self._apply_esvd_values(
-                    esvd_results.get('provisioning', {}), quality_multiplier, data_point
-                )
-                
-                regulating_value = self._apply_esvd_values(
-                    esvd_results.get('regulating', {}), quality_multiplier, data_point
-                )
-                
-                cultural_value = self._apply_esvd_values(
-                    esvd_results.get('cultural', {}), quality_multiplier, data_point
-                )
-                
-                supporting_value = self._apply_esvd_values(
-                    esvd_results.get('supporting', {}), quality_multiplier, data_point
-                )
-                
-                total_value = (provisioning_value['total'] + regulating_value['total'] + 
-                              cultural_value['total'] + supporting_value['total'])
-                
-                total_values.append(total_value)
-                
-                services_time_series.append({
-                    'date': data_point['date'],
-                    'total_value': total_value,
-                    'provisioning': provisioning_value,
-                    'regulating': regulating_value,
-                    'cultural': cultural_value,
-                    'supporting': supporting_value,
-                    'ecosystem_quality': quality,
-                    'area_hectares': effective_area_ha,
-                    'esvd_metadata': esvd_results.get('metadata', {})
-                })
+            # Extract service values directly from ESVD results
+            provisioning_value = esvd_results.get('provisioning', {})
+            regulating_value = esvd_results.get('regulating', {})
+            cultural_value = esvd_results.get('cultural', {})
+            supporting_value = esvd_results.get('supporting', {})
             
-            # Calculate statistics
-            current_value = total_values[-1] if total_values else 0
-            previous_value = total_values[-2] if len(total_values) > 1 else current_value
-            mean_value = np.mean(total_values) if total_values else 0
-            trend = np.polyfit(range(len(total_values)), total_values, 1)[0] if len(total_values) > 1 else 0
+            # Use total value directly from ESVD (already correctly calculated)
+            current_value = esvd_results.get('total_value', 0)
             
-            # Calculate annual change
-            annual_change = trend * 365 if trend != 0 else 0
+            # For compatibility with UI expectations, create minimal time series with single point
+            quality = f"ecosystem_specific_{ecosystem_type}" if ecosystem_intactness else "user_defined"
+            services_time_series = [{
+                'date': time_series[0]['date'] if time_series else '2024-01-01',
+                'total_value': current_value,
+                'provisioning': provisioning_value,
+                'regulating': regulating_value,
+                'cultural': cultural_value,
+                'supporting': supporting_value,
+                'ecosystem_quality': quality,
+                'area_hectares': effective_area_ha,
+                'esvd_metadata': esvd_results.get('metadata', {})
+            }]
             
-            # Calculate service category contributions
-            latest_services = services_time_series[-1] if services_time_series else {}
+            # Simple statistics (no trends needed for single calculation)
+            previous_value = current_value
+            mean_value = current_value
+            trend = 0
+            annual_change = 0
+            
+            # Service breakdown from ESVD results
+            latest_services = {
+                'provisioning': provisioning_value,
+                'regulating': regulating_value,
+                'cultural': cultural_value,
+                'supporting': supporting_value
+            }
             
             # Get ESVD metadata
             esvd_metadata = esvd_results.get('metadata', {})
