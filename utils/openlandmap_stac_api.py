@@ -853,8 +853,8 @@ class OpenLandMapSTAC:
                                 'year': year or 1900  # Default to very old year if no year found
                             })
                     
-                    # Sort by year ascending (oldest first) - like working app using 1992 data
-                    available_items.sort(key=lambda x: x['year'], reverse=False)
+                    # Sort by year descending (newest first) - like working app using 2020 data
+                    available_items.sort(key=lambda x: x['year'], reverse=True)
                     print(f"🗓️ Found {len(available_items)} STAC items, sorted by year:")
                     for item in available_items[:5]:  # Show top 5 most recent
                         print(f"   📅 Year {item['year']}: {item['url']}")
