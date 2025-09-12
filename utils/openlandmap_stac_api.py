@@ -1595,6 +1595,12 @@ class OpenLandMapSTAC:
             print(f"⚠️ Direct land cover extraction failed: {e}")
             return None
     
+    def _fix_corrupt_url(self, url: str) -> str:
+        """Fix known corrupted URLs in STAC metadata"""
+        if "go_espg.4326" in url:
+            return url.replace("go_espg.4326", "go_epsg.4326")
+        return url
+    
     def _extract_single_pixel_safe(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
         """
         Safe single pixel extraction with proper GDAL environment configuration
@@ -1610,8 +1616,13 @@ class OpenLandMapSTAC:
                 print(f"⚠️ Out-of-bounds coordinates: ({lat}, {lon})")
                 return None
             
+            # Fix corrupt URLs before processing
+            fixed_url = self._fix_corrupt_url(asset_url)
+            if fixed_url != asset_url:
+                print(f"🔧 Fixed corrupt URL: {asset_url[:60]}... → {fixed_url[:60]}...")
+            
             # Use cached dataset or open new one with proper GDAL environment
-            dataset = self._get_cached_dataset(asset_url)
+            dataset = self._get_cached_dataset(fixed_url)
             if dataset is None:
                 print(f"❌ Failed to open dataset: {asset_url[:50]}...")
                 return None
