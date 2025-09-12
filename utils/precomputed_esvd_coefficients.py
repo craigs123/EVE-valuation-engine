@@ -917,7 +917,8 @@ class PrecomputedESVDCoefficients:
             
             for service, esvd_service in services.items():
                 coefficient = self.get_coefficient(detected_ecosystem_type, esvd_service, coordinates)
-                value = coefficient * area_hectares * regional_factor
+                # DO NOT apply regional factor to individual services - only base coefficient × area × intactness
+                value = coefficient * area_hectares
                 
                 # Apply urban green/blue infrastructure multiplier for Urban ecosystems (at service level)
                 if detected_ecosystem_type.lower() == 'urban':
