@@ -2598,6 +2598,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
+            "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
         }
         if selected_test_area in ecosystem_zoom_coords:
