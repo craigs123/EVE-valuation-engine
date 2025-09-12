@@ -1835,29 +1835,14 @@ class OpenLandMapSTAC:
     
     def _fallback_ecosystem_detection(self, lat: float, lon: float) -> Dict[str, Any]:
         """
-        Simple geographic-based fallback when satellite data fails
+        Fallback when satellite data is unavailable - returns Unknown to avoid false data
         """
-        # Basic geographic heuristics when all satellite data fails
-        abs_lat = abs(lat)
-        
-        # Simple geographic rules for basic ecosystem classification
-        if abs_lat > 66.5:  # Arctic/Antarctic
-            ecosystem_type = "Polar"
-        elif abs_lat > 55:  # Northern Canada, Siberia
-            ecosystem_type = "Boreal Forest"
-        elif abs_lat > 35:  # Mid-latitudes
-            ecosystem_type = "Temperate Forest"
-        elif abs_lat > 23.5:  # Subtropics
-            ecosystem_type = "Grassland"
-        else:  # Tropics
-            ecosystem_type = "Tropical Forest"
-            
         return {
-            "ecosystem_type": ecosystem_type,
+            "ecosystem_type": "Unknown",
             "landcover_class": None,
             "coordinates": {"lat": lat, "lon": lon},
-            "data_source": "Geographic Heuristic (Satellite Unavailable)",
-            "error": "Using basic latitude-based classification",
+            "data_source": "Error: Satellite Data Unavailable",
+            "error": "No reliable satellite data available for classification",
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
 
