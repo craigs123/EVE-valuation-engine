@@ -73,7 +73,7 @@ class OpenLandMapIntegrator:
             # Legacy MODIS/Copernicus codes for backward compatibility
             1: "Forest", 2: "Forest", 3: "Forest", 4: "Forest", 5: "Forest",
             6: "Forest", 7: "Grassland", 8: "Grassland", 9: "Grassland",
-            13: "Urban", 14: "Cropland", 15: "Desert", 16: "Desert", 17: "Rivers and Lakes",
+            13: "Urban", 14: "agricultural", 15: "Desert", 16: "Desert", 17: "Rivers and Lakes",
             21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",
             31: "Desert", 41: "Temperate Forest", 42: "Forest", 43: "Forest", 52: "Shrubland", 95: "Wetland"
         }

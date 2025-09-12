@@ -229,8 +229,8 @@ class EcosystemInfographicGenerator:
             'Marine': 67759,
             'Grassland': 2601,
             'Shrubland': 1084,
-            'Agricultural': 26524,       # Cropland
-            'Cropland': 26524,
+            'Agricultural': 26524,       # Agricultural/Cropland
+            'agricultural': 26524,
             'Urban': 330342,
             'Desert': 750,
             'Polar': 107659
