@@ -3964,7 +3964,12 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Get ecosystem-specific intactness multiplier
                 ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
+                
+                # CRITICAL FIX: Force 100% intactness for Agricultural when user overrides ecosystem type
+                if st.session_state.ecosystem_override == "Agricultural":
+                    intactness_multiplier = 1.0  # 100% intactness
+                else:
+                    intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
                 
                 esvd_results = coeffs.calculate_ecosystem_values(
                     ecosystem_type=ecosystem_type,
