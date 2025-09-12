@@ -3787,8 +3787,13 @@ if analyze_button and st.session_state.selected_area:
             
             # Check if we have mixed ecosystem data for weighted calculation
             # Only use mixed calculation if there are truly multiple significant ecosystem types (>10% each)
+            # CRITICAL FIX: Force single ecosystem calculation when user explicitly selects ecosystem type
             has_mixed_ecosystems = False
-            if (st.session_state.get('detected_ecosystem') and 
+            
+            # If user selected specific ecosystem (not Auto-detect), always use single ecosystem calculation
+            if st.session_state.ecosystem_override != "Auto-detect":
+                has_mixed_ecosystems = False
+            elif (st.session_state.get('detected_ecosystem') and 
                 'ecosystem_distribution' in st.session_state.detected_ecosystem and
                 len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
                 
@@ -3804,6 +3809,24 @@ if analyze_button and st.session_state.selected_area:
                 
                 has_mixed_ecosystems = significant_ecosystems > 1
             
+            # Force ecosystem type when user selects specific type (not Auto-detect)
+            if st.session_state.ecosystem_override != "Auto-detect":
+                # Map UI selection to ESVD ecosystem type
+                override_mapping = {
+                    "Agricultural": "agricultural",
+                    "Temperate Forest": "temperate_forest",
+                    "Tropical Forest": "tropical_forest", 
+                    "Boreal Forest": "boreal_forest",
+                    "Grassland": "grassland",
+                    "Wetland": "wetland",
+                    "Coastal": "coastal",
+                    "Marine": "marine",
+                    "Desert": "desert",
+                    "Urban": "urban",
+                    "Polar": "polar"
+                }
+                ecosystem_type = override_mapping.get(st.session_state.ecosystem_override, "agricultural")
+                
             if has_mixed_ecosystems:
                 
                 # Use mixed ecosystem calculation with proper weighting
@@ -3850,9 +3873,12 @@ if analyze_button and st.session_state.selected_area:
                     eco_area = area_ha * proportion
                     
                     # Calculate value for this ecosystem type with forest type detection
-                    # Pass both urban green/blue multiplier and ecosystem-specific intactness multiplier
-                    urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
-                    urban_multiplier = urban_multiplier_percent / 100.0
+                    # Only apply urban green/blue multiplier for urban ecosystems
+                    if eco_type.lower() == 'urban':
+                        urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                        urban_multiplier = urban_multiplier_percent / 100.0
+                    else:
+                        urban_multiplier = 1.0  # Default for non-urban ecosystems
                     
                     # Get ecosystem-specific intactness multiplier
                     ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
@@ -3929,9 +3955,12 @@ if analyze_button and st.session_state.selected_area:
             else:
                 # Single ecosystem calculation with forest type detection
                 coeffs = get_precomputed_coefficients()
-                # Pass both urban green/blue multiplier and ecosystem-specific intactness multiplier
-                urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
-                urban_multiplier = urban_multiplier_percent / 100.0
+                # Only apply urban green/blue multiplier for urban ecosystems
+                if ecosystem_type.lower() == 'urban':
+                    urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                    urban_multiplier = urban_multiplier_percent / 100.0
+                else:
+                    urban_multiplier = 1.0  # Default for non-urban ecosystems
                 
                 # Get ecosystem-specific intactness multiplier
                 ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
@@ -4542,12 +4571,12 @@ if st.session_state.analysis_results:
                                 
                                 if services_data and isinstance(services_data, dict):  # Check if services_data has content
                                     for service, value in services_data.items():
-                                        if isinstance(value, (int, float)) and value > 0:
+                                        if isinstance(value, (int, float)):
                                             service_name = service.replace('_', ' ').title()
                                             st.markdown(f"**{service_name}**: ${value:,.0f}/year")
                                     
-                                    if not any(isinstance(v, (int, float)) and v > 0 for v in services_data.values()):
-                                        st.info(f"All {category} service values are zero or invalid")
+                                    if not any(isinstance(v, (int, float)) for v in services_data.values()):
+                                        st.info(f"No valid {category} service data available")
                                 else:
                                     st.info(f"No detailed {category} services available - services data is empty or invalid type")
                             else:
@@ -4590,7 +4619,7 @@ if st.session_state.analysis_results:
                                         
                                         if services_data and isinstance(services_data, dict):
                                             for service, value in services_data.items():
-                                                if isinstance(value, (int, float)) and value > 0:
+                                                if isinstance(value, (int, float)):
                                                     service_name = service.replace('_', ' ').title()
                                                     st.markdown(f"**{service_name}**: ${value:,.0f}/year")
                                         else:
@@ -4639,9 +4668,9 @@ if st.session_state.analysis_results:
                                 
                                 # Show individual service calculations
                                 services_data = aggregated_categories[category]['services']
-                                if services_data and any(isinstance(v, (int, float)) and v > 0 for v in services_data.values()):
+                                if services_data and any(isinstance(v, (int, float)) for v in services_data.values()):
                                     for service, value in services_data.items():
-                                        if isinstance(value, (int, float)) and value > 0:
+                                        if isinstance(value, (int, float)):
                                             service_name = service.replace('_', ' ').title()
                                             st.markdown(f"**{service_name}**: ${value:,.0f}/year")
                                 else:
@@ -4793,7 +4822,7 @@ if st.session_state.analysis_results:
                                 with service_cols[i]:
                                     st.markdown(f"**{category.title()}**")
                                     for service, value in esvd_meta[category].items():
-                                        if service != 'total' and value > 0:
+                                        if service != 'total':
                                             service_name = service.replace('_', ' ').title()
                                             st.markdown(f"• {service_name}: ${value:,.0f}")
                     
