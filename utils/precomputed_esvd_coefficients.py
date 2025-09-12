@@ -636,7 +636,7 @@ class PrecomputedESVDCoefficients:
                 'water_purification': 0.00,     # Service 11: Waste treatment
                 'erosion': 8.00,        # Service 12: Erosion prevention
                 'soil_formation': 6.00,         # Service 13: Maintenance of soil fertility
-                'pollination': 0.00,            # Service 14: Pollination
+                'pollination': 4139.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
                 'habitat': 5.00,       # Service 17: Maintenance of genetic diversity
@@ -738,14 +738,14 @@ class PrecomputedESVDCoefficients:
                 'regulation_of_water_flows': 'water_regulation',    # TEEB Service 10
                 'waste_treatment': 'water_purification',            # TEEB Service 11
                 'erosion_prevention': 'erosion',                    # TEEB Service 12
-                'maintenance_of_soil_fertility': 'nutrient_cycling', # TEEB Service 13
+                'maintenance_of_soil_fertility': 'soil_formation', # TEEB Service 13
                 'pollination': 'pollination',                       # TEEB Service 14
                 'biological_control': 'biological_control'          # TEEB Service 15
             },
             'cultural': {
                 'aesthetic_information': 'aesthetic_value',         # TEEB Service 18
                 'recreation_and_tourism': 'recreation',             # TEEB Service 19
-                'culture_art_and_design': 'soil_formation',         # TEEB Service 20 (mapped to available coefficient)
+                'culture_art_and_design': 'cultural',         # TEEB Service 20
                 'spiritual_experience': 'spiritual_value',          # TEEB Service 21
                 'cognitive_development': 'primary_production'       # TEEB Service 22 (mapped to available coefficient)
             },
