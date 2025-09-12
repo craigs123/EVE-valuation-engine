@@ -543,7 +543,7 @@ class PrecomputedESVDCoefficients:
                 'pollination': 1900.00,       # Service 14: Pollination
                 'biological_control': 1124.00,  # Service 15: Biological control
                 'nursery_services': 2.00,       # Service 16: Maintenance of life cycles
-                'habitat': 2.00,        # Service 17: Maintenance of genetic diversity
+                'habitat': 22.00,       # Service 17: Maintenance of genetic diversity
                 'aesthetic_value': 190.00,      # Service 18: Aesthetic information
                 'recreation': 259.00,   # Service 19: Recreation and tourism
                 'cultural': 1074.00,    # Service 20: Culture, art and design
