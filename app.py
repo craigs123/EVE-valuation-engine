@@ -2395,8 +2395,8 @@ elif use_test_area_single:
     
     single_ecosystem_areas = {
         "🌾 Test area (Agricultural)": {
-            "coords": calculate_1000ha_coordinates(40.1, -87.79),
-            "description": "Illinois Corn Belt (40.1°N, 87.79°W) | Expected: 100% Agricultural ecosystem",
+            "coords": calculate_1000ha_coordinates(40.1, -87.91),
+            "description": "Illinois Corn Belt (40.1°N, 87.91°W) | Expected: 100% Agricultural ecosystem",
             "location": "Rural US Corn Belt, central Illinois"
         },
         "🌱 Test area (Grassland)": {
@@ -2704,7 +2704,7 @@ if st.session_state.get('use_test_area_zoom', False):
     if use_test_area_single:
         # Get center coordinates for test area
         ecosystem_zoom_coords = {
-            "🌾 Test area (Agricultural)": (40.1, -87.79),     # Illinois Corn Belt
+            "🌾 Test area (Agricultural)": (40.1, -87.91),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (-16.45, 126.5),       # Western Australia
             "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
