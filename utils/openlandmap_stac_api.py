@@ -1414,6 +1414,19 @@ class OpenLandMapSTAC:
         
         return results
     
+    def _normalize_ecosystem_type(self, ecosystem_type: str) -> str:
+        """
+        Normalize ecosystem type to ensure consistent naming
+        Maps all cropland synonyms to 'agricultural'
+        """
+        if not ecosystem_type:
+            return ecosystem_type
+            
+        normalized = ecosystem_type.strip().lower()
+        if normalized in ("cropland", "agricultural", "farmland", "pasture", "agriculture"):
+            return "agricultural"
+        return ecosystem_type
+    
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         FAST: Direct GeoTIFF extraction bypassing slow STAC metadata discovery
@@ -1554,11 +1567,14 @@ class OpenLandMapSTAC:
             if pixel_value is not None:
                 # Process the ESA code through existing mapping
                 esa_code = int(pixel_value)
-                ecosystem_type = self.landcover_to_esvd.get(esa_code, "Grassland")
+                raw_ecosystem_type = self.landcover_to_esvd.get(esa_code, "Grassland")
+                
+                # Normalize cropland synonyms to "agricultural" (fix for Cropland vs agricultural issue)
+                ecosystem_type = self._normalize_ecosystem_type(raw_ecosystem_type)
                 
                 # Debug the mapping for troubleshooting ESA codes 11, 40, 130
                 if esa_code in [11, 40, 130, 41]:
-                    print(f"🔍 ESA MAPPING DEBUG: Code {esa_code} → {ecosystem_type}")
+                    print(f"🔍 ESA MAPPING DEBUG: Code {esa_code} → raw:{raw_ecosystem_type} → normalized:{ecosystem_type}")
                 
                 ecosystem_info = {"ecosystem_type": ecosystem_type}
                 

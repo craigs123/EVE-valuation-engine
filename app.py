@@ -1855,16 +1855,16 @@ Example: 100ha Forest
         # All possible ESVD ecosystem types (including forest subtypes)
         esvd_ecosystem_types = [
             "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-            "Grassland", "Cropland", "Urban", "Desert", 
+            "Grassland", "agricultural", "Urban", "Desert", 
             "Wetland", "Coastal", "Marine", "Shrubland"
         ]
         
         # Complete ESA CCI Land Cover to ESVD ecosystem coefficient mapping
         # Based on ESA CCI Land Cover 22-class classification system + Level 2 subcodes
         default_landcover_mapping = {
-            # Cropland Classes (descriptions in utils/esa_landcover_codes.py)
-            10: "Cropland", 11: "Cropland", 12: "Cropland", 
-            20: "Cropland", 30: "Cropland", 40: "Grassland",
+            # Agricultural Classes (descriptions in utils/esa_landcover_codes.py)
+            10: "agricultural", 11: "agricultural", 12: "agricultural", 
+            20: "agricultural", 30: "agricultural", 40: "Grassland",
             
             # Forest Classes (descriptions in utils/esa_landcover_codes.py)
             50: "Forest", 60: "Forest", 61: "Forest", 62: "Forest",
@@ -1980,10 +1980,10 @@ Example: 100ha Forest
                 st.session_state.esa_code_multipliers[code] = default_value
         
         # Create tabbed interface for better organization
-        tab1, tab2 = st.tabs(["🌾 Cropland & Grassland", "🌲 Forest & Other"])
+        tab1, tab2 = st.tabs(["🌾 Agricultural & Grassland", "🌲 Forest & Other"])
         
         with tab1:
-            st.markdown("**Cropland, Grassland, and Agricultural Areas**")
+            st.markdown("**Agricultural, Grassland, and Farming Areas**")
             cropland_codes = [10, 11, 12, 20, 30, 40, 130, 140]
             
             for code in sorted([c for c in cropland_codes if c in default_landcover_mapping]):
