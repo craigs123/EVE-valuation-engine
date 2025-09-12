@@ -218,15 +218,22 @@ class EcosystemInfographicGenerator:
         area_ha = results.get('area_ha', 1)
         current_value = results.get('total_value', 0) / area_ha
         
-        # Approximate global averages by ecosystem type (based on ESVD data)
+        # Updated global averages by ecosystem type (based on latest ESVD data)
         global_averages = {
-            'Forest': 5000,
-            'Wetland': 8000,
-            'Coastal': 12000,
-            'Grassland': 2000,
-            'Agricultural': 1500,
-            'Urban': 3000,
-            'Desert': 500
+            'Forest': 7129,              # Generic forest (using tropical as baseline)
+            'Tropical Forest': 7129,
+            'Temperate Forest': 25796,
+            'Boreal Forest': 7966,
+            'Wetland': 105085,
+            'Coastal': 75142,
+            'Marine': 67759,
+            'Grassland': 2601,
+            'Shrubland': 1084,
+            'Agricultural': 26524,       # Cropland
+            'Cropland': 26524,
+            'Urban': 330342,
+            'Desert': 750,
+            'Polar': 107659
         }
         
         ecosystem_type = results.get('ecosystem_type') or results.get('primary_ecosystem', 'Forest')
