@@ -921,6 +921,7 @@ class PrecomputedESVDCoefficients:
             
             for service, esvd_service in services.items():
                 coefficient = self.get_coefficient(detected_ecosystem_type, esvd_service, coordinates)
+                print(f"🔍 DEBUG: {service} - detected_ecosystem_type={detected_ecosystem_type}, esvd_service={esvd_service}")
                 print(f"🔍 DEBUG: {service} - coefficient={coefficient}, area={area_hectares}, regional_factor={regional_factor}")
                 value = coefficient * area_hectares * regional_factor
                 print(f"🔍 DEBUG: {service} - calculated value = {value}")
