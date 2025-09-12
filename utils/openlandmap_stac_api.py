@@ -156,8 +156,8 @@ class OpenLandMapSTAC:
         # Official descriptions available in utils/esa_landcover_codes.py
         self.landcover_to_esvd = {
             # Cropland Classes
-            10: "Cropland", 11: "Cropland", 12: "Cropland", 
-            20: "Cropland", 30: "Cropland", 40: "Grassland",
+            10: "agricultural", 11: "agricultural", 12: "agricultural", 
+            20: "agricultural", 30: "agricultural", 40: "Grassland",
             
             # Forest Classes  
             50: "Forest", 60: "Forest", 61: "Forest", 62: "Forest",
@@ -210,10 +210,10 @@ class OpenLandMapSTAC:
             96: "Forest", 97: "Forest", 98: "Forest", 99: "Forest",
             
             # Extended cropland coverage (ESA codes 13-29)
-            13: "Cropland", 14: "Cropland", 15: "Cropland", 16: "Cropland",
-            17: "Cropland", 18: "Cropland", 19: "Cropland", 
-            21: "Cropland", 22: "Cropland", 23: "Cropland", 24: "Cropland",
-            25: "Cropland", 26: "Cropland", 27: "Cropland", 28: "Cropland", 29: "Cropland",
+            13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
+            17: "agricultural", 18: "agricultural", 19: "agricultural", 
+            21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",
+            25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
             
             # Extended shrubland coverage (ESA codes 111-129)
             111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",
