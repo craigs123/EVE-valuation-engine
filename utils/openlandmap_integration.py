@@ -31,9 +31,9 @@ class OpenLandMapIntegrator:
         # Updated to match OpenLandMap STAC API mapping for consistency
         # Handles both Level 1 and Level 2 codes from ESA CCI Level 4 data
         self.landcover_to_ecosystem = {
-            # Cropland Classes
-            10: "Cropland", 11: "Cropland", 12: "Cropland", 
-            20: "Cropland", 30: "Cropland", 40: "Grassland",
+            # Agricultural/Cropland Classes (using 'agricultural' to match ESVD coefficients)
+            10: "agricultural", 11: "agricultural", 12: "agricultural", 
+            20: "agricultural", 30: "agricultural", 40: "Grassland",
             
             # Forest Classes  
             50: "Forest", 60: "Forest", 61: "Forest", 62: "Forest",
