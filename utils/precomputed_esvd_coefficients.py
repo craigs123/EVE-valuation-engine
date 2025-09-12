@@ -821,7 +821,7 @@ class PrecomputedESVDCoefficients:
         Returns:
             Pre-computed coefficient in Int$/ha/year
         """
-        # Enhanced forest type detection
+        # Enhanced forest type detection - only for generic 'forest', not already-specific types
         if ecosystem_type.lower() == 'forest' and coordinates:
             center_lat, center_lon = coordinates[0], coordinates[1]
             ecosystem_type = self._determine_forest_type(center_lat, center_lon)
