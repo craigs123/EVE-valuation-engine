@@ -3786,9 +3786,25 @@ if analyze_button and st.session_state.selected_area:
             center_lon = float(coords_array[:, 0].mean())
             
             # Check if we have mixed ecosystem data for weighted calculation
+            # Only use mixed calculation if there are truly multiple significant ecosystem types (>10% each)
+            has_mixed_ecosystems = False
             if (st.session_state.get('detected_ecosystem') and 
                 'ecosystem_distribution' in st.session_state.detected_ecosystem and
                 len(st.session_state.detected_ecosystem['ecosystem_distribution']) > 1):
+                
+                ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
+                total_points = st.session_state.detected_ecosystem['successful_queries']
+                
+                # Check if there are multiple significant ecosystem types (each >10% coverage)
+                significant_ecosystems = 0
+                for eco_type, data in ecosystem_distribution.items():
+                    proportion = data['count'] / total_points
+                    if proportion > 0.1:  # More than 10% coverage
+                        significant_ecosystems += 1
+                
+                has_mixed_ecosystems = significant_ecosystems > 1
+            
+            if has_mixed_ecosystems:
                 
                 # Use mixed ecosystem calculation with proper weighting
                 ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
@@ -3829,6 +3845,8 @@ if analyze_button and st.session_state.selected_area:
                 
                 for eco_type, data in ecosystem_distribution.items():
                     proportion = data['count'] / total_points
+                    # FIX: For mixed ecosystems, properly allocate area based on actual coverage percentage
+                    # Don't reduce area by sample count - use the full area for the ecosystem's proportion
                     eco_area = area_ha * proportion
                     
                     # Calculate value for this ecosystem type with forest type detection
