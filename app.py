@@ -3870,10 +3870,14 @@ if analyze_button and st.session_state.selected_area:
                     eco_area = area_ha * proportion
                     
                     # Calculate value for this ecosystem type with forest type detection
+                    # Pass urban green/blue multiplier for urban ecosystems
+                    urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                    urban_multiplier = urban_multiplier_percent / 100.0
                     eco_result = coeffs.calculate_ecosystem_values(
                         ecosystem_type=eco_type,
                         area_hectares=eco_area,
-                        coordinates=(center_lat, center_lon)
+                        coordinates=(center_lat, center_lon),
+                        urban_green_blue_multiplier=urban_multiplier
                     )
                     
                     # Apply ecosystem-specific intactness factor (regional adjustment already applied in ESVD calculation)
@@ -3882,11 +3886,7 @@ if analyze_button and st.session_state.selected_area:
                     eco_type_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
                     eco_result['total_value'] = eco_result['total_value'] * eco_type_multiplier
                     
-                    # Apply Urban Green/Blue Infrastructure multiplier for Urban ecosystems
-                    if eco_type == "Urban":
-                        urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
-                        urban_multiplier = urban_multiplier_percent / 100.0
-                        eco_result['total_value'] = eco_result['total_value'] * urban_multiplier
+                    # Urban Green/Blue Infrastructure multiplier now applied at service level in ESVD calculation
                     
                     # Apply ESA land cover code specific multiplier if available
                     if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
@@ -3949,10 +3949,14 @@ if analyze_button and st.session_state.selected_area:
             else:
                 # Single ecosystem calculation with forest type detection
                 coeffs = get_precomputed_coefficients()
+                # Pass urban green/blue multiplier for urban ecosystems
+                urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                urban_multiplier = urban_multiplier_percent / 100.0
                 esvd_results = coeffs.calculate_ecosystem_values(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
-                    coordinates=(center_lat, center_lon)
+                    coordinates=(center_lat, center_lon),
+                    urban_green_blue_multiplier=urban_multiplier
                 )
                 
                 
@@ -3966,13 +3970,7 @@ if analyze_button and st.session_state.selected_area:
                 esvd_results['current_value'] = esvd_results.get('current_value', 0) * user_quality_factor
                 esvd_results['total_annual_value'] = esvd_results.get('total_annual_value', 0) * user_quality_factor
                 
-                # Apply Urban Green/Blue Infrastructure multiplier for Urban ecosystems
-                if ecosystem_type_for_multiplier == "Urban" or ecosystem_type == "Urban":
-                    urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
-                    urban_multiplier = urban_multiplier_percent / 100.0
-                    esvd_results['total_value'] = esvd_results['total_value'] * urban_multiplier
-                    esvd_results['current_value'] = esvd_results['current_value'] * urban_multiplier
-                    esvd_results['total_annual_value'] = esvd_results['total_annual_value'] * urban_multiplier
+                # Urban Green/Blue Infrastructure multiplier now applied at service level in ESVD calculation
                 
                 # Apply ESA land cover code specific multiplier if available
                 if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
