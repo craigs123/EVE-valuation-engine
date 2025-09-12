@@ -857,7 +857,7 @@ class PrecomputedESVDCoefficients:
             coordinates: (latitude, longitude) tuple
             
         Returns:
-            Regional adjustment factor
+            Regional adjustment factor (rounded to 2 decimal places)
         """
         country_gdp = self.get_country_gdp(coordinates)
         global_gdp = self.global_gdp_average
@@ -868,7 +868,10 @@ class PrecomputedESVDCoefficients:
         adjustment_factor = 1 + (self.income_elasticity * (gdp_ratio - 1))
         
         # Apply reasonable bounds to prevent extreme values
-        return max(0.4, min(2.5, adjustment_factor))
+        bounded_factor = max(0.4, min(2.5, adjustment_factor))
+        
+        # Round to 2 decimal places for easier calculation and testing
+        return round(bounded_factor, 2)
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple | None = None) -> dict:
