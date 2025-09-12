@@ -181,16 +181,10 @@ class EcosystemServicesCalculator:
                 esvd_results['regional_adjustment_factor'] = regional_factor
                 esvd_results['country_gdp'] = country_gdp
                 
-                # Recalculate all values with correct regional factor
-                original_total = esvd_results.get('total_value', 0)
-                original_regional_factor = esvd_results.get('regional_adjustment_factor', 1.0)
-                if original_regional_factor != 0:
-                    # Remove old regional adjustment and apply new one
-                    base_value = original_total / original_regional_factor  
-                    corrected_total = base_value * regional_factor
-                    esvd_results['total_value'] = corrected_total
-                    esvd_results['total_annual_value'] = corrected_total
-                    esvd_results['current_value'] = corrected_total
+                # DO NOT recalculate total values - they are already the sum of regionalized service values
+                # Total value is correct as-is from ESVD calculation
+                # Just update the metadata to reflect the new regional factor
+                pass
             
             # No fallback needed - pre-computed coefficients always available
             
