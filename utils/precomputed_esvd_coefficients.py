@@ -540,7 +540,7 @@ class PrecomputedESVDCoefficients:
                 'water_purification': 1118.00,  # Service 11: Waste treatment
                 'erosion': 4708.00,     # Service 12: Erosion prevention
                 'soil_formation': 509.00,       # Service 13: Maintenance of soil fertility
-                'pollination': 22.00,         # Service 14: Pollination
+                'pollination': 1900.00,       # Service 14: Pollination
                 'biological_control': 1124.00,  # Service 15: Biological control
                 'nursery_services': 2.00,       # Service 16: Maintenance of life cycles
                 'habitat': 2.00,        # Service 17: Maintenance of genetic diversity
