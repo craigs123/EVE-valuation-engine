@@ -153,9 +153,16 @@ class EcosystemServicesCalculator:
                 coordinates = self._extract_coordinates(area_bounds)
             
             # Calculate values using pre-computed authentic ESVD coefficients (use effective land area)
-            # Pass urban green/blue multiplier for urban ecosystems
+            # Calculate intactness multiplier first
+            if ecosystem_intactness:
+                intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
+            else:
+                intactness_multiplier = quality_factor
+            
+            # Pass urban green/blue multiplier and intactness multiplier
             esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
-                ecosystem_type, effective_area_ha, coordinates if coordinates else None, urban_green_blue_multiplier
+                ecosystem_type, effective_area_ha, coordinates if coordinates else None, 
+                urban_green_blue_multiplier, intactness_multiplier
             )
             
             # Override regional factor with predominant country if available
@@ -192,17 +199,16 @@ class EcosystemServicesCalculator:
             total_values = []
             
             for data_point in time_series:
-                # Use ecosystem-specific quality factor if available, otherwise fallback to quality_factor
+                # Quality multiplier already applied in calculate_ecosystem_values - use 1.0 to avoid double application
+                quality_multiplier = 1.0
                 if ecosystem_intactness:
-                    quality_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
                     quality = f"ecosystem_specific_{ecosystem_type}"
                 else:
-                    quality_multiplier = quality_factor
-                    quality = "user_defined"  # Fallback to single quality factor
+                    quality = "user_defined"
                 
                 # Urban green/blue infrastructure multiplier now applied at service level in ESVD calculation
                 
-                # Apply ESVD values with quality adjustments
+                # Apply ESVD values (no additional quality adjustments - already applied)
                 provisioning_value = self._apply_esvd_values(
                     esvd_results.get('provisioning', {}), quality_multiplier, data_point
                 )
