@@ -1640,16 +1640,9 @@ class OpenLandMapSTAC:
 
     def _extract_single_pixel_safe(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
         """
-        Safe single pixel extraction with automatic fallback to nearby coordinates if corrupted
+        Safe single pixel extraction with proper GDAL environment configuration
         """
-        # Try original coordinates first
-        pixel_value = self._extract_single_pixel_safe_core(lat, lon, asset_url)
-        if pixel_value is not None:
-            return pixel_value
-            
-        # If original failed, try nearby coordinates (for corrupted pixel areas)
-        print(f"🔍 Original coordinates failed, trying nearby locations...")
-        return self._try_nearby_coordinates(lat, lon, asset_url)
+        return self._extract_single_pixel_safe_core(lat, lon, asset_url)
 
     def _extract_single_pixel_safe_core(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
         """
