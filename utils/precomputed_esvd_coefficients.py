@@ -581,22 +581,22 @@ class PrecomputedESVDCoefficients:
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 0.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00, # Service 6: Ornamental resources
-                'pollution': 1615.00,   # Service 7: Air quality regulation
-                'climate': 7730.00,     # Service 8: Climate regulation
-                'extreme_events': 772.00,         # Service 9: Moderation of extreme events
-                'water_regulation': 118.00,     # Service 10: Regulation of water flows
-                'water_purification': 0.00,     # Service 11: Waste treatment
+                'pollution': 12898.00,   # Service 7: Air quality regulation
+                'climate': 1615.00,     # Service 8: Climate regulation
+                'extreme_events': 7730.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 772.00,     # Service 10: Regulation of water flows
+                'water_purification': 118.00,     # Service 11: Waste treatment
                 'erosion': 0.00,        # Service 12: Erosion prevention
                 'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,   # Service 16: Maintenance of life cycles
                 'habitat': 0.00,  # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 16631.00,        # Service 18: Aesthetic information
+                'aesthetic_value': 18631.00,        # Service 18: Aesthetic information
                 'recreation': 2157864.00,  # Service 19: Recreation and tourism
                 'cultural': 173.00,       # Service 20: Culture, art and design
                 'spiritual_value': 108.00,        # Service 21: Spiritual experience
-                'primary_production': 2668.00      # Service 22: Cognitive development
+                'primary_production': 2669.00      # Service 22: Cognitive development
             },
             'shrubland': {
                 'food': 84.00,          # Service 1: Food
