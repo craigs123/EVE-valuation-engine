@@ -528,22 +528,22 @@ class PrecomputedESVDCoefficients:
             },
             'agricultural': {
                 'food': 3914.00,        # Service 1: Food
-                'water': 1747.00,        # Service 2: Water
-                'raw_materials': 612.00,       # Service 3: Raw materials
+                'water': 386.00,        # Service 2: Water
+                'raw_materials': 6175.00,       # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
-                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'medicinal_resources': 12.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
-                'pollution': 605.00,    # Service 7: Air quality regulation
+                'pollution': 609.00,    # Service 7: Air quality regulation
                 'climate': 559.00,      # Service 8: Climate regulation
                 'extreme_events': 3218.00,      # Service 9: Moderation of extreme events
                 'water_regulation': 780.00,     # Service 10: Regulation of water flows
                 'water_purification': 1118.00,  # Service 11: Waste treatment
                 'erosion': 4708.00,     # Service 12: Erosion prevention
-                'soil_formation': 509.00,       # Service 13: Maintenance of soil fertility
-                'pollination': 1300.00,         # Service 14: Pollination
+                'soil_formation': 589.00,       # Service 13: Maintenance of soil fertility
+                'pollination': 1900.00,         # Service 14: Pollination
                 'biological_control': 1124.00,  # Service 15: Biological control
                 'nursery_services': 2.00,       # Service 16: Maintenance of life cycles
-                'habitat': 0.00,        # Service 17: Maintenance of genetic diversity
+                'habitat': 2.00,        # Service 17: Maintenance of genetic diversity
                 'aesthetic_value': 190.00,      # Service 18: Aesthetic information
                 'recreation': 259.00,   # Service 19: Recreation and tourism
                 'cultural': 1074.00,    # Service 20: Culture, art and design

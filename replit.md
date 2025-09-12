@@ -3,7 +3,12 @@
 ## Overview
 The Ecosystem Valuation Engine (EVE) is a Streamlit-based geospatial analysis application designed for environmental researchers. Its primary purpose is to measure ecosystem growth through the economic valuation of ecosystem services, focusing on provisioning, regulating, cultural, and supporting categories. EVE combines satellite imagery processing with established economic valuation coefficients to track changes in ecosystem service values over time. The project aims to provide a robust tool for assessing natural capital, enabling trend analysis, and generating insightful reports for environmental management and policy.
 
-## Recent Changes (September 11, 2025)
+## Recent Changes (September 12, 2025)
+- **Updated Cropland Service Coefficients v2.7.8**: Updated all 22 Agricultural/Cropland ecosystem service coefficients with new research values, including major changes to Raw Materials (+909% to 6,175), Water (-78% to 386), Pollination (+46% to 1,900), and Soil Fertility (+16% to 589)
+- **Conflicting Results Display Fix v2.7.8**: Removed incorrect duplicate results display under "Step 3" header that showed wrong values, keeping only accurate "Summary results" section
+- **Service Calculation Reliability Warning v2.7.8**: Added warning message under Ecosystem Services Breakdown about study limitations and potential unreliability of values based on fewer than five studies
+
+## Previous Changes (September 11, 2025)
 - **ESA Code Mapping Fix v2.7.7**: Extended ESA land cover code mapping table to include missing codes (13-29 Cropland, 51-99 Forest, 111-129 Shrubland, 131-149 Grassland) and additional NLCD codes (21-24 Urban, 31 Desert, 41-43 Forest, 52 Shrubland, 95 Wetland) to eliminate "Unknown" classifications
 - **Critical Bug Fixes v2.7.6**: Fixed import errors, unbound variable issues, and session state initialization problems
 - **Ecosystem-Specific Intactness Multipliers v2.7.5**: Replaced single ecosystem intactness slider with individual controls for each ecosystem type (Agricultural, Temperate Forest, Boreal Forest, Tropical Forest, Grassland, Desert, Wetland, Coastal, Marine)
