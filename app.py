@@ -2272,6 +2272,7 @@ test_area_options = [
     "🌳 Test area (Temperate Forest)",
     "🌴 Test area (Tropical Forest)",
     "🏜️ Test area (Desert)",
+    "🏙️ Test area (Urban)",
     "🌊 Test area (Water Bodies)",
     "🌍 Test area (Multi-Ecosystem)",
     # "🎲 Test area (Random Global)"  # Hidden but kept for later use
@@ -2289,7 +2290,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🌊 Test area (Water Bodies)"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water Bodies)"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2405,6 +2406,11 @@ elif use_test_area_single:
             "coords": calculate_1000ha_coordinates(26.0, 5.0),
             "description": "Sahara Desert (26.0°N, 5.0°E) | Expected: Desert ecosystem",
             "location": "Central Sahara Desert, Algeria"
+        },
+        "🏙️ Test area (Urban)": {
+            "coords": calculate_1000ha_coordinates(19.374960, -99.117966),
+            "description": "Mexico City Urban Area (19.37°N, 99.12°W) | Expected: Urban ecosystem with 18% green/blue infrastructure",
+            "location": "Mexico City metropolitan area, Mexico"
         },
         "🌊 Test area (Water Bodies)": {
             "coords": calculate_1000ha_coordinates(25.0, -65.0),
