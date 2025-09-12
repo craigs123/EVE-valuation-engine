@@ -2594,7 +2594,7 @@ def lat_to_mercator_y(lat):
     lat = max(-85.05112878, min(85.05112878, lat))  # Clamp to Web Mercator bounds
     return (1 - math.log(math.tan(math.pi/4 + math.radians(lat)/2)) / math.pi) / 2
 
-def compute_zoom_for_bbox(bbox, viewport=(1200, 700), padding=0.02, map_max_zoom=20, map_min_zoom=2):
+def compute_zoom_for_bbox(bbox, viewport=(950, 400), padding=0.02, map_max_zoom=20, map_min_zoom=2):
     """Calculate optimal zoom level for a bounding box to almost fill the viewport
     Areas should take up 90-95% of the map display for optimal visibility"""
     if not bbox:
@@ -2794,25 +2794,23 @@ if st.session_state.get('use_test_area_zoom', False):
         # Calculate coords_array for all operations
         coords_array = np.array(coords[:-1], dtype=np.float32)
         
-        # Use cached map center and zoom if available
-        cache_key = f"map_center_{hash(str(coords))}"
-        if cache_key in st.session_state:
-            center_lat, center_lon, zoom_level = st.session_state[cache_key]
+        # Use dynamic zoom calculation for manually drawn areas
+        if st.session_state.get('cached_bbox'):
+            bbox = st.session_state.cached_bbox
+            center_lat, center_lon = compute_center_from_bbox(bbox)
+            zoom_level = compute_zoom_for_bbox(bbox)
         else:
-            # Calculate and cache center and zoom
+            # Fallback: create bbox from coordinates for dynamic zoom
             center_lat = float(coords_array[:, 1].mean())
             center_lon = float(coords_array[:, 0].mean())
             
-            # Optimized zoom calculation
-            lat_range = coords_array[:, 1].max() - coords_array[:, 1].min()
-            lon_range = coords_array[:, 0].max() - coords_array[:, 0].min()
-            max_range = max(lat_range, lon_range) * 5.0  # Padding factor
-            
-            # Simplified zoom levels for performance
-            zoom_level = max(3, min(9, int(10 - np.log10(max(max_range, 0.1)))))
-            
-            # Cache the calculated values
-            st.session_state[cache_key] = (center_lat, center_lon, zoom_level)
+            min_lat, max_lat = coords_array[:, 1].min(), coords_array[:, 1].max()
+            min_lon, max_lon = coords_array[:, 0].min(), coords_array[:, 0].max()
+            manual_bbox = {
+                'min_lat': float(min_lat), 'max_lat': float(max_lat),
+                'min_lon': float(min_lon), 'max_lon': float(max_lon)
+            }
+            zoom_level = compute_zoom_for_bbox(manual_bbox)
         
         m = get_folium_map(center_lat, center_lon, zoom_level, map_layer)
         
@@ -2885,7 +2883,7 @@ col1_map, col2_map, col3_map = st.columns([0.5, 2, 0.5])
 with col2_map:
     map_data = st_folium(
         m, 
-        width=950, 
+        width="100%",  # Responsive width for all device sizes
         height=400,
         returned_objects=["all_drawings"],
         key="area_map",
