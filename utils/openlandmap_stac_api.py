@@ -1568,6 +1568,7 @@ class OpenLandMapSTAC:
                     break
                 else:
                     print(f"⚠️ Failed to extract from {esa_url[:50]}..., trying next URL")
+                    continue  # Ensure we try the next URL
             
             if pixel_value is not None:
                 # Process the ESA code through existing mapping
@@ -1606,9 +1607,53 @@ class OpenLandMapSTAC:
             return url.replace("go_espg.4326", "go_epsg.4326")
         return url
     
+    def _try_nearby_coordinates(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
+        """
+        Try nearby coordinates when pixel extraction fails due to corruption
+        Shifts east by ~20km (0.18 degrees) to find clean pixels
+        """
+        offsets = [
+            (0.0, 0.18),    # 20km east
+            (0.0, 0.36),    # 40km east  
+            (0.0, -0.18),   # 20km west
+            (0.1, 0.18),    # 20km east, 10km north
+            (-0.1, 0.18),   # 20km east, 10km south
+        ]
+        
+        for lat_offset, lon_offset in offsets:
+            try_lat = lat + lat_offset
+            try_lon = lon + lon_offset
+            
+            # Check bounds
+            if not (-90 <= try_lat <= 90 and -180 <= try_lon <= 180):
+                continue
+                
+            print(f"🔄 Trying nearby coordinates: ({try_lat:.4f}, {try_lon:.4f}) [offset: {lat_offset:+.1f}, {lon_offset:+.2f}]")
+            
+            pixel_value = self._extract_single_pixel_safe_core(try_lat, try_lon, asset_url)
+            if pixel_value is not None:
+                print(f"✅ Found clean pixel at shifted location: ESA code {pixel_value}")
+                return pixel_value
+                
+        print(f"⚠️ All nearby coordinates failed for {asset_url[:50]}...")
+        return None
+
     def _extract_single_pixel_safe(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
         """
-        Safe single pixel extraction with proper GDAL environment configuration
+        Safe single pixel extraction with automatic fallback to nearby coordinates if corrupted
+        """
+        # Try original coordinates first
+        pixel_value = self._extract_single_pixel_safe_core(lat, lon, asset_url)
+        if pixel_value is not None:
+            return pixel_value
+            
+        # If original failed, try nearby coordinates (for corrupted pixel areas)
+        print(f"🔍 Original coordinates failed, trying nearby locations...")
+        return self._try_nearby_coordinates(lat, lon, asset_url)
+
+    def _extract_single_pixel_safe_core(self, lat: float, lon: float, asset_url: str) -> Optional[float]:
+        """
+        Core pixel extraction logic (used by both direct and nearby coordinate attempts)
         """
         dataset = None
         try:
@@ -1630,6 +1675,10 @@ class OpenLandMapSTAC:
             dataset = self._get_cached_dataset(fixed_url)
             if dataset is None:
                 print(f"❌ Failed to open dataset: {asset_url[:50]}...")
+                # If this is the main STAC URL and it failed, trigger fallback to backup URLs
+                if "s3.openlandmap.org/arco/land.cover_esacci" in fixed_url:
+                    print(f"🔄 STAC URL failed, falling back to direct landcover extraction...")
+                    return None  # This will trigger the fallback in the calling function
                 return None
             
             # Transform lat/lon to pixel coordinates using image bounds
