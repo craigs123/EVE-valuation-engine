@@ -693,28 +693,10 @@ class EcosystemServicesCalculator:
             if service == 'total':
                 continue
                 
-            # Apply quality and satellite-based adjustments
+            # Apply quality adjustments only (uniform method for all services)
             if isinstance(value, (int, float)):
-                # Apply base quality multiplier
+                # Apply base quality multiplier only - same method for all ecosystem services
                 adjusted_value = value * quality_multiplier
-                
-                # Apply additional satellite-based adjustments using proper service categorization
-                if service in self.service_categories['provisioning']:
-                    # Adjust provisioning based on vegetation health
-                    red = data_point.get('red_mean', 0)
-                    nir = data_point.get('nir_mean', 0)
-                    ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
-                    vegetation_factor = max(0.5, min(1.5, ndvi * 2))
-                    adjusted_value *= vegetation_factor
-                
-                elif service in self.service_categories['regulating']:
-                    # Adjust regulating based on vegetation cover
-                    red = data_point.get('red_mean', 0)
-                    nir = data_point.get('nir_mean', 0)
-                    ndvi = (nir - red) / (nir + red) if (nir + red) != 0 else 0
-                    regulation_factor = max(0.6, min(1.4, (ndvi + 0.5) * 1.2))
-                    adjusted_value *= regulation_factor
-                
                 result[service] = float(adjusted_value)
             else:
                 result[service] = 0.0
