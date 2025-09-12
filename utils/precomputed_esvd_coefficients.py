@@ -826,8 +826,8 @@ class PrecomputedESVDCoefficients:
             center_lat, center_lon = coordinates[0], coordinates[1]
             ecosystem_type = self._determine_forest_type(center_lat, center_lon)
         
-        # Convert to lowercase for consistent lookup
-        ecosystem_key = ecosystem_type.lower()
+        # Convert to lowercase and replace spaces with underscores for consistent lookup
+        ecosystem_key = ecosystem_type.lower().replace(' ', '_')
         ecosystem_coeffs = self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
         return ecosystem_coeffs.get(service_type, 100.0)  # Default fallback
     
