@@ -70,18 +70,18 @@ class EcosystemServicesCalculator:
             'degraded': 0.4
         }
         
-        # Service categorization mapping for proper NDVI adjustments
+        # Service categorization mapping (no longer used for adjustments)
         self.service_categories = {
-            # Provisioning services (affected by vegetation health)
+            # Provisioning services
             'provisioning': ['food', 'water', 'raw_materials', 'genetic_resources', 
                            'medicinal_resources', 'ornamental_resources'],
-            # Regulating services (affected by vegetation cover)
+            # Regulating services  
             'regulating': ['pollution', 'climate', 'extreme_events', 'water_regulation',
                          'waste_treatment', 'erosion_prevention', 'soil_fertility', 
                          'pollination', 'biological_control'],
-            # Cultural services (less affected by vegetation)
+            # Cultural services
             'cultural': ['aesthetic', 'recreation', 'culture', 'spiritual', 'cognitive'],
-            # Supporting services (foundation services)
+            # Supporting services
             'supporting': ['life_cycles', 'genetic_diversity']
         }
     
