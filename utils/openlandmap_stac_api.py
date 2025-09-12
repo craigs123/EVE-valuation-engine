@@ -908,9 +908,14 @@ class OpenLandMapSTAC:
                                         'image/tiff' in asset_type or 'tiff' in asset_href.lower() or 
                                         asset_key in ['data', 'main', 'cog', 'asset']):
                                         asset_url = asset['href']
+                                        # Fix corrupt URLs immediately when discovered
+                                        fixed_url = self._fix_corrupt_url(asset_url)
+                                        if fixed_url != asset_url:
+                                            print(f"🔧 Fixed corrupt STAC URL: {asset_url[:60]}... → {fixed_url[:60]}...")
+                                            asset_url = fixed_url
                                         print(f"✅ Found GeoTIFF asset from year {year}: {asset_url}")
                                         print(f"   📋 Asset details: roles={asset_roles}, main={asset_main}, type={asset_type}")
-                                        # Cache the asset URL
+                                        # Cache the corrected asset URL
                                         self._asset_url_cache[collection_id] = asset_url
                                         return asset_url
             
