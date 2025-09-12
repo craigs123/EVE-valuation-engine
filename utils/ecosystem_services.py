@@ -69,6 +69,21 @@ class EcosystemServicesCalculator:
             'poor': 0.6,
             'degraded': 0.4
         }
+        
+        # Service categorization mapping for proper NDVI adjustments
+        self.service_categories = {
+            # Provisioning services (affected by vegetation health)
+            'provisioning': ['food', 'water', 'raw_materials', 'genetic_resources', 
+                           'medicinal_resources', 'ornamental_resources'],
+            # Regulating services (affected by vegetation cover)
+            'regulating': ['pollution', 'climate', 'extreme_events', 'water_regulation',
+                         'waste_treatment', 'erosion_prevention', 'soil_fertility', 
+                         'pollination', 'biological_control'],
+            # Cultural services (less affected by vegetation)
+            'cultural': ['aesthetic', 'recreation', 'culture', 'spiritual', 'cognitive'],
+            # Supporting services (foundation services)
+            'supporting': ['life_cycles', 'genetic_diversity']
+        }
     
     def calculate_ecosystem_services_value(self, satellite_data: Dict, area_bounds: Dict, 
                                          ecosystem_type: str = "forest", quality_factor: float = 1.0, 
@@ -683,8 +698,8 @@ class EcosystemServicesCalculator:
                 # Apply base quality multiplier
                 adjusted_value = value * quality_multiplier
                 
-                # Apply additional satellite-based adjustments
-                if 'provisioning' in str(service).lower():
+                # Apply additional satellite-based adjustments using proper service categorization
+                if service in self.service_categories['provisioning']:
                     # Adjust provisioning based on vegetation health
                     red = data_point.get('red_mean', 0)
                     nir = data_point.get('nir_mean', 0)
@@ -692,7 +707,7 @@ class EcosystemServicesCalculator:
                     vegetation_factor = max(0.5, min(1.5, ndvi * 2))
                     adjusted_value *= vegetation_factor
                 
-                elif 'regulating' in str(service).lower():
+                elif service in self.service_categories['regulating']:
                     # Adjust regulating based on vegetation cover
                     red = data_point.get('red_mean', 0)
                     nir = data_point.get('nir_mean', 0)

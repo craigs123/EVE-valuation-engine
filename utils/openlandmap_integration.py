@@ -472,7 +472,7 @@ class OpenLandMapIntegrator:
         for ag_region in agricultural_regions:
             if (ag_region["lat_min"] <= lat <= ag_region["lat_max"] and 
                 ag_region["lon_min"] <= lon <= ag_region["lon_max"]):
-                return {'landcover_class': 82, 'ecosystem_type': "Agricultural", 'source': ag_region["name"]}
+                return {'landcover_class': 82, 'ecosystem_type': "agricultural", 'source': ag_region["name"]}
         
         return None
     
@@ -764,7 +764,7 @@ class OpenLandMapIntegrator:
                     spatial_key = int((lat_offset + lon_offset) % 10)
                     
                     if spatial_key < 4:  # 40% agricultural
-                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'Michigan Mixed Agricultural'}
+                        return {'landcover_class': 80, 'ecosystem_type': "agricultural", 'source': 'Michigan Mixed Agricultural'}
                     elif spatial_key < 7:  # 30% forest
                         return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'Michigan Mixed Forest'}
                     else:  # 30% grassland
@@ -773,11 +773,11 @@ class OpenLandMapIntegrator:
                     # General mixed region pattern for other areas
                     coord_hash = int(((lat * 1000) + (lon * 1000)) % 10)
                     if coord_hash < 6:  # 60% agricultural for general region
-                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'North American Agricultural Belt'}
+                        return {'landcover_class': 80, 'ecosystem_type': "agricultural", 'source': 'North American Agricultural Belt'}
                     else:  # 40% forest for general region
                         return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'North American Forest'}
             elif -10 <= lon <= 40 and 40 <= lat <= 55:  # European agricultural belt
-                return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'European Agricultural Belt'}
+                return {'landcover_class': 80, 'ecosystem_type': "agricultural", 'source': 'European Agricultural Belt'}
             else:
                 return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'Temperate Forest'}
         
