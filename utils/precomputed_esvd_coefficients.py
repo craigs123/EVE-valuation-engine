@@ -400,22 +400,22 @@ class PrecomputedESVDCoefficients:
                 'genetic_resources': 492.00,    # Service 4: Genetic resources
                 'medicinal_resources': 59.00,   # Service 5: Medicinal resources
                 'ornamental_resources': 2.00,   # Service 6: Ornamental resources
-                'pollution': 0.00,      # Service 7: Air quality regulation
+                'pollution': 18.00,      # Service 7: Air quality regulation
                 'climate': 4669.00,     # Service 8: Climate regulation
                 'extreme_events': 89.00,        # Service 9: Moderation of extreme events
                 'water_regulation': 161.00,     # Service 10: Regulation of water flows
-                'water_purification': 0.00,     # Service 11: Waste treatment
+                'water_purification': 13.00,     # Service 11: Waste treatment
                 'erosion': 145.00,      # Service 12: Erosion prevention
                 'soil_formation': 32.00,        # Service 13: Maintenance of soil fertility
                 'pollination': 306.00,          # Service 14: Pollination
-                'biological_control': 0.00,     # Service 15: Biological control
-                'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
+                'biological_control': 17.00,     # Service 15: Biological control
+                'nursery_services': 95.00,       # Service 16: Maintenance of life cycles
                 'habitat': 34.00,       # Service 17: Maintenance of genetic diversity
                 'aesthetic_value': 0.00,        # Service 18: Aesthetic information
                 'recreation': 149.00,   # Service 19: Recreation and tourism
-                'cultural': 0.00,       # Service 20: Culture, art and design
+                'cultural': 3.00,       # Service 20: Culture, art and design
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'primary_production': 8.00      # Service 22: Cognitive development
             },
             'temperate_forest': {
                 'food': 122.00,         # Service 1: Food
@@ -426,41 +426,41 @@ class PrecomputedESVDCoefficients:
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
                 'pollution': 1394.00,   # Service 7: Air quality regulation
                 'climate': 498.00,      # Service 8: Climate regulation
-                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
-                'water_regulation': 0.00,       # Service 10: Regulation of water flows
-                'water_purification': 0.00,     # Service 11: Waste treatment
+                'extreme_events': 49.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 1129.00,       # Service 10: Regulation of water flows
+                'water_purification': 12.00,     # Service 11: Waste treatment
                 'erosion': 5382.00,     # Service 12: Erosion prevention
                 'soil_formation': 58.00,        # Service 13: Maintenance of soil fertility
                 'pollination': 10792.00,        # Service 14: Pollination
-                'biological_control': 0.00,     # Service 15: Biological control
+                'biological_control': 18.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
                 'habitat': 388.00,      # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
+                'aesthetic_value': 44.00,        # Service 18: Aesthetic information
                 'recreation': 5665.00,  # Service 19: Recreation and tourism
                 'cultural': 0.00,       # Service 20: Culture, art and design
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'primary_production': 182.00      # Service 22: Cognitive development
             },
             'boreal_forest': {
                 'food': 4475.00,        # Service 1: Food
-                'water': 0.00,          # Service 2: Water
+                'water': 118.00,          # Service 2: Water
                 'raw_materials': 342.00,        # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
-                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
-                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
-                'pollution': 0.00,      # Service 7: Air quality regulation
+                'medicinal_resources': 40.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 842.00,   # Service 6: Ornamental resources
+                'pollution': 2076.00,      # Service 7: Air quality regulation
                 'climate': 1506.00,     # Service 8: Climate regulation
-                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
-                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'extreme_events': 886.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 12.00,       # Service 10: Regulation of water flows
                 'water_purification': 0.00,     # Service 11: Waste treatment
-                'erosion': 0.00,        # Service 12: Erosion prevention
-                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'erosion': 120.00,        # Service 12: Erosion prevention
+                'soil_formation': 250.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
                 'habitat': 0.00,        # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 1643.00,     # Service 18: Aesthetic information
-                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'aesthetic_value': 0.00,     # Service 18: Aesthetic information
+                'recreation': 1643.00,     # Service 19: Recreation and tourism
                 'cultural': 0.00,       # Service 20: Culture, art and design
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience
                 'primary_production': 0.00      # Service 22: Cognitive development
@@ -479,59 +479,57 @@ class PrecomputedESVDCoefficients:
                 'habitat': 320.00       
             },
             'wetland': {
-                'climate': 2752.00,       # Climate regulation
-                'food': 2939.00,          # Food production
-                'water': 11582.00,        # Water provision and regulation
-                'recreation': 29466.00,   # Recreation and tourism
-                'raw_materials': 294.00,  # Raw materials
-                'water_regulation': 2428.00,  # Regulation of water flows
-                'erosion': 0.00,          # Erosion prevention
-                'pollution': 2968.00,     # Air quality regulation
-                'cultural': 970.00,       # Culture, art and design
-                'habitat': 1937.00,       # Maintenance of genetic diversity
-                # COMPLETE TEEB SERVICES - Wetland ecosystem values
-                'genetic_resources': 266.00,    # Genetic resources
-                'aesthetic_value': 11316.00,    # Aesthetic information
-                'spiritual_value': 0.00,        # Spiritual experience
-                'soil_formation': 0.00,         # Maintenance of soil fertility
-                'nutrient_cycling': 0.00,       # Same as soil fertility
-                'medicinal_resources': 0.00,    # Medicinal resources
-                'ornamental_resources': 0.00,   # Ornamental resources
-                'extreme_events': 6374.00,      # Moderation of extreme events
-                'water_purification': 14010.00, # Waste treatment
-                'pollination': 0.00,            # Pollination
-                'biological_control': 0.00,     # Biological control
-                'nursery_services': 3060.00,    # Maintenance of life cycles
-                'primary_production': 14724.00  # Cognitive development
+                'food': 2939.00,          # Service 1: Food
+                'water': 11582.00,        # Service 2: Water
+                'raw_materials': 294.00,  # Service 3: Raw materials
+                'genetic_resources': 266.00,    # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 2968.00,     # Service 7: Air quality regulation
+                'climate': 2752.00,       # Service 8: Climate regulation
+                'extreme_events': 6374.00,      # Service 9: Moderation of extreme events
+                'water_regulation': 2428.00,  # Service 10: Regulation of water flows
+                'water_purification': 14010.00, # Service 11: Waste treatment
+                'erosion': 0.00,          # Service 12: Erosion prevention
+                'soil_formation': 720.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 3060.00,    # Service 16: Maintenance of life cycles
+                'habitat': 1937.00,       # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 11316.00,    # Service 18: Aesthetic information
+                'recreation': 29466.00,   # Service 19: Recreation and tourism
+                'cultural': 970.00,       # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 14724.00  # Service 22: Cognitive development
             },
             'grassland': {
                 'food': 464.00,         # Service 1: Food
                 'water': 184.00,        # Service 2: Water
                 'raw_materials': 247.00,        # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
-                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'medicinal_resources': 18.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
-                'pollution': 58.00,     # Service 7: Air quality regulation
+                'pollution': 38.00,     # Service 7: Air quality regulation
                 'climate': 444.00,      # Service 8: Climate regulation
                 'extreme_events': 0.00,         # Service 9: Moderation of extreme events
-                'water_regulation': 391.00,     # Service 10: Regulation of water flows
+                'water_regulation': 301.00,     # Service 10: Regulation of water flows
                 'water_purification': 4.00,     # Service 11: Waste treatment
-                'erosion': 0.00,        # Service 12: Erosion prevention
-                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
-                'pollination': 0.00,            # Service 14: Pollination
+                'erosion': 31.00,        # Service 12: Erosion prevention
+                'soil_formation': 1715.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 70.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
-                'habitat': 223.00,      # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 353.00,      # Service 18: Aesthetic information
-                'recreation': 0.00,     # Service 19: Recreation and tourism
-                'cultural': 182.00,     # Service 20: Culture, art and design
-                'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'habitat': 210.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 1511.00,      # Service 18: Aesthetic information
+                'recreation': 223.00,     # Service 19: Recreation and tourism
+                'cultural': 353.00,     # Service 20: Culture, art and design
+                'spiritual_value': 292.00,        # Service 21: Spiritual experience
+                'primary_production': 182.00      # Service 22: Cognitive development
             },
             'agricultural': {
                 'food': 3914.00,        # Service 1: Food
-                'water': 386.00,        # Service 2: Water
-                'raw_materials': 6175.00,       # Service 3: Raw materials
+                'water': 1747.00,        # Service 2: Water
+                'raw_materials': 612.00,       # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 0.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
@@ -541,7 +539,7 @@ class PrecomputedESVDCoefficients:
                 'water_regulation': 780.00,     # Service 10: Regulation of water flows
                 'water_purification': 1118.00,  # Service 11: Waste treatment
                 'erosion': 4708.00,     # Service 12: Erosion prevention
-                'soil_formation': 589.00,       # Service 13: Maintenance of soil fertility
+                'soil_formation': 509.00,       # Service 13: Maintenance of soil fertility
                 'pollination': 1300.00,         # Service 14: Pollination
                 'biological_control': 1124.00,  # Service 15: Biological control
                 'nursery_services': 2.00,       # Service 16: Maintenance of life cycles
@@ -553,178 +551,172 @@ class PrecomputedESVDCoefficients:
                 'primary_production': 2.00      # Service 22: Cognitive development
             },
             'coastal': {
-                'climate': 760.00,       # Climate regulation
-                'food': 7050.00,         # Food production (fisheries, mariculture)
-                'water': 6397.00,        # Water provision and regulation
-                'recreation': 6318.00,   # Recreation and tourism
-                'raw_materials': 6172.00,       # Raw materials (timber, shells, etc.)
-                'water_regulation': 0.00,       # Regulation of water flows
-                'erosion': 7736.00,      # Erosion prevention
-                'pollution': 496.00,     # Air quality regulation
-                'cultural': 278.00,      # Culture, art and design
-                'habitat': 6029.00,      # Maintenance of genetic diversity
-                # COMPLETE TEEB SERVICES - Coastal ecosystem values
-                'genetic_resources': 0.00,      # Genetic resources
-                'aesthetic_value': 857.00,      # Aesthetic information
-                'spiritual_value': 0.00,        # Spiritual experience
-                'soil_formation': 6340.00,      # Maintenance of soil fertility
-                'nutrient_cycling': 6340.00,    # Same as soil fertility
-                'medicinal_resources': 0.00,    # Medicinal resources
-                'ornamental_resources': 0.00,   # Ornamental resources
-                'extreme_events': 15746.00,     # Moderation of extreme events
-                'water_purification': 7145.00,  # Waste treatment
-                'pollination': 0.00,            # Pollination
-                'biological_control': 0.00,     # Biological control
-                'nursery_services': 2262.00,    # Maintenance of life cycles
-                'primary_production': 1556.00   # Cognitive development
+                'food': 7050.00,         # Service 1: Food
+                'water': 6397.00,        # Service 2: Water
+                'raw_materials': 6172.00,       # Service 3: Raw materials
+                'genetic_resources': 14.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 496.00,     # Service 7: Air quality regulation
+                'climate': 760.00,       # Service 8: Climate regulation
+                'extreme_events': 15746.00,     # Service 9: Moderation of extreme events
+                'water_regulation': 35.00,       # Service 10: Regulation of water flows
+                'water_purification': 7145.00,  # Service 11: Waste treatment
+                'erosion': 7736.00,      # Service 12: Erosion prevention
+                'soil_formation': 6340.00,      # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 2262.00,    # Service 16: Maintenance of life cycles
+                'habitat': 6029.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 857.00,      # Service 18: Aesthetic information
+                'recreation': 6318.00,   # Service 19: Recreation and tourism
+                'cultural': 278.00,      # Service 20: Culture, art and design
+                'spiritual_value': 4.00,        # Service 21: Spiritual experience
+                'primary_production': 1556.00   # Service 22: Cognitive development
             },
             'urban': {
-                'food': 0.00,           # Service 1: Food
-                'water': 0.00,          # Service 2: Water
-                'raw_materials': 0.00,  # Service 3: Raw materials
+                'food': 1240.00,           # Service 1: Food
+                'water': 1747.00,          # Service 2: Water
+                'raw_materials': 612.00,  # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 0.00,    # Service 5: Medicinal resources
-                'ornamental_resources': 12888.00, # Service 6: Ornamental resources
+                'ornamental_resources': 0.00, # Service 6: Ornamental resources
                 'pollution': 1615.00,   # Service 7: Air quality regulation
                 'climate': 7730.00,     # Service 8: Climate regulation
-                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'extreme_events': 772.00,         # Service 9: Moderation of extreme events
                 'water_regulation': 118.00,     # Service 10: Regulation of water flows
                 'water_purification': 0.00,     # Service 11: Waste treatment
                 'erosion': 0.00,        # Service 12: Erosion prevention
                 'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
-                'nursery_services': 18631.00,   # Service 16: Maintenance of life cycles
-                'habitat': 2157864.00,  # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
-                'recreation': 2668.00,  # Service 19: Recreation and tourism
-                'cultural': 0.00,       # Service 20: Culture, art and design
-                'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'nursery_services': 0.00,   # Service 16: Maintenance of life cycles
+                'habitat': 0.00,  # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 16631.00,        # Service 18: Aesthetic information
+                'recreation': 2157864.00,  # Service 19: Recreation and tourism
+                'cultural': 173.00,       # Service 20: Culture, art and design
+                'spiritual_value': 108.00,        # Service 21: Spiritual experience
+                'primary_production': 2668.00      # Service 22: Cognitive development
             },
             'shrubland': {
                 'food': 84.00,          # Service 1: Food
-                'water': 0.00,          # Service 2: Water
+                'water': 116.00,          # Service 2: Water
                 'raw_materials': 215.00,        # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 7.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
                 'pollution': 0.00,      # Service 7: Air quality regulation
                 'climate': 514.00,      # Service 8: Climate regulation
-                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
-                'water_regulation': 0.00,       # Service 10: Regulation of water flows
+                'extreme_events': 60.00,         # Service 9: Moderation of extreme events
+                'water_regulation': 143.00,       # Service 10: Regulation of water flows
                 'water_purification': 0.00,     # Service 11: Waste treatment
-                'erosion': 0.00,        # Service 12: Erosion prevention
+                'erosion': 28.00,        # Service 12: Erosion prevention
                 'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
-                'habitat': 258.00,      # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
-                'recreation': 0.00,     # Service 19: Recreation and tourism
-                'cultural': 0.00,       # Service 20: Culture, art and design
+                'habitat': 0.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 47.00,        # Service 18: Aesthetic information
+                'recreation': 53.00,     # Service 19: Recreation and tourism
+                'cultural': 265.00,       # Service 20: Culture, art and design
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'primary_production': 266.00      # Service 22: Cognitive development
             },
             'desert': {
-                'food': 0.00,           # Service 1: Food
+                'food': 14.00,           # Service 1: Food
                 'water': 644.00,        # Service 2: Water
                 'raw_materials': 54.00, # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 0.00,    # Service 5: Medicinal resources
-                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'ornamental_resources': 46.00,   # Service 6: Ornamental resources
                 'pollution': 0.00,      # Service 7: Air quality regulation
-                'climate': 0.00,        # Service 8: Climate regulation
-                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'climate': 80.00,        # Service 8: Climate regulation
+                'extreme_events': 19.00,         # Service 9: Moderation of extreme events
                 'water_regulation': 0.00,       # Service 10: Regulation of water flows
                 'water_purification': 0.00,     # Service 11: Waste treatment
-                'erosion': 0.00,        # Service 12: Erosion prevention
-                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'erosion': 8.00,        # Service 12: Erosion prevention
+                'soil_formation': 6.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
-                'habitat': 60.00,       # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 0.00,        # Service 18: Aesthetic information
-                'recreation': 0.00,     # Service 19: Recreation and tourism
-                'cultural': 0.00,       # Service 20: Culture, art and design
-                'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'habitat': 5.00,       # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 17.00,        # Service 18: Aesthetic information
+                'recreation': 71.00,     # Service 19: Recreation and tourism
+                'cultural': 60.00,       # Service 20: Culture, art and design
+                'spiritual_value': 2.00,        # Service 21: Spiritual experience
+                'primary_production': 58.00      # Service 22: Cognitive development
             },
             'polar': {
                 'food': 824.00,         # Service 1: Food
                 'water': 23.00,         # Service 2: Water
                 'raw_materials': 126.00,        # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
-                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'medicinal_resources': 12.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
-                'pollution': 0.00,      # Service 7: Air quality regulation
+                'pollution': 2.00,      # Service 7: Air quality regulation
                 'climate': 106686.00,   # Service 8: Climate regulation
-                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
+                'extreme_events': 19.00,         # Service 9: Moderation of extreme events
                 'water_regulation': 0.00,       # Service 10: Regulation of water flows
                 'water_purification': 0.00,     # Service 11: Waste treatment
-                'erosion': 0.00,        # Service 12: Erosion prevention
-                'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
+                'erosion': 38.00,        # Service 12: Erosion prevention
+                'soil_formation': 1.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,       # Service 16: Maintenance of life cycles
                 'habitat': 0.00,        # Service 17: Maintenance of genetic diversity
                 'aesthetic_value': 0.00,        # Service 18: Aesthetic information
-                'recreation': 0.00,     # Service 19: Recreation and tourism
+                'recreation': 12.00,     # Service 19: Recreation and tourism
                 'cultural': 0.00,       # Service 20: Culture, art and design
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience
-                'primary_production': 0.00      # Service 22: Cognitive development
+                'primary_production': 1.00      # Service 22: Cognitive development
             },
             'marine': {
-                'climate': 108.00,       # Marine climate regulation
-                'food': 1282.00,         # Marine food production (fisheries, aquaculture)
-                'water': 0.00,           # No freshwater provision from marine areas
-                'recreation': 5648.00,   # High marine recreation value
-                'raw_materials': 16940.00,      # Raw materials (seaweed, shells, etc.)
-                'water_regulation': 0.00,      # No freshwater regulation
-                'erosion': 3740.00,      # Coastal erosion prevention
-                'pollution': 0.00,       # No air quality regulation
-                'cultural': 0.00,        # Base cultural value (separate from specific services)
-                'habitat': 11249.00,     # High marine habitat/biodiversity value
-                # COMPLETE TEEB SERVICES - Marine ecosystem values
-                'genetic_resources': 0.00,      # Marine genetic resources
-                'aesthetic_value': 5800.00,     # Beautiful seascapes and marine views
-                'spiritual_value': 0.00,        # Spiritual experiences from marine areas
-                'soil_formation': 0.00,         # No soil formation in marine environments
-                'nutrient_cycling': 0.00,       # Marine nutrient cycling (different from terrestrial)
-                'medicinal_resources': 0.00,    # Marine medicinal resources
-                'ornamental_resources': 0.00,   # Marine ornamental resources
-                'extreme_events': 16553.00,     # Excellent storm/wave protection
-                'water_purification': 2837.00,  # Marine water treatment capacity
-                'pollination': 0.00,            # No pollination services in marine areas
-                'biological_control': 0.00,     # Marine biological control
-                'nursery_services': 1355.00,    # Important marine nursery habitat
-                'primary_production': 2248.00   # Marine primary production
+                'food': 1282.00,         # Service 1: Food
+                'water': 26.00,           # Service 2: Water
+                'raw_materials': 16940.00,      # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 1199.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 41.00,   # Service 6: Ornamental resources
+                'pollution': 0.00,       # Service 7: Air quality regulation
+                'climate': 108.00,       # Service 8: Climate regulation
+                'extreme_events': 16553.00,     # Service 9: Moderation of extreme events
+                'water_regulation': 2837.00,      # Service 10: Regulation of water flows
+                'water_purification': 487.00,  # Service 11: Waste treatment
+                'erosion': 3740.00,      # Service 12: Erosion prevention
+                'soil_formation': 1861.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 1355.00,    # Service 16: Maintenance of life cycles
+                'habitat': 11249.00,     # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 5800.00,     # Service 18: Aesthetic information
+                'recreation': 5648.00,   # Service 19: Recreation and tourism
+                'cultural': 1100.00,        # Service 20: Culture, art and design
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience
+                'primary_production': 2248.00   # Service 22: Cognitive development
             },
             'rivers_and_lakes': {
-                'climate': 0.00,          # Climate regulation
-                'food': 2202.00,          # Food production (fisheries, aquaculture)
-                'water': 2634.00,         # Water provision and regulation
-                'recreation': 167647.00,  # Recreation and tourism
-                'raw_materials': 108.00,  # Raw materials
-                'water_regulation': 1992.00,  # Regulation of water flows
-                'erosion': 0.00,          # Erosion prevention
-                'pollution': 0.00,        # Air quality regulation
-                'cultural': 0.00,         # Culture, art and design
-                'habitat': 0.00,          # Maintenance of genetic diversity
-                # COMPLETE TEEB SERVICES - Rivers and Lakes ecosystem values
-                'genetic_resources': 0.00,      # Genetic resources
-                'aesthetic_value': 33737.00,    # Aesthetic information
-                'spiritual_value': 0.00,        # Spiritual experience
-                'soil_formation': 0.00,         # Maintenance of soil fertility
-                'nutrient_cycling': 0.00,       # Same as soil fertility
-                'medicinal_resources': 0.00,    # Medicinal resources
-                'ornamental_resources': 0.00,   # Ornamental resources
-                'extreme_events': 11296.00,     # Moderation of extreme events
-                'water_purification': 2561.00,  # Waste treatment
-                'pollination': 0.00,            # Pollination
-                'biological_control': 0.00,     # Biological control
-                'nursery_services': 0.00,       # Maintenance of life cycles
-                'primary_production': 0.00      # Cognitive development
+                'food': 2202.00,          # Service 1: Food
+                'water': 2634.00,         # Service 2: Water
+                'raw_materials': 108.00,  # Service 3: Raw materials
+                'genetic_resources': 0.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 0.00,        # Service 7: Air quality regulation
+                'climate': 375.00,          # Service 8: Climate regulation
+                'extreme_events': 11296.00,     # Service 9: Moderation of extreme events
+                'water_regulation': 1992.00,  # Service 10: Regulation of water flows
+                'water_purification': 2561.00,  # Service 11: Waste treatment
+                'erosion': 0.00,          # Service 12: Erosion prevention
+                'soil_formation': 28.00,         # Service 13: Maintenance of soil fertility
+                'pollination': 409.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 344.00,       # Service 16: Maintenance of life cycles
+                'habitat': 0.00,          # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 33737.00,    # Service 18: Aesthetic information
+                'recreation': 167647.00,  # Service 19: Recreation and tourism
+                'cultural': 385.00,         # Service 20: Culture, art and design
+                'spiritual_value': 96.00,        # Service 21: Spiritual experience
+                'primary_production': 144.00      # Service 22: Cognitive development
             }
         }
         
