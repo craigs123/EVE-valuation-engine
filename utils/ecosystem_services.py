@@ -347,19 +347,11 @@ class EcosystemServicesCalculator:
                     
                     # Urban green/blue infrastructure multiplier now applied at service level in ESVD calculation
                     
-                    # Apply ESVD values with quality adjustments
-                    provisioning_value = self._apply_esvd_values(
-                        esvd_results.get('provisioning', {}), quality_multiplier, data_point
-                    )
-                    regulating_value = self._apply_esvd_values(
-                        esvd_results.get('regulating', {}), quality_multiplier, data_point
-                    )
-                    cultural_value = self._apply_esvd_values(
-                        esvd_results.get('cultural', {}), quality_multiplier, data_point
-                    )
-                    supporting_value = self._apply_esvd_values(
-                        esvd_results.get('supporting', {}), quality_multiplier, data_point
-                    )
+                    # Use ESVD values directly - no additional quality adjustments needed
+                    provisioning_value = esvd_results.get('provisioning', {})
+                    regulating_value = esvd_results.get('regulating', {})
+                    cultural_value = esvd_results.get('cultural', {})
+                    supporting_value = esvd_results.get('supporting', {})
                     
                     ecosystem_total = (provisioning_value['total'] + regulating_value['total'] + 
                                      cultural_value['total'] + supporting_value['total'])
