@@ -1601,7 +1601,8 @@ with st.sidebar:
             'Desert': '🏜️',
             'Wetland': '🌿',
             'Coastal': '🏖️',
-            'Marine': '🌊'
+            'Marine': '🌊',
+            'Urban': '🏙️'
         }
         
         # Initialize ecosystem intactness in session state if not exists
@@ -1682,6 +1683,43 @@ with st.sidebar:
         
         # Store in session state
         st.session_state['income_elasticity'] = income_elasticity
+    
+    # Urban Green/Blue Infrastructure Settings (expandable)
+    with st.expander("🏙️ **Urban Green/Blue Infrastructure**"):
+        st.markdown("**Urban ecosystem multiplier for green and blue spaces:**")
+        st.caption("Only a portion of urban areas contain actual green/blue infrastructure that provides ecosystem services")
+        
+        # Initialize urban multiplier in session state if not exists
+        if 'urban_green_blue_multiplier' not in st.session_state:
+            st.session_state.urban_green_blue_multiplier = 15.0  # Default 15%
+        
+        urban_multiplier = st.slider(
+            "🌳 Green/Blue Infrastructure Coverage (%)",
+            min_value=0.0,
+            max_value=100.0,
+            value=st.session_state.urban_green_blue_multiplier,
+            step=1.0,
+            key="urban_multiplier_slider",
+            help="Percentage of urban area that contains green spaces, parks, urban forests, or water features that provide ecosystem services"
+        )
+        st.session_state.urban_green_blue_multiplier = urban_multiplier
+        
+        # Show current multiplier
+        multiplier_value = urban_multiplier / 100.0
+        st.info(f"🏙️ **Current Urban Multiplier**: {multiplier_value:.2f}x ({urban_multiplier:.0f}%)")
+        
+        # Explanation
+        st.markdown("""
+        **📚 Background:** Studies show that only 10-20% of typical urban areas consist of green and blue infrastructure:
+        - **Green Infrastructure**: Parks, urban forests, green roofs, tree-lined streets
+        - **Blue Infrastructure**: Urban waterways, constructed wetlands, retention ponds
+        - **Mixed Areas**: Green corridors, riparian zones, urban gardens
+        
+        **🔬 Default (15%)**: Based on global urban analysis - only green/blue portions provide ecosystem services
+        """)
+        
+        # Store in session state
+        st.session_state['urban_green_blue_multiplier'] = urban_multiplier
     
     # Analysis Configuration (expandable)
     with st.expander("📊 **Analysis Configuration**"):
