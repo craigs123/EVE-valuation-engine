@@ -2586,11 +2586,106 @@ st.info(f"💡 **Quick start**: Search for a location above, then use the rectan
 if 'use_test_area_zoom' not in st.session_state:
     st.session_state.use_test_area_zoom = False
 
-# Create optimized interactive map - use cached calculations
+# Dynamic zoom utility functions for optimal area display
+import math
+
+def lat_to_mercator_y(lat):
+    """Convert latitude to Web Mercator Y coordinate (0-1 scale)"""
+    lat = max(-85.05112878, min(85.05112878, lat))  # Clamp to Web Mercator bounds
+    return (1 - math.log(math.tan(math.pi/4 + math.radians(lat)/2)) / math.pi) / 2
+
+def compute_zoom_for_bbox(bbox, viewport=(1200, 700), padding=0.10, map_max_zoom=20, map_min_zoom=2):
+    """Calculate optimal zoom level for a bounding box to fit in viewport with padding
+    Optimized for areas as small as 10ha (minimum expected area size)"""
+    if not bbox:
+        return map_min_zoom
+    
+    try:
+        # Calculate longitude span (handle dateline crossing)
+        dlon = abs(bbox['max_lon'] - bbox['min_lon'])
+        if dlon > 180:
+            dlon = 360 - dlon
+        dx_frac = dlon / 360.0
+        
+        # Calculate latitude span using Mercator projection
+        y1 = lat_to_mercator_y(bbox['min_lat'])
+        y2 = lat_to_mercator_y(bbox['max_lat'])
+        dy_frac = abs(y2 - y1)
+        
+        # Set minimum spans based on 10ha (smallest expected area)
+        # 10ha = 0.1 km² = ~316m × 316m square
+        # At equator: ~316m ≈ 0.00284° latitude ≈ 0.00284° longitude
+        min_span_deg = 0.003  # Slightly larger than 10ha span for good visibility
+        dx_frac = max(dx_frac, min_span_deg / 360.0)
+        dy_frac = max(dy_frac, min_span_deg)
+        
+        # Calculate zoom levels for both dimensions with optimized padding for small areas
+        # Use smaller padding for very small areas to get closer zoom
+        effective_padding = max(0.05, padding * min(1.0, dx_frac * 1000))
+        
+        zoom_x = math.log2(viewport[0] / (256 * (1 + effective_padding) * dx_frac)) if dx_frac > 0 else map_max_zoom
+        zoom_y = math.log2(viewport[1] / (256 * (1 + effective_padding) * dy_frac)) if dy_frac > 0 else map_max_zoom
+        
+        # Use the more restrictive zoom (ensures entire area fits)
+        zoom = math.floor(min(zoom_x, zoom_y))
+        
+        # For very small areas (10ha-100ha), ensure minimum zoom level for visibility
+        area_span = max(dx_frac * 360.0, dy_frac)  # Rough area indicator
+        if area_span < 0.01:  # Very small areas
+            zoom = max(zoom, 15)  # Ensure at least zoom 15 for small areas
+        
+        # Clamp to map limits
+        return max(map_min_zoom, min(map_max_zoom, zoom))
+    except (ValueError, ZeroDivisionError, KeyError):
+        return map_min_zoom
+
+def compute_center_from_bbox(bbox):
+    """Calculate center coordinates from bounding box"""
+    if not bbox:
+        return 40.0, -100.0  # Default fallback
+    
+    try:
+        center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
+        
+        # Handle longitude dateline crossing
+        min_lon, max_lon = bbox['min_lon'], bbox['max_lon']
+        if abs(max_lon - min_lon) <= 180:
+            center_lon = (min_lon + max_lon) / 2
+        else:
+            # Dateline crossing - take the shorter arc
+            center_lon = ((min_lon + max_lon + 360) / 2) % 360
+            if center_lon > 180:
+                center_lon -= 360
+        
+        return center_lat, center_lon
+    except (KeyError, TypeError):
+        return 40.0, -100.0
+
+def create_bbox_from_center_and_area(center_lat, center_lon, area_ha=1000):
+    """Create synthetic bounding box from center coordinates and area size"""
+    # Calculate side length for the given area
+    side_length_km = math.sqrt(area_ha / 100)  # Convert ha to km²
+    
+    # Conversion factors
+    lat_km_per_deg = 111.32
+    lon_km_per_deg = 111.32 * math.cos(math.radians(center_lat))
+    
+    # Half-side in degrees
+    lat_half_side = (side_length_km / 2) / lat_km_per_deg
+    lon_half_side = (side_length_km / 2) / lon_km_per_deg
+    
+    return {
+        'min_lat': center_lat - lat_half_side,
+        'max_lat': center_lat + lat_half_side,
+        'min_lon': center_lon - lon_half_side,
+        'max_lon': center_lon + lon_half_side
+    }
+
+# Create optimized interactive map - use dynamic zoom calculations
 if st.session_state.get('use_test_area_zoom', False):
-    # Zoom to the appropriate test area
+    # Zoom to the appropriate test area with dynamic zoom
     if use_test_area_single:
-        # Zoom to selected single ecosystem test area
+        # Get center coordinates for test area
         ecosystem_zoom_coords = {
             "🌾 Test area (Agricultural)": (40.1, -87.97),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (45.0, -110.5),        # Montana
@@ -2601,49 +2696,48 @@ if st.session_state.get('use_test_area_zoom', False):
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
             "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
         }
+        
         if selected_test_area in ecosystem_zoom_coords:
             center_lat, center_lon = ecosystem_zoom_coords[selected_test_area]
         else:
-            # Default fallback
             center_lat, center_lon = 40.028, -99.0185
         
-        # Use moderate zoom for water bodies due to lower ocean map resolution
-        if selected_test_area == "🌊 Test area (Water Bodies)":
-            zoom_level = 12  # Moderate-close zoom for ocean areas
-        else:
-            zoom_level = 13  # Standard zoom for land areas
+        # Create synthetic bbox for 1000ha test area and calculate dynamic zoom
+        test_bbox = create_bbox_from_center_and_area(center_lat, center_lon, 1000)
+        
+        # Use different max zoom for water bodies due to lower ocean map resolution
+        max_zoom = 18 if selected_test_area == "🌊 Test area (Water Bodies)" else 20
+        zoom_level = compute_zoom_for_bbox(test_bbox, map_max_zoom=max_zoom)
     elif use_test_area_multi:
-        # Zoom to Michigan test area
+        # Dynamic zoom for Michigan test area
         center_lat, center_lon = 42.0, -84.0
-        zoom_level = 13
+        multi_bbox = create_bbox_from_center_and_area(center_lat, center_lon, 1000)
+        zoom_level = compute_zoom_for_bbox(multi_bbox)
     elif use_test_area_random:
-        # Zoom to random global test area
+        # Dynamic zoom for random global test area
         if st.session_state.get('cached_bbox'):
             bbox = st.session_state.cached_bbox
-            center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
-            center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-            zoom_level = 13
+            center_lat, center_lon = compute_center_from_bbox(bbox)
+            zoom_level = compute_zoom_for_bbox(bbox)
         else:
             # Fallback if bbox not available
             center_lat, center_lon = 0, 0
             zoom_level = 2
     elif use_load_saved_area:
-        # Zoom to loaded saved area
+        # Dynamic zoom for loaded saved area
         if st.session_state.get('cached_bbox'):
             bbox = st.session_state.cached_bbox
-            center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
-            center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-            zoom_level = 7  # Balanced zoom for regional context
+            center_lat, center_lon = compute_center_from_bbox(bbox)
+            zoom_level = compute_zoom_for_bbox(bbox)
         else:
             # Fallback if bbox not available
             center_lat, center_lon = 40.0, -100.0
             zoom_level = 5
     elif st.session_state.get('cached_bbox'):
-        # Zoom to manually drawn area using cached bbox
+        # Dynamic zoom for manually drawn area using cached bbox
         bbox = st.session_state.cached_bbox
-        center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
-        center_lon = (bbox['min_lon'] + bbox['max_lon']) / 2
-        zoom_level = 7  # Balanced zoom for regional context
+        center_lat, center_lon = compute_center_from_bbox(bbox)
+        zoom_level = compute_zoom_for_bbox(bbox)
     else:
         # Default to Sweden if no specific area selected
         center_lat, center_lon = 60.0, 15.0
