@@ -853,8 +853,8 @@ class OpenLandMapSTAC:
                                 'year': year or 1900  # Default to very old year if no year found
                             })
                     
-                    # Sort by year descending (most recent first)
-                    available_items.sort(key=lambda x: x['year'], reverse=True)
+                    # Sort by year ascending (oldest first) - like working app using 1992 data
+                    available_items.sort(key=lambda x: x['year'], reverse=False)
                     print(f"🗓️ Found {len(available_items)} STAC items, sorted by year:")
                     for item in available_items[:5]:  # Show top 5 most recent
                         print(f"   📅 Year {item['year']}: {item['url']}")
@@ -864,10 +864,7 @@ class OpenLandMapSTAC:
                         item_url = item['url']
                         year = item['year']
                         
-                        # Skip items older than 2010 to focus on more recent data
-                        if year < 2010:
-                            print(f"⏭️ Skipping old data from year {year}")
-                            continue
+                        # Use any year data - working app uses 1992 data
                         
                         print(f"🔗 Trying STAC item from year {year}: {item_url}")
                         
@@ -1526,11 +1523,8 @@ class OpenLandMapSTAC:
     
     
     def _fix_corrupt_url(self, url: str) -> str:
-        """Fix only essential typos - use exact asset.href as working app does"""
-        # Fix only known typos in STAC metadata  
-        if "go_espg.4326" in url:
-            url = url.replace("go_espg.4326", "go_epsg.4326")
-        
+        """DO NOT fix typos - working URLs actually have the typo!"""
+        # DO NOT fix the typo - working app uses URLs with go_espg.4326 typo
         # DO NOT rewrite domains or paths - use exact asset.href like working app
         return url
     
