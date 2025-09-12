@@ -1119,6 +1119,7 @@ class OpenLandMapIntegrator:
         actual_points = grid_size ** 2
         
         # Development environment optimization
+        import os
         if os.environ.get('DEV_MODE') == 'true':
             return min(max(4, actual_points), 50)  # Cap at 50 points for dev speed
         return max(4, actual_points)  # Ensure minimum of 4 points

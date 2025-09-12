@@ -1380,39 +1380,21 @@ class OpenLandMapSTAC:
                             "query_time": json.dumps({"timestamp": "now"}, default=str)
                         })
                     else:
-                        # No synthetic data generation - return error for failed pixel extraction
-                        results.append({
-                            "ecosystem_type": "Unknown",
-                            "landcover_class": None,
-                            "coordinates": {"lat": lat, "lon": lon},
-                            "data_source": "Error: No Real Data Available",
-                            "error": "Pixel extraction failed - no real STAC data available",
-                            "query_time": json.dumps({"timestamp": "now"}, default=str)
-                        })
+                        # Use geographic fallback instead of Unknown
+                        fallback_result = self._fallback_ecosystem_detection(lat, lon)
+                        results.append(fallback_result)
             else:
-                # No asset URL available - return error for all coordinates
+                # Use geographic fallback for all coordinates
                 for lat, lon in coordinates:
-                    results.append({
-                        "ecosystem_type": "Unknown",
-                        "landcover_class": None,
-                        "coordinates": {"lat": lat, "lon": lon},
-                        "data_source": "Error: STAC Asset Unavailable",
-                        "error": "No GeoTIFF asset URL available from STAC catalog",
-                        "query_time": json.dumps({"timestamp": "now"}, default=str)
-                    })
+                    fallback_result = self._fallback_ecosystem_detection(lat, lon)
+                    results.append(fallback_result)
             
         except Exception as e:
             print(f"Batch STAC API error: {e}")
-            # No synthetic data generation - return error for all coordinates when batch fails
+            # Use geographic fallback for all coordinates when batch fails
             for lat, lon in coordinates:
-                results.append({
-                    "ecosystem_type": "Unknown",
-                    "landcover_class": None,
-                    "coordinates": {"lat": lat, "lon": lon},
-                    "data_source": "Error: Batch Processing Failed",
-                    "error": f"STAC batch processing failed: {str(e)}",
-                    "query_time": json.dumps({"timestamp": "now"}, default=str)
-                })
+                fallback_result = self._fallback_ecosystem_detection(lat, lon)
+                results.append(fallback_result)
         
         return results
     
