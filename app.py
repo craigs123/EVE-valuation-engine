@@ -2284,7 +2284,7 @@ test_area_options = [
     "None - Draw your own area",
     "📁 Load Saved Area",
     "🌾 Test area (Agricultural)",
-    "🌱 Test area (Grassland)", 
+    "🌿 Test area (Shrubland)", 
     "🌲 Test area (Boreal Forest)",
     "🌳 Test area (Temperate Forest)",
     "🌴 Test area (Tropical Forest)",
@@ -2307,7 +2307,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water Bodies)"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water Bodies)"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2399,9 +2399,9 @@ elif use_test_area_single:
             "description": "Illinois Corn Belt (40.1°N, 87.91°W) | Expected: 100% Agricultural ecosystem",
             "location": "Rural US Corn Belt, central Illinois"
         },
-        "🌱 Test area (Grassland)": {
+        "🌿 Test area (Shrubland)": {
             "coords": calculate_1000ha_coordinates(-16.45, 126.5),
-            "description": "Australian Grassland (-16.45°S, 126.5°E) | Expected: Grassland ecosystem",
+            "description": "Australian Shrubland (-16.45°S, 126.5°E) | Expected: Shrubland ecosystem",
             "location": "Western Australia"
         },
         "🌲 Test area (Boreal Forest)": {
@@ -2705,7 +2705,7 @@ if st.session_state.get('use_test_area_zoom', False):
         # Get center coordinates for test area
         ecosystem_zoom_coords = {
             "🌾 Test area (Agricultural)": (40.1, -87.91),     # Illinois Corn Belt
-            "🌱 Test area (Grassland)": (-16.45, 126.5),       # Western Australia
+            "🌿 Test area (Shrubland)": (-16.45, 126.5),       # Western Australia
             "🌲 Test area (Boreal Forest)": (50.491, -84.986),     # Northern Ontario
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
