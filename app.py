@@ -2405,8 +2405,8 @@ elif use_test_area_single:
             "location": "Western Australia"
         },
         "🌲 Test area (Boreal Forest)": {
-            "coords": calculate_1000ha_coordinates(50.5, -85.0),
-            "description": "Canadian Boreal Forest (50.5°N, 85.0°W) | Expected: Boreal Forest ecosystem",
+            "coords": calculate_1000ha_coordinates(50.491, -84.986),
+            "description": "Canadian Boreal Forest (50.491°N, 84.986°W) | Expected: Boreal Forest ecosystem",
             "location": "Northern Ontario boreal forest"
         },
         "🌳 Test area (Temperate Forest)": {
@@ -2706,7 +2706,7 @@ if st.session_state.get('use_test_area_zoom', False):
         ecosystem_zoom_coords = {
             "🌾 Test area (Agricultural)": (40.1, -87.91),     # Illinois Corn Belt
             "🌱 Test area (Grassland)": (-16.45, 126.5),       # Western Australia
-            "🌲 Test area (Boreal Forest)": (50.5, -85.0),     # Northern Ontario
+            "🌲 Test area (Boreal Forest)": (50.491, -84.986),     # Northern Ontario
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
