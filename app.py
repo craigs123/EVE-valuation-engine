@@ -2284,8 +2284,7 @@ test_area_options = [
     "None - Draw your own area",
     "📁 Load Saved Area",
     "🌾 Test area (Agricultural)",
-    "🌿 Test area (Shrubland)",
-    "🌱 Test area (Grassland)", 
+    "🌿 Test area (Shrubland)", 
     "🌲 Test area (Boreal Forest)",
     "🌳 Test area (Temperate Forest)",
     "🌴 Test area (Tropical Forest)",
@@ -2308,7 +2307,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌿 Test area (Shrubland)", "🌱 Test area (Grassland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water Bodies)"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water Bodies)"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2404,11 +2403,6 @@ elif use_test_area_single:
             "coords": calculate_1000ha_coordinates(-16.45, 126.5),
             "description": "Australian Shrubland (-16.45°S, 126.5°E) | Expected: Shrubland ecosystem",
             "location": "Western Australia"
-        },
-        "🌱 Test area (Grassland)": {
-            "coords": calculate_1000ha_coordinates(-24.0113889, 31.4852778),
-            "description": "South African Grassland (24°0′41″S, 31°29′7″E) | Expected: Grassland ecosystem",
-            "location": "Kruger National Park region, South Africa"
         },
         "🌲 Test area (Boreal Forest)": {
             "coords": calculate_1000ha_coordinates(50.491, -84.986),
@@ -2712,7 +2706,6 @@ if st.session_state.get('use_test_area_zoom', False):
         ecosystem_zoom_coords = {
             "🌾 Test area (Agricultural)": (40.1, -87.91),     # Illinois Corn Belt
             "🌿 Test area (Shrubland)": (-16.45, 126.5),       # Western Australia
-            "🌱 Test area (Grassland)": (-24.0113889, 31.4852778),  # South Africa
             "🌲 Test area (Boreal Forest)": (50.491, -84.986),     # Northern Ontario
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
