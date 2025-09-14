@@ -2292,6 +2292,7 @@ test_area_options = [
     "🏜️ Test area (Desert)",
     "🏙️ Test area (Urban)",
     "🌊 Test area (Water (ocean))",
+    "🏞️ Test area (Water (Rivers/Lakes))",
     "🌍 Test area (Multi-Ecosystem)",
     # "🎲 Test area (Random Global)"  # Hidden but kept for later use
 ]
@@ -2308,7 +2309,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water (ocean))"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water (ocean))", "🏞️ Test area (Water (Rivers/Lakes))"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2439,6 +2440,11 @@ elif use_test_area_single:
             "coords": calculate_1000ha_coordinates(25.0, -65.0),
             "description": "Atlantic Ocean (25.0°N, 65.0°W) | Expected: ESA Code 210, triggers water body classification",
             "location": "Mid-Atlantic Ocean east of Bahamas"
+        },
+        "🏞️ Test area (Water (Rivers/Lakes))": {
+            "coords": calculate_1000ha_coordinates(47.833439, -87.789001),
+            "description": "Lake Superior Region (47.83°N, 87.79°W) | Expected: ESA Code 210, Rivers and Lakes ecosystem with regional factor",
+            "location": "Great Lakes region, Minnesota/Michigan border"
         }
     }
     
@@ -2718,7 +2724,8 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
-            "🌊 Test area (Water (ocean))": (25.0, -65.0)       # Atlantic Ocean
+            "🌊 Test area (Water (ocean))": (25.0, -65.0),       # Atlantic Ocean
+            "🏞️ Test area (Water (Rivers/Lakes))": (47.833439, -87.789001)  # Lake Superior region
         }
         
         if selected_test_area in ecosystem_zoom_coords:
@@ -2730,7 +2737,7 @@ if st.session_state.get('use_test_area_zoom', False):
         test_bbox = create_bbox_from_center_and_area(center_lat, center_lon, 1000)
         
         # Use different max zoom for water bodies due to lower ocean map resolution
-        max_zoom = 18 if selected_test_area == "🌊 Test area (Water Bodies)" else 20
+        max_zoom = 18 if selected_test_area == "🌊 Test area (Water (ocean))" else 20
         zoom_level = compute_zoom_for_bbox(test_bbox, map_max_zoom=max_zoom)
     elif use_test_area_multi:
         # Dynamic zoom for Michigan test area
