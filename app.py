@@ -1899,7 +1899,7 @@ Example: 100ha Forest
             210: "Marine",          # Water bodies
             
             # Snow and Ice Classes  
-            220: "Polar",           # Permanent snow and ice
+            220: "polar",           # Permanent snow and ice
             
             # Additional missing codes that may be returned by ESA CCI
             52: "Shrubland",        # Shrub/Scrub
