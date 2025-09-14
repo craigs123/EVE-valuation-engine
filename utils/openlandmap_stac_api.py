@@ -163,10 +163,10 @@ class OpenLandMapSTAC:
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
             70: "Forest", 71: "Forest", 72: "Forest", 
             80: "Forest", 81: "Forest", 82: "Forest",
-            90: "Forest", 100: "Temperate Forest",
+            90: "Forest", 100: "Forest",
             
             # Shrubland Classes
-            110: "Temperate Forest", 120: "Forest", 121: "Shrubland", 122: "Shrubland",
+            110: "Shrubland", 120: "Shrubland", 121: "Shrubland", 122: "Shrubland",
             
             # Grassland Classes
             130: "Grassland", 140: "Grassland",
@@ -195,7 +195,7 @@ class OpenLandMapSTAC:
             220: "polar",           # Permanent snow and ice
             
             # Additional NLCD/CORINE codes that may be encountered
-            21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",  # Developed areas
+            21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",  # Developed areas
             31: "Desert",           # Barren Land
             41: "Temperate Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
             52: "Shrubland",        # NLCD Shrub/Scrub
@@ -208,11 +208,11 @@ class OpenLandMapSTAC:
             83: "Forest", 84: "Forest", 85: "Forest", 86: "Forest",
             91: "Forest", 92: "Forest", 93: "Forest", 94: "Forest",
             96: "Forest", 97: "Forest", 98: "Forest", 99: "Forest",
+            101: "Forest", 102: "Forest",
             
-            # Extended cropland coverage (ESA codes 13-29)
+            # Extended cropland coverage (ESA codes 13-20, 25-29) - FIXED: Removed 21-24 conflict
             13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
-            17: "agricultural", 18: "agricultural", 19: "agricultural", 
-            21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",
+            17: "agricultural", 18: "agricultural", 19: "agricultural", 20: "agricultural",
             25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
             
             # Extended shrubland coverage (ESA codes 111-129)

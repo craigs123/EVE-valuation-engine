@@ -37,12 +37,12 @@ class OpenLandMapIntegrator:
             
             # Forest Classes  
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
-            70: "Tropical Forest", 71: "Forest", 72: "Forest", 
+            70: "Forest", 71: "Forest", 72: "Forest", 
             80: "Forest", 81: "Forest", 82: "Forest",
-            90: "Forest", 100: "Temperate Forest",
+            90: "Forest", 100: "Forest",
             
             # Shrubland Classes
-            110: "Temperate Forest", 120: "Forest", 121: "Shrubland", 122: "Shrubland",
+            110: "Shrubland", 120: "Shrubland", 121: "Shrubland", 122: "Shrubland",
             
             # Grassland Classes
             130: "Grassland", 140: "Grassland",
@@ -70,12 +70,43 @@ class OpenLandMapIntegrator:
             # Snow and Ice Classes
             220: "polar",           # Permanent snow and ice
             
-            # Legacy MODIS/Copernicus codes for backward compatibility
+            # Additional NLCD/CORINE codes that may be encountered
+            21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",  # Developed areas
+            31: "Desert",           # Barren Land
+            41: "Temperate Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
+            52: "Shrubland",        # NLCD Shrub/Scrub
+            95: "Wetland",          # NLCD Emergent Herbaceous Wetlands
+            
+            # Extended forest coverage (ESA codes 51-99)
+            51: "Forest", 53: "Forest", 54: "Forest", 55: "Forest", 
+            63: "Forest", 64: "Forest", 65: "Forest", 66: "Forest",
+            73: "Forest", 74: "Forest", 75: "Forest", 76: "Forest",
+            83: "Forest", 84: "Forest", 85: "Forest", 86: "Forest",
+            91: "Forest", 92: "Forest", 93: "Forest", 94: "Forest",
+            96: "Forest", 97: "Forest", 98: "Forest", 99: "Forest",
+            101: "Forest", 102: "Forest",
+            
+            # Extended cropland coverage (ESA codes 13-20, 25-29) - FIXED: Removed 21-24 conflict
+            13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
+            17: "agricultural", 18: "agricultural", 19: "agricultural", 20: "agricultural",
+            25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
+            
+            # Extended shrubland coverage (ESA codes 111-129)
+            111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",
+            115: "Shrubland", 116: "Shrubland", 117: "Shrubland", 118: "Shrubland", 119: "Shrubland",
+            123: "Shrubland", 124: "Shrubland", 125: "Shrubland", 126: "Shrubland",
+            127: "Shrubland", 128: "Shrubland", 129: "Shrubland",
+            
+            # Extended grassland coverage (ESA codes 131-149)
+            131: "Grassland", 132: "Grassland", 133: "Grassland", 134: "Grassland",
+            135: "Grassland", 136: "Grassland", 137: "Grassland", 138: "Grassland", 139: "Grassland",
+            141: "Grassland", 142: "Grassland", 143: "Grassland", 144: "Grassland",
+            145: "Grassland", 146: "Grassland", 147: "Grassland", 148: "Grassland", 149: "Grassland",
+            
+            # Legacy MODIS/Copernicus codes for backward compatibility (non-conflicting range)
             1: "Forest", 2: "Forest", 3: "Forest", 4: "Forest", 5: "Forest",
             6: "Forest", 7: "Grassland", 8: "Grassland", 9: "Grassland",
-            13: "Urban", 14: "agricultural", 15: "Desert", 16: "Desert", 17: "Rivers and Lakes",
-            21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",
-            31: "Desert", 41: "Temperate Forest", 42: "Forest", 43: "Forest", 52: "Shrubland", 95: "Wetland"
+            15: "Desert", 16: "Desert"
         }
     
     def get_comprehensive_environmental_data(self, lat: float, lon: float, include_environmental_indicators: bool = True) -> Optional[Dict]:
