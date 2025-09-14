@@ -870,8 +870,8 @@ class PrecomputedESVDCoefficients:
         # Apply reasonable bounds to prevent extreme values
         bounded_factor = max(0.4, min(2.5, adjustment_factor))
         
-        # Round to 2 decimal places for easier calculation and testing
-        return round(bounded_factor, 2)
+        # Return precise factor to avoid accumulating rounding errors in multi-ecosystem calculations
+        return bounded_factor
     
     def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
                                  coordinates: tuple | None = None, urban_green_blue_multiplier: float = 1.0,

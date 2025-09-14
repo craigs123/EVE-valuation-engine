@@ -545,8 +545,8 @@ class EcosystemServicesCalculator:
         if len(coords) < 3:
             return 100.0
         
-        # Convert to NumPy array for consistency with main calculation
-        coords_array = np.array(coords, dtype=np.float32)
+        # Convert to NumPy array for consistency with main calculation - use float64 for precision
+        coords_array = np.array(coords, dtype=np.float64)
         lons = coords_array[:, 0]
         lats = coords_array[:, 1]
         
