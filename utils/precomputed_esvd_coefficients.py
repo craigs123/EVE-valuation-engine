@@ -973,8 +973,8 @@ def calculate_ecosystem_value_precomputed(ecosystem_type: str, area_hectares: fl
     """Alternative name - calculate ecosystem services value using precomputed coefficients"""
     return calculate_ecosystem_services_value(ecosystem_type, area_hectares, coordinates)
 
-def calculate_mixed_ecosystem_services_value(ecosystem_distribution: dict, area_hectares: float, coordinates: tuple = None):
-    """Calculate ecosystem services value for mixed ecosystems with weighted calculation"""
+def calculate_mixed_ecosystem_services_value_OLD_UNUSED(ecosystem_distribution: dict, area_hectares: float, coordinates: tuple = None):
+    """OLD/UNUSED - Calculate ecosystem services value for mixed ecosystems with weighted calculation"""
     calculator = PrecomputedESVDCoefficients()
     
     total_value = 0
