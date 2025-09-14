@@ -680,8 +680,8 @@ class PrecomputedESVDCoefficients:
                 'pollution': 0.00,       # Service 7: Air quality regulation
                 'climate': 108.00,       # Service 8: Climate regulation
                 'extreme_events': 16553.00,     # Service 9: Moderation of extreme events
-                'water_regulation': 2837.00,      # Service 10: Regulation of water flows
-                'water_purification': 487.00,  # Service 11: Waste treatment
+                'water_regulation': 0.00,      # Service 10: Regulation of water flows
+                'water_purification': 2837.00,  # Service 11: Waste treatment
                 'erosion': 3740.00,      # Service 12: Erosion prevention
                 'soil_formation': 1861.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
