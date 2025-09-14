@@ -651,11 +651,11 @@ class PrecomputedESVDCoefficients:
                 'water': 23.00,         # Service 2: Water
                 'raw_materials': 126.00,        # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
-                'medicinal_resources': 12.00,    # Service 5: Medicinal resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
                 'pollution': 2.00,      # Service 7: Air quality regulation
                 'climate': 106686.00,   # Service 8: Climate regulation
-                'extreme_events': 19.00,         # Service 9: Moderation of extreme events
+                'extreme_events': 0.00,         # Service 9: Moderation of extreme events
                 'water_regulation': 0.00,       # Service 10: Regulation of water flows
                 'water_purification': 0.00,     # Service 11: Waste treatment
                 'erosion': 38.00,        # Service 12: Erosion prevention
