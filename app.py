@@ -1511,7 +1511,7 @@ with st.sidebar:
             "Tropical Forest", 
             "Temperate Forest", 
             "Boreal Forest", 
-            "Polar",
+            "polar",
             "Grassland", 
             "Wetland", 
             "Water (ocean)",
@@ -3942,7 +3942,7 @@ if analyze_button and st.session_state.selected_area:
                     "Marine": "marine",
                     "Desert": "desert",
                     "Urban": "urban",
-                    "Polar": "polar"
+                    "polar": "polar"
                 }
                 ecosystem_type = override_mapping.get(st.session_state.ecosystem_override, "agricultural")
                 
