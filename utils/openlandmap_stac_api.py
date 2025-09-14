@@ -163,7 +163,7 @@ class OpenLandMapSTAC:
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
             70: "Tropical Forest", 71: "Forest", 72: "Forest", 
             80: "Forest", 81: "Forest", 82: "Forest",
-            100: "Temperate Forest",
+            90: "Forest", 100: "Temperate Forest",
             
             # Shrubland Classes
             110: "Temperate Forest", 120: "Forest", 121: "Shrubland", 122: "Shrubland",
@@ -1070,9 +1070,9 @@ class OpenLandMapSTAC:
                     # Convert to integer land cover code
                     landcover_code = int(pixel_value)
                     
-                    # Apply forest type mapping for codes 70 & 71 based on geographic location
+                    # Apply forest type mapping for codes 70, 71 & 90 based on geographic location
                     base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
-                    if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
+                    if (base_ecosystem_type == "Forest" or landcover_code in [70, 71, 90]):
                         specific_forest_type = self._determine_forest_type_from_coordinates(lat, lon)
                         print(f"🌲 GeoTIFF Forest mapping: ESA code {landcover_code} → {specific_forest_type} at ({lat:.4f}, {lon:.4f})")
                         # Store both the ESA code and the specific forest type
@@ -1156,9 +1156,9 @@ class OpenLandMapSTAC:
                     continue
                 base_ecosystem_type = self.landcover_to_esvd.get(land_cover_code, "Unknown")
                 
-                # For forest codes (especially 70 & 71), determine specific forest type based on geography
+                # For forest codes (especially 70, 71 & 90), determine specific forest type based on geography
                 if (base_ecosystem_type == "Forest" or 
-                    land_cover_code in [70, 71]):  # ESA codes 70 & 71 are specific forest types
+                    land_cover_code in [70, 71, 90]):  # ESA codes 70, 71 & 90 are specific forest types
                     ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
                     print(f"🌲 Forest mapping: ESA code {land_cover_code} → {ecosystem_type} at ({lat:.4f}, {lon:.4f})")
                 else:
@@ -1252,7 +1252,7 @@ class OpenLandMapSTAC:
                     
                     # Apply forest type mapping
                     base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
-                    if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
+                    if (base_ecosystem_type == "Forest" or landcover_code in [70, 71, 90]):
                         ecosystem_type = self._determine_forest_type_from_coordinates(lat, lon)
                     else:
                         ecosystem_type = base_ecosystem_type
@@ -1277,6 +1277,7 @@ class OpenLandMapSTAC:
     def _determine_forest_type_from_coordinates(self, lat: float, lon: float) -> str:
         """
         Determine specific forest type based on coordinates using ESVD methodology
+        Used for ESA codes 70, 71, 90, and 120 that require location-based forest classification
         Returns specific forest ecosystem types for ESVD coefficient matching
         """
         abs_lat = abs(lat)
@@ -1344,9 +1345,9 @@ class OpenLandMapSTAC:
                         # Convert to integer land cover code
                         landcover_code = int(pixel_value)
                         
-                        # Apply forest type mapping for codes 70 & 71 based on geographic location
+                        # Apply forest type mapping for codes 70, 71 & 90 based on geographic location
                         base_ecosystem_type = self.landcover_to_esvd.get(landcover_code, "Unknown")
-                        if (base_ecosystem_type == "Forest" or landcover_code in [70, 71]):
+                        if (base_ecosystem_type == "Forest" or landcover_code in [70, 71, 90]):
                             specific_forest_type = self._determine_forest_type_from_coordinates(lat, lon)
                             ecosystem_type = specific_forest_type
                         else:
