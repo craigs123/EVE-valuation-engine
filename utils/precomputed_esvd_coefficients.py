@@ -702,15 +702,15 @@ class PrecomputedESVDCoefficients:
                 'medicinal_resources': 0.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00,   # Service 6: Ornamental resources
                 'pollution': 0.00,        # Service 7: Air quality regulation
-                'climate': 375.00,          # Service 8: Climate regulation
+                'climate': 376.00,          # Service 8: Climate regulation
                 'extreme_events': 11296.00,     # Service 9: Moderation of extreme events
                 'water_regulation': 1992.00,  # Service 10: Regulation of water flows
                 'water_purification': 2561.00,  # Service 11: Waste treatment
                 'erosion': 0.00,          # Service 12: Erosion prevention
                 'soil_formation': 28.00,         # Service 13: Maintenance of soil fertility
-                'pollination': 409.00,            # Service 14: Pollination
-                'biological_control': 0.00,     # Service 15: Biological control
-                'nursery_services': 344.00,       # Service 16: Maintenance of life cycles
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 409.00,     # Service 15: Biological control
+                'nursery_services': 944.00,       # Service 16: Maintenance of life cycles
                 'habitat': 0.00,          # Service 17: Maintenance of genetic diversity
                 'aesthetic_value': 33737.00,    # Service 18: Aesthetic information
                 'recreation': 167647.00,  # Service 19: Recreation and tourism
