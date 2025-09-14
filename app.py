@@ -3889,20 +3889,11 @@ if analyze_button and st.session_state.selected_area:
                 
                 for eco_type, data in ecosystem_distribution.items():
                     proportion = data['count'] / total_points
-                    # DEBUG: Show exact vs rounded proportions
+                    # Apply consistent rounding to match display percentages (fixes precision discrepancies)
                     proportion_percent = proportion * 100
                     rounded_proportion_percent = round(proportion_percent, 1)
                     rounded_proportion = rounded_proportion_percent / 100
-                    print(f"🔍 DEBUG MIXED APP.PY: {eco_type}")
-                    print(f"   Exact: {proportion:.6f} ({proportion_percent:.6f}%)")  
-                    print(f"   Rounded: {rounded_proportion:.6f} ({rounded_proportion_percent:.1f}%)")
-                    
-                    # FIX: Use rounded proportion for consistent calculation (user requested consistent rounding)
                     eco_area = area_ha * rounded_proportion
-                    print(f"   Area: {eco_area:.2f} ha (was {area_ha * proportion:.2f} ha)")
-                    
-                    # FIX: For mixed ecosystems, properly allocate area based on actual coverage percentage
-                    # Don't reduce area by sample count - use the full area for the ecosystem's proportion
                     
                     # Calculate value for this ecosystem type with forest type detection
                     # Only apply urban green/blue multiplier for urban ecosystems
