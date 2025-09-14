@@ -1513,7 +1513,7 @@ with st.sidebar:
             "Polar",
             "Grassland", 
             "Wetland", 
-            "Water Bodies",
+            "Water (ocean)",
             "Rivers and Lakes",
             "Coastal",
             "Marine",
@@ -2291,7 +2291,7 @@ test_area_options = [
     "🌴 Test area (Tropical Forest)",
     "🏜️ Test area (Desert)",
     "🏙️ Test area (Urban)",
-    "🌊 Test area (Water Bodies)",
+    "🌊 Test area (Water (ocean))",
     "🌍 Test area (Multi-Ecosystem)",
     # "🎲 Test area (Random Global)"  # Hidden but kept for later use
 ]
@@ -2308,7 +2308,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water Bodies)"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water (ocean))"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2435,7 +2435,7 @@ elif use_test_area_single:
             "description": "Mexico City Urban Area (19.37°N, 99.12°W) | Expected: Urban ecosystem with 18% green/blue infrastructure",
             "location": "Mexico City metropolitan area, Mexico"
         },
-        "🌊 Test area (Water Bodies)": {
+        "🌊 Test area (Water (ocean))": {
             "coords": calculate_1000ha_coordinates(25.0, -65.0),
             "description": "Atlantic Ocean (25.0°N, 65.0°W) | Expected: ESA Code 210, triggers water body classification",
             "location": "Mid-Atlantic Ocean east of Bahamas"
@@ -2718,7 +2718,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
-            "🌊 Test area (Water Bodies)": (25.0, -65.0)       # Atlantic Ocean
+            "🌊 Test area (Water (ocean))": (25.0, -65.0)       # Atlantic Ocean
         }
         
         if selected_test_area in ecosystem_zoom_coords:
@@ -3502,7 +3502,7 @@ if analyze_button and st.session_state.selected_area:
                 ecosystem_type = forest_type_mapping[ecosystem_type]
             
             # Handle Water Bodies selection - behave like auto-detect but focus on water
-            water_bodies_mode = (st.session_state.ecosystem_override == "Water Bodies")
+            water_bodies_mode = (st.session_state.ecosystem_override == "Water (ocean)")
             
             # Skip ecosystem detection if water bodies are already classified
             if st.session_state.get('skip_ecosystem_detection', False):

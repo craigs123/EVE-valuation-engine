@@ -78,6 +78,26 @@
       }
     },
     {
+      "name": "Water (Rivers/Lakes)",
+      "description": "Rivers and lakes ecosystem for testing regional factor calculations",
+      "type": "Polygon",
+      "coordinates": [
+        [-87.789001, 47.833439],
+        [-87.746711, 47.833439],
+        [-87.746711, 47.804947],
+        [-87.789001, 47.804947],
+        [-87.789001, 47.833439]
+      ],
+      "ecosystem_type": "rivers_and_lakes",
+      "expected_metrics": {
+        "NDVI": 0.25,
+        "forest_cover": 0,
+        "carbon_storage": 15,
+        "water_quality": 85,
+        "biodiversity_index": 60
+      }
+    },
+    {
       "name": "Sample Coastal Area - California",
       "description": "Coastal ecosystem in California",
       "type": "Polygon",
@@ -143,6 +163,13 @@
       "typical_ndvi_range": [0.2, 0.6],
       "typical_carbon_storage": [40, 80],
       "key_species": ["Salt marsh grass", "Dune vegetation", "Kelp"],
+      "conservation_priority": "high"
+    },
+    "rivers_and_lakes": {
+      "description": "Freshwater bodies including rivers, lakes, and streams",
+      "typical_ndvi_range": [0.1, 0.4],
+      "typical_carbon_storage": [5, 25],
+      "key_species": ["Freshwater fish", "Aquatic plants", "Waterfowl"],
       "conservation_priority": "high"
     }
   }
