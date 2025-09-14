@@ -68,7 +68,7 @@ class OpenLandMapIntegrator:
             211: "Marine",            # Marine/oceanic water bodies
             
             # Snow and Ice Classes
-            220: "Polar",           # Permanent snow and ice
+            220: "polar",           # Permanent snow and ice
             
             # Legacy MODIS/Copernicus codes for backward compatibility
             1: "Forest", 2: "Forest", 3: "Forest", 4: "Forest", 5: "Forest",

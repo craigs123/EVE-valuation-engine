@@ -192,7 +192,7 @@ class OpenLandMapSTAC:
             211: "Marine",            # Marine/oceanic water bodies
             
             # Snow and Ice Classes
-            220: "Polar",           # Permanent snow and ice
+            220: "polar",           # Permanent snow and ice
             
             # Additional NLCD/CORINE codes that may be encountered
             21: "Urban", 22: "Urban", 23: "Urban", 24: "Urban",  # Developed areas
