@@ -161,7 +161,7 @@ class OpenLandMapSTAC:
             
             # Forest Classes  
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
-            70: "Tropical Forest", 71: "Forest", 72: "Forest", 
+            70: "Forest", 71: "Forest", 72: "Forest", 
             80: "Forest", 81: "Forest", 82: "Forest",
             90: "Forest", 100: "Temperate Forest",
             
