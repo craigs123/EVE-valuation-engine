@@ -15,10 +15,12 @@ Features:
 import requests
 import time
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timedelta
 import hashlib
 import re
+from collections import Counter
+import streamlit as st
 
 class NominatimGeocoder:
     """
@@ -527,3 +529,164 @@ def get_cache_stats() -> Dict[str, Any]:
         'max_size': _nominatim_geocoder.max_cache_size,
         'ttl_hours': _nominatim_geocoder.cache_ttl / 3600
     }
+
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
+def determine_predominant_country(sample_points: List[Tuple[float, float]]) -> Dict[str, Any]:
+    """
+    Determine the predominant country across multiple sampling points using majority vote
+    with smart optimizations for reduced API calls and improved performance.
+    
+    Args:
+        sample_points: List of (latitude, longitude) tuples to analyze
+        
+    Returns:
+        Dict containing:
+        - country: The predominant country code (or "International Waters")
+        - count: Number of points in the predominant country
+        - total_points: Total number of valid points processed
+        - tie_broken: Whether a tie-breaking procedure was used
+        - method: Method used for final determination
+        
+    Features:
+    - Deduplicates points by rounding to 4 decimal places (~11m precision)
+    - Uses existing geocoding cache to minimize API calls
+    - Implements tie-breaking: centroid country → alphabetical order
+    - Handles international waters and edge cases
+    - Provides progress feedback via Streamlit spinner
+    - Comprehensive error handling and logging
+    """
+    
+    # Input validation
+    if not sample_points:
+        print("⚠️  Empty sample points list provided")
+        return {
+            'country': 'global_average',
+            'count': 0,
+            'total_points': 0,
+            'tie_broken': False,
+            'method': 'default_fallback'
+        }
+    
+    # Step 1: Deduplicate points by rounding to 4 decimal places (~11m precision)
+    print(f"🔍 Processing {len(sample_points)} sample points for country determination")
+    
+    unique_points = set()
+    for lat, lon in sample_points:
+        if -90 <= lat <= 90 and -180 <= lon <= 180:
+            # Round to 4 decimal places for deduplication
+            rounded_lat = round(lat, 4)
+            rounded_lon = round(lon, 4)
+            unique_points.add((rounded_lat, rounded_lon))
+        else:
+            print(f"⚠️  Invalid coordinates skipped: ({lat}, {lon})")
+    
+    unique_points_list = list(unique_points)
+    total_unique = len(unique_points_list)
+    
+    if total_unique == 0:
+        print("⚠️  No valid coordinates found")
+        return {
+            'country': 'global_average',
+            'count': 0,
+            'total_points': 0,
+            'tie_broken': False,
+            'method': 'no_valid_coordinates'
+        }
+    
+    print(f"📍 Deduplicated to {total_unique} unique points (precision: 4 decimal places)")
+    
+    # Step 2: Get country for each unique point with progress tracking
+    country_results = []
+    
+    with st.spinner(f"🌍 Determining countries for {total_unique} unique points..."):
+        for i, (lat, lon) in enumerate(unique_points_list):
+            try:
+                # Use the existing cached geocoding function
+                country = get_country_from_coordinates_nominatim(lat, lon)
+                country_results.append(country)
+                
+                # Progress feedback every 25% or significant milestones
+                if total_unique > 4 and (i + 1) % max(1, total_unique // 4) == 0:
+                    progress = ((i + 1) / total_unique) * 100
+                    print(f"🔄 Country lookup progress: {progress:.1f}% ({i + 1}/{total_unique})")
+                    
+            except Exception as e:
+                print(f"⚠️  Error geocoding ({lat}, {lon}): {e}")
+                country_results.append('global_average')
+    
+    # Step 3: Count countries and handle special cases
+    valid_countries = [c for c in country_results if c and c != 'global_average']
+    
+    if not valid_countries:
+        print("🌊 All points are in international waters or unidentifiable")
+        return {
+            'country': 'International Waters',
+            'count': len(country_results),
+            'total_points': total_unique,
+            'tie_broken': False,
+            'method': 'all_international_waters'
+        }
+    
+    # Count occurrences
+    country_counts = Counter(valid_countries)
+    total_valid_points = len(valid_countries)
+    
+    print(f"📊 Country distribution: {dict(country_counts)}")
+    
+    # Step 4: Determine winner with tie-breaking logic
+    max_count = max(country_counts.values())
+    top_countries = [country for country, count in country_counts.items() if count == max_count]
+    
+    tie_broken = len(top_countries) > 1
+    method = 'majority_vote'
+    
+    if tie_broken:
+        print(f"⚖️  Tie detected between {len(top_countries)} countries: {top_countries}")
+        
+        # Tie-breaker 1: Use polygon centroid country
+        try:
+            # Calculate centroid of all sample points
+            total_lat = sum(lat for lat, lon in sample_points)
+            total_lon = sum(lon for lat, lon in sample_points)
+            centroid_lat = total_lat / len(sample_points)
+            centroid_lon = total_lon / len(sample_points)
+            
+            print(f"📍 Calculating tie-breaker using centroid: ({centroid_lat:.4f}, {centroid_lon:.4f})")
+            
+            centroid_country = get_country_from_coordinates_nominatim(centroid_lat, centroid_lon)
+            
+            if centroid_country in top_countries:
+                final_country = centroid_country
+                method = 'centroid_tiebreaker'
+                print(f"✅ Tie resolved using centroid country: {final_country}")
+            else:
+                # Tie-breaker 2: Alphabetical order
+                final_country = sorted(top_countries)[0]
+                method = 'alphabetical_tiebreaker'
+                print(f"✅ Tie resolved alphabetically: {final_country} (from {top_countries})")
+                
+        except Exception as e:
+            print(f"⚠️  Centroid calculation failed: {e}")
+            # Fallback to alphabetical
+            final_country = sorted(top_countries)[0]
+            method = 'alphabetical_tiebreaker'
+            print(f"✅ Tie resolved alphabetically (fallback): {final_country}")
+    else:
+        final_country = top_countries[0]
+        print(f"✅ Clear winner: {final_country} with {max_count}/{total_valid_points} points")
+    
+    # Step 5: Prepare comprehensive result
+    result = {
+        'country': final_country,
+        'count': country_counts[final_country],
+        'total_points': total_unique,
+        'tie_broken': tie_broken,
+        'method': method
+    }
+    
+    # Step 6: Log final result
+    percentage = (result['count'] / total_valid_points) * 100
+    print(f"🏆 Final result: {final_country} ({result['count']}/{total_valid_points} = {percentage:.1f}%)")
+    print(f"📋 Method: {method}, Tie broken: {tie_broken}")
+    
+    return result

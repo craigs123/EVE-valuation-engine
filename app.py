@@ -2443,9 +2443,9 @@ elif use_test_area_single:
             "location": "Mid-Atlantic Ocean east of Bahamas"
         },
         "🏞️ Test area (Water (Rivers/Lakes))": {
-            "coords": calculate_1000ha_coordinates(47.833439, -87.789001),
-            "description": "Lake Superior Region (47.83°N, 87.79°W) | Expected: ESA Code 210, Rivers and Lakes ecosystem with regional factor",
-            "location": "Great Lakes region, Minnesota/Michigan border"
+            "coords": calculate_1000ha_coordinates(-1.0, 33.0),
+            "description": "East African Lake Region (1°S, 33°E) | Expected: ESA Code 210, Rivers and Lakes ecosystem with regional factor",
+            "location": "East Africa, Lake Victoria region"
         }
     }
     
@@ -2726,7 +2726,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
             "🌊 Test area (Water (ocean))": (25.0, -65.0),       # Atlantic Ocean
-            "🏞️ Test area (Water (Rivers/Lakes))": (47.833439, -87.789001)  # Lake Superior region
+            "🏞️ Test area (Water (Rivers/Lakes))": (-1.0, 33.0)  # East African Lake region
         }
         
         if selected_test_area in ecosystem_zoom_coords:
