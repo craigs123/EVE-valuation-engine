@@ -131,10 +131,19 @@ class EcosystemServicesCalculator:
             if ecosystem_type is None:
                 # Check for multi-ecosystem detection first
                 multi_detection = satellite_data.get('multi_ecosystem_detection', {})
-                if multi_detection.get('diversity_index', 1) > 1:
+                diversity_index = multi_detection.get('diversity_index', 1)
+                composition = multi_detection.get('ecosystem_composition', {})
+                
+                # DEBUG: Print diversity index and composition
+                print(f"🔍 DEBUG DIVERSITY: diversity_index = {diversity_index}")
+                print(f"🔍 DEBUG COMPOSITION: {composition}")
+                
+                if diversity_index > 1:
+                    print("🔍 DEBUG: Using MULTI-ecosystem calculation")
                     # Multiple ecosystems detected - use multi-ecosystem calculation
                     return self._calculate_multi_ecosystem_values(satellite_data, area_bounds, multi_detection, quality_factor, ecosystem_intactness, urban_green_blue_multiplier)
                 else:
+                    print(f"🔍 DEBUG: Using SINGLE-ecosystem calculation (diversity {diversity_index} <= 1)")
                     # Single ecosystem - use primary detected type
                     ecosystem_type = ecosystem_detection.get('detected_type', 'forest')
                     detection_confidence = ecosystem_detection.get('confidence', 0.5)
