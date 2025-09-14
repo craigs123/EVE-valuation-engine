@@ -2949,7 +2949,7 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
             if len(coordinates) > 2:
                 try:
                     area_ha = calculate_area_optimized(coordinates)
-                    st.success(f"Area selected: {area_ha:.0f} hectares")
+                    st.success(f"Area selected: {area_ha:.2f} hectares")
                     
                     # Pre-cache all calculations to speed up future operations
                     st.session_state.cached_area_ha = area_ha
@@ -3411,7 +3411,7 @@ elif st.session_state.get('selected_area'):
         
         area_ha = st.session_state.get('cached_area_ha', 0)
         if area_ha and area_ha > 0:
-            st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.0f} hectares</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.2f} hectares</p>', unsafe_allow_html=True)
         else:
             st.markdown('<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
         
