@@ -3366,6 +3366,27 @@ if st.session_state.get('analysis_results'):
                     
                     st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")
                     
+                    # Show country and regional factor for debugging
+                    try:
+                        representative_coords = None
+                        if 'sampling_point_data' in st.session_state:
+                            sampling_point_data = st.session_state['sampling_point_data']
+                            for point_data in sampling_point_data.values():
+                                coords = point_data.get('coords', [])
+                                if len(coords) >= 2:
+                                    lat, lon = coords[0], coords[1]
+                                    representative_coords = (lat, lon)
+                                    break
+                        
+                        if representative_coords:
+                            from utils.nominatim_geocoding import get_country_from_coordinates
+                            country = get_country_from_coordinates(representative_coords[0], representative_coords[1])
+                            st.markdown(f"**🌍 Analysis Location**: {country if country else 'International Waters'}")
+                            st.markdown(f"**💰 Regional Factor**: {regional_factor:.2f}x (applied to base coefficients)")
+                    except Exception as e:
+                        st.markdown(f"**🌍 Analysis Location**: Unable to determine")
+                        st.markdown(f"**💰 Regional Factor**: {regional_factor:.2f}x")
+                    
                 else:
                     # Fallback calculation display
                     st.markdown(f"\n**📊 Summary:**")
@@ -3374,6 +3395,25 @@ if st.session_state.get('analysis_results'):
                     st.markdown(f"- **Value per Hectare**: ${actual_per_ha:,.0f}/ha/year")
                     st.markdown(f"- **Regional Factor**: {regional_factor:.2f}")
                     st.markdown(f"- **Quality Factor**: {quality_factor:.2f}")
+                    
+                    # Show country for debugging in fallback mode too
+                    try:
+                        representative_coords = None
+                        if 'sampling_point_data' in st.session_state:
+                            sampling_point_data = st.session_state['sampling_point_data']
+                            for point_data in sampling_point_data.values():
+                                coords = point_data.get('coords', [])
+                                if len(coords) >= 2:
+                                    lat, lon = coords[0], coords[1]
+                                    representative_coords = (lat, lon)
+                                    break
+                        
+                        if representative_coords:
+                            from utils.nominatim_geocoding import get_country_from_coordinates
+                            country = get_country_from_coordinates(representative_coords[0], representative_coords[1])
+                            st.markdown(f"- **Analysis Location**: {country if country else 'International Waters'}")
+                    except Exception as e:
+                        st.markdown(f"- **Analysis Location**: Unable to determine")
                 
                 st.info("💡 **Note**: This calculation uses pre-computed ESVD coefficients with regional economic adjustments and user-defined ecosystem intactness factors.")
                     
