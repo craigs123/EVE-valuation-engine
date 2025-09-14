@@ -324,8 +324,12 @@ class EcosystemServicesCalculator:
                 if percentage < 1.0:  # Skip ecosystems with less than 1% coverage
                     continue
                 
+                # DEBUG: Print exact percentages being used
+                print(f"🔍 DEBUG MIXED CALC: {ecosystem_type} = {percentage}% (type: {type(percentage)})")
+                
                 # Calculate area for this ecosystem type (based on land area only)
                 ecosystem_area_ha = land_area_ha * (percentage / 100.0)
+                print(f"🔍 DEBUG AREA: {ecosystem_type} = {ecosystem_area_ha:.6f} ha")
                 
                 # Calculate intactness multiplier for this ecosystem type
                 if ecosystem_intactness:
