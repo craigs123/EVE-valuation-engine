@@ -2294,6 +2294,7 @@ test_area_options = [
     "🏙️ Test area (Urban)",
     "🌊 Test area (Water (ocean))",
     "🏞️ Test area (Water (Rivers/Lakes))",
+    "🏖️ Test area (Water (Coastal))",
     "🌍 Test area (Multi-Ecosystem)",
     # "🎲 Test area (Random Global)"  # Hidden but kept for later use
 ]
@@ -2310,7 +2311,7 @@ selected_test_area = st.selectbox(
 
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
-use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water (ocean))", "🏞️ Test area (Water (Rivers/Lakes))"]
+use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water (ocean))", "🏞️ Test area (Water (Rivers/Lakes))", "🏖️ Test area (Water (Coastal))"]
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
@@ -2446,6 +2447,11 @@ elif use_test_area_single:
             "coords": calculate_1000ha_coordinates(-0.82, 33.0),
             "description": "East African Lake Region (0.82°S, 33°E) | Expected: ESA Code 210, Rivers and Lakes ecosystem with regional factor",
             "location": "East Africa, Lake Victoria region (20km north)"
+        },
+        "🏖️ Test area (Water (Coastal))": {
+            "coords": calculate_1000ha_coordinates(-0.8484, 33.0),
+            "description": "East African Coastal Waters (0.85°S, 33°E) | Expected: Coastal ecosystem with regional factor",
+            "location": "East Africa, Lake Victoria coastal region"
         }
     }
     
@@ -2726,7 +2732,8 @@ if st.session_state.get('use_test_area_zoom', False):
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
             "🌊 Test area (Water (ocean))": (25.0, -65.0),       # Atlantic Ocean
-            "🏞️ Test area (Water (Rivers/Lakes))": (-0.82, 33.0)  # East African Lake region (20km north)
+            "🏞️ Test area (Water (Rivers/Lakes))": (-0.82, 33.0),  # East African Lake region (20km north)
+            "🏖️ Test area (Water (Coastal))": (-0.8484, 33.0)  # East African coastal region
         }
         
         if selected_test_area in ecosystem_zoom_coords:
