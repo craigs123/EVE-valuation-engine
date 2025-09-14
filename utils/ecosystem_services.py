@@ -327,9 +327,19 @@ class EcosystemServicesCalculator:
                 # Calculate area for this ecosystem type (based on land area only)
                 ecosystem_area_ha = land_area_ha * (percentage / 100.0)
                 
-                # Get ESVD values for this ecosystem type (pass urban multiplier)
+                # Calculate intactness multiplier for this ecosystem type
+                if ecosystem_intactness:
+                    intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
+                else:
+                    intactness_multiplier = quality_factor
+                
+                # Use the same regional factor override as single ecosystem areas for consistency
+                regional_factor_override = None  # Use coordinate-based calculation for consistency
+                
+                # Get ESVD values for this ecosystem type (pass all multipliers like single ecosystem)
                 esvd_results = self.precomputed_esvd.calculate_ecosystem_values(
-                    ecosystem_type, ecosystem_area_ha, coordinates, urban_green_blue_multiplier
+                    ecosystem_type, ecosystem_area_ha, coordinates, 
+                    urban_green_blue_multiplier, intactness_multiplier, regional_factor_override
                 )
                 
                 if 'error' in esvd_results:
