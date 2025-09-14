@@ -39,7 +39,7 @@ class OpenLandMapIntegrator:
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
             70: "Tropical Forest", 71: "Forest", 72: "Forest", 
             80: "Forest", 81: "Forest", 82: "Forest",
-            90: "Tropical Forest", 100: "Temperate Forest",
+            100: "Temperate Forest",
             
             # Shrubland Classes
             110: "Temperate Forest", 120: "Forest", 121: "Shrubland", 122: "Shrubland",
