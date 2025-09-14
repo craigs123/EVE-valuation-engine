@@ -642,7 +642,7 @@ class SatelliteDataProcessor:
         
         if land_cells > 0:
             ecosystem_composition = {
-                ecosystem: (count / land_cells) * 100.0 
+                ecosystem: round((count / land_cells) * 100.0, 1)
                 for ecosystem, count in land_ecosystem_counts.items()
             }
         else:
