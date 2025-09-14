@@ -1926,13 +1926,20 @@ Example: 100ha Forest
         st.markdown("**Landcover Code Mapping Table:**")
         st.caption("Modify the dropdown selections to customize ecosystem detection. Hover over codes for descriptions.")
         
+        # Add reset to defaults button
+        if st.button("🔄 Reset All to Default Mapping", help="Reset all mappings to the original default values"):
+            st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
+            st.rerun()
+        
         # Create compact mapping table with tooltips
-        col1, col2 = st.columns([1, 2])
+        col1, col2, col3 = st.columns([1, 2, 1])
         
         with col1:
             st.markdown("**Code**")
         with col2:
             st.markdown("**Current Mapping**")
+        with col3:
+            st.markdown("**Status**")
         
         # Import centralized ESA land cover descriptions  
         from utils.esa_landcover_codes import get_all_esa_codes
@@ -1940,7 +1947,7 @@ Example: 100ha Forest
         
         # Display compact mapping table with tooltips
         for code in sorted(default_landcover_mapping.keys()):
-            col1, col2 = st.columns([1, 2])
+            col1, col2, col3 = st.columns([1, 2, 1])
             
             with col1:
                 # Use help parameter to show description on hover
@@ -1963,6 +1970,14 @@ Example: 100ha Forest
                 
                 # Update session state when user changes selection
                 st.session_state.custom_landcover_mapping[code] = new_mapping
+            
+            with col3:
+                # Show if this is default or custom mapping
+                default_value = default_landcover_mapping[code]
+                if current_mapping == default_value:
+                    st.markdown("✅ Default")
+                else:
+                    st.markdown(f"🔧 Custom  \n*Default: {default_value}*")
         
         # ESA Land Cover Code Value Multipliers
         st.markdown("---")
