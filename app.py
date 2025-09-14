@@ -2449,9 +2449,9 @@ elif use_test_area_single:
             "location": "East Africa, Lake Victoria region (20km north)"
         },
         "🏖️ Test area (Water (Coastal))": {
-            "coords": calculate_1000ha_coordinates(-0.877, 33.000),
-            "description": "East African Coastal Waters (0.88°S, 33°E) | Expected: Coastal ecosystem with regional factor",
-            "location": "East Africa, Lake Victoria coastal region"
+            "coords": calculate_1000ha_coordinates(40.145290, 16.962891),
+            "description": "Italian Coastal Waters (40.15°N, 16.96°E) | Expected: Coastal ecosystem with regional factor",
+            "location": "Southern Italy, Basilicata coastal region"
         }
     }
     
@@ -2733,7 +2733,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
             "🌊 Test area (Water (ocean))": (25.0, -65.0),       # Atlantic Ocean
             "🏞️ Test area (Water (Rivers/Lakes))": (-0.82, 33.0),  # East African Lake region (20km north)
-            "🏖️ Test area (Water (Coastal))": (-0.877, 33.000)  # East African coastal region
+            "🏖️ Test area (Water (Coastal))": (40.145290, 16.962891)  # Southern Italy coastal region
         }
         
         if selected_test_area in ecosystem_zoom_coords:
