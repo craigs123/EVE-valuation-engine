@@ -3366,25 +3366,47 @@ if st.session_state.get('analysis_results'):
                     
                     st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")
                     
-                    # Show country and regional factor for debugging
+                    # Show predominant country and regional factor
                     try:
-                        representative_coords = None
+                        # Extract all sampling point coordinates
+                        sample_points = []
                         if 'sampling_point_data' in st.session_state:
                             sampling_point_data = st.session_state['sampling_point_data']
                             for point_data in sampling_point_data.values():
-                                coords = point_data.get('coords', [])
-                                if len(coords) >= 2:
-                                    lat, lon = coords[0], coords[1]
-                                    representative_coords = (lat, lon)
-                                    break
+                                # Handle both coordinate formats for compatibility
+                                coords_dict = point_data.get('coordinates', {})
+                                coords_list = point_data.get('coords', [])
+                                
+                                if coords_dict and isinstance(coords_dict, dict):
+                                    lat = coords_dict.get('lat')
+                                    lon = coords_dict.get('lon')
+                                    if lat is not None and lon is not None:
+                                        sample_points.append((lat, lon))
+                                elif coords_list and len(coords_list) >= 2:
+                                    sample_points.append((coords_list[0], coords_list[1]))
                         
-                        if representative_coords:
-                            from utils.nominatim_geocoding import get_country_from_coordinates
-                            country = get_country_from_coordinates(representative_coords[0], representative_coords[1])
-                            st.markdown(f"**🌍 Analysis Location**: {country if country else 'International Waters'}")
+                        if sample_points:
+                            from utils.nominatim_geocoding import determine_predominant_country
+                            country_result = determine_predominant_country(sample_points)
+                            
+                            country_name = country_result['country']
+                            if country_name == 'International Waters':
+                                display_name = "International Waters"
+                            else:
+                                # Format country name for display
+                                display_name = country_name.replace('_', ' ').title()
+                            
+                            # Show vote count and tie information
+                            vote_info = f"{country_result['count']}/{country_result['total_points']} samples"
+                            tie_annotation = " [tie-break]" if country_result['tie_broken'] else ""
+                            
+                            st.markdown(f"**🌍 Analysis Location**: {display_name} ({vote_info}){tie_annotation}")
                             st.markdown(f"**💰 Regional Factor**: {regional_factor:.2f}x (applied to base coefficients)")
+                        else:
+                            st.markdown(f"**🌍 Analysis Location**: No sampling points found")
+                            st.markdown(f"**💰 Regional Factor**: {regional_factor:.2f}x")
                     except Exception as e:
-                        st.markdown(f"**🌍 Analysis Location**: Unable to determine")
+                        st.markdown(f"**🌍 Analysis Location**: Unable to determine ({str(e)[:50]}...)")
                         st.markdown(f"**💰 Regional Factor**: {regional_factor:.2f}x")
                     
                 else:
@@ -3396,24 +3418,45 @@ if st.session_state.get('analysis_results'):
                     st.markdown(f"- **Regional Factor**: {regional_factor:.2f}")
                     st.markdown(f"- **Quality Factor**: {quality_factor:.2f}")
                     
-                    # Show country for debugging in fallback mode too
+                    # Show predominant country in fallback mode too
                     try:
-                        representative_coords = None
+                        # Extract all sampling point coordinates
+                        sample_points = []
                         if 'sampling_point_data' in st.session_state:
                             sampling_point_data = st.session_state['sampling_point_data']
                             for point_data in sampling_point_data.values():
-                                coords = point_data.get('coords', [])
-                                if len(coords) >= 2:
-                                    lat, lon = coords[0], coords[1]
-                                    representative_coords = (lat, lon)
-                                    break
+                                # Handle both coordinate formats for compatibility
+                                coords_dict = point_data.get('coordinates', {})
+                                coords_list = point_data.get('coords', [])
+                                
+                                if coords_dict and isinstance(coords_dict, dict):
+                                    lat = coords_dict.get('lat')
+                                    lon = coords_dict.get('lon')
+                                    if lat is not None and lon is not None:
+                                        sample_points.append((lat, lon))
+                                elif coords_list and len(coords_list) >= 2:
+                                    sample_points.append((coords_list[0], coords_list[1]))
                         
-                        if representative_coords:
-                            from utils.nominatim_geocoding import get_country_from_coordinates
-                            country = get_country_from_coordinates(representative_coords[0], representative_coords[1])
-                            st.markdown(f"- **Analysis Location**: {country if country else 'International Waters'}")
+                        if sample_points:
+                            from utils.nominatim_geocoding import determine_predominant_country
+                            country_result = determine_predominant_country(sample_points)
+                            
+                            country_name = country_result['country']
+                            if country_name == 'International Waters':
+                                display_name = "International Waters"
+                            else:
+                                # Format country name for display
+                                display_name = country_name.replace('_', ' ').title()
+                            
+                            # Show vote count and tie information
+                            vote_info = f"{country_result['count']}/{country_result['total_points']} samples"
+                            tie_annotation = " [tie-break]" if country_result['tie_broken'] else ""
+                            
+                            st.markdown(f"- **Analysis Location**: {display_name} ({vote_info}){tie_annotation}")
+                        else:
+                            st.markdown(f"- **Analysis Location**: No sampling points found")
                     except Exception as e:
-                        st.markdown(f"- **Analysis Location**: Unable to determine")
+                        st.markdown(f"- **Analysis Location**: Unable to determine ({str(e)[:50]}...)")
                 
                 st.info("💡 **Note**: This calculation uses pre-computed ESVD coefficients with regional economic adjustments and user-defined ecosystem intactness factors.")
                     
