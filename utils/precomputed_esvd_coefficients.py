@@ -891,7 +891,11 @@ class PrecomputedESVDCoefficients:
             Dictionary with calculated values by service category
         """
         # Use override regional factor if provided, otherwise calculate from coordinates
-        regional_factor = regional_factor_override if regional_factor_override is not None else self.get_regional_factor(coordinates)
+        # Marine ecosystems should not get regional adjustments (international waters)
+        if ecosystem_type.lower() == 'marine':
+            regional_factor = 1.0
+        else:
+            regional_factor = regional_factor_override if regional_factor_override is not None else self.get_regional_factor(coordinates)
         
         # Enhanced forest type detection
         detected_ecosystem_type = ecosystem_type
