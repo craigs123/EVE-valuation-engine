@@ -782,7 +782,8 @@ def display_data_source_status(analysis_results: Dict = None):
                 for point_data in sampling_point_data.values():
                     source = point_data.get('source', '')
                     # Check for explicit real data markers
-                    if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
+                    if ('Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source or 
+                        'Direct ESA Land Cover Extraction' in source):
                         has_real_sampling_data = True
                         break
                     # CRITICAL FIX: Also check if environmental indicators were successfully extracted
