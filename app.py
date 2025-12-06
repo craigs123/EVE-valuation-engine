@@ -45,6 +45,15 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
+# Hide the running indicator (spinning icon) in the top right corner
+st.markdown("""
+    <style>
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Initialize session state variables early to prevent AttributeError
 if 'sustainability_responses' not in st.session_state:
     st.session_state.sustainability_responses = {
