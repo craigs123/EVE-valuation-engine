@@ -45,11 +45,156 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
-# Hide the running indicator (spinning icon) in the top right corner
+# EVE Solutions brand color palette and custom styling
 st.markdown("""
     <style>
+        /* Hide running indicator */
         [data-testid="stStatusWidget"] {
             display: none !important;
+        }
+        
+        /* EVE Solutions Green Color Palette */
+        :root {
+            --eve-primary: #2E7D32;
+            --eve-primary-dark: #1B5E20;
+            --eve-primary-light: #4CAF50;
+            --eve-accent: #81C784;
+            --eve-bg-light: #E8F5E9;
+            --eve-text-dark: #1B5E20;
+            --eve-gold: #FFB300;
+        }
+        
+        /* Main header styling */
+        .stApp > header {
+            background-color: transparent;
+        }
+        
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 100%);
+        }
+        
+        [data-testid="stSidebar"] .stMarkdown {
+            color: #1B5E20;
+        }
+        
+        /* Button styling */
+        .stButton > button {
+            background-color: #2E7D32;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .stButton > button:hover {
+            background-color: #1B5E20;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        /* Primary button variant */
+        .stButton > button[kind="primary"] {
+            background-color: #2E7D32;
+        }
+        
+        /* Metric cards styling */
+        [data-testid="stMetric"] {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #2E7D32;
+        }
+        
+        [data-testid="stMetric"] label {
+            color: #1B5E20 !important;
+        }
+        
+        [data-testid="stMetric"] [data-testid="stMetricValue"] {
+            color: #2E7D32 !important;
+            font-weight: 700;
+        }
+        
+        /* Expander styling */
+        .streamlit-expanderHeader {
+            background-color: #E8F5E9;
+            border-radius: 8px;
+            color: #1B5E20;
+            font-weight: 600;
+        }
+        
+        /* Success/Info/Warning boxes */
+        .stSuccess {
+            background-color: #E8F5E9;
+            border-left-color: #2E7D32;
+        }
+        
+        .stInfo {
+            background-color: #E3F2FD;
+            border-left-color: #1976D2;
+        }
+        
+        /* Selectbox and input styling */
+        .stSelectbox > div > div {
+            border-color: #81C784;
+        }
+        
+        .stSelectbox > div > div:focus-within {
+            border-color: #2E7D32;
+            box-shadow: 0 0 0 1px #2E7D32;
+        }
+        
+        /* Slider styling */
+        .stSlider > div > div > div {
+            background-color: #2E7D32;
+        }
+        
+        /* Tab styling */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            background-color: #E8F5E9;
+            border-radius: 8px 8px 0 0;
+            color: #1B5E20;
+            font-weight: 500;
+        }
+        
+        .stTabs [aria-selected="true"] {
+            background-color: #2E7D32 !important;
+            color: white !important;
+        }
+        
+        /* DataFrame/Table styling */
+        .stDataFrame {
+            border: 1px solid #C8E6C9;
+            border-radius: 8px;
+        }
+        
+        /* Progress bar */
+        .stProgress > div > div > div {
+            background-color: #2E7D32;
+        }
+        
+        /* Links */
+        a {
+            color: #2E7D32 !important;
+        }
+        
+        a:hover {
+            color: #1B5E20 !important;
+        }
+        
+        /* Custom heading colors */
+        h1, h2, h3 {
+            color: #1B5E20;
+        }
+        
+        /* Card-like containers */
+        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+            border-radius: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
