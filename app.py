@@ -2569,7 +2569,7 @@ test_area_options = [
 ]
 
 # Left-aligned area selection dropdown
-st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin-bottom: 0; padding-bottom: 0;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
+st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin: 0; padding: 0; line-height: 1.2;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
 selected_test_area = st.selectbox(
     "Select Area Type",
     test_area_options,
@@ -2577,7 +2577,6 @@ selected_test_area = st.selectbox(
     label_visibility="hidden",
     help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
 )
-
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
 use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "🌱 Test area (Grassland)", "🌿 Test area (Shrubland)", "🌲 Test area (Boreal Forest)", "🌳 Test area (Temperate Forest)", "🌴 Test area (Tropical Forest)", "🏜️ Test area (Desert)", "🏙️ Test area (Urban)", "🌊 Test area (Water (ocean))", "🏞️ Test area (Water (Rivers/Lakes))", "🏖️ Test area (Water (Coastal))"]
