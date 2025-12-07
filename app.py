@@ -54,17 +54,24 @@ st.markdown("""
         }
         
         /* Add "Settings" label next to sidebar toggle button */
-        [data-testid="stSidebarCollapsedControl"] {
+        [data-testid="collapsedControl"] {
             display: flex !important;
             align-items: center !important;
+            gap: 0.25rem;
         }
-        [data-testid="stSidebarCollapsedControl"]::after {
+        [data-testid="collapsedControl"]::after {
             content: "Settings";
             font-size: 0.9rem;
             font-weight: 600;
             color: #2E7D32;
-            margin-left: 0.25rem;
             white-space: nowrap;
+        }
+        /* Also style the expand button for visibility */
+        button[kind="header"]::after {
+            content: " Settings";
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2E7D32;
         }
         
         /* EVE Solutions Green Color Palette */
