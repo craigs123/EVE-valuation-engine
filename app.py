@@ -196,6 +196,33 @@ st.markdown("""
         [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
             border-radius: 10px;
         }
+        
+        /* Reduce spacing under section headers (Step 1, Step 2, etc.) */
+        .section-header {
+            margin-bottom: 0.3rem !important;
+            padding-bottom: 0 !important;
+        }
+        
+        /* Reduce general vertical spacing */
+        .stMarkdown {
+            margin-bottom: 0 !important;
+        }
+        
+        /* Tighten spacing after headers */
+        h1, h2, h3, h4 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Reduce padding in main content blocks */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+        
+        /* Reduce spacing in vertical blocks */
+        [data-testid="stVerticalBlock"] > div {
+            margin-bottom: 0.25rem;
+        }
     </style>
 """, unsafe_allow_html=True)
 
