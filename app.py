@@ -246,7 +246,7 @@ st.markdown("""
         
         /* Remove hidden label space from selectboxes */
         [data-testid="stSelectbox"] {
-            margin-top: 0 !important;
+            margin-top: -1rem !important;
         }
         
         /* Reduce spacing in stMarkdownContainer */
