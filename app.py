@@ -1750,6 +1750,14 @@ st.markdown("""
     justify-content: space-between;
     margin-bottom: 0.3rem;
 }
+/* Reduce button spacing */
+.stButton {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+.stButton > button {
+    margin-top: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -3514,7 +3522,6 @@ if st.session_state.get('selected_area'):
         st.session_state.analysis_detail = "Summary Analysis"
     
     # Enhanced calculate button with modern styling
-    st.markdown("---")
     if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True, help="Start the ecosystem analysis with your current settings"):
         # Set analyze_button for processing and persist analysis state
         analyze_button = True
