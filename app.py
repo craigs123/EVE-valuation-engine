@@ -1708,7 +1708,7 @@ st.markdown("""
 .area-select-label {
     font-size: 1.1em;
     font-weight: bold;
-    margin: 0;
+    margin: 0 0 -0.5rem 0;
     padding: 0;
     line-height: 1.2;
 }
