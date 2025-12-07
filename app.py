@@ -2300,7 +2300,7 @@ Example: 100ha Forest
                     st.markdown(f"🔧 Custom  \n*Default: {default_value}*")
         
         # ESA Land Cover Code Value Multipliers
-        st.markdown("---")
+        
         st.markdown("**ESA Land Cover Code Value Multipliers**")
         st.info("Adjust ecosystem valuation percentages for specific ESA land cover codes. Default: 100%")
         
@@ -2371,7 +2371,7 @@ Example: 100ha Forest
             st.session_state.esa_code_multipliers = get_default_multipliers()
             st.rerun()
         
-        st.markdown("---")
+        
         
         # Action buttons
         col_btn1, col_btn2, col_btn3 = st.columns(3)
@@ -2429,7 +2429,7 @@ Example: 100ha Forest
             for collection, description in collections_info.items():
                 st.markdown(f"• **{collection}**: {description}")
     
-    st.markdown("---")
+    
     
     # Database Section
     if st.session_state.get('db_initialized', False):
@@ -2478,7 +2478,7 @@ Example: 100ha Forest
                                     st.session_state.cached_area_ha = None
                                     st.session_state.cached_bbox = None
                                     st.rerun()
-                            st.markdown("---")
+                            
                 else:
                     st.info("No saved analyses yet. Run an analysis to save results.")
             except Exception as e:
@@ -2513,7 +2513,7 @@ Example: 100ha Forest
                                 # Clear bbox cache to force map re-centering
                                 st.session_state.cached_bbox = None
                                 st.rerun()
-                            st.markdown("---")
+                            
                 else:
                     st.info("No saved areas yet. Select and save an area first.")
             except Exception as e:
@@ -2546,7 +2546,7 @@ Example: 100ha Forest
                             except Exception:
                                 pass  # Skip biodiversity index if not available
                             
-                            st.markdown("---")
+                            
                     st.caption("P=Provisioning, R=Regulating, C=Cultural, S=Supporting")
                 else:
                     st.info("No baselines established yet. Set a baseline after running an analysis.")
@@ -2581,7 +2581,7 @@ Example: 100ha Forest
                     st.markdown(f"**{label}**: {status}")
                 
                 # Show sustainability score
-                st.markdown("---")
+                
                 st.metric("Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
                 
                 if score_percentage >= 80:
@@ -2596,7 +2596,7 @@ Example: 100ha Forest
         st.info("💡 Database features disabled")
         st.caption("Core analysis functionality remains available")
     
-    st.markdown("---")
+    
     
     # Ultra-optimized clear button with memory management
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
@@ -3581,7 +3581,7 @@ if st.session_state.get('analysis_results'):
     # Enhanced forest type information section
     if 'forest_classification' in results:
         forest_info = results['forest_classification']
-        st.markdown("---")
+        
         st.markdown("### 🌲 Forest Type Classification")
         
         col_forest1, col_forest2 = st.columns([2, 1])
@@ -4070,7 +4070,7 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Show classification dialog only if needed
                     if needs_classification:
-                        st.markdown("---")
+                        
                         st.warning("🌊 **Water Bodies Detected!**")
                         st.markdown(f"Found **{len(water_body_points)}** sample points with water bodies.")
                         
@@ -4082,7 +4082,7 @@ if analyze_button and st.session_state.selected_area:
                             lat, lon = coords.get('lat', 0), coords.get('lon', 0)
                             st.write(f"• Sample Point {int(point_num) + 1}: {lat:.4f}°N, {abs(lon):.4f}°{'E' if lon >= 0 else 'W'}")
                         
-                        st.markdown("---")
+                        
                         st.info("**Classify all water bodies at once:**")
                         
                         bulk_water_type = st.radio(
@@ -4516,7 +4516,7 @@ if analyze_button and st.session_state.selected_area:
 
 # Display results if available
 if st.session_state.analysis_results:
-    st.markdown("---")
+    
     
 
     
@@ -4690,7 +4690,7 @@ if st.session_state.analysis_results:
         
         # Show save options if requested
         if st.session_state.get('show_save_options', False):
-            st.markdown("---")
+            
             st.subheader("💾 Save Your Work")
             
             col_save1, col_save2 = st.columns(2)
@@ -5226,7 +5226,7 @@ if st.session_state.analysis_results:
                                 st.markdown(f"${total:,.0f}/year")
                                 st.caption(f"{percentage:.0f}% of combined total")
             
-            st.markdown("---")
+            
             st.markdown("### 🔍 Individual Ecosystem Natural Capital Calculations")
             st.markdown("*Detailed breakdown for each ecosystem type detected in your mixed area*")
             
@@ -5263,7 +5263,7 @@ if st.session_state.analysis_results:
                                             st.markdown(f"- **{category.title()}**: ${cat_total:,.0f}/year ({percentage:.0f}%)")
                     
                     # Detailed service breakdown for this ecosystem
-                    st.markdown("---")
+                    
                     st.markdown(f"**📋 Detailed Service Values for {ecosystem_type.title()}**:")
                     
                     if 'esvd_metadata' in eco_data:
@@ -5346,7 +5346,7 @@ if st.session_state.analysis_results:
                     3. Restart application for authentic values
                     """)
                 
-                st.markdown("---")
+                
                 st.markdown("**ESVD Database Information**:")
                 st.markdown("- **Official Website**: https://www.esvd.net/")
                 st.markdown("- **Developer**: Foundation for Sustainable Development") 
@@ -5354,7 +5354,7 @@ if st.session_state.analysis_results:
                 st.markdown("- **Coverage**: Global data from 140+ countries and 2,000+ study sites")
 
         # Action buttons for detailed view
-        st.markdown("---")
+        
         col_detailed1, col_detailed2, col_detailed3, col_detailed4 = st.columns(4)
         
         with col_detailed1:
@@ -5418,7 +5418,7 @@ if st.session_state.analysis_results:
                         st.error("Failed to create baseline")
     # Always-visible save panels at the end of results
     if st.session_state.get('db_initialized', False):
-        st.markdown("---")
+        
         st.subheader("💾 Save Your Work")
         
         col_save1, col_save2 = st.columns(2)
@@ -5484,7 +5484,7 @@ if st.session_state.analysis_results:
         
         # Social Media Infographic Display and Download
         if st.session_state.get('show_infographic', False) and st.session_state.get('current_infographic'):
-            st.markdown("---")
+            
             st.subheader("📸 Social Media Infographic")
             
             col_info1, col_info2 = st.columns([2, 1])
