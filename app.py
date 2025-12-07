@@ -1692,6 +1692,64 @@ st.markdown("""
     font-size: 0.8rem;
     font-weight: 500;
 }
+/* Version info text */
+.version-text {
+    text-align: center;
+    font-weight: bold;
+    color: #666;
+    margin: 0;
+    padding: 0;
+}
+.version-text a {
+    color: #0891b2;
+    text-decoration: none;
+}
+/* Area selection label */
+.area-select-label {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+}
+/* Question text for sustainability */
+.question-text {
+    font-size: 1.1em;
+    font-weight: 500;
+    margin: 0;
+    padding: 0;
+}
+/* Result info text */
+.result-info {
+    font-size: 16px;
+    margin: 2px 0;
+}
+.result-info-lg {
+    font-size: 18px;
+    margin: 2px 0;
+}
+/* Disabled section styling */
+.disabled-section {
+    opacity: 0.4;
+    pointer-events: none;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px dashed #dee2e6;
+}
+.disabled-section ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+.disabled-section p {
+    margin: 0;
+}
+/* Flex row for progress bar */
+.progress-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1705,8 +1763,8 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin: 0; padding: 0;">Version 2.10.0 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
-st.markdown('<h2 class="section-header" style="margin-top: 0.5rem;">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">Version 2.10.0 - More information at <a href="https://eve-solutions.eu/" target="_blank">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
 
 # Initialize session state
@@ -2569,7 +2627,7 @@ test_area_options = [
 ]
 
 # Left-aligned area selection dropdown
-st.markdown('<p style="font-size: 1.1em; font-weight: bold; margin: 0; padding: 0; line-height: 1.2;">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
+st.markdown('<p class="area-select-label">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
 selected_test_area = st.selectbox(
     "Select Area Type",
     test_area_options,
@@ -3272,11 +3330,11 @@ if st.session_state.get('selected_area') and st.session_state.get('area_coordina
     if bbox:
         st.markdown(f"""
         <div class="coordinate-bounds">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+            <div class="progress-row">
                 <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
                 <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
             </div>
-            <div style="display: flex; justify-content: space-between;">
+            <div class="progress-row">
                 <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
                 <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
             </div>
@@ -3325,7 +3383,7 @@ if st.session_state.get('selected_area') and st.session_state.get('area_coordina
         
         with col_q1:
             for i, (key, question) in enumerate(sustainability_questions[:3]):
-                st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
                 st.session_state.sustainability_responses[key] = st.radio(
                     question,
                     options=[True, False],
@@ -3337,7 +3395,7 @@ if st.session_state.get('selected_area') and st.session_state.get('area_coordina
         
         with col_q2:
             for i, (key, question) in enumerate(sustainability_questions[3:], 3):
-                st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
                 st.session_state.sustainability_responses[key] = st.radio(
                     question,
                     options=[True, False],
@@ -3371,16 +3429,16 @@ else:
             st.markdown("*Please select an area on the map above to complete the sustainability assessment*")
             # Display greyed out questions
             st.markdown("""
-            <div style="opacity: 0.4; pointer-events: none; background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border: 1px dashed #dee2e6;">
+            <div class="disabled-section">
             <p><strong>Sustainability Questions:</strong></p>
-            <ul style="margin-bottom: 0.5rem;">
+            <ul>
             <li>Do you minimize soil disturbance?</li>
             <li>Do you maintain living roots in the soil?</li>
             <li>Do you continuously cover bare soil?</li>
             <li>Do you maximize diversity (crops, soil microbes, pollinators)?</li>
             <li>Do you integrate livestock where feasible?</li>
             </ul>
-            <p style="margin-bottom: 0;"><em>📍 Select an area on the map to activate these questions.</em></p>
+            <p><em>📍 Select an area on the map to activate these questions.</em></p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -3397,7 +3455,7 @@ else:
             
             with col_q1:
                 for i, (key, question) in enumerate(sustainability_questions[:3]):
-                    st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
                     st.session_state.sustainability_responses[key] = st.radio(
                         question,  # Using question as label for accessibility
                         options=[True, False],
@@ -3409,7 +3467,7 @@ else:
             
             with col_q2:
                 for i, (key, question) in enumerate(sustainability_questions[3:], 3):
-                    st.markdown(f'<p style="font-size: 1.1em; font-weight: 500; margin-bottom: 0.5rem;">{question}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
                     st.session_state.sustainability_responses[key] = st.radio(
                         question,  # Using question as label for accessibility
                         options=[True, False],
@@ -3777,9 +3835,9 @@ elif st.session_state.get('selected_area'):
         
         area_ha = st.session_state.get('cached_area_ha', 0)
         if area_ha and area_ha > 0:
-            st.markdown(f'<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> {area_ha:.2f} hectares</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="result-info-lg"><strong>Area Size:</strong> {area_ha:.2f} hectares</p>', unsafe_allow_html=True)
         else:
-            st.markdown('<p style="font-size:18px; margin:2px 0;"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
+            st.markdown('<p class="result-info-lg"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
         
         # Show ecosystem detection status with composition
         if st.session_state.ecosystem_override == "Auto-detect":
@@ -4823,10 +4881,10 @@ if st.session_state.analysis_results:
             if 'ecosystem_composition' in results.get('metadata', {}):
                 composition = results['metadata']['ecosystem_composition']
                 dominant_type = max(composition.keys(), key=lambda k: composition[k])
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Primary Ecosystem:</strong> {dominant_type}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="result-info"><strong>Primary Ecosystem:</strong> {dominant_type}</p>', unsafe_allow_html=True)
                 st.caption(f"Mixed area: {len(composition)} ecosystem types")
             else:
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Type:</strong> {results["ecosystem_type"]}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="result-info"><strong>Predominant Ecosystem Type:</strong> {results["ecosystem_type"]}</p>', unsafe_allow_html=True)
             with st.expander("💡 Ecosystem detection method"):
                 # Handle both single and mixed ecosystem displays
                 if 'ecosystem_composition' in results.get('metadata', {}):
@@ -5099,10 +5157,10 @@ if st.session_state.analysis_results:
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Total Ecosystem Services:</strong> ${total_val:,.0f}/year</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="result-info"><strong>Total Ecosystem Services:</strong> ${total_val:,.0f}/year</p>', unsafe_allow_html=True)
                     st.caption(f"${per_ha:.0f} per hectare annually")
                 with col2:
-                    st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Regional Adjustment:</strong> Applied</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="result-info"><strong>Regional Adjustment:</strong> Applied</p>', unsafe_allow_html=True)
                     st.caption("Economic adjustment applied for local conditions")
                 
                 st.info("💡 Service category breakdown not available in current data structure. Total value shown above represents the combined economic value of all ecosystem services.")
@@ -5120,17 +5178,17 @@ if st.session_state.analysis_results:
             col_total1, col_total2, col_total3 = st.columns(3)
             
             with col_total1:
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Combined Total Value:</strong> ${results["total_value"]:,.0f}/year</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="result-info"><strong>Combined Total Value:</strong> ${results["total_value"]:,.0f}/year</p>', unsafe_allow_html=True)
                 st.caption("Sum of all ecosystem contributions")
             
             with col_total2:
                 combined_per_ha = results['total_value'] / results['area_ha'] if results['area_ha'] > 0 else 0
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Combined Value per Hectare:</strong> ${combined_per_ha:,.0f}/ha/year</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="result-info"><strong>Combined Value per Hectare:</strong> ${combined_per_ha:,.0f}/ha/year</p>', unsafe_allow_html=True)
                 st.caption("Weighted average across all ecosystems")
             
             with col_total3:
                 num_ecosystems = len(ecosystem_results)
-                st.markdown(f'<p style="font-size:16px; margin:2px 0;"><strong>Predominant Ecosystem Types Detected:</strong> {str(num_ecosystems)}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="result-info"><strong>Predominant Ecosystem Types Detected:</strong> {str(num_ecosystems)}</p>', unsafe_allow_html=True)
                 st.caption("Different ecosystem types in this area")
             
             # Show total composition breakdown
