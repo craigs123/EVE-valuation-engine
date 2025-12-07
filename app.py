@@ -443,7 +443,7 @@ st.markdown("""
             font-size: 1.3rem !important;
             font-weight: 700;
             color: #1f2937;
-            margin: 0 0 1rem 0 !important;
+            margin: 0 0 0.2rem 0 !important;
             display: flex;
             align-items: center;
             gap: 0.5rem;
