@@ -1783,7 +1783,7 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">Version 2.10.0 - More information at <a href="https://eve-solutions.eu/" target="_blank">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">Version 2.10.2 - More information at <a href="https://eve-solutions.eu/" target="_blank">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
 
 # Settings indicator - visible hint to access sidebar
 st.markdown('<div class="settings-indicator">Settings</div>', unsafe_allow_html=True)
