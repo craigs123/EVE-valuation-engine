@@ -223,6 +223,36 @@ st.markdown("""
         [data-testid="stVerticalBlock"] > div {
             margin-bottom: 0.25rem;
         }
+        
+        /* Aggressive spacing reduction for section headers */
+        .section-header {
+            margin-top: 0.5rem !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+            line-height: 1.2 !important;
+        }
+        
+        /* Remove extra spacing after h2 elements */
+        h2 {
+            margin-bottom: 0.25rem !important;
+            padding-bottom: 0 !important;
+        }
+        
+        /* Reduce gap between elements in main content */
+        .element-container {
+            margin-bottom: 0.1rem !important;
+        }
+        
+        /* Tighten the main app container */
+        .main .block-container {
+            padding-top: 0.5rem !important;
+            max-width: 100%;
+        }
+        
+        /* Remove spacing after markdown paragraphs */
+        .stMarkdown p {
+            margin-bottom: 0.25rem !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
