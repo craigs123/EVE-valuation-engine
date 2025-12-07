@@ -188,8 +188,11 @@ st.markdown("""
         }
         
         /* Custom heading colors */
-        h1, h2, h3 {
+        h1, h2, h3, h4, h5, h6 {
             color: #1B5E20;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
         }
         
         /* Card-like containers */
@@ -199,75 +202,67 @@ st.markdown("""
         
         /* Reduce spacing under section headers (Step 1, Step 2, etc.) */
         .section-header {
-            margin-bottom: 0.3rem !important;
-            padding-bottom: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
         }
         
         /* Reduce general vertical spacing */
         .stMarkdown {
-            margin-bottom: 0 !important;
-        }
-        
-        /* Tighten spacing after headers */
-        h1, h2, h3, h4 {
-            margin-bottom: 0.5rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         /* Reduce padding in main content blocks */
         .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1rem !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
         }
         
         /* Reduce spacing in vertical blocks */
         [data-testid="stVerticalBlock"] > div {
-            margin-bottom: 0.25rem;
-        }
-        
-        /* Aggressive spacing reduction for section headers */
-        .section-header {
-            margin-top: 0.5rem !important;
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
-            line-height: 1.2 !important;
-        }
-        
-        /* Remove extra spacing after h2 elements */
-        h2 {
-            margin-bottom: 0.25rem !important;
-            padding-bottom: 0 !important;
+            margin-bottom: 0.1rem;
+            padding: 0;
         }
         
         /* Reduce gap between elements in main content */
         .element-container {
-            margin-bottom: 0.1rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         /* Tighten the main app container */
         .main .block-container {
-            padding-top: 0.5rem !important;
+            padding-top: 0.25rem !important;
             max-width: 100%;
         }
         
         /* Remove spacing after markdown paragraphs */
         .stMarkdown p {
-            margin-bottom: 0.25rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.3 !important;
         }
         
         /* Remove hidden label space from selectboxes */
         [data-testid="stSelectbox"] {
-            margin-top: -0.5rem !important;
+            margin-top: 0 !important;
         }
         
         /* Reduce spacing in stMarkdownContainer */
         [data-testid="stMarkdownContainer"] {
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         [data-testid="stMarkdownContainer"] p {
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* All text elements tight spacing */
+        p, span, div, label {
+            line-height: 1.3 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -384,7 +379,7 @@ st.markdown("""
             align-items: center;
             justify-content: center;
             position: relative;
-            margin-bottom: 1rem;
+            margin-bottom: 0.25rem;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
@@ -459,11 +454,12 @@ st.markdown("""
             font-size: 1.3rem !important;
             font-weight: 700;
             color: #1f2937;
-            margin: 0 0 0.2rem 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            line-height: 1.3;
+            line-height: 1.2 !important;
         }
         
         /* Loading Animation */
@@ -1654,35 +1650,39 @@ st.markdown("""
     font-weight: 700;
     color: #2e8b57;
     text-align: center;
-    margin-bottom: 0.5rem;
+    margin: 0;
+    padding: 0;
 }
 .subtitle {
     font-size: 1.2rem;
     color: #666;
     text-align: center;
-    margin-bottom: 2rem;
+    margin: 0;
+    padding: 0;
 }
 .metric-container {
     background-color: #f8f9fa;
-    padding: 1rem;
+    padding: 0.5rem;
     border-radius: 0.5rem;
     border-left: 4px solid #2e8b57;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
 }
 .small-coordinates {
     font-size: 0.8rem;
 }
 .small-coordinates h3 {
     font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    margin: 0;
+    padding: 0;
 }
 .small-coordinates .metric-container {
-    padding: 0.5rem;
+    padding: 0.25rem;
     font-size: 0.75rem;
 }
 .coordinate-bounds {
     font-size: 0.75rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
+    padding: 0;
 }
 .coordinate-bounds .metric-label {
     font-size: 0.7rem;
@@ -1705,8 +1705,8 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin-top: 0.5rem;">Version 2.10.0 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
-st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; font-weight: bold; color: #666; margin: 0; padding: 0;">Version 2.10.0 - More information at <a href="https://eve-solutions.eu/" target="_blank" style="color: #0891b2; text-decoration: none;">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header" style="margin-top: 0.5rem;">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
 
 # Initialize session state
