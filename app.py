@@ -53,6 +53,20 @@ st.markdown("""
             display: none !important;
         }
         
+        /* Add "Settings" label next to sidebar toggle button */
+        [data-testid="stSidebarCollapsedControl"] {
+            display: flex !important;
+            align-items: center !important;
+        }
+        [data-testid="stSidebarCollapsedControl"]::after {
+            content: "Settings";
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2E7D32;
+            margin-left: 0.25rem;
+            white-space: nowrap;
+        }
+        
         /* EVE Solutions Green Color Palette */
         :root {
             --eve-primary: #2E7D32;
