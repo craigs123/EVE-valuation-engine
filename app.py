@@ -53,25 +53,29 @@ st.markdown("""
             display: none !important;
         }
         
-        /* Add "Settings" label next to sidebar toggle button */
-        [data-testid="collapsedControl"] {
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.25rem;
-        }
-        [data-testid="collapsedControl"]::after {
-            content: "Settings";
-            font-size: 0.9rem;
+        /* Settings indicator styling */
+        .settings-indicator {
+            position: fixed;
+            top: 0.75rem;
+            left: 3rem;
+            background: linear-gradient(135deg, #2E7D32, #1B5E20);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
             font-weight: 600;
-            color: #2E7D32;
-            white-space: nowrap;
+            z-index: 999999;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: pulse-hint 2s ease-in-out infinite;
         }
-        /* Also style the expand button for visibility */
-        button[kind="header"]::after {
-            content: " Settings";
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #2E7D32;
+        .settings-indicator:hover {
+            background: linear-gradient(135deg, #1B5E20, #0d3d10);
+            transform: scale(1.05);
+        }
+        @keyframes pulse-hint {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         
         /* EVE Solutions Green Color Palette */
@@ -1793,6 +1797,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 st.markdown('<p class="version-text">Version 2.10.0 - More information at <a href="https://eve-solutions.eu/" target="_blank">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
+
+# Settings indicator - visible hint to access sidebar
+st.markdown('<div class="settings-indicator">⚙️ Settings →</div>', unsafe_allow_html=True)
+
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 
 
