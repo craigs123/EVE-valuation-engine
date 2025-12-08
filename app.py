@@ -45,13 +45,6 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
-# Early loading message - displayed immediately while app initializes
-loading_placeholder = st.empty()
-loading_placeholder.markdown("""
-<div style="display: flex; align-items: center; justify-content: center; padding: 2rem; color: #2E7D32;">
-    <span style="font-size: 1.2rem;">🌱 Please wait, loading EVE...</span>
-</div>
-""", unsafe_allow_html=True)
 
 # EVE Solutions brand color palette and custom styling
 st.markdown("""
@@ -3272,6 +3265,37 @@ else:
 from streamlit_folium import st_folium
 col1_map, col2_map, col3_map = st.columns([0.5, 2, 0.5])
 with col2_map:
+    # Loading message that shows until map iframe loads
+    st.markdown("""
+    <style>
+    .map-loading-overlay {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        margin-bottom: -400px;
+        z-index: 10;
+        animation: fadeOut 2s ease-in-out 3s forwards;
+    }
+    .map-loading-text {
+        color: #2E7D32;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    @keyframes fadeOut {
+        0% { opacity: 1; }
+        100% { opacity: 0; pointer-events: none; }
+    }
+    </style>
+    <div class="map-loading-overlay">
+        <span class="map-loading-text">🌱 Please wait, loading map...</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
     map_data = st_folium(
         m, 
         width="100%",  # Responsive width for all device sizes
@@ -3281,9 +3305,6 @@ with col2_map:
         feature_group_to_add=None,  # Reduce memory usage
         debug=False  # Disable debug for performance
     )
-
-# Clear loading message now that map has loaded
-loading_placeholder.empty()
 
 # Process map interactions with optimized state checking
 if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
