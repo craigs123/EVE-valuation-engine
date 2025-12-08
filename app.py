@@ -45,6 +45,13 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
+# Early loading message - displayed immediately while app initializes
+loading_placeholder = st.empty()
+loading_placeholder.markdown("""
+<div style="display: flex; align-items: center; justify-content: center; padding: 2rem; color: #2E7D32;">
+    <span style="font-size: 1.2rem;">🌱 Please wait, loading EVE...</span>
+</div>
+""", unsafe_allow_html=True)
 
 # EVE Solutions brand color palette and custom styling
 st.markdown("""
@@ -1771,6 +1778,9 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+# Clear initial loading message - header is about to appear
+loading_placeholder.empty()
 
 # Custom Header with Image Background
 st.markdown("""
