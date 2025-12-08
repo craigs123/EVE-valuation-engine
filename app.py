@@ -1779,9 +1779,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Clear loading message now that app is ready
-loading_placeholder.empty()
-
 # Custom Header with Image Background
 st.markdown("""
 <div class="header-container">
@@ -3284,6 +3281,9 @@ with col2_map:
         feature_group_to_add=None,  # Reduce memory usage
         debug=False  # Disable debug for performance
     )
+
+# Clear loading message now that map has loaded
+loading_placeholder.empty()
 
 # Process map interactions with optimized state checking
 if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
