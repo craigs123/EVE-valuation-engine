@@ -962,8 +962,6 @@ def display_data_source_status(analysis_results: Dict = None):
     openlandmap_status = preload_openlandmap_status()
     
     with st.container():
-        st.markdown("### 📡 Data Source Status")
-        
         col1, col2 = st.columns(2)
         
         with col1:
