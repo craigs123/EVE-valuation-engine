@@ -4633,198 +4633,6 @@ if st.session_state.analysis_results:
                 st.caption(f"Baseline established: {baseline_info['baseline_date'].strftime('%Y-%m-%d %H:%M')}")
         
         
-        # Action buttons
-        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
-        
-        # with col_btn1:
-        #     if st.button("🔍 View Detailed Analysis", type="secondary"):
-        #         st.session_state['analysis_detail'] = 'Detailed Analysis'
-        #         st.rerun()
-        
-        with col_btn2:
-            # Social Media Infographic Generator (Summary View)
-            if st.button("📸 Generate Infographic", type="secondary", key="generate_infographic_summary"):
-                try:
-                    from utils.infographic_generator import generate_results_infographic
-                    
-                    with st.spinner("Creating your infographic..."):
-                        # Get area name for the infographic
-                        area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
-                        
-                        # Generate the infographic
-                        infographic_b64 = generate_results_infographic(
-                            results=results,
-                            area_name=area_name,
-                            style='full'
-                        )
-                        
-                        # Store in session state for display
-                        st.session_state['current_infographic'] = infographic_b64
-                        st.session_state['show_infographic'] = True
-                        st.success("Infographic created! Scroll down to view and download.")
-                        st.rerun()
-                        
-                except Exception as e:
-                    st.error(f"Failed to generate infographic: {str(e)}")
-                    st.info("Try again or contact support if the issue persists.")
-        
-        with col_btn3:
-            if st.button("💾 Save Analysis", type="secondary"):
-                st.session_state['show_save_options'] = True
-                st.rerun()
-        
-        with col_btn4:
-            if st.session_state.get('db_initialized', False):
-                baseline_exists = baseline_info is not None
-                baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
-                if st.button(baseline_text, type="secondary"):
-                    try:
-                        db_modules = get_database_modules()
-                        if db_modules and 'NaturalCapitalBaselineDB' in db_modules:
-                            NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
-                            baseline_id = NaturalCapitalBaselineDB.create_baseline(
-                                coordinates=st.session_state.area_coordinates,
-                                area_hectares=results.get('area_ha', 0),
-                                ecosystem_type=results.get('ecosystem_type', 'Unknown'),
-                                analysis_results=results,
-                                sampling_points=st.session_state.get('max_sampling_limit', 10),
-                                area_id=st.session_state.get('current_area_id')
-                            )
-                        else:
-                            baseline_id = None
-                    except Exception:
-                        baseline_id = None
-                    if baseline_id:
-                        action_text = "updated" if baseline_exists else "established"
-                        st.success(f"Natural capital baseline {action_text}!")
-                        st.session_state['current_baseline_id'] = baseline_id
-                        st.rerun()
-                    else:
-                        st.error("Failed to create baseline")
-        
-        # Show save options if requested
-        if st.session_state.get('show_save_options', False):
-            
-            st.subheader("💾 Save Your Work")
-            
-            col_save1, col_save2 = st.columns(2)
-            
-            with col_save1:
-                with st.container():
-                    st.markdown("**💾 Save Analysis**")
-                    # Use unique form key to prevent double-click issues
-                    form_key = f"save_analysis_summary_{hash(str(st.session_state.get('analysis_results', {})))}"
-                    with st.form(form_key):
-                        analysis_name = st.text_input("Analysis Name", value=f"Analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            save_analysis_btn = st.form_submit_button("Save Analysis", type="primary")
-                        with col2:
-                            cancel_analysis_btn = st.form_submit_button("Cancel", type="secondary")
-                        
-                        if save_analysis_btn and analysis_name:
-                            # Check if we've already saved this analysis to prevent duplicates
-                            results = st.session_state.get('analysis_results')
-                            if results is None:
-                                st.error("No analysis results to save.")
-                            else:
-                                save_key = f"saved_analysis_{hash(str(results))}"
-                                
-                                if save_key not in st.session_state:
-                                    try:
-                                        db_modules = get_database_modules()
-                                        if db_modules and 'EcosystemAnalysisDB' in db_modules:
-                                            EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
-                                        else:
-                                            EcosystemAnalysisDB = None
-                                    except Exception:
-                                        EcosystemAnalysisDB = None
-                                    
-                                    if EcosystemAnalysisDB:
-                                        analysis_id = EcosystemAnalysisDB.save_analysis(
-                                            coordinates=st.session_state.area_coordinates,
-                                            area_hectares=float(results.get('area_ha', 0)),
-                                            ecosystem_type=results.get('ecosystem_type', 'Unknown'),
-                                            total_value=results.get('total_value', 0),
-                                            value_per_hectare=results.get('value_per_ha', results.get('total_value', 0)/max(results.get('area_ha', 1), 1)),
-                                            analysis_results=results,
-                                            sampling_points=st.session_state.get('max_sampling_limit', 10),
-                                            area_name=analysis_name,
-                                            user_session_id=st.session_state.get('user_id'),
-                                            sustainability_responses=st.session_state.get('sustainability_responses')
-                                        )
-                                        if analysis_id:
-                                            st.session_state[save_key] = analysis_id
-                                            st.success(f"Analysis saved successfully!")
-                                            st.session_state['show_save_options'] = False
-                                            st.rerun()
-                                        else:
-                                            st.error("Failed to save analysis")
-                                    else:
-                                        st.error("Database not available")
-                                else:
-                                    st.info("This analysis has already been saved!")
-                        
-                        if cancel_analysis_btn:
-                            st.session_state['show_save_options'] = False
-                            st.rerun()
-            
-            with col_save2:
-                with st.container():
-                    st.markdown("**📍 Save Area**")
-                    # Use stable form key to preserve user inputs
-                    area_form_key = "save_area_form"
-                    
-                    # Initialize default area name once for this session
-                    if 'default_area_name' not in st.session_state:
-                        st.session_state['default_area_name'] = f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-                    
-                    with st.form(area_form_key):
-                        area_name = st.text_input("Area Name", value=st.session_state['default_area_name'])
-                        description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            save_area_btn = st.form_submit_button("Save Area", type="primary")
-                        with col2:
-                            cancel_area_btn = st.form_submit_button("Cancel", type="secondary")
-                        
-                        if save_area_btn and area_name:
-                            # Check if we've already saved this area to prevent duplicates
-                            coordinates_key = f"saved_area_{hash(str(st.session_state.get('area_coordinates', [])))}"
-                            
-                            # Reset default name for next area after successful save
-                            if 'default_area_name' in st.session_state:
-                                del st.session_state['default_area_name']
-                            
-                            if coordinates_key not in st.session_state:
-                                results = st.session_state.analysis_results
-                                db_modules = get_database_modules()
-                                SavedAreaDB = db_modules['SavedAreaDB']
-                                area_id = SavedAreaDB.save_area(
-                                    name=area_name,
-                                    coordinates=st.session_state.area_coordinates,
-                                    area_hectares=float(results['area_ha']),
-                                    description=description if description else None,
-                                    user_session_id=st.session_state.get('user_id')
-                                )
-                                if area_id:
-                                    st.session_state[coordinates_key] = area_id
-                                    st.session_state['current_area_id'] = area_id
-                                    st.session_state['current_area_name'] = area_name
-                                    st.success(f"Area '{area_name}' saved successfully!")
-                                    st.session_state['show_save_options'] = False
-                                    st.rerun()
-                                else:
-                                    st.error("Failed to save area")
-                            else:
-                                st.info("This area has already been saved!")
-                        
-                        if cancel_area_btn:
-                            st.session_state['show_save_options'] = False
-                            st.rerun()
-
             
     else:  # Detailed Analysis
         st.subheader("📈 Detailed Analysis Results")
@@ -5367,134 +5175,32 @@ if st.session_state.analysis_results:
                 st.markdown("- **Contains**: 10,000+ ecosystem service valuations from peer-reviewed studies")
                 st.markdown("- **Coverage**: Global data from 140+ countries and 2,000+ study sites")
 
-        # Action buttons for detailed view
-        
-        col_detailed1, col_detailed2, col_detailed3, col_detailed4 = st.columns(4)
-        
-        with col_detailed1:
-            if st.button("📊 Switch to Summary View", type="secondary"):
-                st.session_state['analysis_detail'] = 'Summary Analysis'
-                st.rerun()
-        
-        with col_detailed2:
-            # Social Media Infographic Generator
-            if st.button("📸 Generate Infographic", type="secondary", key="generate_infographic"):
-                try:
-                    from utils.infographic_generator import generate_results_infographic
-                    
-                    with st.spinner("Creating your infographic..."):
-                        # Get area name for the infographic
-                        area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
-                        
-                        # Generate the infographic
-                        infographic_b64 = generate_results_infographic(
-                            results=results,
-                            area_name=area_name,
-                            style='full'
-                        )
-                        
-                        # Store in session state for display
-                        st.session_state['current_infographic'] = infographic_b64
-                        st.session_state['show_infographic'] = True
-                        st.success("Infographic created! Scroll down to view and download.")
-                        st.rerun()
-                        
-                except Exception as e:
-                    st.error(f"Failed to generate infographic: {str(e)}")
-                    st.info("Try again or contact support if the issue persists.")
-        
-        with col_detailed3:
-            if st.button("💾 Save Analysis", type="secondary", key="save_detailed"):
-                st.session_state['show_save_options'] = True
-                st.rerun()
-        
-        with col_detailed4:
-            if st.session_state.get('db_initialized', False):
-                baseline_exists = st.session_state.get('current_baseline_id') is not None
-                baseline_text = "🔄 Update Baseline" if baseline_exists else "📊 Set Baseline"
-                if st.button(baseline_text, type="secondary", key="detailed_baseline"):
-                    db_modules = get_database_modules()
-                    NaturalCapitalBaselineDB = db_modules['NaturalCapitalBaselineDB']
-                    baseline_id = NaturalCapitalBaselineDB.create_baseline(
-                        coordinates=st.session_state.area_coordinates,
-                        area_hectares=float(results['area_ha']),
-                        ecosystem_type=results['ecosystem_type'],
-                        analysis_results=results,
-                        sampling_points=st.session_state.get('max_sampling_limit', 10),
-                        area_id=st.session_state.get('current_area_id')
+        # Action buttons for detailed view - Save Analysis and Set Baseline hidden per user request
+        if st.button("📊 Switch to Summary View", type="secondary"):
+            st.session_state['analysis_detail'] = 'Summary Analysis'
+            st.rerun()
+    # Generate Infographic button at the bottom
+    results = st.session_state.get('analysis_results')
+    if results:
+        if st.button("📸 Generate Infographic", type="secondary", key="generate_infographic_bottom"):
+            try:
+                from utils.infographic_generator import generate_results_infographic
+                
+                with st.spinner("Creating your infographic..."):
+                    area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
+                    infographic_b64 = generate_results_infographic(
+                        results=results,
+                        area_name=area_name,
+                        style='full'
                     )
-                    if baseline_id:
-                        action_text = "updated" if baseline_exists else "established"
-                        st.success(f"Natural capital baseline {action_text}!")
-                        st.session_state['current_baseline_id'] = baseline_id
-                        st.rerun()
-                    else:
-                        st.error("Failed to create baseline")
-    # Always-visible save panels at the end of results
-    if st.session_state.get('db_initialized', False):
-        
-        st.subheader("💾 Save Your Work")
-        
-        col_save1, col_save2 = st.columns(2)
-        
-        with col_save1:
-            with st.container():
-                st.markdown("**💾 Save Analysis**")
-                # Use unique form key to prevent double-click issues
-                form_key = f"save_analysis_form_{hash(str(st.session_state.get('analysis_results', {})))}"
-                with st.form(form_key):
-                    analysis_name = st.text_input("Analysis Name", value=f"Analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                    st.session_state['current_infographic'] = infographic_b64
+                    st.session_state['show_infographic'] = True
+                    st.success("Infographic created!")
+                    st.rerun()
                     
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        save_analysis_btn = st.form_submit_button("Save Analysis", type="primary")
-                    with col2:
-                        cancel_analysis_btn = st.form_submit_button("Cancel", type="secondary")
-                    
-                    if save_analysis_btn and analysis_name:
-                        # Check if we've already saved this analysis to prevent duplicates
-                        results = st.session_state.get('analysis_results')
-                        if results is None:
-                            st.error("No analysis results to save.")
-                        else:
-                            save_key = f"saved_analysis_{hash(str(results))}"
-                            
-                            if save_key not in st.session_state:
-                                try:
-                                    db_modules = get_database_modules()
-                                    if db_modules and 'EcosystemAnalysisDB' in db_modules:
-                                        EcosystemAnalysisDB = db_modules['EcosystemAnalysisDB']
-                                    else:
-                                        EcosystemAnalysisDB = None
-                                except Exception:
-                                    EcosystemAnalysisDB = None
-                                
-                                if EcosystemAnalysisDB:
-                                    analysis_id = EcosystemAnalysisDB.save_analysis(
-                                        coordinates=st.session_state.area_coordinates,
-                                        area_hectares=float(results.get('area_ha', 0)),
-                                        ecosystem_type=results.get('ecosystem_type', 'Unknown'),
-                                        total_value=results.get('total_value', 0),
-                                        value_per_hectare=results.get('value_per_ha', results.get('total_value', 0)/max(results.get('area_ha', 1), 1)),
-                                        analysis_results=results,
-                                        sampling_points=st.session_state.get('max_sampling_limit', 10),
-                                        area_name=analysis_name,
-                                        user_session_id=st.session_state.get('user_id'),
-                                        sustainability_responses=st.session_state.get('sustainability_responses')
-                                    )
-                                    if analysis_id:
-                                        st.session_state[save_key] = analysis_id
-                                        st.success(f"Analysis saved successfully!")
-                                        st.rerun()
-                                    else:
-                                        st.error("Failed to save analysis")
-                                else:
-                                    st.error("Database not available")
-                            else:
-                                st.info("This analysis has already been saved!")
-                    
-                    if cancel_analysis_btn:
-                        st.info("Save cancelled")
+            except Exception as e:
+                st.error(f"Failed to generate infographic: {str(e)}")
+                st.info("Try again or contact support if the issue persists.")
         
         # Social Media Infographic Display and Download
         if st.session_state.get('show_infographic', False) and st.session_state.get('current_infographic'):
@@ -5504,13 +5210,11 @@ if st.session_state.analysis_results:
             col_info1, col_info2 = st.columns([2, 1])
             
             with col_info1:
-                # Display the infographic
                 infographic_b64 = st.session_state['current_infographic']
                 st.image(f"data:image/png;base64,{infographic_b64}", 
                         caption="Your Ecosystem Analysis Infographic", 
                         use_container_width=True)
                 
-                # Sharing tips
                 st.info("""
                 **Perfect for sharing on:**
                 - LinkedIn (professional environmental content)
@@ -5522,7 +5226,6 @@ if st.session_state.analysis_results:
             with col_info2:
                 st.markdown("**Download Options**")
                 
-                # Download as PNG
                 st.download_button(
                     label="📥 Download PNG",
                     data=base64.b64decode(infographic_b64),
@@ -5531,7 +5234,6 @@ if st.session_state.analysis_results:
                     type="primary"
                 )
                 
-                # Generate compact version
                 if st.button("🎯 Compact Version", type="secondary", key="compact_infographic_btn"):
                     try:
                         from utils.infographic_generator import generate_results_infographic
@@ -5549,7 +5251,6 @@ if st.session_state.analysis_results:
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
                 
-                # Show compact version if available
                 if st.session_state.get('compact_infographic_data'):
                     st.markdown("**Compact Version:**")
                     compact_b64 = st.session_state['compact_infographic_data']
@@ -5564,52 +5265,8 @@ if st.session_state.analysis_results:
                         mime="image/png"
                     )
                 
-                # Clear infographics button
                 if st.button("🗑️ Clear Infographics", type="secondary"):
                     st.session_state['show_infographic'] = False
                     st.session_state['current_infographic'] = None
                     st.session_state['compact_infographic_data'] = None
                     st.rerun()
-        
-        with col_save2:
-            with st.container():
-                st.markdown("**📍 Save Area**")
-                # Use unique form key to prevent double-click issues
-                area_form_key = f"save_area_form_{hash(str(st.session_state.get('area_coordinates', [])))}"
-                with st.form(area_form_key):
-                    area_name = st.text_input("Area Name", value=f"Area {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-                    description = st.text_area("Description (optional)", placeholder="Add notes about this area...")
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        save_area_btn = st.form_submit_button("Save Area", type="primary")
-                    with col2:
-                        cancel_area_btn = st.form_submit_button("Cancel", type="secondary")
-                    
-                    if save_area_btn and area_name:
-                        # Check if we've already saved this area to prevent duplicates
-                        coordinates_key = f"saved_area_{hash(str(st.session_state.get('area_coordinates', [])))}"
-                        
-                        if coordinates_key not in st.session_state:
-                            results = st.session_state.analysis_results
-                            db_modules = get_database_modules()
-                            SavedAreaDB = db_modules['SavedAreaDB']
-                            area_id = SavedAreaDB.save_area(
-                                name=area_name,
-                                coordinates=st.session_state.area_coordinates,
-                                area_hectares=float(results['area_ha']),
-                                description=description if description else None,
-                                user_session_id=st.session_state.get('user_id')
-                            )
-                            if area_id:
-                                st.session_state[coordinates_key] = area_id
-                                st.session_state['current_area_id'] = area_id
-                                st.success(f"Area saved successfully!")
-                                st.rerun()
-                            else:
-                                st.error("Failed to save area")
-                        else:
-                            st.info("This area has already been saved!")
-                    
-                    if cancel_area_btn:
-                        st.info("Save cancelled")
