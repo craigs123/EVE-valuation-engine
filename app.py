@@ -993,7 +993,6 @@ def get_country_from_coordinates(lat: float, lon: float) -> str:
             return country_code.replace('_', ' ').title()
         
     except Exception as e:
-        print(f"⚠️  Error in get_country_from_coordinates: {e}")
         return "Unknown"
 
 def display_data_source_status(analysis_results: Dict = None):
@@ -4099,18 +4098,14 @@ if analyze_button and st.session_state.selected_area:
                                                  result.get('data_source') or 
                                                  result.get('stac_data', {}).get('data_source') or 
                                                  'Unknown')
-                                print(f"🔍 DEBUG: Checking data source: '{source_to_check}' for point {i}")
                                 if 'Real ESA Satellite Data' in source_to_check or 'GeoTIFF Pixel' in source_to_check:
                                     has_real_satellite_data = True
-                                    print(f"✅ DEBUG: Recognized as real satellite data")
                                 elif any(term in source_to_check for term in ['OpenLandMap', 'STAC']):
                                     has_real_satellite_data = True
-                                    print(f"✅ DEBUG: Recognized as OpenLandMap/STAC data")
                         
                         # Set final data source based on whether we found any real satellite data
                         if has_real_satellite_data:
                             data_source = 'openlandmap'
-                            print(f"🎯 DEBUG: Final decision - Real satellite data detected, setting data_source = 'openlandmap'")
                     
                     # Handle water body classification with automatic continuation
                     water_body_points = {}
@@ -4218,7 +4213,6 @@ if analyze_button and st.session_state.selected_area:
                         # Store complete sampling point information for display
                         st.session_state.sampling_point_data = sampling_point_data
                         st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
-                        print(f"🔧 DEBUG: Final data_source being stored: '{data_source}'")
                         st.session_state.landcover_data_source = data_source
                         
                         # Show completion in progress container
