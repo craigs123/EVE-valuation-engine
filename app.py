@@ -61,17 +61,6 @@ st.markdown("""
             display: none !important;
         }
         
-        /* Settings indicator styling */
-        .settings-indicator {
-            position: fixed;
-            top: 0.75rem;
-            left: 3rem;
-            color: #2E7D32;
-            font-size: 0.85rem;
-            font-weight: 600;
-            z-index: 999999;
-            cursor: pointer;
-        }
         
         /* EVE Solutions Green Color Palette */
         :root {
@@ -119,29 +108,47 @@ st.markdown("""
             background-color: #2E7D32;
         }
         
-        /* Metric cards styling */
+        /* Professional Metric Cards - Clean Dashboard Style */
         [data-testid="stMetric"] {
-            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            background: #FFFFFF;
             padding: 1rem;
-            border-radius: 10px;
-            border-left: 4px solid #2E7D32;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
         [data-testid="stMetric"] label {
-            color: #1B5E20 !important;
+            color: #6B7280 !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         [data-testid="stMetric"] [data-testid="stMetricValue"] {
-            color: #2E7D32 !important;
-            font-weight: 700;
+            color: #1F2937 !important;
+            font-weight: 600;
+            font-size: 1.5rem !important;
         }
         
-        /* Expander styling */
+        /* Professional Expander/Collapsible Panel Style */
         .streamlit-expanderHeader {
-            background-color: #E8F5E9;
+            background-color: #FAFAFA;
+            border: 1px solid #E5E7EB;
             border-radius: 8px;
-            color: #1B5E20;
-            font-weight: 600;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .streamlit-expanderHeader:hover {
+            background-color: #F3F4F6;
+            border-color: #D1D5DB;
+        }
+        
+        [data-testid="stExpander"] {
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            overflow: hidden;
         }
         
         /* Success/Info/Warning boxes */
@@ -387,40 +394,42 @@ st.markdown("""
             margin-top: 0 !important;
         }
         
-        /* Header image with text overlay */
+        /* Clean text-only header - Professional Dashboard Style */
         .header-container {
             width: 100%;
-            height: 60px;
-            background: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+            padding: 1rem 0 0.5rem 0;
             display: flex;
             align-items: center;
-            justify-content: center;
-            position: relative;
-            margin-bottom: 0.25rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .header-overlay {
-            background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2));
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
+            justify-content: flex-start;
+            margin-bottom: 0.5rem;
+            border-bottom: 2px solid #E8F5E9;
         }
         
         .header-text {
-            color: white;
-            font-size: 2.2rem;
+            color: #2E7D32;
+            font-size: 1.8rem;
             font-weight: 700;
-            text-align: center;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            letter-spacing: 0.5px;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-icon {
+            font-size: 1.6rem;
+            margin-right: 0.5rem;
+        }
+        
+        /* Subtle version text */
+        .version-text {
+            font-size: 0.7rem !important;
+            color: #9CA3AF !important;
+            margin: 0 !important;
+            padding: 0 0 0.5rem 0 !important;
+        }
+        .version-text a {
+            color: #6B7280 !important;
+            text-decoration: none;
+        }
+        .version-text a:hover {
+            color: #2E7D32 !important;
         }
         
         
@@ -1782,20 +1791,14 @@ st.markdown("""
 # Clear initial loading message - header is about to appear
 loading_placeholder.empty()
 
-# Custom Header with Image Background
+# Clean text-only header - Professional Dashboard Style
 st.markdown("""
 <div class="header-container">
-    <div class="header-overlay">
-        <div class="header-text">
-            Ecological Valuation Engine
-        </div>
-    </div>
+    <span class="header-icon">🌱</span>
+    <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">Version 2.10.3 - More information at <a href="https://eve-solutions.eu/" target="_blank">https://eve-solutions.eu/</a></p>', unsafe_allow_html=True)
-
-# Settings indicator - visible hint to access sidebar
-st.markdown('<div class="settings-indicator">Settings</div>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v2.10.4 · <a href="https://eve-solutions.eu/" target="_blank">eve-solutions.eu</a></p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
 

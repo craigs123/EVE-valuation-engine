@@ -36,44 +36,4 @@ outputType = "webview"
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 32957
-externalPort = 3001
-
-[[ports]]
-localPort = 34635
-externalPort = 3000
-
-[[ports]]
-localPort = 37197
-externalPort = 6800
-
-[[ports]]
-localPort = 39193
-externalPort = 3002
-
-[[ports]]
-localPort = 40429
-externalPort = 5173
-
-[[ports]]
-localPort = 41301
-externalPort = 6000
-
-[[ports]]
-localPort = 41625
-externalPort = 5000
-
-[[ports]]
-localPort = 43527
-externalPort = 3003
-
-[[ports]]
-localPort = 43805
-externalPort = 8000
-
-[[ports]]
-localPort = 45793
-externalPort = 4200
-
 [agent]
