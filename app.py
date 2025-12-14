@@ -131,7 +131,7 @@ st.markdown("""
         [data-testid="stMetric"] [data-testid="stMetricValue"] {
             color: #1B5E20 !important;
             font-weight: 700 !important;
-            font-size: 1.6rem !important;
+            font-size: 1.1rem !important;
         }
         
         /* Professional Expander/Collapsible Panel Style with Green Header */
