@@ -88,6 +88,11 @@ st.markdown("""
         }
         
         /* Button styling */
+        .stButton {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+        
         .stButton > button {
             background-color: #2E7D32;
             color: white;
@@ -95,6 +100,7 @@ st.markdown("""
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
+            margin-top: 0 !important;
         }
         
         .stButton > button:hover {
@@ -1797,14 +1803,6 @@ st.markdown("""
     display: flex;
     justify-content: space-between;
     margin-bottom: 0.3rem;
-}
-/* Reduce button spacing */
-.stButton {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-.stButton > button {
-    margin-top: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
