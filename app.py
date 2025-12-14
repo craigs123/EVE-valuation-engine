@@ -3577,9 +3577,6 @@ if st.session_state.get('selected_area'):
     </div>
     """, unsafe_allow_html=True)
     
-    # Full width message about settings
-    st.info("Calculation parameters can be changed in the settings side bar.")
-    
     # Analysis detail is now configured in sidebar only
     if 'analysis_detail' not in st.session_state:
         st.session_state.analysis_detail = "Summary Analysis"
