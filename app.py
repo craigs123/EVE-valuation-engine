@@ -109,46 +109,51 @@ st.markdown("""
         }
         
         /* Professional Metric Cards - Clean Dashboard Style */
-        [data-testid="stMetric"] {
-            background: #FFFFFF;
-            padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid #E5E7EB;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        [data-testid="stMetric"],
+        [data-testid="stMetric"] > div {
+            background: #FFFFFF !important;
+            padding: 1rem !important;
+            border-radius: 8px !important;
+            border: 1px solid #E5E7EB !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
         }
         
-        [data-testid="stMetric"] label {
+        [data-testid="stMetric"] label,
+        [data-testid="stMetric"] [data-testid="stMetricLabel"] {
             color: #6B7280 !important;
             font-size: 0.85rem !important;
             font-weight: 500 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
         }
         
         [data-testid="stMetric"] [data-testid="stMetricValue"] {
             color: #1F2937 !important;
-            font-weight: 600;
+            font-weight: 600 !important;
             font-size: 1.5rem !important;
         }
         
         /* Professional Expander/Collapsible Panel Style */
-        .streamlit-expanderHeader {
-            background-color: #FAFAFA;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            color: #374151;
-            font-weight: 500;
-        }
-        
-        .streamlit-expanderHeader:hover {
-            background-color: #F3F4F6;
-            border-color: #D1D5DB;
-        }
-        
         [data-testid="stExpander"] {
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            overflow: hidden;
+            border: 1px solid #E5E7EB !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+            background: #FAFAFA !important;
+        }
+        
+        [data-testid="stExpander"] > div:first-child,
+        [data-testid="stExpander"] summary,
+        .streamlit-expanderHeader {
+            background-color: #FAFAFA !important;
+            border: none !important;
+            border-radius: 8px !important;
+            color: #374151 !important;
+            font-weight: 500 !important;
+        }
+        
+        [data-testid="stExpander"]:hover > div:first-child,
+        [data-testid="stExpander"] summary:hover {
+            background-color: #F3F4F6 !important;
         }
         
         /* Success/Info/Warning boxes */
@@ -403,6 +408,14 @@ st.markdown("""
             justify-content: flex-start;
             margin-bottom: 0.5rem;
             border-bottom: 2px solid #E8F5E9;
+            background: none !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            height: auto !important;
+        }
+        
+        .header-overlay {
+            display: none !important;
         }
         
         .header-text {
