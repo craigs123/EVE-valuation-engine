@@ -3573,7 +3573,7 @@ st.markdown('<h2 class="section-header">📊 Step 2: Configure & Calculate</h2>'
 if st.session_state.get('selected_area'):
     st.markdown("""
     <div class="status-success">
-        <strong>✅ Area Selected - now click on 'Calculate' button.</strong>
+        <strong>✅ Area selected - click on '>>' to change default settings or simply click on 'Calculate' button to run analysis with default settings (recommended)</strong>
     </div>
     """, unsafe_allow_html=True)
     
