@@ -1822,7 +1822,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('<p class="version-text">v2.10.4 · <a href="https://eve-solutions.eu/" target="_blank">eve-solutions.eu</a></p>', unsafe_allow_html=True)
 
-st.markdown('<h2 class="section-header">🗺️ Step 1: Select Your Area</h2>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">🗺️ Step 1: Select Area</h2>', unsafe_allow_html=True)
 
 
 # Initialize session state
