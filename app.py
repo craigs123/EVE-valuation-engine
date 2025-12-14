@@ -4606,13 +4606,11 @@ if st.session_state.analysis_results:
         # Simple metrics display for summary
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Total Annual Value", "")
-            st.markdown(f"<div style='font-size: 1.1rem; font-weight: bold;'>${results['total_value']:,}</div>", unsafe_allow_html=True)
+            st.metric("Total Annual Value", f"${results['total_value']:,}")
             st.caption("annually")
         with col2:
             per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
-            st.metric("Value per Hectare", "")
-            st.markdown(f"**${per_ha:.0f}/ha**")
+            st.metric("Value per Hectare", f"${per_ha:,.0f}/ha")
             st.caption("per hectare annually")
         with col3:
             # Area display with water exclusion for summary
@@ -4704,8 +4702,7 @@ if st.session_state.analysis_results:
         
         col_metrics = st.columns(3)
         with col_metrics[0]:
-            st.metric("Total Ecosystem Value", "")
-            st.markdown(f"<div style='font-size: 1.1rem; font-weight: bold;'>${results['total_value']:,}/year</div>", unsafe_allow_html=True)
+            st.metric("Total Ecosystem Value", f"${results['total_value']:,}/year")
             with st.expander("💡 How this value is calculated"):
                 st.markdown(f"""
                 **Total Ecosystem Value**: ${results['total_value']:,}/year
@@ -4731,8 +4728,7 @@ if st.session_state.analysis_results:
                 
         with col_metrics[1]:
             per_ha_detailed = results.get('value_per_ha', results['total_value']/results['area_ha'])
-            st.metric("Value per Hectare", "")
-            st.markdown(f"**${per_ha_detailed:.0f}/ha**")
+            st.metric("Value per Hectare", f"${per_ha_detailed:,.0f}/ha")
             st.caption("per hectare annually")
             with st.expander("💡 Per hectare calculation"):
                 st.markdown(f"""
