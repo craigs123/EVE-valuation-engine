@@ -2998,9 +2998,8 @@ with col_search:
 with col_layer:
     map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
 
-# Performance-optimized sampling display with search info
+# Performance-optimized sampling display
 current_limit = st.session_state.get('max_sampling_limit', 9)
-st.info(f"💡 **Quick start**: Search for a location above, then use the rectangle tool to draw your area, or select a test area from the drop-down. Analysis uses {current_limit} sampling points.")
 
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
