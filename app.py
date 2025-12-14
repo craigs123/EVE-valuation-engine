@@ -108,52 +108,61 @@ st.markdown("""
             background-color: #2E7D32;
         }
         
-        /* Professional Metric Cards - Clean Dashboard Style */
+        /* Professional Metric Cards - Clean Dashboard Style with Green Accent */
         [data-testid="stMetric"],
         [data-testid="stMetric"] > div {
-            background: #FFFFFF !important;
+            background: linear-gradient(135deg, #FFFFFF 0%, #F8FDF8 100%) !important;
             padding: 1rem !important;
             border-radius: 8px !important;
-            border: 1px solid #E5E7EB !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+            border: 1px solid #C8E6C9 !important;
+            border-left: 4px solid #2E7D32 !important;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.08) !important;
         }
         
         [data-testid="stMetric"] label,
         [data-testid="stMetric"] [data-testid="stMetricLabel"] {
-            color: #6B7280 !important;
-            font-size: 0.85rem !important;
-            font-weight: 500 !important;
+            color: #2E7D32 !important;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.5px !important;
         }
         
         [data-testid="stMetric"] [data-testid="stMetricValue"] {
-            color: #1F2937 !important;
-            font-weight: 600 !important;
-            font-size: 1.5rem !important;
+            color: #1B5E20 !important;
+            font-weight: 700 !important;
+            font-size: 1.6rem !important;
         }
         
-        /* Professional Expander/Collapsible Panel Style */
+        /* Professional Expander/Collapsible Panel Style with Green Header */
         [data-testid="stExpander"] {
-            border: 1px solid #E5E7EB !important;
+            border: 1px solid #C8E6C9 !important;
             border-radius: 8px !important;
             overflow: hidden !important;
-            background: #FAFAFA !important;
+            background: #FFFFFF !important;
+            margin-bottom: 0.5rem !important;
         }
         
         [data-testid="stExpander"] > div:first-child,
         [data-testid="stExpander"] summary,
         .streamlit-expanderHeader {
-            background-color: #FAFAFA !important;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%) !important;
             border: none !important;
-            border-radius: 8px !important;
-            color: #374151 !important;
-            font-weight: 500 !important;
+            border-bottom: 1px solid #A5D6A7 !important;
+            color: #1B5E20 !important;
+            font-weight: 600 !important;
+            padding: 0.75rem 1rem !important;
         }
         
         [data-testid="stExpander"]:hover > div:first-child,
         [data-testid="stExpander"] summary:hover {
-            background-color: #F3F4F6 !important;
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%) !important;
+        }
+        
+        /* Expander content area */
+        [data-testid="stExpander"] > div:last-child {
+            background: #FFFFFF !important;
+            padding: 1rem !important;
         }
         
         /* Success/Info/Warning boxes */
