@@ -4880,8 +4880,7 @@ if st.session_state.analysis_results:
                     total = esvd_data[category].get('total', 0)
                     with cols[i]:
                         per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
-                        st.metric(f"{category.title()} Services", "")
-                        st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
+                        st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
                         
                         # Use correct key for total value
                         total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
@@ -4930,8 +4929,7 @@ if st.session_state.analysis_results:
                             total = esvd_data[category].get('total', 0)
                             with cols[i]:
                                 per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
-                                st.metric(f"{category.title()} Services", "")
-                                st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
+                                st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
                                 
                                 total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
                                 st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
@@ -4983,8 +4981,7 @@ if st.session_state.analysis_results:
                     if total > 0:
                         with cols[i]:
                             per_ha_category = total / results.get('area_hectares', results.get('area_ha', 1)) if results.get('area_hectares', results.get('area_ha', 1)) > 0 else 0
-                            st.metric(f"{category.title()} Services", "")
-                            st.markdown(f"<div style='font-size: 1.0rem; font-weight: bold;'>${total:,.0f}/year</div>", unsafe_allow_html=True)
+                            st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
                             
                             total_value = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1)))
                             st.caption(f"${per_ha_category:.0f}/ha • {(total/total_value*100):.0f}% of total" if total_value > 0 else f"${per_ha_category:.0f}/ha")
