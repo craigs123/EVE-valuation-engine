@@ -4598,9 +4598,8 @@ if st.session_state.analysis_results:
         }
         display_data_source_status(analysis_results_for_display)
         
-        # Loading message while valuation results render
-        results_loading_placeholder = st.empty()
-        results_loading_placeholder.info("⏳ Loading valuation results...")
+        # Show toast notification while results render
+        st.toast("Loading valuation results...", icon="⏳")
         
         # Simple metrics display for summary
         col1, col2, col3 = st.columns(3)
@@ -4683,8 +4682,6 @@ if st.session_state.analysis_results:
                 
                 st.caption(f"Baseline established: {baseline_info['baseline_date'].strftime('%Y-%m-%d %H:%M')}")
         
-        # Clear loading message now that results are displayed
-        results_loading_placeholder.empty()
             
     else:  # Detailed Analysis
         st.subheader("📈 Detailed Analysis Results")
@@ -4698,9 +4695,8 @@ if st.session_state.analysis_results:
         }
         display_data_source_status(analysis_results_for_display)
         
-        # Loading message while detailed valuation results render
-        detailed_loading_placeholder = st.empty()
-        detailed_loading_placeholder.info("⏳ Loading detailed valuation results...")
+        # Show toast notification while detailed results render
+        st.toast("Loading detailed valuation results...", icon="⏳")
         
         col_metrics = st.columns(3)
         with col_metrics[0]:
@@ -5224,8 +5220,6 @@ if st.session_state.analysis_results:
                 st.markdown("- **Contains**: 10,000+ ecosystem service valuations from peer-reviewed studies")
                 st.markdown("- **Coverage**: Global data from 140+ countries and 2,000+ study sites")
 
-        # Clear loading message now that detailed results are displayed
-        detailed_loading_placeholder.empty()
         
         # Action buttons for detailed view - Save Analysis and Set Baseline hidden per user request
         if st.button("📊 Switch to Summary View", type="secondary"):
