@@ -3613,8 +3613,9 @@ if st.session_state.get('selected_area'):
 else:
     st.markdown("""
     <div class="info-card">
-        <strong>👆 Next Step:</strong> First, draw an area on the map above using the drawing tools.<br>
-        You can also select one of the predefined test areas to get started quickly.
+        <strong>👆 Before proceeding you must either:</strong><br>
+        1) Select an area on the map above using the drawing tools or<br>
+        2) Choose a pre-defined test area from the dropdown list above.
     </div>
     """, unsafe_allow_html=True)
     analyze_button = False
