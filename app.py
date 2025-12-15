@@ -542,7 +542,7 @@ def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satelli
     import folium
     
     if layer_type == "Satellite":
-        # Create satellite map
+        # Create satellite map with labels overlay
         m = folium.Map(
             location=[center_lat, center_lon],
             zoom_start=zoom,
@@ -569,6 +569,14 @@ def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satelli
                 'zoomDelta': 1
             }
         )
+        # Add labels overlay on top of satellite imagery
+        folium.TileLayer(
+            tiles='https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+            attr='&copy; Google',
+            name='Labels',
+            overlay=True,
+            control=False
+        ).add_to(m)
     else:
         # Create light map (default)
         m = folium.Map(
