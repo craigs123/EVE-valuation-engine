@@ -3264,18 +3264,20 @@ else:
     map_zoom = 4  # Default zoom
     
     if location_search:
+        location = None
         try:
             from geopy.geocoders import Nominatim
             geolocator = Nominatim(user_agent="EcosystemValuationEngine")
             location = geolocator.geocode(location_search)
-            if location:
-                map_center = [location.latitude, location.longitude]
-                map_zoom = 10  # Zoom closer to found location
-                st.success(f"📍 Found: {location.address}")
-            else:
-                st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
         except Exception as e:
             st.error("⚠️ Search service temporarily unavailable. Please try again.")
+        
+        if location:
+            map_center = [location.latitude, location.longitude]
+            map_zoom = 10  # Zoom closer to found location
+            st.success(f"📍 Found: {location.address}")
+        elif location is None and 'geolocator' in locals():
+            st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
     
     # Default optimized map view with search location
     m = get_folium_map(map_center[0], map_center[1], map_zoom, map_layer)
