@@ -447,7 +447,7 @@ st.markdown("""
         
         /* Subtle version text */
         .version-text {
-            font-size: 0.7rem !important;
+            font-size: 0.9rem !important;
             color: #9CA3AF !important;
             margin: 0 !important;
             padding: 0 0 0.5rem 0 !important;
@@ -1758,6 +1758,7 @@ st.markdown("""
 .version-text {
     text-align: center;
     font-weight: bold;
+    font-size: 0.9rem;
     color: #666;
     margin: 0;
     padding: 0;
