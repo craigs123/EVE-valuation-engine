@@ -3274,18 +3274,20 @@ else:
     
     if location_search:
         location = None
+        search_error = False
         try:
             from geopy.geocoders import Nominatim
             geolocator = Nominatim(user_agent="EcosystemValuationEngine")
             location = geolocator.geocode(location_search)
         except Exception as e:
+            search_error = True
             st.error("⚠️ Search service temporarily unavailable. Please try again.")
         
         if location:
             map_center = [location.latitude, location.longitude]
             map_zoom = 10  # Zoom closer to found location
             st.success(f"📍 Found: {location.address}")
-        elif location is None and 'geolocator' in locals():
+        elif not search_error and location is None:
             st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
     
     # Default optimized map view with search location
