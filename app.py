@@ -5318,7 +5318,10 @@ if st.session_state.analysis_results:
     
     # Scenario Builder Section - in collapsible panel for performance
     st.markdown("---")
-    with st.expander("🔮 Scenario Builder"):
+    # Track expanded state for Scenario Builder
+    if 'scenario_builder_expanded' not in st.session_state:
+        st.session_state.scenario_builder_expanded = False
+    with st.expander("🔮 Scenario Builder", expanded=st.session_state.scenario_builder_expanded):
         st.markdown("Explore how changes to ecosystem composition and condition would affect natural capital value.")
         
         # Get original results for comparison
@@ -5411,6 +5414,7 @@ if st.session_state.analysis_results:
                 add_ecosystem = st.selectbox("Add ecosystem type:", [""] + available_to_add, key="add_eco_select")
                 if add_ecosystem:
                     st.session_state.scenario_distribution[add_ecosystem] = 0.0
+                    st.session_state.scenario_builder_expanded = True
                     st.rerun()
             
             st.markdown("---")
