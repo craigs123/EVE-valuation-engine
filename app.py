@@ -2011,7 +2011,8 @@ with st.sidebar:
                 value=current_value,
                 step=5,
                 key=f"intactness_{eco_type}",
-                help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded"
+                help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded",
+                on_change=reset_analysis_state
             )
             st.session_state.ecosystem_intactness[eco_type] = intactness_value
         
