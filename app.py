@@ -1838,6 +1838,26 @@ if 'area_coordinates' not in st.session_state:
     st.session_state.area_coordinates = []
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
+if 'calculation_ready' not in st.session_state:
+    st.session_state.calculation_ready = False
+
+# Helper function to reset analysis state when area or settings change
+def reset_analysis_state():
+    """Clear all analysis results to hide sections until recalculated"""
+    keys_to_clear = [
+        'analysis_results', 'detected_ecosystem', 'summary_metrics',
+        'regional_adjustment_factor', 'scenario_results', 'scenario_distribution',
+        'scenario_eco_intactness', 'scenario_builder_expanded', 'show_infographic',
+        'current_infographic', 'compact_infographic_data', 'calculation_ready'
+    ]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            if key == 'calculation_ready':
+                st.session_state[key] = False
+            elif key == 'analysis_results':
+                st.session_state[key] = None
+            else:
+                del st.session_state[key]
 
 # Initialize local fallbacks to prevent LSP "unbound" diagnostics
 ecosystem_override = st.session_state.get('ecosystem_override', 'Auto-detect')
@@ -2529,6 +2549,7 @@ Example: 100ha Forest
                                 if full_analysis:
                                     st.session_state.area_coordinates = full_analysis['coordinates']
                                     st.session_state.analysis_results = full_analysis['analysis_results']
+                                    st.session_state.calculation_ready = True
                                     st.session_state.selected_area = True
                                     # Clear cached area to recalculate for map centering
                                     st.session_state.cached_area_ha = None
@@ -2697,7 +2718,8 @@ selected_test_area = st.selectbox(
     test_area_options,
     index=0,
     label_visibility="hidden",
-    help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map"
+    help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map",
+    on_change=reset_analysis_state
 )
 use_test_area = selected_test_area not in ["None - Draw your own area", "📁 Load Saved Area"]
 use_load_saved_area = selected_test_area == "📁 Load Saved Area"
@@ -3371,11 +3393,17 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                 'area_coordinates': coordinates,
                 'coords_hash': coords_hash,  # Store hash to prevent reprocessing
                 'analysis_results': None,
+                'calculation_ready': False,  # Hide results until recalculated
                 # Clear caches to force recalculation
                 'cached_bbox': None,
                 'cached_area_ha': None,
                 'cached_ecosystem_results': None
             })
+            # Clear scenario state for new area
+            for key in ['scenario_results', 'scenario_distribution', 'scenario_eco_intactness', 
+                        'scenario_builder_expanded', 'detected_ecosystem']:
+                if key in st.session_state:
+                    del st.session_state[key]
             
             # Reset default area name for new area selection
             if 'default_area_name' in st.session_state:
@@ -4555,6 +4583,7 @@ if analyze_button and st.session_state.selected_area:
                 analysis_results['forest_classification'] = manual_forest_selection
             
             st.session_state.analysis_results = analysis_results
+            st.session_state.calculation_ready = True
             # Clear analysis in progress flag - analysis is now complete
             if 'analysis_in_progress' in st.session_state:
                 del st.session_state['analysis_in_progress']
@@ -4582,8 +4611,8 @@ if analyze_button and st.session_state.selected_area:
         st.error(f"Error processing area: {e}")
         st.info("Please try selecting the area again.")
 
-# Display results if available
-if st.session_state.analysis_results:
+# Display results if available (only show after calculation is complete)
+if st.session_state.get('calculation_ready') and st.session_state.analysis_results:
     
     # Different displays based on analysis detail level
     analysis_mode = st.session_state.get('analysis_detail', 'Summary Analysis')
