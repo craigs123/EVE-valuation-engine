@@ -5468,6 +5468,9 @@ if st.session_state.analysis_results:
                         center_lon = (bounds[0][1] + bounds[1][1]) / 2
                         coordinates = (center_lat, center_lon)
                     
+                    # Get the regional factor from original results to ensure consistency
+                    original_regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', None))
+                    
                     scenario_total = 0
                     
                     for eco_display, pct in scenario_mix.items():
@@ -5476,11 +5479,13 @@ if st.session_state.analysis_results:
                             eco_area = original_area * (pct / 100.0)
                             
                             # Calculate with 100% intactness first (to match original baseline)
+                            # Use the same regional factor as the original analysis
                             eco_results = coeffs.calculate_ecosystem_values(
                                 ecosystem_type=eco_internal,
                                 area_hectares=eco_area,
                                 coordinates=coordinates,
-                                ecosystem_intactness_multiplier=1.0
+                                ecosystem_intactness_multiplier=1.0,
+                                regional_factor_override=original_regional_factor
                             )
                             
                             if 'total_value' in eco_results:
