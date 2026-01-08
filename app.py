@@ -5345,6 +5345,9 @@ if st.session_state.analysis_results:
             'Shrubland': 'shrubland'
         }
         
+        # Get original intactness from session state
+        original_intactness_values = st.session_state.get('ecosystem_intactness', {})
+        
         # Initialize scenario state if not exists
         if 'scenario_distribution' not in st.session_state:
             # Initialize with original distribution or default
@@ -5359,24 +5362,39 @@ if st.session_state.analysis_results:
                 display_primary = primary.replace('_', ' ').title() if primary else 'Temperate Forest'
                 st.session_state.scenario_distribution = {display_primary: 100.0}
         
+        # Initialize per-ecosystem scenario intactness if not exists
+        if 'scenario_eco_intactness' not in st.session_state:
+            st.session_state.scenario_eco_intactness = {}
+            # Initialize from original intactness values
+            for eco_name in st.session_state.scenario_distribution.keys():
+                st.session_state.scenario_eco_intactness[eco_name] = original_intactness_values.get(eco_name, 100)
+        
         
         col_scenario_left, col_scenario_right = st.columns([1, 1])
+        
+        # Get original intactness values from session state
+        original_intactness = st.session_state.get('ecosystem_intactness', {})
         
         with col_scenario_left:
             st.markdown("**Original Analysis**")
             st.metric("Total Annual Value", f"${original_total:,.0f}")
             st.metric("Value per Hectare", f"${original_per_ha:,.0f}/ha")
             
-            # Show original ecosystem mix
+            # Show original ecosystem mix with intactness values
             if original_distribution:
                 st.markdown("**Original Ecosystem Mix:**")
                 total_count = sum(d.get('count', 0) for d in original_distribution.values())
                 for eco_type, data in original_distribution.items():
                     pct = (data.get('count', 0) / total_count * 100) if total_count > 0 else 0
-                    st.write(f"• {eco_type.replace('_', ' ').title()}: {pct:.1f}%")
+                    display_name = eco_type.replace('_', ' ').title()
+                    # Get intactness for this ecosystem type
+                    intactness = original_intactness.get(display_name, 100)
+                    st.write(f"• {display_name}: {pct:.1f}% @ {intactness}% intactness")
             else:
                 primary = detected_ecosystem.get('primary_ecosystem', 'Unknown')
-                st.write(f"**Primary Ecosystem:** {primary.replace('_', ' ').title()}")
+                display_name = primary.replace('_', ' ').title()
+                intactness = original_intactness.get(display_name, 100)
+                st.write(f"**Primary Ecosystem:** {display_name} @ {intactness}% intactness")
         
         with col_scenario_right:
             st.markdown("**Scenario Parameters**")
@@ -5414,24 +5432,35 @@ if st.session_state.analysis_results:
                 add_ecosystem = st.selectbox("Add ecosystem type:", [""] + available_to_add, key="add_eco_select")
                 if add_ecosystem:
                     st.session_state.scenario_distribution[add_ecosystem] = 0.0
+                    # Initialize intactness for new ecosystem from original or default to 100
+                    st.session_state.scenario_eco_intactness[add_ecosystem] = original_intactness_values.get(add_ecosystem, 100)
                     st.session_state.scenario_builder_expanded = True
                     st.rerun()
             
             st.markdown("---")
             
-            # Intactness slider - initialize session state first, then use key only
-            if 'scenario_intactness' not in st.session_state:
-                st.session_state.scenario_intactness = 100.0
-            
+            # Per-ecosystem intactness sliders
             st.markdown("**🌿 Ecosystem Intactness**")
-            scenario_intactness = st.slider(
-                "Overall ecosystem health/condition",
-                min_value=10.0,
-                max_value=100.0,
-                step=5.0,
-                help="100% = pristine condition, lower values represent degraded ecosystems",
-                key="scenario_intactness"
-            )
+            st.markdown("*Set condition/health for each ecosystem type*")
+            
+            scenario_intactness_values = {}
+            for i, eco_name in enumerate(ecosystems_to_show):
+                # Get current intactness value (from session state or original)
+                current_intactness = st.session_state.scenario_eco_intactness.get(
+                    eco_name, 
+                    original_intactness_values.get(eco_name, 100)
+                )
+                scenario_intactness_values[eco_name] = st.slider(
+                    f"{eco_name} intactness",
+                    min_value=10,
+                    max_value=100,
+                    value=int(current_intactness),
+                    step=5,
+                    key=f"scenario_intactness_{i}",
+                    help=f"100% = pristine, lower = degraded"
+                )
+                # Update session state
+                st.session_state.scenario_eco_intactness[eco_name] = scenario_intactness_values[eco_name]
         
         # Calculate scenario values
         if st.button("🔄 Calculate Scenario", type="primary", use_container_width=True):
@@ -5458,49 +5487,51 @@ if st.session_state.analysis_results:
                             mix_unchanged = False
                             break
                     
-                    intactness_multiplier = scenario_intactness / 100.0
+                    # Check if any intactness values changed
+                    intactness_unchanged = True
+                    for eco_name in scenario_intactness_values.keys():
+                        orig_intact = original_intactness_values.get(eco_name, 100)
+                        scen_intact = scenario_intactness_values.get(eco_name, 100)
+                        if abs(orig_intact - scen_intact) > 1:
+                            intactness_unchanged = False
+                            break
                     
-                    if mix_unchanged:
-                        # If only intactness changed, simply scale original values
-                        scenario_total = original_total * intactness_multiplier
-                    else:
-                        # If ecosystem mix changed, recalculate from scratch
-                        from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
-                        coeffs = PrecomputedESVDCoefficients()
-                        
-                        # Get coordinates for regional adjustment
-                        coordinates = None
-                        if 'current_bounds' in st.session_state and st.session_state.current_bounds:
-                            bounds = st.session_state.current_bounds
-                            center_lat = (bounds[0][0] + bounds[1][0]) / 2
-                            center_lon = (bounds[0][1] + bounds[1][1]) / 2
-                            coordinates = (center_lat, center_lon)
-                        
-                        # Get the regional factor from original results to ensure consistency
-                        original_regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', None))
-                        
-                        scenario_total = 0
-                        
-                        for eco_display, pct in scenario_mix.items():
-                            if pct > 0 and eco_display in scenario_ecosystem_types:
-                                eco_internal = scenario_ecosystem_types[eco_display]
-                                eco_area = original_area * (pct / 100.0)
-                                
-                                # Calculate with 100% intactness first (to match original baseline)
-                                # Use the same regional factor as the original analysis
-                                eco_results = coeffs.calculate_ecosystem_values(
-                                    ecosystem_type=eco_internal,
-                                    area_hectares=eco_area,
-                                    coordinates=coordinates,
-                                    ecosystem_intactness_multiplier=1.0,
-                                    regional_factor_override=original_regional_factor
-                                )
-                                
-                                if 'total_value' in eco_results:
-                                    scenario_total += eco_results['total_value']
-                        
-                        # Apply intactness multiplier to the total
-                        scenario_total = scenario_total * intactness_multiplier
+                    # Calculate scenario total with per-ecosystem intactness
+                    from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                    coeffs = PrecomputedESVDCoefficients()
+                    
+                    # Get coordinates for regional adjustment
+                    coordinates = None
+                    if 'current_bounds' in st.session_state and st.session_state.current_bounds:
+                        bounds = st.session_state.current_bounds
+                        center_lat = (bounds[0][0] + bounds[1][0]) / 2
+                        center_lon = (bounds[0][1] + bounds[1][1]) / 2
+                        coordinates = (center_lat, center_lon)
+                    
+                    # Get the regional factor from original results to ensure consistency
+                    original_regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', None))
+                    
+                    scenario_total = 0
+                    
+                    for eco_display, pct in scenario_mix.items():
+                        if pct > 0 and eco_display in scenario_ecosystem_types:
+                            eco_internal = scenario_ecosystem_types[eco_display]
+                            eco_area = original_area * (pct / 100.0)
+                            
+                            # Get per-ecosystem intactness multiplier
+                            eco_intactness = scenario_intactness_values.get(eco_display, 100) / 100.0
+                            
+                            # Calculate with ecosystem-specific intactness
+                            eco_results = coeffs.calculate_ecosystem_values(
+                                ecosystem_type=eco_internal,
+                                area_hectares=eco_area,
+                                coordinates=coordinates,
+                                ecosystem_intactness_multiplier=eco_intactness,
+                                regional_factor_override=original_regional_factor
+                            )
+                            
+                            if 'total_value' in eco_results:
+                                scenario_total += eco_results['total_value']
                     
                     scenario_per_ha = scenario_total / original_area if original_area > 0 else 0
                     
@@ -5509,7 +5540,7 @@ if st.session_state.analysis_results:
                         'total_value': scenario_total,
                         'per_ha': scenario_per_ha,
                         'mix': scenario_mix.copy(),
-                        'intactness': scenario_intactness
+                        'intactness': scenario_intactness_values.copy()
                     }
                     
                     st.success("Scenario calculated!")
