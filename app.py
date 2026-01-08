@@ -5359,6 +5359,10 @@ if st.session_state.analysis_results:
         if 'scenario_intactness_slider' not in st.session_state:
             st.session_state.scenario_intactness_slider = 100.0
         
+        # Track if ecosystem mix expander should stay open
+        if 'eco_mix_expanded' not in st.session_state:
+            st.session_state.eco_mix_expanded = False
+        
         col_scenario_left, col_scenario_right = st.columns([1, 1])
         
         with col_scenario_left:
@@ -5380,8 +5384,8 @@ if st.session_state.analysis_results:
         with col_scenario_right:
             st.markdown("**Scenario Parameters**")
             
-            # Ecosystem mix sliders
-            with st.expander("🌍 Adjust Ecosystem Mix", expanded=False):
+            # Ecosystem mix sliders - stay open if user has interacted
+            with st.expander("🌍 Adjust Ecosystem Mix", expanded=st.session_state.eco_mix_expanded):
                 st.caption("Set percentages for each ecosystem type (must total 100%)")
                 
                 scenario_mix = {}
@@ -5408,6 +5412,9 @@ if st.session_state.analysis_results:
                         step=5.0,
                         key=f"scenario_eco_{i}"
                     )
+                
+                # Keep expander open when user interacts with sliders
+                st.session_state.eco_mix_expanded = True
                 
                 total_pct = sum(scenario_mix.values())
                 if abs(total_pct - 100.0) > 0.1:
