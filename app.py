@@ -5378,41 +5378,42 @@ if st.session_state.analysis_results:
         with col_scenario_right:
             st.markdown("**Scenario Parameters**")
             
-            # Ecosystem mix sliders - let Streamlit manage expander state
-            with st.expander("🌍 Adjust Ecosystem Mix"):
-                st.markdown("*Set percentages for each ecosystem type (must total 100%)*")
-                
-                scenario_mix = {}
-                
-                # Get list of ecosystem types to show
-                ecosystems_to_show = list(st.session_state.scenario_distribution.keys()) if st.session_state.scenario_distribution else ['Temperate Forest']
-                
-                # Show sliders first
-                for i, eco_name in enumerate(ecosystems_to_show):
-                    current_val = st.session_state.scenario_distribution.get(eco_name, 0.0)
-                    scenario_mix[eco_name] = st.slider(
-                        f"{eco_name}",
-                        min_value=0.0,
-                        max_value=100.0,
-                        value=float(current_val),
-                        step=5.0,
-                        key=f"scenario_eco_{i}"
-                    )
-                
-                total_pct = sum(scenario_mix.values())
-                if abs(total_pct - 100.0) > 0.1:
-                    st.warning(f"Total: {total_pct:.0f}% (should be 100%)")
-                else:
-                    st.success(f"Total: {total_pct:.0f}%")
-                
-                # Add option to include additional ecosystems at the bottom
-                st.markdown("---")
-                available_to_add = [e for e in scenario_ecosystem_types.keys() if e not in ecosystems_to_show]
-                if available_to_add:
-                    add_ecosystem = st.selectbox("Add ecosystem type:", [""] + available_to_add, key="add_eco_select")
-                    if add_ecosystem:
-                        st.session_state.scenario_distribution[add_ecosystem] = 0.0
-                        st.rerun()
+            # Ecosystem mix sliders
+            st.markdown("🌍 **Adjust Ecosystem Mix**")
+            st.markdown("*Set percentages for each ecosystem type (must total 100%)*")
+            
+            scenario_mix = {}
+            
+            # Get list of ecosystem types to show
+            ecosystems_to_show = list(st.session_state.scenario_distribution.keys()) if st.session_state.scenario_distribution else ['Temperate Forest']
+            
+            # Show sliders first
+            for i, eco_name in enumerate(ecosystems_to_show):
+                current_val = st.session_state.scenario_distribution.get(eco_name, 0.0)
+                scenario_mix[eco_name] = st.slider(
+                    f"{eco_name}",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=float(current_val),
+                    step=5.0,
+                    key=f"scenario_eco_{i}"
+                )
+            
+            total_pct = sum(scenario_mix.values())
+            if abs(total_pct - 100.0) > 0.1:
+                st.warning(f"Total: {total_pct:.0f}% (should be 100%)")
+            else:
+                st.success(f"Total: {total_pct:.0f}%")
+            
+            # Add option to include additional ecosystems at the bottom
+            available_to_add = [e for e in scenario_ecosystem_types.keys() if e not in ecosystems_to_show]
+            if available_to_add:
+                add_ecosystem = st.selectbox("Add ecosystem type:", [""] + available_to_add, key="add_eco_select")
+                if add_ecosystem:
+                    st.session_state.scenario_distribution[add_ecosystem] = 0.0
+                    st.rerun()
+            
+            st.markdown("---")
             
             # Intactness slider - initialize session state first, then use key only
             if 'scenario_intactness' not in st.session_state:
