@@ -3593,6 +3593,8 @@ if st.session_state.get('selected_area'):
     
     # Enhanced calculate button with modern styling
     if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True, help="Start the ecosystem analysis with your current settings"):
+        # Provide immediate feedback
+        st.toast("🔄 Starting ecosystem analysis...", icon="🛰️")
         # Set analyze_button for processing and persist analysis state
         analyze_button = True
         st.session_state.analysis_in_progress = True
