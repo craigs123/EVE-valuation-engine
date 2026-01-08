@@ -5379,7 +5379,7 @@ if st.session_state.analysis_results:
         st.markdown("**Scenario Parameters**")
         
         # Ecosystem mix sliders
-        with st.expander("🌍 Adjust Ecosystem Mix", expanded=True):
+        with st.expander("🌍 Adjust Ecosystem Mix", expanded=False):
             st.caption("Set percentages for each ecosystem type (must total 100%)")
             
             scenario_mix = {}
