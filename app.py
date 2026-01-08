@@ -5318,7 +5318,7 @@ if st.session_state.analysis_results:
     
     # Scenario Builder Section - in collapsible panel for performance
     st.markdown("---")
-    with st.expander("🔮 Scenario Builder", expanded=False):
+    with st.expander("🔮 Scenario Builder"):
         st.markdown("Explore how changes to ecosystem composition and condition would affect natural capital value.")
         
         # Get original results for comparison
