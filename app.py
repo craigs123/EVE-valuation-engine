@@ -5430,34 +5430,65 @@ if st.session_state.analysis_results:
     if st.button("🔄 Calculate Scenario", type="primary", use_container_width=True):
         with st.spinner("Calculating scenario values..."):
             try:
-                from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
-                coeffs = PrecomputedESVDCoefficients()
+                # Build original mix percentages for comparison
+                original_mix_pct = {}
+                if original_distribution:
+                    total_count = sum(d.get('count', 0) for d in original_distribution.values())
+                    for eco_type, data in original_distribution.items():
+                        display_name = eco_type.replace('_', ' ').title()
+                        original_mix_pct[display_name] = (data.get('count', 0) / total_count * 100) if total_count > 0 else 0
+                else:
+                    primary = detected_ecosystem.get('primary_ecosystem', 'temperate_forest')
+                    display_primary = primary.replace('_', ' ').title()
+                    original_mix_pct[display_primary] = 100.0
                 
-                # Get coordinates for regional adjustment
-                coordinates = None
-                if 'current_bounds' in st.session_state and st.session_state.current_bounds:
-                    bounds = st.session_state.current_bounds
-                    center_lat = (bounds[0][0] + bounds[1][0]) / 2
-                    center_lon = (bounds[0][1] + bounds[1][1]) / 2
-                    coordinates = (center_lat, center_lon)
+                # Check if ecosystem mix has changed
+                mix_unchanged = True
+                for eco_name in set(list(scenario_mix.keys()) + list(original_mix_pct.keys())):
+                    orig_pct = original_mix_pct.get(eco_name, 0)
+                    scen_pct = scenario_mix.get(eco_name, 0)
+                    if abs(orig_pct - scen_pct) > 1.0:  # Allow 1% tolerance
+                        mix_unchanged = False
+                        break
                 
-                scenario_total = 0
                 intactness_multiplier = scenario_intactness / 100.0
                 
-                for eco_display, pct in scenario_mix.items():
-                    if pct > 0 and eco_display in scenario_ecosystem_types:
-                        eco_internal = scenario_ecosystem_types[eco_display]
-                        eco_area = original_area * (pct / 100.0)
-                        
-                        eco_results = coeffs.calculate_ecosystem_values(
-                            ecosystem_type=eco_internal,
-                            area_hectares=eco_area,
-                            coordinates=coordinates,
-                            ecosystem_intactness_multiplier=intactness_multiplier
-                        )
-                        
-                        if 'total_value' in eco_results:
-                            scenario_total += eco_results['total_value']
+                if mix_unchanged:
+                    # If only intactness changed, simply scale original values
+                    scenario_total = original_total * intactness_multiplier
+                else:
+                    # If ecosystem mix changed, recalculate from scratch
+                    from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                    coeffs = PrecomputedESVDCoefficients()
+                    
+                    # Get coordinates for regional adjustment
+                    coordinates = None
+                    if 'current_bounds' in st.session_state and st.session_state.current_bounds:
+                        bounds = st.session_state.current_bounds
+                        center_lat = (bounds[0][0] + bounds[1][0]) / 2
+                        center_lon = (bounds[0][1] + bounds[1][1]) / 2
+                        coordinates = (center_lat, center_lon)
+                    
+                    scenario_total = 0
+                    
+                    for eco_display, pct in scenario_mix.items():
+                        if pct > 0 and eco_display in scenario_ecosystem_types:
+                            eco_internal = scenario_ecosystem_types[eco_display]
+                            eco_area = original_area * (pct / 100.0)
+                            
+                            # Calculate with 100% intactness first (to match original baseline)
+                            eco_results = coeffs.calculate_ecosystem_values(
+                                ecosystem_type=eco_internal,
+                                area_hectares=eco_area,
+                                coordinates=coordinates,
+                                ecosystem_intactness_multiplier=1.0
+                            )
+                            
+                            if 'total_value' in eco_results:
+                                scenario_total += eco_results['total_value']
+                    
+                    # Apply intactness multiplier to the total
+                    scenario_total = scenario_total * intactness_multiplier
                 
                 scenario_per_ha = scenario_total / original_area if original_area > 0 else 0
                 
