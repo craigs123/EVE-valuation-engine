@@ -5544,19 +5544,19 @@ if st.session_state.analysis_results:
         
         fig.add_trace(go.Bar(
             name='Original',
-            x=['Total Annual Value', 'Value per Hectare'],
-            y=[original_total, original_per_ha],
+            x=['Total Annual Value'],
+            y=[original_total],
             marker_color='#2E7D32',
-            text=[f'${original_total:,.0f}', f'${original_per_ha:,.0f}'],
+            text=[f'${original_total:,.0f}'],
             textposition='outside'
         ))
         
         fig.add_trace(go.Bar(
             name='Scenario',
-            x=['Total Annual Value', 'Value per Hectare'],
-            y=[scenario_total, scenario_per_ha],
+            x=['Total Annual Value'],
+            y=[scenario_total],
             marker_color='#1565C0',
-            text=[f'${scenario_total:,.0f}', f'${scenario_per_ha:,.0f}'],
+            text=[f'${scenario_total:,.0f}'],
             textposition='outside'
         ))
         
@@ -5566,7 +5566,7 @@ if st.session_state.analysis_results:
             yaxis_title='Value ($/year)',
             showlegend=True,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            height=400,
+            height=350,
             margin=dict(t=80, b=40)
         )
         
