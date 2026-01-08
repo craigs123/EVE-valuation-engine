@@ -5314,277 +5314,277 @@ if st.session_state.analysis_results:
                     st.session_state['compact_infographic_data'] = None
                     st.rerun()
     
-    # Scenario Builder Section
+    # Scenario Builder Section - in collapsible panel for performance
     st.markdown("---")
-    st.markdown('<h3 class="section-header">🔮 Scenario Builder</h3>', unsafe_allow_html=True)
-    st.markdown("Explore how changes to ecosystem composition and condition would affect natural capital value.")
-    
-    # Get original results for comparison
-    original_total = results.get('total_value', 0)
-    original_area = results.get('area_ha', 1)
-    original_per_ha = original_total / original_area if original_area > 0 else 0
-    
-    # Get detected ecosystem distribution or default
-    detected_ecosystem = st.session_state.get('detected_ecosystem', {})
-    original_distribution = detected_ecosystem.get('ecosystem_distribution', {})
-    
-    # Available ecosystem types for scenarios
-    scenario_ecosystem_types = {
-        'Tropical Forest': 'tropical_forest',
-        'Temperate Forest': 'temperate_forest',
-        'Boreal Forest': 'boreal_forest',
-        'Wetland': 'wetland',
-        'Grassland': 'grassland',
-        'Agricultural': 'agricultural',
-        'Coastal': 'coastal',
-        'Shrubland': 'shrubland'
-    }
-    
-    # Initialize scenario state if not exists
-    if 'scenario_distribution' not in st.session_state:
-        # Initialize with original distribution or default
-        if original_distribution:
-            st.session_state.scenario_distribution = {}
-            for eco_type, data in original_distribution.items():
-                display_name = eco_type.replace('_', ' ').title()
-                pct = (data.get('count', 0) / sum(d.get('count', 1) for d in original_distribution.values())) * 100 if original_distribution else 0
-                st.session_state.scenario_distribution[display_name] = pct
-        else:
-            primary = st.session_state.get('detected_ecosystem', {}).get('primary_ecosystem', 'Temperate Forest')
-            display_primary = primary.replace('_', ' ').title() if primary else 'Temperate Forest'
-            st.session_state.scenario_distribution = {display_primary: 100.0}
-    
-    if 'scenario_intactness_slider' not in st.session_state:
-        st.session_state.scenario_intactness_slider = 100.0
-    
-    col_scenario_left, col_scenario_right = st.columns([1, 1])
-    
-    with col_scenario_left:
-        st.markdown("**Original Analysis**")
-        st.metric("Total Annual Value", f"${original_total:,.0f}")
-        st.metric("Value per Hectare", f"${original_per_ha:,.0f}/ha")
+    with st.expander("🔮 Scenario Builder", expanded=False):
+        st.markdown("Explore how changes to ecosystem composition and condition would affect natural capital value.")
         
-        # Show original ecosystem mix
-        if original_distribution:
-            st.markdown("**Original Ecosystem Mix:**")
-            total_count = sum(d.get('count', 0) for d in original_distribution.values())
-            for eco_type, data in original_distribution.items():
-                pct = (data.get('count', 0) / total_count * 100) if total_count > 0 else 0
-                st.write(f"• {eco_type.replace('_', ' ').title()}: {pct:.1f}%")
-        else:
-            primary = detected_ecosystem.get('primary_ecosystem', 'Unknown')
-            st.write(f"**Primary Ecosystem:** {primary.replace('_', ' ').title()}")
-    
-    with col_scenario_right:
-        st.markdown("**Scenario Parameters**")
+        # Get original results for comparison
+        original_total = results.get('total_value', 0)
+        original_area = results.get('area_ha', 1)
+        original_per_ha = original_total / original_area if original_area > 0 else 0
         
-        # Ecosystem mix sliders
-        with st.expander("🌍 Adjust Ecosystem Mix", expanded=False):
-            st.caption("Set percentages for each ecosystem type (must total 100%)")
-            
-            scenario_mix = {}
-            remaining = 100.0
-            
-            # Get list of ecosystem types to show
-            ecosystems_to_show = list(st.session_state.scenario_distribution.keys()) if st.session_state.scenario_distribution else ['Temperate Forest']
-            
-            # Add option to include additional ecosystems
-            available_to_add = [e for e in scenario_ecosystem_types.keys() if e not in ecosystems_to_show]
-            if available_to_add:
-                add_ecosystem = st.selectbox("Add ecosystem type:", [""] + available_to_add, key="add_eco_select")
-                if add_ecosystem:
-                    ecosystems_to_show.append(add_ecosystem)
-                    st.session_state.scenario_distribution[add_ecosystem] = 0.0
-            
-            for i, eco_name in enumerate(ecosystems_to_show):
-                current_val = st.session_state.scenario_distribution.get(eco_name, 0.0)
-                scenario_mix[eco_name] = st.slider(
-                    f"{eco_name}",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=float(current_val),
-                    step=5.0,
-                    key=f"scenario_eco_{i}"
-                )
-            
-            total_pct = sum(scenario_mix.values())
-            if abs(total_pct - 100.0) > 0.1:
-                st.warning(f"Total: {total_pct:.0f}% (should be 100%)")
+        # Get detected ecosystem distribution or default
+        detected_ecosystem = st.session_state.get('detected_ecosystem', {})
+        original_distribution = detected_ecosystem.get('ecosystem_distribution', {})
+        
+        # Available ecosystem types for scenarios
+        scenario_ecosystem_types = {
+            'Tropical Forest': 'tropical_forest',
+            'Temperate Forest': 'temperate_forest',
+            'Boreal Forest': 'boreal_forest',
+            'Wetland': 'wetland',
+            'Grassland': 'grassland',
+            'Agricultural': 'agricultural',
+            'Coastal': 'coastal',
+            'Shrubland': 'shrubland'
+        }
+        
+        # Initialize scenario state if not exists
+        if 'scenario_distribution' not in st.session_state:
+            # Initialize with original distribution or default
+            if original_distribution:
+                st.session_state.scenario_distribution = {}
+                for eco_type, data in original_distribution.items():
+                    display_name = eco_type.replace('_', ' ').title()
+                    pct = (data.get('count', 0) / sum(d.get('count', 1) for d in original_distribution.values())) * 100 if original_distribution else 0
+                    st.session_state.scenario_distribution[display_name] = pct
             else:
-                st.success(f"Total: {total_pct:.0f}%")
+                primary = st.session_state.get('detected_ecosystem', {}).get('primary_ecosystem', 'Temperate Forest')
+                display_primary = primary.replace('_', ' ').title() if primary else 'Temperate Forest'
+                st.session_state.scenario_distribution = {display_primary: 100.0}
         
-        # Intactness slider
-        st.markdown("**🌿 Ecosystem Intactness**")
-        scenario_intactness = st.slider(
-            "Overall ecosystem health/condition",
-            min_value=10.0,
-            max_value=100.0,
-            value=st.session_state.scenario_intactness_slider,
-            step=5.0,
-            help="100% = pristine condition, lower values represent degraded ecosystems",
-            key="scenario_intactness_slider"
-        )
-    
-    # Calculate scenario values
-    if st.button("🔄 Calculate Scenario", type="primary", use_container_width=True):
-        with st.spinner("Calculating scenario values..."):
-            try:
-                # Build original mix percentages for comparison
-                original_mix_pct = {}
-                if original_distribution:
-                    total_count = sum(d.get('count', 0) for d in original_distribution.values())
-                    for eco_type, data in original_distribution.items():
-                        display_name = eco_type.replace('_', ' ').title()
-                        original_mix_pct[display_name] = (data.get('count', 0) / total_count * 100) if total_count > 0 else 0
-                else:
-                    primary = detected_ecosystem.get('primary_ecosystem', 'temperate_forest')
-                    display_primary = primary.replace('_', ' ').title()
-                    original_mix_pct[display_primary] = 100.0
-                
-                # Check if ecosystem mix has changed
-                mix_unchanged = True
-                for eco_name in set(list(scenario_mix.keys()) + list(original_mix_pct.keys())):
-                    orig_pct = original_mix_pct.get(eco_name, 0)
-                    scen_pct = scenario_mix.get(eco_name, 0)
-                    if abs(orig_pct - scen_pct) > 1.0:  # Allow 1% tolerance
-                        mix_unchanged = False
-                        break
-                
-                intactness_multiplier = scenario_intactness / 100.0
-                
-                if mix_unchanged:
-                    # If only intactness changed, simply scale original values
-                    scenario_total = original_total * intactness_multiplier
-                else:
-                    # If ecosystem mix changed, recalculate from scratch
-                    from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
-                    coeffs = PrecomputedESVDCoefficients()
-                    
-                    # Get coordinates for regional adjustment
-                    coordinates = None
-                    if 'current_bounds' in st.session_state and st.session_state.current_bounds:
-                        bounds = st.session_state.current_bounds
-                        center_lat = (bounds[0][0] + bounds[1][0]) / 2
-                        center_lon = (bounds[0][1] + bounds[1][1]) / 2
-                        coordinates = (center_lat, center_lon)
-                    
-                    # Get the regional factor from original results to ensure consistency
-                    original_regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', None))
-                    
-                    scenario_total = 0
-                    
-                    for eco_display, pct in scenario_mix.items():
-                        if pct > 0 and eco_display in scenario_ecosystem_types:
-                            eco_internal = scenario_ecosystem_types[eco_display]
-                            eco_area = original_area * (pct / 100.0)
-                            
-                            # Calculate with 100% intactness first (to match original baseline)
-                            # Use the same regional factor as the original analysis
-                            eco_results = coeffs.calculate_ecosystem_values(
-                                ecosystem_type=eco_internal,
-                                area_hectares=eco_area,
-                                coordinates=coordinates,
-                                ecosystem_intactness_multiplier=1.0,
-                                regional_factor_override=original_regional_factor
-                            )
-                            
-                            if 'total_value' in eco_results:
-                                scenario_total += eco_results['total_value']
-                    
-                    # Apply intactness multiplier to the total
-                    scenario_total = scenario_total * intactness_multiplier
-                
-                scenario_per_ha = scenario_total / original_area if original_area > 0 else 0
-                
-                # Store scenario results
-                st.session_state.scenario_results = {
-                    'total_value': scenario_total,
-                    'per_ha': scenario_per_ha,
-                    'mix': scenario_mix.copy(),
-                    'intactness': scenario_intactness
-                }
-                
-                st.success("Scenario calculated!")
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Error calculating scenario: {str(e)}")
-    
-    # Display comparison if scenario results exist
-    if st.session_state.get('scenario_results'):
-        scenario = st.session_state.scenario_results
-        scenario_total = scenario['total_value']
-        scenario_per_ha = scenario['per_ha']
+        if 'scenario_intactness_slider' not in st.session_state:
+            st.session_state.scenario_intactness_slider = 100.0
         
-        st.markdown("---")
-        st.markdown("### 📊 Scenario Comparison")
+        col_scenario_left, col_scenario_right = st.columns([1, 1])
         
-        # Summary metrics
-        col_orig, col_scen, col_diff = st.columns(3)
-        
-        with col_orig:
-            st.markdown("**Original**")
-            st.metric("Annual Value", f"${original_total:,.0f}")
-            st.metric("Per Hectare", f"${original_per_ha:,.0f}/ha")
-        
-        with col_scen:
-            st.markdown("**Scenario**")
-            st.metric("Annual Value", f"${scenario_total:,.0f}")
-            st.metric("Per Hectare", f"${scenario_per_ha:,.0f}/ha")
-        
-        with col_diff:
-            st.markdown("**Difference**")
-            value_diff = scenario_total - original_total
-            pct_change = ((scenario_total - original_total) / original_total * 100) if original_total > 0 else 0
-            st.metric("Value Change", f"${value_diff:+,.0f}", delta=f"{pct_change:+.1f}%")
+        with col_scenario_left:
+            st.markdown("**Original Analysis**")
+            st.metric("Total Annual Value", f"${original_total:,.0f}")
+            st.metric("Value per Hectare", f"${original_per_ha:,.0f}/ha")
             
-            ha_diff = scenario_per_ha - original_per_ha
-            st.metric("Per Ha Change", f"${ha_diff:+,.0f}/ha")
+            # Show original ecosystem mix
+            if original_distribution:
+                st.markdown("**Original Ecosystem Mix:**")
+                total_count = sum(d.get('count', 0) for d in original_distribution.values())
+                for eco_type, data in original_distribution.items():
+                    pct = (data.get('count', 0) / total_count * 100) if total_count > 0 else 0
+                    st.write(f"• {eco_type.replace('_', ' ').title()}: {pct:.1f}%")
+            else:
+                primary = detected_ecosystem.get('primary_ecosystem', 'Unknown')
+                st.write(f"**Primary Ecosystem:** {primary.replace('_', ' ').title()}")
         
-        # Bar chart comparison
-        import plotly.graph_objects as go
+        with col_scenario_right:
+            st.markdown("**Scenario Parameters**")
+            
+            # Ecosystem mix sliders
+            with st.expander("🌍 Adjust Ecosystem Mix", expanded=False):
+                st.caption("Set percentages for each ecosystem type (must total 100%)")
+                
+                scenario_mix = {}
+                remaining = 100.0
+                
+                # Get list of ecosystem types to show
+                ecosystems_to_show = list(st.session_state.scenario_distribution.keys()) if st.session_state.scenario_distribution else ['Temperate Forest']
+                
+                # Add option to include additional ecosystems
+                available_to_add = [e for e in scenario_ecosystem_types.keys() if e not in ecosystems_to_show]
+                if available_to_add:
+                    add_ecosystem = st.selectbox("Add ecosystem type:", [""] + available_to_add, key="add_eco_select")
+                    if add_ecosystem:
+                        ecosystems_to_show.append(add_ecosystem)
+                        st.session_state.scenario_distribution[add_ecosystem] = 0.0
+                
+                for i, eco_name in enumerate(ecosystems_to_show):
+                    current_val = st.session_state.scenario_distribution.get(eco_name, 0.0)
+                    scenario_mix[eco_name] = st.slider(
+                        f"{eco_name}",
+                        min_value=0.0,
+                        max_value=100.0,
+                        value=float(current_val),
+                        step=5.0,
+                        key=f"scenario_eco_{i}"
+                    )
+                
+                total_pct = sum(scenario_mix.values())
+                if abs(total_pct - 100.0) > 0.1:
+                    st.warning(f"Total: {total_pct:.0f}% (should be 100%)")
+                else:
+                    st.success(f"Total: {total_pct:.0f}%")
+            
+            # Intactness slider
+            st.markdown("**🌿 Ecosystem Intactness**")
+            scenario_intactness = st.slider(
+                "Overall ecosystem health/condition",
+                min_value=10.0,
+                max_value=100.0,
+                value=st.session_state.scenario_intactness_slider,
+                step=5.0,
+                help="100% = pristine condition, lower values represent degraded ecosystems",
+                key="scenario_intactness_slider"
+            )
         
-        fig = go.Figure()
+        # Calculate scenario values
+        if st.button("🔄 Calculate Scenario", type="primary", use_container_width=True):
+            with st.spinner("Calculating scenario values..."):
+                try:
+                    # Build original mix percentages for comparison
+                    original_mix_pct = {}
+                    if original_distribution:
+                        total_count = sum(d.get('count', 0) for d in original_distribution.values())
+                        for eco_type, data in original_distribution.items():
+                            display_name = eco_type.replace('_', ' ').title()
+                            original_mix_pct[display_name] = (data.get('count', 0) / total_count * 100) if total_count > 0 else 0
+                    else:
+                        primary = detected_ecosystem.get('primary_ecosystem', 'temperate_forest')
+                        display_primary = primary.replace('_', ' ').title()
+                        original_mix_pct[display_primary] = 100.0
+                    
+                    # Check if ecosystem mix has changed
+                    mix_unchanged = True
+                    for eco_name in set(list(scenario_mix.keys()) + list(original_mix_pct.keys())):
+                        orig_pct = original_mix_pct.get(eco_name, 0)
+                        scen_pct = scenario_mix.get(eco_name, 0)
+                        if abs(orig_pct - scen_pct) > 1.0:  # Allow 1% tolerance
+                            mix_unchanged = False
+                            break
+                    
+                    intactness_multiplier = scenario_intactness / 100.0
+                    
+                    if mix_unchanged:
+                        # If only intactness changed, simply scale original values
+                        scenario_total = original_total * intactness_multiplier
+                    else:
+                        # If ecosystem mix changed, recalculate from scratch
+                        from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                        coeffs = PrecomputedESVDCoefficients()
+                        
+                        # Get coordinates for regional adjustment
+                        coordinates = None
+                        if 'current_bounds' in st.session_state and st.session_state.current_bounds:
+                            bounds = st.session_state.current_bounds
+                            center_lat = (bounds[0][0] + bounds[1][0]) / 2
+                            center_lon = (bounds[0][1] + bounds[1][1]) / 2
+                            coordinates = (center_lat, center_lon)
+                        
+                        # Get the regional factor from original results to ensure consistency
+                        original_regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', None))
+                        
+                        scenario_total = 0
+                        
+                        for eco_display, pct in scenario_mix.items():
+                            if pct > 0 and eco_display in scenario_ecosystem_types:
+                                eco_internal = scenario_ecosystem_types[eco_display]
+                                eco_area = original_area * (pct / 100.0)
+                                
+                                # Calculate with 100% intactness first (to match original baseline)
+                                # Use the same regional factor as the original analysis
+                                eco_results = coeffs.calculate_ecosystem_values(
+                                    ecosystem_type=eco_internal,
+                                    area_hectares=eco_area,
+                                    coordinates=coordinates,
+                                    ecosystem_intactness_multiplier=1.0,
+                                    regional_factor_override=original_regional_factor
+                                )
+                                
+                                if 'total_value' in eco_results:
+                                    scenario_total += eco_results['total_value']
+                        
+                        # Apply intactness multiplier to the total
+                        scenario_total = scenario_total * intactness_multiplier
+                    
+                    scenario_per_ha = scenario_total / original_area if original_area > 0 else 0
+                    
+                    # Store scenario results
+                    st.session_state.scenario_results = {
+                        'total_value': scenario_total,
+                        'per_ha': scenario_per_ha,
+                        'mix': scenario_mix.copy(),
+                        'intactness': scenario_intactness
+                    }
+                    
+                    st.success("Scenario calculated!")
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Error calculating scenario: {str(e)}")
         
-        fig.add_trace(go.Bar(
-            name='Original',
-            x=['Total Annual Value'],
-            y=[original_total],
-            marker_color='#2E7D32',
-            text=[f'${original_total:,.0f}'],
-            textposition='outside'
-        ))
-        
-        fig.add_trace(go.Bar(
-            name='Scenario',
-            x=['Total Annual Value'],
-            y=[scenario_total],
-            marker_color='#1565C0',
-            text=[f'${scenario_total:,.0f}'],
-            textposition='outside'
-        ))
-        
-        fig.update_layout(
-            title='Original vs Scenario Comparison',
-            barmode='group',
-            yaxis_title='Value ($/year)',
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            height=350,
-            margin=dict(t=80, b=40)
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Scenario details
-        with st.expander("📋 Scenario Details"):
-            st.markdown(f"**Intactness Level:** {scenario['intactness']:.0f}%")
-            st.markdown("**Ecosystem Mix:**")
-            for eco, pct in scenario['mix'].items():
-                if pct > 0:
-                    st.write(f"• {eco}: {pct:.0f}%")
-        
-        if st.button("🗑️ Clear Scenario", type="secondary"):
-            if 'scenario_results' in st.session_state:
-                del st.session_state['scenario_results']
-            st.rerun()
+        # Display comparison if scenario results exist
+        if st.session_state.get('scenario_results'):
+            scenario = st.session_state.scenario_results
+            scenario_total = scenario['total_value']
+            scenario_per_ha = scenario['per_ha']
+            
+            st.markdown("---")
+            st.markdown("### 📊 Scenario Comparison")
+            
+            # Summary metrics
+            col_orig, col_scen, col_diff = st.columns(3)
+            
+            with col_orig:
+                st.markdown("**Original**")
+                st.metric("Annual Value", f"${original_total:,.0f}")
+                st.metric("Per Hectare", f"${original_per_ha:,.0f}/ha")
+            
+            with col_scen:
+                st.markdown("**Scenario**")
+                st.metric("Annual Value", f"${scenario_total:,.0f}")
+                st.metric("Per Hectare", f"${scenario_per_ha:,.0f}/ha")
+            
+            with col_diff:
+                st.markdown("**Difference**")
+                value_diff = scenario_total - original_total
+                pct_change = ((scenario_total - original_total) / original_total * 100) if original_total > 0 else 0
+                st.metric("Value Change", f"${value_diff:+,.0f}", delta=f"{pct_change:+.1f}%")
+                
+                ha_diff = scenario_per_ha - original_per_ha
+                st.metric("Per Ha Change", f"${ha_diff:+,.0f}/ha")
+            
+            # Bar chart comparison
+            import plotly.graph_objects as go
+            
+            fig = go.Figure()
+            
+            fig.add_trace(go.Bar(
+                name='Original',
+                x=['Total Annual Value'],
+                y=[original_total],
+                marker_color='#2E7D32',
+                text=[f'${original_total:,.0f}'],
+                textposition='outside'
+            ))
+            
+            fig.add_trace(go.Bar(
+                name='Scenario',
+                x=['Total Annual Value'],
+                y=[scenario_total],
+                marker_color='#1565C0',
+                text=[f'${scenario_total:,.0f}'],
+                textposition='outside'
+            ))
+            
+            fig.update_layout(
+                title='Original vs Scenario Comparison',
+                barmode='group',
+                yaxis_title='Value ($/year)',
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                height=350,
+                margin=dict(t=80, b=40)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Scenario details
+            with st.expander("📋 Scenario Details"):
+                st.markdown(f"**Intactness Level:** {scenario['intactness']:.0f}%")
+                st.markdown("**Ecosystem Mix:**")
+                for eco, pct in scenario['mix'].items():
+                    if pct > 0:
+                        st.write(f"• {eco}: {pct:.0f}%")
+            
+            if st.button("🗑️ Clear Scenario", type="secondary"):
+                if 'scenario_results' in st.session_state:
+                    del st.session_state['scenario_results']
+                st.rerun()
