@@ -5354,8 +5354,8 @@ if st.session_state.analysis_results:
             display_primary = primary.replace('_', ' ').title() if primary else 'Temperate Forest'
             st.session_state.scenario_distribution = {display_primary: 100.0}
     
-    if 'scenario_intactness' not in st.session_state:
-        st.session_state.scenario_intactness = 100.0
+    if 'scenario_intactness_slider' not in st.session_state:
+        st.session_state.scenario_intactness_slider = 100.0
     
     col_scenario_left, col_scenario_right = st.columns([1, 1])
     
@@ -5419,12 +5419,11 @@ if st.session_state.analysis_results:
             "Overall ecosystem health/condition",
             min_value=10.0,
             max_value=100.0,
-            value=st.session_state.scenario_intactness,
+            value=st.session_state.scenario_intactness_slider,
             step=5.0,
             help="100% = pristine condition, lower values represent degraded ecosystems",
             key="scenario_intactness_slider"
         )
-        st.session_state.scenario_intactness = scenario_intactness
     
     # Calculate scenario values
     if st.button("🔄 Calculate Scenario", type="primary", use_container_width=True):
