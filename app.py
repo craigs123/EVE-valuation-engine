@@ -5617,11 +5617,12 @@ if st.session_state.analysis_results:
             
             # Scenario details
             with st.expander("📋 Scenario Details"):
-                st.markdown(f"**Intactness Level:** {scenario['intactness']:.0f}%")
-                st.markdown("**Ecosystem Mix:**")
+                st.markdown("**Ecosystem Mix & Intactness:**")
+                scenario_intactness = scenario.get('intactness', {})
                 for eco, pct in scenario['mix'].items():
                     if pct > 0:
-                        st.write(f"• {eco}: {pct:.0f}%")
+                        intactness_val = scenario_intactness.get(eco, 100) if isinstance(scenario_intactness, dict) else scenario_intactness
+                        st.write(f"• {eco}: {pct:.0f}% @ {intactness_val:.0f}% intactness")
             
             if st.button("🗑️ Clear Scenario", type="secondary"):
                 if 'scenario_results' in st.session_state:
