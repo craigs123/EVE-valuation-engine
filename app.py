@@ -2001,7 +2001,9 @@ with st.sidebar:
             if eco_type not in st.session_state.ecosystem_intactness:
                 st.session_state.ecosystem_intactness[eco_type] = 100
         
-        # Create sliders for each ecosystem type
+        # Create sliders for each ecosystem type - use explicit change detection instead of on_change
+        # to avoid callback conflicts with the Calculate button
+        intactness_changed = False
         for eco_type, icon in ecosystem_types.items():
             current_value = st.session_state.ecosystem_intactness.get(eco_type, 100)
             intactness_value = st.slider(
@@ -2011,10 +2013,16 @@ with st.sidebar:
                 value=current_value,
                 step=5,
                 key=f"intactness_{eco_type}",
-                help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded",
-                on_change=reset_analysis_state
+                help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded"
             )
+            # Detect if value actually changed
+            if intactness_value != current_value:
+                intactness_changed = True
             st.session_state.ecosystem_intactness[eco_type] = intactness_value
+        
+        # Reset analysis state only if intactness values actually changed
+        if intactness_changed:
+            reset_analysis_state()
         
         # Show summary of current settings
         st.markdown("**Current Multipliers:**")
