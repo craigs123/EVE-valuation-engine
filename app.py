@@ -45,6 +45,17 @@ st.set_page_config(
     }  # Remove menu items for faster loading
 )
 
+# PWA Support - inject manifest and meta tags for installability
+st.markdown("""
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2E7D32">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="EVE">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+""", unsafe_allow_html=True)
+
 # Early loading message - displayed immediately while app initializes
 loading_placeholder = st.empty()
 loading_placeholder.markdown("""
