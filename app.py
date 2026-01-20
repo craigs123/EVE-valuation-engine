@@ -5439,6 +5439,10 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 display_name = primary.replace('_', ' ').title()
                 intactness = original_intactness.get(display_name, 100)
                 st.write(f"**Primary Ecosystem:** {display_name} @ {intactness}% intactness")
+            
+            # Show urban green/blue multiplier if applicable
+            urban_multiplier_pct = st.session_state.get('urban_green_blue_multiplier', 18.0)
+            st.caption(f"🏙️ Urban Green/Blue Multiplier: {urban_multiplier_pct:.0f}%")
         
         with col_scenario_right:
             st.markdown("**Scenario Parameters**")
