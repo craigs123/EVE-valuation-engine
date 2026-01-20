@@ -5565,13 +5565,20 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             # Get per-ecosystem intactness multiplier
                             eco_intactness = scenario_intactness_values.get(eco_display, 100) / 100.0
                             
+                            # Apply urban green/blue multiplier for urban ecosystems
+                            urban_multiplier = 1.0
+                            if eco_internal == 'urban':
+                                urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                                urban_multiplier = urban_multiplier_percent / 100.0
+                            
                             # Calculate with ecosystem-specific intactness
                             eco_results = coeffs.calculate_ecosystem_values(
                                 ecosystem_type=eco_internal,
                                 area_hectares=eco_area,
                                 coordinates=coordinates,
                                 ecosystem_intactness_multiplier=eco_intactness,
-                                regional_factor_override=original_regional_factor
+                                regional_factor_override=original_regional_factor,
+                                urban_green_blue_multiplier=urban_multiplier
                             )
                             
                             if 'total_value' in eco_results:
