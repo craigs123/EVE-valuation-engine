@@ -5383,6 +5383,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             'Agricultural': 'agricultural',
             'Coastal': 'coastal',
             'Shrubland': 'shrubland',
+            'Desert': 'desert',
             'Urban': 'urban',
             'Marine': 'marine',
             'Rivers And Lakes': 'rivers_and_lakes'
