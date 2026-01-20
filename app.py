@@ -1985,10 +1985,12 @@ with st.sidebar:
             'Boreal Forest': '🌲',
             'Tropical Forest': '🌴',
             'Grassland': '🌱',
+            'Shrubland': '🌵',
             'Desert': '🏜️',
             'Wetland': '🌿',
             'Coastal': '🏖️',
             'Marine': '🌊',
+            'Rivers And Lakes': '🏞️',
             'Urban': '🏙️'
         }
         
@@ -5380,7 +5382,10 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             'Grassland': 'grassland',
             'Agricultural': 'agricultural',
             'Coastal': 'coastal',
-            'Shrubland': 'shrubland'
+            'Shrubland': 'shrubland',
+            'Urban': 'urban',
+            'Marine': 'marine',
+            'Rivers And Lakes': 'rivers_and_lakes'
         }
         
         # Get original intactness from session state
