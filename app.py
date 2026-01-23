@@ -4035,9 +4035,11 @@ if analyze_button and st.session_state.selected_area:
                                             if eei_value is not None:
                                                 # Normalize to title case for consistent lookup in scenario builder
                                                 normalized_type = eco_type.replace('_', ' ').title()
-                                                st.session_state.ecosystem_intactness[normalized_type] = int(eei_value * 100)
+                                                # Store with 3 decimal places precision
+                                                intactness_pct = round(eei_value * 100, 3)
+                                                st.session_state.ecosystem_intactness[normalized_type] = intactness_pct
                                                 # Also set with original key for backwards compatibility
-                                                st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
+                                                st.session_state.ecosystem_intactness[eco_type] = intactness_pct
                                 except Exception as e:
                                     st.session_state.point_eei_values = {}
                                     st.session_state.average_eei = None
@@ -4107,9 +4109,11 @@ if analyze_button and st.session_state.selected_area:
                                         if eei_value is not None:
                                             # Normalize to title case for consistent lookup in scenario builder
                                             normalized_type = eco_type.replace('_', ' ').title()
-                                            st.session_state.ecosystem_intactness[normalized_type] = int(eei_value * 100)
+                                            # Store with 3 decimal places precision
+                                            intactness_pct = round(eei_value * 100, 3)
+                                            st.session_state.ecosystem_intactness[normalized_type] = intactness_pct
                                             # Also set with original key for backwards compatibility
-                                            st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
+                                            st.session_state.ecosystem_intactness[eco_type] = intactness_pct
                             except Exception as e:
                                 st.session_state.point_eei_values = {}
                                 st.session_state.average_eei = None
@@ -5291,12 +5295,12 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     display_name = eco_type.replace('_', ' ').title()
                     # Get intactness for this ecosystem type
                     intactness = original_intactness.get(display_name, 100)
-                    st.write(f"• {display_name}: {pct:.1f}% @ {intactness}% intactness")
+                    st.write(f"• {display_name}: {pct:.1f}% @ {intactness:.3f}% intactness")
             else:
                 primary = detected_ecosystem.get('primary_ecosystem', 'Unknown')
                 display_name = primary.replace('_', ' ').title()
                 intactness = original_intactness.get(display_name, 100)
-                st.write(f"**Primary Ecosystem:** {display_name} @ {intactness}% intactness")
+                st.write(f"**Primary Ecosystem:** {display_name} @ {intactness:.3f}% intactness")
             
             # Show urban green/blue multiplier if applicable
             urban_multiplier_pct = st.session_state.get('urban_green_blue_multiplier', 18.0)
