@@ -1238,11 +1238,14 @@ def display_data_source_status(analysis_results: Dict = None):
                     # Summary statistics
                     st.markdown("**📊 Summary Statistics:**")
                     
-                    # Show average EEI if available
-                    average_eei = st.session_state.get('average_eei')
-                    if average_eei is not None:
-                        eei_percent = int(average_eei * 100)
-                        st.info(f"🌿 **Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%) - Used as default intactness for ecosystem sliders")
+                    # Show average EEI if available (only when EEI is enabled)
+                    if st.session_state.get('use_eei_for_intactness', True):
+                        average_eei = st.session_state.get('average_eei')
+                        if average_eei is not None:
+                            eei_percent = int(average_eei * 100)
+                            st.info(f"🌿 **Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%) - Used as default intactness for ecosystem sliders")
+                    else:
+                        st.caption("ℹ️ EEI disabled - using manual intactness values from settings")
                     
                     code_counts = {}
                     
@@ -1737,6 +1740,24 @@ with st.sidebar:
         for eco_type in ecosystem_types.keys():
             if eco_type not in st.session_state.ecosystem_intactness:
                 st.session_state.ecosystem_intactness[eco_type] = 100
+        
+        # EEI toggle for automatic intactness defaults
+        if 'use_eei_for_intactness' not in st.session_state:
+            st.session_state.use_eei_for_intactness = True
+        
+        use_eei = st.checkbox(
+            "🌿 Use EEI (Ecosystem Ecological Integrity) for Default Intactness",
+            value=st.session_state.use_eei_for_intactness,
+            help="When enabled, the Ecosystem Ecological Integrity API will automatically set intactness defaults based on actual ecosystem condition data. When disabled, sliders use your manual settings (default 100%)."
+        )
+        st.session_state.use_eei_for_intactness = use_eei
+        
+        if use_eei:
+            st.caption("📡 EEI values will be fetched during analysis and used to set slider defaults")
+        else:
+            st.caption("✋ Manual intactness values below will be used")
+        
+        st.markdown("---")
         
         # Create sliders for each ecosystem type - use explicit change detection instead of on_change
         # to avoid callback conflicts with the Calculate button
@@ -3982,23 +4003,29 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.sampling_point_data = sampling_point_data
                             st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                             
-                            # Call EEI API to get ecosystem integrity values
-                            try:
-                                from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
-                                point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
-                                st.session_state.point_eei_values = point_eei_values
-                                st.session_state.average_eei = average_eei
-                                
-                                # Calculate EEI per ecosystem for intactness defaults
-                                ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
-                                st.session_state.ecosystem_eei = ecosystem_eei
-                                
-                                # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
-                                if ecosystem_eei:
-                                    for eco_type, eei_value in ecosystem_eei.items():
-                                        if eei_value is not None:
-                                            st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
-                            except Exception as e:
+                            # Call EEI API to get ecosystem integrity values (only if enabled)
+                            if st.session_state.get('use_eei_for_intactness', True):
+                                try:
+                                    from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
+                                    point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
+                                    st.session_state.point_eei_values = point_eei_values
+                                    st.session_state.average_eei = average_eei
+                                    
+                                    # Calculate EEI per ecosystem for intactness defaults
+                                    ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
+                                    st.session_state.ecosystem_eei = ecosystem_eei
+                                    
+                                    # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
+                                    if ecosystem_eei:
+                                        for eco_type, eei_value in ecosystem_eei.items():
+                                            if eei_value is not None:
+                                                st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
+                                except Exception as e:
+                                    st.session_state.point_eei_values = {}
+                                    st.session_state.average_eei = None
+                                    st.session_state.ecosystem_eei = {}
+                            else:
+                                # EEI disabled - clear any stored values
                                 st.session_state.point_eei_values = {}
                                 st.session_state.average_eei = None
                                 st.session_state.ecosystem_eei = {}
@@ -4044,23 +4071,29 @@ if analyze_button and st.session_state.selected_area:
                         st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
                         st.session_state.landcover_data_source = data_source
                         
-                        # Call EEI API to get ecosystem integrity values
-                        try:
-                            from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
-                            point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
-                            st.session_state.point_eei_values = point_eei_values
-                            st.session_state.average_eei = average_eei
-                            
-                            # Calculate EEI per ecosystem for intactness defaults
-                            ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
-                            st.session_state.ecosystem_eei = ecosystem_eei
-                            
-                            # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
-                            if ecosystem_eei:
-                                for eco_type, eei_value in ecosystem_eei.items():
-                                    if eei_value is not None:
-                                        st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
-                        except Exception as e:
+                        # Call EEI API to get ecosystem integrity values (only if enabled)
+                        if st.session_state.get('use_eei_for_intactness', True):
+                            try:
+                                from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
+                                point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
+                                st.session_state.point_eei_values = point_eei_values
+                                st.session_state.average_eei = average_eei
+                                
+                                # Calculate EEI per ecosystem for intactness defaults
+                                ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
+                                st.session_state.ecosystem_eei = ecosystem_eei
+                                
+                                # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
+                                if ecosystem_eei:
+                                    for eco_type, eei_value in ecosystem_eei.items():
+                                        if eei_value is not None:
+                                            st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
+                            except Exception as e:
+                                st.session_state.point_eei_values = {}
+                                st.session_state.average_eei = None
+                                st.session_state.ecosystem_eei = {}
+                        else:
+                            # EEI disabled - clear any stored values
                             st.session_state.point_eei_values = {}
                             st.session_state.average_eei = None
                             st.session_state.ecosystem_eei = {}
