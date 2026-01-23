@@ -4033,6 +4033,10 @@ if analyze_button and st.session_state.selected_area:
                                     if ecosystem_eei:
                                         for eco_type, eei_value in ecosystem_eei.items():
                                             if eei_value is not None:
+                                                # Normalize to title case for consistent lookup in scenario builder
+                                                normalized_type = eco_type.replace('_', ' ').title()
+                                                st.session_state.ecosystem_intactness[normalized_type] = int(eei_value * 100)
+                                                # Also set with original key for backwards compatibility
                                                 st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
                                 except Exception as e:
                                     st.session_state.point_eei_values = {}
@@ -4101,6 +4105,10 @@ if analyze_button and st.session_state.selected_area:
                                 if ecosystem_eei:
                                     for eco_type, eei_value in ecosystem_eei.items():
                                         if eei_value is not None:
+                                            # Normalize to title case for consistent lookup in scenario builder
+                                            normalized_type = eco_type.replace('_', ' ').title()
+                                            st.session_state.ecosystem_intactness[normalized_type] = int(eei_value * 100)
+                                            # Also set with original key for backwards compatibility
                                             st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
                             except Exception as e:
                                 st.session_state.point_eei_values = {}
