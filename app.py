@@ -1165,6 +1165,11 @@ def display_data_source_status(analysis_results: Dict = None):
                                         soil_carbon_value = f"{value:.1f}"
                                     break
                         
+                        # Get EEI value for this point from session state
+                        point_eei_values = st.session_state.get('point_eei_values', {})
+                        eei_value = point_eei_values.get(point_id)
+                        eei_display = f"{eei_value:.3f}" if eei_value is not None else "—"
+                        
                         table_data.append({
                             "Sample Point": f"Point {point_num}",
                             "ESA CCI Code": landcover_code,
@@ -1173,6 +1178,7 @@ def display_data_source_status(analysis_results: Dict = None):
                             "Coordinates": coord_str,
                             "Country": country,
                             "Regional Factor": regional_factor,
+                            "EEI (0-1)": eei_display,
                             "FAPAR (0-1)": fapar_value,
                             "Soil C (g/kg)": soil_carbon_value,
                             "Data Source": data_source
@@ -1231,6 +1237,13 @@ def display_data_source_status(analysis_results: Dict = None):
                     
                     # Summary statistics
                     st.markdown("**📊 Summary Statistics:**")
+                    
+                    # Show average EEI if available
+                    average_eei = st.session_state.get('average_eei')
+                    if average_eei is not None:
+                        eei_percent = int(average_eei * 100)
+                        st.info(f"🌿 **Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%) - Used as default intactness for ecosystem sliders")
+                    
                     code_counts = {}
                     
                     for point_data in sampling_point_data.values():
@@ -1548,7 +1561,7 @@ st.markdown("""
     <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v2.12.2 · <a href="https://eve-solutions.eu/" target="_blank">eve-solutions.eu</a></p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v2.13.0 · <a href="https://eve-solutions.eu/" target="_blank">eve-solutions.eu</a></p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Area</h2>', unsafe_allow_html=True)
 
@@ -3969,6 +3982,27 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.sampling_point_data = sampling_point_data
                             st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                             
+                            # Call EEI API to get ecosystem integrity values
+                            try:
+                                from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
+                                point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
+                                st.session_state.point_eei_values = point_eei_values
+                                st.session_state.average_eei = average_eei
+                                
+                                # Calculate EEI per ecosystem for intactness defaults
+                                ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
+                                st.session_state.ecosystem_eei = ecosystem_eei
+                                
+                                # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
+                                if ecosystem_eei:
+                                    for eco_type, eei_value in ecosystem_eei.items():
+                                        if eei_value is not None:
+                                            st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
+                            except Exception as e:
+                                st.session_state.point_eei_values = {}
+                                st.session_state.average_eei = None
+                                st.session_state.ecosystem_eei = {}
+                            
                             st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Analysis continues below...")
                             
                             # Skip re-sampling and go directly to valuation with updated classifications
@@ -4009,6 +4043,27 @@ if analyze_button and st.session_state.selected_area:
                         st.session_state.sampling_point_data = sampling_point_data
                         st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}  # Backward compatibility
                         st.session_state.landcover_data_source = data_source
+                        
+                        # Call EEI API to get ecosystem integrity values
+                        try:
+                            from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
+                            point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
+                            st.session_state.point_eei_values = point_eei_values
+                            st.session_state.average_eei = average_eei
+                            
+                            # Calculate EEI per ecosystem for intactness defaults
+                            ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
+                            st.session_state.ecosystem_eei = ecosystem_eei
+                            
+                            # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
+                            if ecosystem_eei:
+                                for eco_type, eei_value in ecosystem_eei.items():
+                                    if eei_value is not None:
+                                        st.session_state.ecosystem_intactness[eco_type] = int(eei_value * 100)
+                        except Exception as e:
+                            st.session_state.point_eei_values = {}
+                            st.session_state.average_eei = None
+                            st.session_state.ecosystem_eei = {}
                         
                         # Show completion in progress container
                         with analysis_progress_container.container():
