@@ -678,6 +678,80 @@ class OpenLandMapSTAC:
             print(f"❌ Optimized pixel extraction failed for {asset_url}: {e}")
             return None
     
+    def extract_pixel_value_for_landcover(self, asset_url: str, lat: float, lon: float) -> Optional[float]:
+        """
+        Extract pixel value specifically for ESA CCI land cover data.
+        More lenient validation - accepts all valid ESA CCI codes including edge cases.
+        """
+        try:
+            dataset = self._get_cached_dataset(asset_url)
+            if not dataset:
+                print(f"🚫 LANDCOVER: Failed to get dataset from {asset_url[:50]}...")
+                return None
+            
+            # Check bounds
+            bounds = dataset.bounds
+            if not (bounds.left <= lon <= bounds.right and 
+                    bounds.bottom <= lat <= bounds.top):
+                print(f"🌍 LANDCOVER: Coordinates ({lat:.4f}, {lon:.4f}) outside coverage (bounds: {bounds.left:.2f}-{bounds.right:.2f}, {bounds.bottom:.2f}-{bounds.top:.2f})")
+                return None
+            
+            # Transform coordinates if needed
+            if dataset.crs != CRS.from_epsg(4326):
+                from rasterio.warp import transform_geom
+                lon_transformed, lat_transformed = transform(
+                    CRS.from_epsg(4326), dataset.crs, [lon], [lat]
+                )
+                lon, lat = lon_transformed[0], lat_transformed[0]
+            
+            # Get pixel coordinates
+            row, col = dataset.index(lon, lat)
+            
+            if not (0 <= row < dataset.height and 0 <= col < dataset.width):
+                print(f"📍 LANDCOVER: Pixel ({row}, {col}) outside image bounds")
+                return None
+            
+            # Read pixel value
+            window = Window(col, row, 1, 1)
+            pixel_data = dataset.read(1, window=window)
+            
+            if pixel_data.size == 0:
+                print(f"🚫 LANDCOVER: No data read at ({row}, {col})")
+                return None
+            
+            raw_value = pixel_data[0, 0]
+            print(f"🔍 LANDCOVER DEBUG: Raw pixel value at ({lat:.4f}, {lon:.4f}): {raw_value}")
+            
+            # Check for NoData
+            if dataset.nodata is not None and raw_value == dataset.nodata:
+                print(f"🚫 LANDCOVER: NoData value ({dataset.nodata}) at ({lat:.4f}, {lon:.4f})")
+                return None
+            
+            # ESA CCI uses 0 as NoData
+            if raw_value == 0:
+                print(f"🚫 LANDCOVER: Zero value (NoData) at ({lat:.4f}, {lon:.4f})")
+                return None
+            
+            # Convert to integer
+            pixel_value_int = int(round(raw_value))
+            
+            # Accept any valid ESA CCI code (10-220 range typically)
+            # But also accept edge cases up to 255 except for known NoData (0, 255)
+            if pixel_value_int == 255:
+                print(f"🚫 LANDCOVER: 255 (NoData) at ({lat:.4f}, {lon:.4f})")
+                return None
+            
+            if 1 <= pixel_value_int <= 254:
+                print(f"✅ LANDCOVER: Extracted ESA code {pixel_value_int} at ({lat:.4f}, {lon:.4f})")
+                return float(pixel_value_int)
+            else:
+                print(f"🚫 LANDCOVER: Value {pixel_value_int} out of valid range at ({lat:.4f}, {lon:.4f})")
+                return None
+                
+        except Exception as e:
+            print(f"❌ LANDCOVER: Extraction error: {e}")
+            return None
+
     def _extract_pixel_value_fallback(self, dataset, lat: float, lon: float) -> Optional[float]:
         """
         Fallback pixel extraction using original bounds-based method
@@ -1240,12 +1314,14 @@ class OpenLandMapSTAC:
         """
         try:
             collection_id = "land.cover_esacci.lc.l4"
+            print(f"🔍 LANDCOVER DEBUG: Starting extraction for ({lat:.4f}, {lon:.4f})")
             asset_url = self.get_stac_asset_url(collection_id)
-            print(f"🔍 STAC API returned URL: {asset_url}")
+            print(f"🔍 LANDCOVER DEBUG: STAC API returned URL: {asset_url}")
             
             if asset_url:
-                print(f"✅ Using STAC URL: {asset_url}")
-                pixel_value = self.extract_pixel_value(asset_url, lat, lon)
+                print(f"🔍 LANDCOVER DEBUG: Calling extract_pixel_value...")
+                pixel_value = self.extract_pixel_value_for_landcover(asset_url, lat, lon)
+                print(f"🔍 LANDCOVER DEBUG: extract_pixel_value returned: {pixel_value}")
                 
                 if pixel_value is not None:
                     landcover_code = int(pixel_value)
@@ -1834,52 +1910,15 @@ class OpenLandMapSTAC:
     
     def _fallback_ecosystem_detection(self, lat: float, lon: float) -> Dict[str, Any]:
         """
-        Fallback when satellite data is unavailable - uses latitude-based ecosystem estimation
+        Fallback when satellite data is unavailable - returns Unknown to indicate data gap
         """
-        abs_lat = abs(lat)
-        
-        # Estimate ecosystem type based on latitude and climate zones
-        if abs_lat >= 66.5:
-            # Arctic/Antarctic
-            ecosystem_type = "Grassland"  # Tundra mapped to grassland
-            landcover_class = 140  # ESA code for sparse vegetation
-        elif abs_lat >= 50:
-            # Boreal/Subarctic - typically boreal forest or grassland steppes
-            if 40 <= lon <= 100 and lat > 0:
-                # Central Asian steppes (Kazakhstan, Mongolia)
-                ecosystem_type = "Grassland"
-                landcover_class = 130  # ESA code for grassland
-            else:
-                ecosystem_type = "Boreal Forest"
-                landcover_class = 70
-        elif abs_lat >= 35:
-            # Temperate zone - mixed forests and grasslands
-            if -110 <= lon <= -90 and 35 <= lat <= 50:
-                # North American Great Plains
-                ecosystem_type = "Grassland"
-                landcover_class = 130
-            elif 40 <= lon <= 80 and 35 <= lat <= 50:
-                # Central Asian steppes
-                ecosystem_type = "Grassland"
-                landcover_class = 130
-            else:
-                ecosystem_type = "Temperate Forest"
-                landcover_class = 71
-        elif abs_lat >= 23.5:
-            # Subtropical
-            ecosystem_type = "Shrubland"
-            landcover_class = 120
-        else:
-            # Tropical
-            ecosystem_type = "Tropical Forest"
-            landcover_class = 50
-        
+        print(f"⚠️ FALLBACK TRIGGERED: No satellite data available for ({lat:.4f}, {lon:.4f})")
         return {
-            "ecosystem_type": ecosystem_type,
-            "landcover_class": landcover_class,
+            "ecosystem_type": "Unknown",
+            "landcover_class": None,
             "coordinates": {"lat": lat, "lon": lon},
-            "data_source": "Latitude-based Estimation (Satellite Data Unavailable)",
-            "error": None,
+            "data_source": "Error: Satellite Data Unavailable",
+            "error": "No reliable satellite data available for classification",
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
 
