@@ -1794,11 +1794,13 @@ with st.sidebar:
         intactness_changed = False
         for eco_type, icon in ecosystem_types.items():
             current_value = st.session_state.ecosystem_intactness.get(eco_type, 100)
+            # Convert to int for slider compatibility (slider requires matching types)
+            slider_value = int(round(current_value)) if isinstance(current_value, float) else current_value
             intactness_value = st.slider(
                 f"{icon} {eco_type} Intactness (%)",
                 min_value=0,
                 max_value=100,
-                value=current_value,
+                value=slider_value,
                 step=5,
                 key=f"intactness_{eco_type}",
                 help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded"
