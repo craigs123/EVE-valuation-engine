@@ -1247,6 +1247,9 @@ def display_data_source_status(analysis_results: Dict = None):
                                             name = item.get('name', '').lower()
                                             value = item.get('value')
                                             if 'fapar' in name or 'absorbed' in name:
+                                                # FAPAR from OpenLandMap is scaled 0-255, convert to 0-1 fraction
+                                                if value is not None and value > 1:
+                                                    value = value / 255.0
                                                 env_row['Vegetation Index (FAPAR)'] = safe_format_value(value, 3)
                                                 break
                             
