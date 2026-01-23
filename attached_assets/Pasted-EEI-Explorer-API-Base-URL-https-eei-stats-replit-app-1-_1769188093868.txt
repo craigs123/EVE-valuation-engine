@@ -1,0 +1,92 @@
+EEI Explorer API
+Base URL: https://eei-stats.replit.app
+
+1. Get EEI for Multiple Locations (Recommended)
+Endpoint: POST /api/eei-batch
+
+Description: Get EEI values for up to 10 coordinates with calculated averages.
+
+Request:
+
+const response = await fetch('https://YOUR-APP-URL.replit.app/api/eei-batch', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    coordinates: [
+      { latitude: -3.4653, longitude: -62.2159 },
+      { latitude: 35.6762, longitude: 139.6503 },
+      { latitude: 51.5074, longitude: -0.1278 }
+    ]
+  })
+});
+const data = await response.json();
+Response:
+
+{
+  "results": [
+    {
+      "coordinates": { "latitude": -3.4653, "longitude": -62.2159 },
+      "values": {
+        "eii": 0.664,
+        "functional_integrity": 0.664,
+        "structural_integrity": 1.0,
+        "compositional_integrity": 0.999
+      }
+    }
+  ],
+  "averages": {
+    "eii": 0.664,
+    "functional_integrity": 0.513,
+    "structural_integrity": 1.0,
+    "compositional_integrity": 0.68
+  },
+  "count": 3,
+  "valid_count": 2
+}
+2. Get EEI for Single Location
+Endpoint: POST /api/eei-stats
+
+Request:
+
+const response = await fetch('https://YOUR-APP-URL.replit.app/api/eei-stats', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    latitude: -3.4653,
+    longitude: -62.2159
+  })
+});
+const data = await response.json();
+Response:
+
+{
+  "geometry_type": "Point",
+  "coordinates": { "latitude": -3.4653, "longitude": -62.2159 },
+  "values": {
+    "eii": 0.664,
+    "functional_integrity": 0.664,
+    "structural_integrity": 1.0,
+    "compositional_integrity": 0.999
+  },
+  "source": "Google Earth Engine - Landler Open Data"
+}
+3. API Documentation
+Endpoint: GET /api
+
+Returns full API documentation as JSON.
+
+4. Health Check
+Endpoint: GET /api/health
+
+Returns {"status": "healthy", "ee_initialized": true}
+
+Value Ranges
+Metric	Range	Meaning
+eii	0-1	Overall ecosystem integrity (0=degraded, 1=pristine)
+functional_integrity	0-1	Net Primary Productivity vs baseline
+structural_integrity	0-1	Landscape connectivity
+compositional_integrity	0-1	Biodiversity Intactness
+Notes
+Maximum 10 coordinates per batch request
+Ocean locations return null values (EEI is terrestrial only)
+Coordinates: latitude (-90 to 90), longitude (-180 to 180)
