@@ -2823,12 +2823,20 @@ elif use_test_area_single:
         lat_half_side = (side_length_km / 2) / lat_km_per_deg
         lon_half_side = (side_length_km / 2) / lon_km_per_deg
         
+        # Calculate and wrap longitude to valid range (-180 to 180)
+        min_lon = center_lon - lon_half_side
+        max_lon = center_lon + lon_half_side
+        if min_lon < -180:
+            min_lon += 360
+        if max_lon > 180:
+            max_lon -= 360
+        
         return [
-            [center_lon - lon_half_side, center_lat - lat_half_side],  # SW
-            [center_lon + lon_half_side, center_lat - lat_half_side],  # SE
-            [center_lon + lon_half_side, center_lat + lat_half_side],  # NE
-            [center_lon - lon_half_side, center_lat + lat_half_side],  # NW
-            [center_lon - lon_half_side, center_lat - lat_half_side]   # Close
+            [min_lon, center_lat - lat_half_side],  # SW
+            [max_lon, center_lat - lat_half_side],  # SE
+            [max_lon, center_lat + lat_half_side],  # NE
+            [min_lon, center_lat + lat_half_side],  # NW
+            [min_lon, center_lat - lat_half_side]   # Close
         ]
     
     single_ecosystem_areas = {
@@ -2995,12 +3003,20 @@ elif use_test_area_random:
     lat_half_side = (side_length_km / 2) / lat_km_per_deg
     lon_half_side = (side_length_km / 2) / lon_km_per_deg
     
+    # Calculate and wrap longitude to valid range (-180 to 180)
+    min_lon = lon_center - lon_half_side
+    max_lon = lon_center + lon_half_side
+    if min_lon < -180:
+        min_lon += 360
+    if max_lon > 180:
+        max_lon -= 360
+    
     test_coordinates = [
-        [lon_center - lon_half_side, lat_center - lat_half_side],  # SW
-        [lon_center + lon_half_side, lat_center - lat_half_side],  # SE
-        [lon_center + lon_half_side, lat_center + lat_half_side],  # NE
-        [lon_center - lon_half_side, lat_center + lat_half_side],  # NW
-        [lon_center - lon_half_side, lat_center - lat_half_side]   # Close
+        [min_lon, lat_center - lat_half_side],  # SW
+        [max_lon, lat_center - lat_half_side],  # SE
+        [max_lon, lat_center + lat_half_side],  # NE
+        [min_lon, lat_center + lat_half_side],  # NW
+        [min_lon, lat_center - lat_half_side]   # Close
     ]
     
     # Clear all cached values first to ensure clean state
@@ -3143,11 +3159,21 @@ def create_bbox_from_center_and_area(center_lat, center_lon, area_ha=1000):
     lat_half_side = (side_length_km / 2) / lat_km_per_deg
     lon_half_side = (side_length_km / 2) / lon_km_per_deg
     
+    # Calculate raw longitude values
+    min_lon = center_lon - lon_half_side
+    max_lon = center_lon + lon_half_side
+    
+    # Wrap longitude to valid range (-180 to 180)
+    if min_lon < -180:
+        min_lon += 360
+    if max_lon > 180:
+        max_lon -= 360
+    
     return {
         'min_lat': center_lat - lat_half_side,
         'max_lat': center_lat + lat_half_side,
-        'min_lon': center_lon - lon_half_side,
-        'max_lon': center_lon + lon_half_side
+        'min_lon': min_lon,
+        'max_lon': max_lon
     }
 
 # Create optimized interactive map - use dynamic zoom calculations
