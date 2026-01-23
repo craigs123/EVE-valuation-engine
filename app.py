@@ -1241,9 +1241,23 @@ def display_data_source_status(analysis_results: Dict = None):
                     # Show average EEI if available (only when EEI is enabled)
                     if st.session_state.get('use_eei_for_intactness', True):
                         average_eei = st.session_state.get('average_eei')
+                        ecosystem_eei = st.session_state.get('ecosystem_eei', {})
+                        
                         if average_eei is not None:
                             eei_percent = int(average_eei * 100)
-                            st.info(f"🌿 **Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%) - Used as default intactness for ecosystem sliders")
+                            st.info(f"🌿 **Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%)")
+                            
+                            # Show per-ecosystem EEI values if there are multiple ecosystems
+                            if ecosystem_eei and len(ecosystem_eei) > 1:
+                                st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
+                                for eco_type, eei_value in sorted(ecosystem_eei.items()):
+                                    if eei_value is not None:
+                                        eco_eei_percent = int(eei_value * 100)
+                                        st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent}%)")
+                            elif ecosystem_eei and len(ecosystem_eei) == 1:
+                                eco_type, eei_value = list(ecosystem_eei.items())[0]
+                                if eei_value is not None:
+                                    st.caption(f"Single ecosystem ({eco_type}) - EEI {eei_value:.3f} used for intactness default")
                     else:
                         st.caption("ℹ️ EEI disabled - using manual intactness values from settings")
                     
