@@ -1755,21 +1755,37 @@ with st.sidebar:
             if eco_type not in st.session_state.ecosystem_intactness:
                 st.session_state.ecosystem_intactness[eco_type] = 100
         
-        # EEI toggle for automatic intactness defaults
+        # EEI toggle for automatic intactness defaults (default OFF, requires password)
         if 'use_eei_for_intactness' not in st.session_state:
-            st.session_state.use_eei_for_intactness = True
+            st.session_state.use_eei_for_intactness = False
+        if 'eei_authenticated' not in st.session_state:
+            st.session_state.eei_authenticated = False
         
-        use_eei = st.checkbox(
-            "🌿 Use EEI (Ecosystem Ecological Integrity) for Default Intactness",
-            value=st.session_state.use_eei_for_intactness,
-            help="When enabled, the Ecosystem Ecological Integrity API will automatically set intactness defaults based on actual ecosystem condition data. When disabled, sliders use your manual settings (default 100%)."
-        )
-        st.session_state.use_eei_for_intactness = use_eei
+        st.markdown("**🌿 EEI (Ecosystem Ecological Integrity) Integration**")
         
-        if use_eei:
-            st.caption("📡 EEI values will be fetched during analysis and used to set slider defaults")
+        if st.session_state.eei_authenticated:
+            use_eei = st.checkbox(
+                "Use EEI for Default Intactness",
+                value=st.session_state.use_eei_for_intactness,
+                help="When enabled, the Ecosystem Ecological Integrity API will automatically set intactness defaults based on actual ecosystem condition data."
+            )
+            st.session_state.use_eei_for_intactness = use_eei
+            
+            if use_eei:
+                st.caption("📡 EEI values will be fetched during analysis and used to set slider defaults")
+            else:
+                st.caption("✋ Manual intactness values below will be used")
         else:
-            st.caption("✋ Manual intactness values below will be used")
+            st.caption("🔒 EEI integration requires authentication")
+            eei_password = st.text_input("Enter EEI access password:", type="password", key="eei_password_input")
+            if st.button("Unlock EEI", key="unlock_eei_btn"):
+                if eei_password == "EVE123":
+                    st.session_state.eei_authenticated = True
+                    st.success("✅ EEI access unlocked!")
+                    st.rerun()
+                else:
+                    st.error("❌ Incorrect password")
+            st.session_state.use_eei_for_intactness = False
         
         st.markdown("---")
         
