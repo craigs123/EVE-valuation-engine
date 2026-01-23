@@ -1252,8 +1252,8 @@ def display_data_source_status(analysis_results: Dict = None):
                                 st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
                                 for eco_type, eei_value in sorted(ecosystem_eei.items()):
                                     if eei_value is not None:
-                                        eco_eei_percent = int(eei_value * 100)
-                                        st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent}%)")
+                                        eco_eei_percent = eei_value * 100
+                                        st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent:.3f}%)")
                             elif ecosystem_eei and len(ecosystem_eei) == 1:
                                 eco_type, eei_value = list(ecosystem_eei.items())[0]
                                 if eei_value is not None:
