@@ -1239,7 +1239,7 @@ def display_data_source_status(analysis_results: Dict = None):
                     st.markdown("**📊 Summary Statistics:**")
                     
                     # Show average EEI if available (only when EEI is enabled)
-                    if st.session_state.get('use_eei_for_intactness', True):
+                    if st.session_state.get('use_eei_for_intactness', False):
                         average_eei = st.session_state.get('average_eei')
                         ecosystem_eei = st.session_state.get('ecosystem_eei', {})
                         
@@ -4034,7 +4034,7 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.landcover_codes = {k: v['landcover_class'] for k, v in sampling_point_data.items()}
                             
                             # Call EEI API to get ecosystem integrity values (only if enabled)
-                            if st.session_state.get('use_eei_for_intactness', True):
+                            if st.session_state.get('use_eei_for_intactness', False):
                                 try:
                                     from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
                                     point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
@@ -4108,7 +4108,7 @@ if analyze_button and st.session_state.selected_area:
                         st.session_state.landcover_data_source = data_source
                         
                         # Call EEI API to get ecosystem integrity values (only if enabled)
-                        if st.session_state.get('use_eei_for_intactness', True):
+                        if st.session_state.get('use_eei_for_intactness', False):
                             try:
                                 from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
                                 point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
