@@ -358,7 +358,7 @@ if 'time_preset' not in st.session_state:
     st.session_state.time_preset = "Current Year (2024)"
 
 if 'include_environmental_indicators' not in st.session_state:
-    st.session_state.include_environmental_indicators = False
+    st.session_state.include_environmental_indicators = True
 
 # Enhanced CSS for better UX and modern design
 st.markdown("""
@@ -1137,6 +1137,34 @@ def display_data_source_status(analysis_results: Dict = None):
                         if landcover_code == 210 and point_data.get('user_classified', False):
                             esvd_ecosystem += " (User classified)"
                         
+                        # Extract FAPAR and Soil Carbon from STAC data
+                        fapar_value = "—"
+                        soil_carbon_value = "—"
+                        stac_data = point_data.get('stac_data', {})
+                        if stac_data:
+                            # Get FAPAR from vegetation data
+                            vegetation_data = stac_data.get('vegetation', [])
+                            for item in vegetation_data:
+                                name = item.get('name', '').lower()
+                                value = item.get('value')
+                                if 'fapar' in name or 'absorbed' in name:
+                                    if value is not None:
+                                        # Scale 0-255 to 0-1
+                                        if value > 1:
+                                            value = value / 255.0
+                                        fapar_value = f"{value:.3f}"
+                                    break
+                            
+                            # Get Soil Carbon from soil data
+                            soil_data = stac_data.get('soil', [])
+                            for item in soil_data:
+                                name = item.get('name', '').lower()
+                                value = item.get('value')
+                                if 'carbon' in name or 'organic' in name:
+                                    if value is not None and isinstance(value, (int, float)):
+                                        soil_carbon_value = f"{value:.1f}"
+                                    break
+                        
                         table_data.append({
                             "Sample Point": f"Point {point_num}",
                             "ESA CCI Code": landcover_code,
@@ -1145,6 +1173,8 @@ def display_data_source_status(analysis_results: Dict = None):
                             "Coordinates": coord_str,
                             "Country": country,
                             "Regional Factor": regional_factor,
+                            "FAPAR (0-1)": fapar_value,
+                            "Soil C (g/kg)": soil_carbon_value,
                             "Data Source": data_source
                         })
                     
