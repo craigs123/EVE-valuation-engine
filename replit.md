@@ -23,6 +23,9 @@ The backend employs a modular design with utilities for data processing, ESVD in
 ### Satellite Data Integration
 EVE uses an enhanced simulation model based on peer-reviewed ecosystem spectral signatures to provide realistic satellite data characteristics, generating scientifically-accurate Red/NIR bands, cloud coverage, and data quality flags. Quality assessment applies satellite-based ecosystem health multipliers derived from authentic spectral patterns. Advanced NDWI-based water body detection automatically identifies and excludes open water areas from natural capital calculations, with detailed reporting of excluded water hectares.
 
+### Ecosystem Ecological Integrity (EEI) Integration
+EVE integrates with the EEI API (https://api.ecosystemintegrity.com) to automatically retrieve ecosystem integrity values for each sample point. The EEI provides a scientific measure of ecosystem condition on a 0-1 scale, derived from three components: functional integrity (NPP-based), structural integrity (connectivity), and compositional integrity (biodiversity). The average EEI across all sample points is used to set the default intactness multiplier for each ecosystem type's valuation slider, replacing arbitrary manual defaults with data-driven values. Per-point EEI values are displayed in the sample points summary table.
+
 ### Data Storage Solutions
 A PostgreSQL database provides persistent storage for ecosystem analyses, saved areas, and natural capital baselines, with tables including `ecosystem_analyses`, `saved_areas`, `analysis_history`, `natural_capital_baselines`, and `natural_capital_trends`. Session-based data is stored in Streamlit's session state. User session management utilizes UUIDs for data isolation.
 
