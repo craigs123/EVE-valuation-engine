@@ -1834,14 +1834,52 @@ class OpenLandMapSTAC:
     
     def _fallback_ecosystem_detection(self, lat: float, lon: float) -> Dict[str, Any]:
         """
-        Fallback when satellite data is unavailable - returns Unknown to avoid false data
+        Fallback when satellite data is unavailable - uses latitude-based ecosystem estimation
         """
+        abs_lat = abs(lat)
+        
+        # Estimate ecosystem type based on latitude and climate zones
+        if abs_lat >= 66.5:
+            # Arctic/Antarctic
+            ecosystem_type = "Grassland"  # Tundra mapped to grassland
+            landcover_class = 140  # ESA code for sparse vegetation
+        elif abs_lat >= 50:
+            # Boreal/Subarctic - typically boreal forest or grassland steppes
+            if 40 <= lon <= 100 and lat > 0:
+                # Central Asian steppes (Kazakhstan, Mongolia)
+                ecosystem_type = "Grassland"
+                landcover_class = 130  # ESA code for grassland
+            else:
+                ecosystem_type = "Boreal Forest"
+                landcover_class = 70
+        elif abs_lat >= 35:
+            # Temperate zone - mixed forests and grasslands
+            if -110 <= lon <= -90 and 35 <= lat <= 50:
+                # North American Great Plains
+                ecosystem_type = "Grassland"
+                landcover_class = 130
+            elif 40 <= lon <= 80 and 35 <= lat <= 50:
+                # Central Asian steppes
+                ecosystem_type = "Grassland"
+                landcover_class = 130
+            else:
+                ecosystem_type = "Temperate Forest"
+                landcover_class = 71
+        elif abs_lat >= 23.5:
+            # Subtropical
+            ecosystem_type = "Shrubland"
+            landcover_class = 120
+        else:
+            # Tropical
+            ecosystem_type = "Tropical Forest"
+            landcover_class = 50
+        
         return {
-            "ecosystem_type": "Unknown",
-            "landcover_class": None,
+            "ecosystem_type": ecosystem_type,
+            "landcover_class": landcover_class,
             "coordinates": {"lat": lat, "lon": lon},
-            "data_source": "Error: Satellite Data Unavailable",
-            "error": "No reliable satellite data available for classification",
+            "data_source": "Latitude-based Estimation (Satellite Data Unavailable)",
+            "error": None,
             "query_time": json.dumps({"timestamp": "now"}, default=str)
         }
 
