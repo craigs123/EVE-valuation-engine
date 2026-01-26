@@ -5236,12 +5236,25 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     st.session_state['compact_infographic_data'] = None
                     st.rerun()
     
-    # Scenario Builder Section - in collapsible panel for performance
+    # Scenario Builder Section - lazy loaded for performance
     st.markdown("---")
-    # Track expanded state for Scenario Builder
-    if 'scenario_builder_expanded' not in st.session_state:
-        st.session_state.scenario_builder_expanded = False
-    with st.expander("🔮 Scenario Builder", expanded=st.session_state.scenario_builder_expanded):
+    # Track loaded state for Scenario Builder (lazy loading optimization)
+    if 'scenario_builder_loaded' not in st.session_state:
+        st.session_state.scenario_builder_loaded = False
+    
+    # Show expander - content only fully renders after user loads it
+    scenario_builder_is_loaded = st.session_state.scenario_builder_loaded
+    
+    with st.expander("🔮 Scenario Builder", expanded=scenario_builder_is_loaded):
+        # Lazy loading: show loading prompt until user activates
+        if not scenario_builder_is_loaded:
+            st.caption("The Scenario Builder lets you explore how changes to ecosystem composition and condition affect natural capital value.")
+            if st.button("📊 Load Scenario Builder", key="load_scenario_builder_btn", type="primary", use_container_width=True):
+                st.session_state.scenario_builder_loaded = True
+                st.rerun()
+            st.stop()  # Stop execution of this expander content
+        
+        # === Scenario Builder Content (only reached when loaded) ===
         st.markdown("Explore how changes to ecosystem composition and condition would affect natural capital value.")
         
         # Get original results for comparison

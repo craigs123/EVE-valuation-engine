@@ -494,9 +494,19 @@ class NominatimGeocoder:
 # Create singleton instance for module-level usage
 _nominatim_geocoder = NominatimGeocoder()
 
+@st.cache_data(ttl=86400, show_spinner=False)  # Cache for 24 hours - GDP/country data is stable
+def _cached_country_lookup(lat_rounded: float, lon_rounded: float) -> str:
+    """
+    Internal cached lookup - receives pre-rounded coordinates for better cache hit rates.
+    Layered on top of NominatimGeocoder's internal cache for double redundancy.
+    """
+    return _nominatim_geocoder.get_country_from_coordinates(lat_rounded, lon_rounded)
+
 def get_country_from_coordinates_nominatim(lat: float, lon: float) -> str:
     """
     Module-level function for getting country from coordinates using Nominatim API
+    Coordinates are rounded to 2 decimal places (~1km precision) for better cache efficiency.
+    Country boundaries don't require high precision for GDP lookup purposes.
     
     Args:
         lat: Latitude (-90 to 90)
@@ -505,7 +515,10 @@ def get_country_from_coordinates_nominatim(lat: float, lon: float) -> str:
     Returns:
         Country code string for GDP lookup
     """
-    return _nominatim_geocoder.get_country_from_coordinates(lat, lon)
+    # Round to 2 decimal places for cache efficiency (~1km precision is sufficient for country lookup)
+    lat_rounded = round(lat, 2)
+    lon_rounded = round(lon, 2)
+    return _cached_country_lookup(lat_rounded, lon_rounded)
 
 def clear_geocoding_cache():
     """Clear the geocoding cache (useful for testing)"""
