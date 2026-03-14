@@ -5236,22 +5236,25 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     st.session_state['compact_infographic_data'] = None
                     st.rerun()
     
-    # Scenario Builder Section - lazy loaded for performance
+    # Scenario Builder Section
     st.markdown("---")
     st.subheader("🔮 Scenario Builder")
-    
-    # Track loaded state for Scenario Builder (lazy loading optimization)
-    if 'scenario_builder_loaded' not in st.session_state:
-        st.session_state.scenario_builder_loaded = False
-    
-    # Show load button directly if not yet loaded (one-click activation)
-    if not st.session_state.scenario_builder_loaded:
-        st.caption("Explore how changes to ecosystem composition and condition would affect natural capital value.")
-        if st.button("📊 Load Scenario Builder", key="load_scenario_builder_btn", type="primary"):
-            st.session_state.scenario_builder_loaded = True
-            st.rerun()
-    else:
-        # Full Scenario Builder content (already loaded)
+
+    @st.fragment
+    def render_scenario_builder(results):
+        # Track loaded state
+        if 'scenario_builder_loaded' not in st.session_state:
+            st.session_state.scenario_builder_loaded = False
+
+        # Show load button directly if not yet loaded (one-click, no full-page scroll)
+        if not st.session_state.scenario_builder_loaded:
+            st.caption("Explore how changes to ecosystem composition and condition would affect natural capital value.")
+            if st.button("📊 Load Scenario Builder", key="load_scenario_builder_btn", type="primary"):
+                st.session_state.scenario_builder_loaded = True
+                st.rerun()
+            return
+
+        # Full Scenario Builder content
         st.markdown("Explore how changes to ecosystem composition and condition would affect natural capital value.")
         
         # Get original results for comparison
@@ -5573,3 +5576,5 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 if 'scenario_results' in st.session_state:
                     del st.session_state['scenario_results']
                 st.rerun()
+
+    render_scenario_builder(results)
