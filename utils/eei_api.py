@@ -6,8 +6,11 @@ API Documentation: https://eei-stats.replit.app/api
 """
 
 import requests
+import urllib3
 from typing import List, Dict, Optional, Tuple
 import logging
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +47,8 @@ def get_eei_batch(coordinates: List[Tuple[float, float]], timeout: int = 30) -> 
             f"{EEI_API_BASE_URL}/api/eei-batch",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=timeout
+            timeout=timeout,
+            verify=False
         )
         response.raise_for_status()
         return response.json()
@@ -82,7 +86,8 @@ def get_eei_single(latitude: float, longitude: float, timeout: int = 15) -> Dict
             f"{EEI_API_BASE_URL}/api/eei-stats",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=timeout
+            timeout=timeout,
+            verify=False
         )
         response.raise_for_status()
         return response.json()
