@@ -5251,7 +5251,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             st.caption("Explore how changes to ecosystem composition and condition would affect natural capital value.")
             if st.button("📊 Load Scenario Builder", key="load_scenario_builder_btn", type="primary"):
                 st.session_state.scenario_builder_loaded = True
-                st.rerun()
+                st.rerun(scope="fragment")
             return
 
         # Full Scenario Builder content
@@ -5376,7 +5376,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     # Initialize intactness for new ecosystem from original or default to 100
                     st.session_state.scenario_eco_intactness[add_ecosystem] = original_intactness_values.get(add_ecosystem, 100)
                     st.session_state.scenario_builder_expanded = True
-                    st.rerun()
+                    st.rerun(scope="fragment")
             
             st.markdown("---")
             
@@ -5492,7 +5492,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     }
                     
                     st.success("Scenario calculated!")
-                    st.rerun()
+                    st.rerun(scope="fragment")
                     
                 except Exception as e:
                     st.error(f"Error calculating scenario: {str(e)}")
@@ -5575,6 +5575,6 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             if st.button("🗑️ Clear Scenario", type="secondary"):
                 if 'scenario_results' in st.session_state:
                     del st.session_state['scenario_results']
-                st.rerun()
+                st.rerun(scope="fragment")
 
     render_scenario_builder(results)
