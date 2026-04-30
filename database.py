@@ -36,8 +36,15 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set")
 
-# SQLAlchemy setup
-engine = create_engine(DATABASE_URL)
+# SQLAlchemy setup - pool_pre_ping reconnects automatically if Neon drops idle connections
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,       # Test connection before use, reconnect if dropped
+    pool_recycle=300,          # Recycle connections every 5 minutes
+    pool_size=5,
+    max_overflow=2,
+    connect_args={"connect_timeout": 10}
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
