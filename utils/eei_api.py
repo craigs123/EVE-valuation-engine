@@ -2,19 +2,31 @@
 EEI (Ecosystem Ecological Integrity) API Client
 Integrates with the EEI Explorer API to get ecosystem integrity metrics.
 
-API Documentation: https://eei-stats.replit.app/api
+API Documentation: https://eei-explorer-1025191764754.us-central1.run.app/api
 """
 
 import requests
 import urllib3
 from typing import List, Dict, Optional, Tuple
 import logging
+import google.auth.transport.requests
+import google.oauth2.id_token
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
-EEI_API_BASE_URL = "https://eei-stats.replit.app"
+EEI_API_BASE_URL = "https://eei-explorer-1025191764754.us-central1.run.app"
+
+
+def _get_headers() -> dict:
+    try:
+        auth_req = google.auth.transport.requests.Request()
+        token = google.oauth2.id_token.fetch_id_token(auth_req, EEI_API_BASE_URL)
+        return {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+    except Exception as e:
+        logger.warning(f"Could not fetch identity token: {e}")
+        return {"Content-Type": "application/json"}
 
 def get_eei_batch(coordinates: List[Tuple[float, float]], timeout: int = 30) -> Dict:
     """
@@ -46,7 +58,7 @@ def get_eei_batch(coordinates: List[Tuple[float, float]], timeout: int = 30) -> 
         response = requests.post(
             f"{EEI_API_BASE_URL}/api/eei-batch",
             json=payload,
-            headers={"Content-Type": "application/json"},
+            headers=_get_headers(),
             timeout=timeout,
             verify=False
         )
@@ -85,7 +97,7 @@ def get_eei_single(latitude: float, longitude: float, timeout: int = 15) -> Dict
         response = requests.post(
             f"{EEI_API_BASE_URL}/api/eei-stats",
             json=payload,
-            headers={"Content-Type": "application/json"},
+            headers=_get_headers(),
             timeout=timeout,
             verify=False
         )
