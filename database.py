@@ -4,11 +4,14 @@ Database configuration and models for Ecosystem Valuation Engine
 
 import os
 import uuid
+import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import json
 import psycopg2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -184,24 +187,13 @@ def init_database():
         # Test connection first
         with engine.connect() as connection:
             pass
-        
+
         # Create tables - but handle gracefully if they exist
         Base.metadata.create_all(bind=engine)
         return True
     except Exception as e:
         # Database not available - app should work without it
-        print(f"Database initialization warning: {e}")
-        return False
-        return True
-    except Exception as e:
-        import traceback
-        error_msg = f"Database initialization failed: {str(e)}"
-        if 'st' in globals():
-            st.error(error_msg)
-            st.error(f"Details: {traceback.format_exc()}")
-        else:
-            print(error_msg)
-            print(f"Details: {traceback.format_exc()}")
+        logger.warning(f"Database initialization warning: {e}")
         return False
 
 def test_database_connection():
@@ -243,9 +235,9 @@ class EcosystemAnalysisDB:
             try:
                 if hasattr(st, 'session_state') and 'user_id' in st.session_state:
                     session_user_id = st.session_state.get('user_id')
-            except:
-                pass  # No session state available
-            
+            except Exception as e:
+                logger.warning(f"Could not access session state for user_id: {e}")
+
             # Convert numpy types to native Python types
             clean_coordinates = convert_numpy_types(coordinates)
             clean_analysis_results = convert_numpy_types(analysis_results)
@@ -279,17 +271,18 @@ class EcosystemAnalysisDB:
             error_msg = f"Failed to save analysis: {str(e)}"
             import traceback
             traceback_msg = f"Traceback: {traceback.format_exc()}"
-            
+            logger.error(f"{error_msg}\n{traceback_msg}")
+
             # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(error_msg)
                     st.error(traceback_msg)
-            except:
+            except Exception:
                 # Fallback to print if no Streamlit context
                 print(error_msg)
                 print(traceback_msg)
-            
+
             return None
         finally:
             if db:
@@ -307,13 +300,13 @@ class EcosystemAnalysisDB:
             try:
                 if hasattr(st, 'session_state') and 'user_id' in st.session_state:
                     session_user_id = st.session_state.get('user_id')
-            except:
-                pass  # No session state available
-            
+            except Exception as e:
+                logger.warning(f"Could not access session state for user_id: {e}")
+
             session_id = user_session_id or session_user_id
             if not session_id:
                 return []
-            
+
             analyses = db.query(EcosystemAnalysis).filter(
                 EcosystemAnalysis.user_session_id == session_id
             ).order_by(EcosystemAnalysis.created_at.desc()).limit(limit).all()
@@ -333,17 +326,18 @@ class EcosystemAnalysisDB:
             return result
             
         except Exception as e:
+            logger.error(f"Failed to retrieve analyses: {e}")
             # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(f"Failed to retrieve analyses: {str(e)}")
-            except:
+            except Exception:
                 print(f"Failed to retrieve analyses: {str(e)}")
             return []
         finally:
             if db:
                 db.close()
-    
+
     @staticmethod
     def get_analysis_by_id(analysis_id: str) -> Optional[Dict]:
         """Get specific analysis by ID"""
@@ -373,10 +367,11 @@ class EcosystemAnalysisDB:
             return None
             
         except Exception as e:
+            logger.error(f"Failed to retrieve analysis: {e}")
             try:
                 if hasattr(st, 'error'):
                     st.error(f"Failed to retrieve analysis: {str(e)}")
-            except:
+            except Exception:
                 print(f"Failed to retrieve analysis: {str(e)}")
             return None
         finally:
@@ -405,9 +400,9 @@ class SavedAreaDB:
             try:
                 if hasattr(st, 'session_state') and 'user_id' in st.session_state:
                     session_user_id = st.session_state.get('user_id')
-            except:
-                pass  # No session state available
-            
+            except Exception as e:
+                logger.warning(f"Could not access session state for user_id: {e}")
+
             saved_area = SavedArea(
                 user_session_id=user_session_id or session_user_id,
                 name=name,
@@ -427,22 +422,23 @@ class SavedAreaDB:
             error_msg = f"Failed to save area: {str(e)}"
             import traceback
             traceback_msg = f"Traceback: {traceback.format_exc()}"
-            
+            logger.error(f"{error_msg}\n{traceback_msg}")
+
             # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(error_msg)
                     st.error(traceback_msg)
-            except:
+            except Exception:
                 # Fallback to print if no Streamlit context
                 print(error_msg)
                 print(traceback_msg)
-            
+
             return None
         finally:
             if db:
                 db.close()
-    
+
     @staticmethod
     def get_user_saved_areas(user_session_id: Optional[str] = None) -> List[Dict]:
         """Get user's saved areas"""
@@ -455,9 +451,9 @@ class SavedAreaDB:
             try:
                 if hasattr(st, 'session_state') and 'user_id' in st.session_state:
                     session_user_id = st.session_state.get('user_id')
-            except:
-                pass  # No session state available
-                
+            except Exception as e:
+                logger.warning(f"Could not access session state for user_id: {e}")
+
             session_id = user_session_id or session_user_id
             if not session_id:
                 return []
@@ -481,11 +477,12 @@ class SavedAreaDB:
             return result
             
         except Exception as e:
+            logger.error(f"Failed to retrieve saved areas: {e}")
             # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(f"Failed to retrieve saved areas: {str(e)}")
-            except:
+            except Exception:
                 print(f"Failed to retrieve saved areas: {str(e)}")
             return []
         finally:

@@ -11,6 +11,7 @@ from typing import List, Dict, Optional, Tuple
 import logging
 import google.auth.transport.requests
 import google.oauth2.id_token
+from utils.sampling_utils import extract_coordinates
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -126,18 +127,10 @@ def extract_eei_for_sample_points(sampling_point_data: Dict) -> Tuple[Dict[str, 
         - Dict mapping point_id to EEI value (0-1)
         - Average EEI value across all valid points (or None if no valid data)
     """
-    coordinates = []
-    point_ids = []
-    
-    for point_id, point_data in sampling_point_data.items():
-        coords = point_data.get('coordinates', {})
-        if coords and isinstance(coords, dict):
-            lat = coords.get('lat', 0)
-            lon = coords.get('lon', 0)
-            if lat != 0 or lon != 0:
-                coordinates.append((lat, lon))
-                point_ids.append(point_id)
-    
+    valid_points = extract_coordinates(sampling_point_data)
+    coordinates = [(lat, lon) for _, lat, lon in valid_points]
+    point_ids = [point_id for point_id, _, _ in valid_points]
+
     if not coordinates:
         return {}, None
     

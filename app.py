@@ -2,6 +2,8 @@
 Ecological Valuation Engine - Clean Map Implementation
 """
 
+import logging
+import math
 import streamlit as st
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
@@ -9,6 +11,16 @@ import json
 import base64
 import numpy as np
 import uuid
+from utils.sampling_utils import extract_coordinates
+from utils.analysis_helpers import (
+    _get_ecosystem_intactness_multiplier,
+    lat_to_mercator_y,
+    compute_zoom_for_bbox,
+    compute_center_from_bbox,
+    create_bbox_from_center_and_area,
+)
+
+logger = logging.getLogger(__name__)
 
 # Ultra-fast lazy loading for production performance
 @st.cache_resource(show_spinner=False, ttl=3600)
@@ -692,7 +704,6 @@ def calculate_area_optimized(coordinates):
         # Convert to approximate area in km² with latitude-corrected longitude
         # 1° latitude ≈ 111.32 km everywhere
         # 1° longitude ≈ 111.32 * cos(latitude) km
-        import math
         lat_km_per_deg = 111.32
         lon_km_per_deg = 111.32 * math.cos(math.radians(avg_lat))
         
@@ -769,7 +780,8 @@ def get_precomputed_status():
             'unique_studies': 1354,  # Static count from original research
             'performance_multiplier': 238270  # Speed improvement vs database queries
         }
-    except:
+    except Exception as e:
+        logger.warning(f"Could not load precomputed ESVD coefficients: {e}")
         return {'precomputed_available': False}
 
 def get_landcover_code_description(code: int) -> str:
@@ -777,44 +789,7 @@ def get_landcover_code_description(code: int) -> str:
     from utils.esa_landcover_codes import get_esa_description
     return get_esa_description(code)
 
-def _get_ecosystem_intactness_multiplier(ecosystem_type: str, ecosystem_intactness: Dict) -> float:
-    """
-    Get ecosystem-specific intactness multiplier with forest subtype fallback logic
-    
-    Args:
-        ecosystem_type: The ecosystem type (may include forest subtypes)
-        ecosystem_intactness: Dictionary of ecosystem intactness percentages
-        
-    Returns:
-        Multiplier value (0.0 to 1.0)
-    """
-    # First try exact match
-    if ecosystem_type in ecosystem_intactness:
-        return ecosystem_intactness[ecosystem_type] / 100.0
-    
-    # Handle case mismatch: try capitalized version
-    capitalized_type = ecosystem_type.replace('_', ' ').title()
-    if capitalized_type in ecosystem_intactness:
-        return ecosystem_intactness[capitalized_type] / 100.0
-    
-    # Handle forest subtype fallbacks
-    if 'Forest' in ecosystem_type:
-        # Try specific forest type first
-        if ecosystem_type in ecosystem_intactness:
-            return ecosystem_intactness[ecosystem_type] / 100.0
-        # Fall back to generic "Forest" if it exists (backward compatibility)
-        elif 'Forest' in ecosystem_intactness:
-            return ecosystem_intactness['Forest'] / 100.0
-        # Fall back to any available forest type
-        elif 'Temperate Forest' in ecosystem_intactness:
-            return ecosystem_intactness['Temperate Forest'] / 100.0
-        elif 'Boreal Forest' in ecosystem_intactness:
-            return ecosystem_intactness['Boreal Forest'] / 100.0
-        elif 'Tropical Forest' in ecosystem_intactness:
-            return ecosystem_intactness['Tropical Forest'] / 100.0
-    
-    # Default fallback (100% intactness)
-    return 1.0
+# _get_ecosystem_intactness_multiplier is imported from utils.analysis_helpers
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping and water body user classifications"""
@@ -2585,8 +2560,7 @@ if use_load_saved_area:
 elif use_test_area_single:
     # Define coordinates for different single ecosystem test areas (all exactly 1000 hectares)
     # Precisely calculated using latitude correction factors for each location
-    import math
-    
+
     def calculate_1000ha_coordinates(center_lat, center_lon):
         """Calculate coordinates for exactly 1000 hectares at given latitude"""
         # Side length for 1000 hectares = 3.16228 km
@@ -2739,7 +2713,6 @@ elif use_test_area_multi:
 elif use_test_area_random:
     # Generate random global coordinates for 1000ha test area
     import random
-    import math
     
     # Define global land coordinate ranges (avoiding oceans and Antarctica)
     land_regions = [
@@ -2848,110 +2821,9 @@ current_limit = st.session_state.get('max_sampling_limit', 9)
 if 'use_test_area_zoom' not in st.session_state:
     st.session_state.use_test_area_zoom = False
 
-# Dynamic zoom utility functions for optimal area display
-import math
-
-def lat_to_mercator_y(lat):
-    """Convert latitude to Web Mercator Y coordinate (0-1 scale)"""
-    lat = max(-85.05112878, min(85.05112878, lat))  # Clamp to Web Mercator bounds
-    return (1 - math.log(math.tan(math.pi/4 + math.radians(lat)/2)) / math.pi) / 2
-
-def compute_zoom_for_bbox(bbox, viewport=(950, 400), padding=0.125, map_max_zoom=20, map_min_zoom=2):
-    """Calculate optimal zoom level for a bounding box to occupy 80% of the viewport
-    Areas should take up 80% of the map display for optimal visibility with good margins"""
-    if not bbox:
-        return map_min_zoom
-    
-    try:
-        # Calculate longitude span (handle dateline crossing)
-        dlon = abs(bbox['max_lon'] - bbox['min_lon'])
-        if dlon > 180:
-            dlon = 360 - dlon
-        dx_frac = dlon / 360.0
-        
-        # Calculate latitude span using Mercator projection
-        y1 = lat_to_mercator_y(bbox['min_lat'])
-        y2 = lat_to_mercator_y(bbox['max_lat'])
-        dy_frac = abs(y2 - y1)
-        
-        # Prevent division by zero for extremely tiny spans
-        dx_frac = max(dx_frac, 1e-8)
-        dy_frac = max(dy_frac, 1e-8)
-        
-        # Target 80% viewport occupation with consistent padding
-        # 12.5% padding on each side = 80% area occupation
-        effective_padding = 0.125  # Consistent 12.5% padding for 80% viewport usage
-        
-        # Calculate zoom levels for both dimensions
-        zoom_x = math.log2(viewport[0] / (256 * (1 + effective_padding) * dx_frac))
-        zoom_y = math.log2(viewport[1] / (256 * (1 + effective_padding) * dy_frac))
-        
-        # Use the more restrictive zoom (ensures entire area fits)
-        zoom = math.floor(min(zoom_x, zoom_y))  # Floor for 80% target with good margins
-        
-        # Ensure reasonable zoom levels for different area sizes
-        # Target 80% viewport occupation for all sizes
-        if dx_frac * 360.0 < 0.05 and dy_frac < 0.05:  # Areas roughly 1000ha and smaller
-            zoom = max(zoom, 14)  # Minimum zoom 14 for 1000ha areas (80% occupation)
-        elif dx_frac * 360.0 < 0.01 and dy_frac < 0.01:  # Very small areas (10ha-100ha)
-            zoom = max(zoom, 16)  # Higher zoom for very small areas (80% occupation)
-        
-        # Clamp to map limits
-        return max(map_min_zoom, min(map_max_zoom, zoom))
-    except (ValueError, ZeroDivisionError, KeyError):
-        return map_min_zoom
-
-def compute_center_from_bbox(bbox):
-    """Calculate center coordinates from bounding box"""
-    if not bbox:
-        return 40.0, -100.0  # Default fallback
-    
-    try:
-        center_lat = (bbox['min_lat'] + bbox['max_lat']) / 2
-        
-        # Handle longitude dateline crossing
-        min_lon, max_lon = bbox['min_lon'], bbox['max_lon']
-        if abs(max_lon - min_lon) <= 180:
-            center_lon = (min_lon + max_lon) / 2
-        else:
-            # Dateline crossing - take the shorter arc
-            center_lon = ((min_lon + max_lon + 360) / 2) % 360
-            if center_lon > 180:
-                center_lon -= 360
-        
-        return center_lat, center_lon
-    except (KeyError, TypeError):
-        return 40.0, -100.0
-
-def create_bbox_from_center_and_area(center_lat, center_lon, area_ha=1000):
-    """Create synthetic bounding box from center coordinates and area size"""
-    # Calculate side length for the given area
-    side_length_km = math.sqrt(area_ha / 100)  # Convert ha to km²
-    
-    # Conversion factors
-    lat_km_per_deg = 111.32
-    lon_km_per_deg = 111.32 * math.cos(math.radians(center_lat))
-    
-    # Half-side in degrees
-    lat_half_side = (side_length_km / 2) / lat_km_per_deg
-    lon_half_side = (side_length_km / 2) / lon_km_per_deg
-    
-    # Calculate raw longitude values
-    min_lon = center_lon - lon_half_side
-    max_lon = center_lon + lon_half_side
-    
-    # Wrap longitude to valid range (-180 to 180)
-    if min_lon < -180:
-        min_lon += 360
-    if max_lon > 180:
-        max_lon -= 360
-    
-    return {
-        'min_lat': center_lat - lat_half_side,
-        'max_lat': center_lat + lat_half_side,
-        'min_lon': min_lon,
-        'max_lon': max_lon
-    }
+# Dynamic zoom utility functions imported from utils.analysis_helpers:
+# lat_to_mercator_y, compute_zoom_for_bbox, compute_center_from_bbox,
+# create_bbox_from_center_and_area
 
 # Create optimized interactive map - use dynamic zoom calculations
 if st.session_state.get('use_test_area_zoom', False):
@@ -4170,7 +4042,6 @@ if analyze_button and st.session_state.selected_area:
                                 num_ecosystems = len(ecosystem_distribution)
                                 
                                 # Calculate Shannon diversity index
-                                import math
                                 shannon_diversity = 0
                                 for eco_type, data in ecosystem_distribution.items():
                                     proportion = data['count'] / total_samples
@@ -4274,7 +4145,6 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Calculate diversity index for valuation display
                 total_points = st.session_state.detected_ecosystem['successful_queries']
-                import math
                 shannon_div = 0
                 simpson_index = 0
                 for eco_type, data in ecosystem_distribution.items():
