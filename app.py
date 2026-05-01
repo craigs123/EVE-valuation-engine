@@ -1580,7 +1580,7 @@ st.markdown("""
     <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v3.0.0</p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v3.0.1</p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Area</h2>', unsafe_allow_html=True)
 

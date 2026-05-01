@@ -142,12 +142,14 @@ def extract_eei_for_sample_points(sampling_point_data: Dict) -> Tuple[Dict[str, 
     
     point_eei_values = {}
     results = eei_response.get('results', [])
-    
-    for i, result in enumerate(results):
-        if i < len(point_ids):
-            values = result.get('values', {})
-            if values and values.get('eii') is not None:
-                point_eei_values[point_ids[i]] = values.get('eii')
+
+    if len(results) != len(point_ids):
+        logger.warning(f"EEI result count mismatch: sent {len(point_ids)}, received {len(results)}")
+
+    for point_id, result in zip(point_ids, results):
+        values = result.get('values', {})
+        if values and values.get('eii') is not None:
+            point_eei_values[point_id] = values.get('eii')
     
     averages = eei_response.get('averages', {})
     average_eei = averages.get('eii') if averages else None
