@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
+from contextlib import contextmanager
 from sqlalchemy.dialects.postgresql import UUID
 import streamlit as st
 
@@ -181,14 +182,17 @@ def initialize_user_session():
         st.session_state.user_id = str(uuid.uuid4())
     return st.session_state.user_id
 
-def get_db() -> Session:
-    """Get database session"""
+@contextmanager
+def get_db():
+    """Context manager providing a database session with automatic rollback and cleanup."""
     db = SessionLocal()
     try:
-        return db
-    except Exception as e:
+        yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
         db.close()
-        raise e
 
 def init_database():
     """Initialize database tables"""
@@ -235,131 +239,109 @@ class EcosystemAnalysisDB:
         sustainability_responses: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """Save ecosystem analysis to database"""
-        db = None
         try:
-            db = get_db()
-            
-            # Handle session state safely
-            session_user_id = None
-            try:
-                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
-                    session_user_id = st.session_state.get('user_id')
-            except Exception as e:
-                logger.warning(f"Could not access session state for user_id: {e}")
+            with get_db() as db:
+                session_user_id = None
+                try:
+                    if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                        session_user_id = st.session_state.get('user_id')
+                except Exception as e:
+                    logger.warning(f"Could not access session state for user_id: {e}")
 
-            # Convert numpy types to native Python types
-            clean_coordinates = convert_numpy_types(coordinates)
-            clean_analysis_results = convert_numpy_types(analysis_results)
-            clean_sustainability_responses = convert_numpy_types(sustainability_responses) if sustainability_responses else None
-            clean_area_hectares = float(area_hectares) if isinstance(area_hectares, np.floating) else area_hectares
-            clean_total_value = float(total_value) if isinstance(total_value, np.floating) else total_value
-            clean_value_per_hectare = float(value_per_hectare) if isinstance(value_per_hectare, np.floating) else value_per_hectare
-            
-            analysis = EcosystemAnalysis(
-                user_session_id=user_session_id or session_user_id,
-                area_name=area_name,
-                coordinates=clean_coordinates,
-                area_hectares=clean_area_hectares,
-                ecosystem_type=ecosystem_type,
-                total_value=clean_total_value,
-                value_per_hectare=clean_value_per_hectare,
-                analysis_results=clean_analysis_results,
-                sustainability_responses=clean_sustainability_responses,
-                sampling_points=sampling_points,
-                data_source=clean_analysis_results.get('data_source', 'ESVD/TEEB Database')
-            )
-            
-            db.add(analysis)
-            db.commit()
-            db.refresh(analysis)
-            
-            analysis_id = str(analysis.id)
-            return analysis_id
-            
+                clean_coordinates = convert_numpy_types(coordinates)
+                clean_analysis_results = convert_numpy_types(analysis_results)
+                clean_sustainability_responses = convert_numpy_types(sustainability_responses) if sustainability_responses else None
+                clean_area_hectares = float(area_hectares) if isinstance(area_hectares, np.floating) else area_hectares
+                clean_total_value = float(total_value) if isinstance(total_value, np.floating) else total_value
+                clean_value_per_hectare = float(value_per_hectare) if isinstance(value_per_hectare, np.floating) else value_per_hectare
+
+                analysis = EcosystemAnalysis(
+                    user_session_id=user_session_id or session_user_id,
+                    area_name=area_name,
+                    coordinates=clean_coordinates,
+                    area_hectares=clean_area_hectares,
+                    ecosystem_type=ecosystem_type,
+                    total_value=clean_total_value,
+                    value_per_hectare=clean_value_per_hectare,
+                    analysis_results=clean_analysis_results,
+                    sustainability_responses=clean_sustainability_responses,
+                    sampling_points=sampling_points,
+                    data_source=clean_analysis_results.get('data_source', 'ESVD/TEEB Database')
+                )
+
+                db.add(analysis)
+                db.commit()
+                db.refresh(analysis)
+                return str(analysis.id)
+
         except Exception as e:
-            error_msg = f"Failed to save analysis: {str(e)}"
             import traceback
+            error_msg = f"Failed to save analysis: {str(e)}"
             traceback_msg = f"Traceback: {traceback.format_exc()}"
             logger.error(f"{error_msg}\n{traceback_msg}")
-
-            # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(error_msg)
                     st.error(traceback_msg)
             except Exception:
-                # Fallback to print if no Streamlit context
                 print(error_msg)
                 print(traceback_msg)
-
             return None
-        finally:
-            if db:
-                db.close()
     
     @staticmethod
     def get_user_analyses(user_session_id: Optional[str] = None, limit: int = 10) -> List[Dict]:
         """Get user's recent analyses"""
-        db = None
         try:
-            db = get_db()
-            
-            # Handle session state safely
-            session_user_id = None
-            try:
-                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
-                    session_user_id = st.session_state.get('user_id')
-            except Exception as e:
-                logger.warning(f"Could not access session state for user_id: {e}")
+            with get_db() as db:
+                session_user_id = None
+                try:
+                    if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                        session_user_id = st.session_state.get('user_id')
+                except Exception as e:
+                    logger.warning(f"Could not access session state for user_id: {e}")
 
-            session_id = user_session_id or session_user_id
-            if not session_id:
-                return []
+                session_id = user_session_id or session_user_id
+                if not session_id:
+                    return []
 
-            analyses = db.query(EcosystemAnalysis).filter(
-                EcosystemAnalysis.user_session_id == session_id
-            ).order_by(EcosystemAnalysis.created_at.desc()).limit(limit).all()
-            
-            result = []
-            for analysis in analyses:
-                result.append({
-                    'id': str(analysis.id),
-                    'area_name': analysis.area_name,
-                    'ecosystem_type': analysis.ecosystem_type,
-                    'total_value': analysis.total_value,
-                    'area_hectares': analysis.area_hectares,
-                    'created_at': analysis.created_at,
-                    'coordinates': analysis.coordinates
-                })
-            
-            return result
-            
+                analyses = db.query(EcosystemAnalysis).filter(
+                    EcosystemAnalysis.user_session_id == session_id
+                ).order_by(EcosystemAnalysis.created_at.desc()).limit(limit).all()
+
+                return [
+                    {
+                        'id': str(a.id),
+                        'area_name': a.area_name,
+                        'ecosystem_type': a.ecosystem_type,
+                        'total_value': a.total_value,
+                        'area_hectares': a.area_hectares,
+                        'created_at': a.created_at,
+                        'coordinates': a.coordinates,
+                    }
+                    for a in analyses
+                ]
+
         except Exception as e:
             logger.error(f"Failed to retrieve analyses: {e}")
-            # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(f"Failed to retrieve analyses: {str(e)}")
             except Exception:
                 print(f"Failed to retrieve analyses: {str(e)}")
             return []
-        finally:
-            if db:
-                db.close()
 
     @staticmethod
     def get_analysis_by_id(analysis_id: str) -> Optional[Dict]:
         """Get specific analysis by ID"""
-        db = None
         try:
-            db = get_db()
-            
-            analysis = db.query(EcosystemAnalysis).filter(
-                EcosystemAnalysis.id == analysis_id
-            ).first()
-            
-            if analysis:
-                result = {
+            with get_db() as db:
+                analysis = db.query(EcosystemAnalysis).filter(
+                    EcosystemAnalysis.id == analysis_id
+                ).first()
+
+                if not analysis:
+                    return None
+                return {
                     'id': str(analysis.id),
                     'area_name': analysis.area_name,
                     'coordinates': analysis.coordinates,
@@ -369,12 +351,9 @@ class EcosystemAnalysisDB:
                     'value_per_hectare': analysis.value_per_hectare,
                     'analysis_results': analysis.analysis_results,
                     'sampling_points': analysis.sampling_points,
-                    'created_at': analysis.created_at
+                    'created_at': analysis.created_at,
                 }
-                return result
-            
-            return None
-            
+
         except Exception as e:
             logger.error(f"Failed to retrieve analysis: {e}")
             try:
@@ -383,9 +362,6 @@ class EcosystemAnalysisDB:
             except Exception:
                 print(f"Failed to retrieve analysis: {str(e)}")
             return None
-        finally:
-            if db:
-                db.close()
 
 # Database operations for saved areas
 class SavedAreaDB:
@@ -400,103 +376,83 @@ class SavedAreaDB:
         user_session_id: Optional[str] = None
     ) -> Optional[str]:
         """Save area for future analysis"""
-        db = None
         try:
-            db = get_db()
-            
-            # Handle session state safely
-            session_user_id = None
-            try:
-                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
-                    session_user_id = st.session_state.get('user_id')
-            except Exception as e:
-                logger.warning(f"Could not access session state for user_id: {e}")
+            with get_db() as db:
+                session_user_id = None
+                try:
+                    if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                        session_user_id = st.session_state.get('user_id')
+                except Exception as e:
+                    logger.warning(f"Could not access session state for user_id: {e}")
 
-            saved_area = SavedArea(
-                user_session_id=user_session_id or session_user_id,
-                name=name,
-                description=description,
-                coordinates=coordinates,
-                area_hectares=area_hectares
-            )
-            
-            db.add(saved_area)
-            db.commit()
-            db.refresh(saved_area)
-            
-            area_id = str(saved_area.id)
-            return area_id
-            
+                saved_area = SavedArea(
+                    user_session_id=user_session_id or session_user_id,
+                    name=name,
+                    description=description,
+                    coordinates=coordinates,
+                    area_hectares=area_hectares
+                )
+
+                db.add(saved_area)
+                db.commit()
+                db.refresh(saved_area)
+                return str(saved_area.id)
+
         except Exception as e:
-            error_msg = f"Failed to save area: {str(e)}"
             import traceback
+            error_msg = f"Failed to save area: {str(e)}"
             traceback_msg = f"Traceback: {traceback.format_exc()}"
             logger.error(f"{error_msg}\n{traceback_msg}")
-
-            # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(error_msg)
                     st.error(traceback_msg)
             except Exception:
-                # Fallback to print if no Streamlit context
                 print(error_msg)
                 print(traceback_msg)
-
             return None
-        finally:
-            if db:
-                db.close()
 
     @staticmethod
     def get_user_saved_areas(user_session_id: Optional[str] = None) -> List[Dict]:
         """Get user's saved areas"""
-        db = None
         try:
-            db = get_db()
-            
-            # Handle session state safely
-            session_user_id = None
-            try:
-                if hasattr(st, 'session_state') and 'user_id' in st.session_state:
-                    session_user_id = st.session_state.get('user_id')
-            except Exception as e:
-                logger.warning(f"Could not access session state for user_id: {e}")
+            with get_db() as db:
+                session_user_id = None
+                try:
+                    if hasattr(st, 'session_state') and 'user_id' in st.session_state:
+                        session_user_id = st.session_state.get('user_id')
+                except Exception as e:
+                    logger.warning(f"Could not access session state for user_id: {e}")
 
-            session_id = user_session_id or session_user_id
-            if not session_id:
-                return []
-            
-            areas = db.query(SavedArea).filter(
-                SavedArea.user_session_id == session_id
-            ).order_by(SavedArea.updated_at.desc()).all()
-            
-            result = []
-            for area in areas:
-                result.append({
-                    'id': str(area.id),
-                    'name': area.name,
-                    'description': area.description,
-                    'coordinates': area.coordinates,
-                    'area_hectares': area.area_hectares,
-                    'is_favorite': area.is_favorite,
-                    'created_at': area.created_at
-                })
-            
-            return result
-            
+                session_id = user_session_id or session_user_id
+                if not session_id:
+                    return []
+
+                areas = db.query(SavedArea).filter(
+                    SavedArea.user_session_id == session_id
+                ).order_by(SavedArea.updated_at.desc()).all()
+
+                return [
+                    {
+                        'id': str(a.id),
+                        'name': a.name,
+                        'description': a.description,
+                        'coordinates': a.coordinates,
+                        'area_hectares': a.area_hectares,
+                        'is_favorite': a.is_favorite,
+                        'created_at': a.created_at,
+                    }
+                    for a in areas
+                ]
+
         except Exception as e:
             logger.error(f"Failed to retrieve saved areas: {e}")
-            # Try to show error in Streamlit if available
             try:
                 if hasattr(st, 'error'):
                     st.error(f"Failed to retrieve saved areas: {str(e)}")
             except Exception:
                 print(f"Failed to retrieve saved areas: {str(e)}")
             return []
-        finally:
-            if db:
-                db.close()
 
 # Database operations for natural capital baselines
 class NaturalCapitalBaselineDB:
@@ -514,57 +470,50 @@ class NaturalCapitalBaselineDB:
     ) -> Optional[str]:
         """Create a natural capital baseline from analysis results"""
         try:
-            db = get_db()
-            
-            # Extract service values from analysis results
-            esvd_data = analysis_results.get('esvd_results', {})
-            provisioning = esvd_data.get('provisioning', {}).get('total', 0)
-            regulating = esvd_data.get('regulating', {}).get('total', 0)
-            cultural = esvd_data.get('cultural', {}).get('total', 0)
-            supporting = esvd_data.get('supporting', {}).get('total', 0)
-            
-            # Calculate environmental indicators if available
-            detected_ecosystem = st.session_state.get('detected_ecosystem', {})
-            vegetation_health = detected_ecosystem.get('confidence', 0.5)
-            biodiversity_index = 0
-            
-            # Calculate biodiversity if multiple ecosystems detected
-            if 'ecosystem_distribution' in detected_ecosystem:
-                import math
-                ecosystem_distribution = detected_ecosystem['ecosystem_distribution']
-                total_points = detected_ecosystem.get('successful_queries', 1)
-                for eco_type, data in ecosystem_distribution.items():
-                    proportion = data['count'] / total_points
-                    if proportion > 0:
-                        biodiversity_index -= proportion * math.log(proportion)
-            
-            baseline = NaturalCapitalBaseline(
-                area_id=area_id,
-                user_session_id=user_session_id or st.session_state.get('user_id'),
-                baseline_date=datetime.utcnow(),
-                ecosystem_type=ecosystem_type,
-                total_baseline_value=analysis_results['total_value'],
-                provisioning_baseline=provisioning,
-                regulating_baseline=regulating,
-                cultural_baseline=cultural,
-                supporting_baseline=supporting,
-                vegetation_health_index=vegetation_health,
-                biodiversity_index=biodiversity_index,
-                data_quality_score=detected_ecosystem.get('confidence', 0.5),
-                coordinates=coordinates,
-                area_hectares=area_hectares,
-                sampling_points=sampling_points,
-                source_coefficients=esvd_data
-            )
-            
-            db.add(baseline)
-            db.commit()
-            db.refresh(baseline)
-            
-            baseline_id = str(baseline.id)
-            db.close()
-            return baseline_id
-            
+            with get_db() as db:
+                esvd_data = analysis_results.get('esvd_results', {})
+                provisioning = esvd_data.get('provisioning', {}).get('total', 0)
+                regulating = esvd_data.get('regulating', {}).get('total', 0)
+                cultural = esvd_data.get('cultural', {}).get('total', 0)
+                supporting = esvd_data.get('supporting', {}).get('total', 0)
+
+                detected_ecosystem = st.session_state.get('detected_ecosystem', {})
+                vegetation_health = detected_ecosystem.get('confidence', 0.5)
+                biodiversity_index = 0
+
+                if 'ecosystem_distribution' in detected_ecosystem:
+                    import math
+                    ecosystem_distribution = detected_ecosystem['ecosystem_distribution']
+                    total_points = detected_ecosystem.get('successful_queries', 1)
+                    for eco_type, data in ecosystem_distribution.items():
+                        proportion = data['count'] / total_points
+                        if proportion > 0:
+                            biodiversity_index -= proportion * math.log(proportion)
+
+                baseline = NaturalCapitalBaseline(
+                    area_id=area_id,
+                    user_session_id=user_session_id or st.session_state.get('user_id'),
+                    baseline_date=datetime.utcnow(),
+                    ecosystem_type=ecosystem_type,
+                    total_baseline_value=analysis_results['total_value'],
+                    provisioning_baseline=provisioning,
+                    regulating_baseline=regulating,
+                    cultural_baseline=cultural,
+                    supporting_baseline=supporting,
+                    vegetation_health_index=vegetation_health,
+                    biodiversity_index=biodiversity_index,
+                    data_quality_score=detected_ecosystem.get('confidence', 0.5),
+                    coordinates=coordinates,
+                    area_hectares=area_hectares,
+                    sampling_points=sampling_points,
+                    source_coefficients=esvd_data
+                )
+
+                db.add(baseline)
+                db.commit()
+                db.refresh(baseline)
+                return str(baseline.id)
+
         except Exception as e:
             st.error(f"Failed to create baseline: {str(e)}")
             return None
@@ -573,14 +522,14 @@ class NaturalCapitalBaselineDB:
     def get_area_baseline(area_id: str) -> Optional[Dict]:
         """Get the most recent baseline for an area"""
         try:
-            db = get_db()
-            
-            baseline = db.query(NaturalCapitalBaseline).filter(
-                NaturalCapitalBaseline.area_id == area_id
-            ).order_by(NaturalCapitalBaseline.baseline_date.desc()).first()
-            
-            if baseline:
-                result = {
+            with get_db() as db:
+                baseline = db.query(NaturalCapitalBaseline).filter(
+                    NaturalCapitalBaseline.area_id == area_id
+                ).order_by(NaturalCapitalBaseline.baseline_date.desc()).first()
+
+                if not baseline:
+                    return None
+                return {
                     'id': str(baseline.id),
                     'baseline_date': baseline.baseline_date,
                     'ecosystem_type': baseline.ecosystem_type,
@@ -592,14 +541,9 @@ class NaturalCapitalBaselineDB:
                     'vegetation_health_index': baseline.vegetation_health_index,
                     'biodiversity_index': baseline.biodiversity_index,
                     'area_hectares': baseline.area_hectares,
-                    'data_quality_score': baseline.data_quality_score
+                    'data_quality_score': baseline.data_quality_score,
                 }
-                db.close()
-                return result
-            
-            db.close()
-            return None
-            
+
         except Exception as e:
             st.error(f"Failed to retrieve baseline: {str(e)}")
             return None
@@ -611,86 +555,77 @@ class NaturalCapitalBaselineDB:
     ) -> Optional[Dict]:
         """Compare current analysis to baseline and create trend data"""
         try:
-            db = get_db()
-            
-            baseline = db.query(NaturalCapitalBaseline).filter(
-                NaturalCapitalBaseline.id == baseline_id
-            ).first()
-            
-            if baseline is None:
-                return None
-            
-            # Calculate changes - ensure we use actual values not column objects
-            baseline_value = float(baseline.total_baseline_value) if baseline.total_baseline_value is not None else 0.0
-            current_value = float(current_analysis['total_value'])
-            total_change = current_value - baseline_value
-            percent_change = (total_change / baseline_value) * 100 if baseline_value > 0 else 0
-            
-            # Determine trend direction
-            if abs(percent_change) < 5:
-                trend_direction = 'stable'
-            elif percent_change > 0:
-                trend_direction = 'improving'
-            else:
-                trend_direction = 'declining'
-            
-            # Extract current service values
-            esvd_data = current_analysis.get('esvd_results', {})
-            current_provisioning = esvd_data.get('provisioning', {}).get('total', 0)
-            current_regulating = esvd_data.get('regulating', {}).get('total', 0)
-            current_cultural = esvd_data.get('cultural', {}).get('total', 0)
-            current_supporting = esvd_data.get('supporting', {}).get('total', 0)
-            
-            provisioning_change = current_provisioning - (baseline.provisioning_baseline if baseline.provisioning_baseline is not None else 0.0)
-            regulating_change = current_regulating - (baseline.regulating_baseline if baseline.regulating_baseline is not None else 0.0)
-            cultural_change = current_cultural - (baseline.cultural_baseline if baseline.cultural_baseline is not None else 0.0)
-            supporting_change = current_supporting - (baseline.supporting_baseline if baseline.supporting_baseline is not None else 0.0)
-            
-            # Create trend record
-            trend = NaturalCapitalTrend(
-                baseline_id=baseline_id,
-                area_id=baseline.area_id,
-                measurement_date=datetime.utcnow(),
-                total_value_change=total_change,
-                percent_change=percent_change,
-                provisioning_change=provisioning_change,
-                regulating_change=regulating_change,
-                cultural_change=cultural_change,
-                supporting_change=supporting_change,
-                trend_direction=trend_direction,
-                confidence_level=current_analysis.get('data_quality_score', 0.5)
-            )
-            
-            db.add(trend)
-            db.commit()
-            db.refresh(trend)
-            
-            # Return comparison results
-            result = {
-                'trend_id': str(trend.id),
-                'baseline_date': baseline.baseline_date,
-                'measurement_date': trend.measurement_date,
-                'total_change': total_change,
-                'percent_change': percent_change,
-                'trend_direction': trend_direction,
-                'service_changes': {
-                    'provisioning': provisioning_change,
-                    'regulating': regulating_change,
-                    'cultural': cultural_change,
-                    'supporting': supporting_change
-                },
-                'baseline_values': {
-                    'total': baseline.total_baseline_value,
-                    'provisioning': baseline.provisioning_baseline,
-                    'regulating': baseline.regulating_baseline,
-                    'cultural': baseline.cultural_baseline,
-                    'supporting': baseline.supporting_baseline
+            with get_db() as db:
+                baseline = db.query(NaturalCapitalBaseline).filter(
+                    NaturalCapitalBaseline.id == baseline_id
+                ).first()
+
+                if baseline is None:
+                    return None
+
+                baseline_value = float(baseline.total_baseline_value) if baseline.total_baseline_value is not None else 0.0
+                current_value = float(current_analysis['total_value'])
+                total_change = current_value - baseline_value
+                percent_change = (total_change / baseline_value) * 100 if baseline_value > 0 else 0
+
+                if abs(percent_change) < 5:
+                    trend_direction = 'stable'
+                elif percent_change > 0:
+                    trend_direction = 'improving'
+                else:
+                    trend_direction = 'declining'
+
+                esvd_data = current_analysis.get('esvd_results', {})
+                current_provisioning = esvd_data.get('provisioning', {}).get('total', 0)
+                current_regulating = esvd_data.get('regulating', {}).get('total', 0)
+                current_cultural = esvd_data.get('cultural', {}).get('total', 0)
+                current_supporting = esvd_data.get('supporting', {}).get('total', 0)
+
+                provisioning_change = current_provisioning - (baseline.provisioning_baseline or 0.0)
+                regulating_change = current_regulating - (baseline.regulating_baseline or 0.0)
+                cultural_change = current_cultural - (baseline.cultural_baseline or 0.0)
+                supporting_change = current_supporting - (baseline.supporting_baseline or 0.0)
+
+                trend = NaturalCapitalTrend(
+                    baseline_id=baseline_id,
+                    area_id=baseline.area_id,
+                    measurement_date=datetime.utcnow(),
+                    total_value_change=total_change,
+                    percent_change=percent_change,
+                    provisioning_change=provisioning_change,
+                    regulating_change=regulating_change,
+                    cultural_change=cultural_change,
+                    supporting_change=supporting_change,
+                    trend_direction=trend_direction,
+                    confidence_level=current_analysis.get('data_quality_score', 0.5)
+                )
+
+                db.add(trend)
+                db.commit()
+                db.refresh(trend)
+
+                return {
+                    'trend_id': str(trend.id),
+                    'baseline_date': baseline.baseline_date,
+                    'measurement_date': trend.measurement_date,
+                    'total_change': total_change,
+                    'percent_change': percent_change,
+                    'trend_direction': trend_direction,
+                    'service_changes': {
+                        'provisioning': provisioning_change,
+                        'regulating': regulating_change,
+                        'cultural': cultural_change,
+                        'supporting': supporting_change,
+                    },
+                    'baseline_values': {
+                        'total': baseline.total_baseline_value,
+                        'provisioning': baseline.provisioning_baseline,
+                        'regulating': baseline.regulating_baseline,
+                        'cultural': baseline.cultural_baseline,
+                        'supporting': baseline.supporting_baseline,
+                    },
                 }
-            }
-            
-            db.close()
-            return result
-            
+
         except Exception as e:
             st.error(f"Failed to compare to baseline: {str(e)}")
             return None

@@ -1580,7 +1580,7 @@ st.markdown("""
     <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v3.0.1</p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v3.0.2</p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Area</h2>', unsafe_allow_html=True)
 
@@ -2326,32 +2326,25 @@ Example: 100ha Forest
             # Get baselines for current user
             try:
                 from database import get_db, NaturalCapitalBaseline
-                db = get_db()
-                baselines = db.query(NaturalCapitalBaseline).filter(
-                    NaturalCapitalBaseline.user_session_id == st.session_state.get('user_id')
-                ).order_by(NaturalCapitalBaseline.baseline_date.desc()).limit(5).all()
-                
-                if baselines:
-                    for baseline in baselines:
-                        with st.container():
-                            st.markdown(f"**{baseline.ecosystem_type} Baseline**")
-                            st.caption(f"${baseline.total_baseline_value:,.0f} • {baseline.area_hectares:.0f} ha • {baseline.baseline_date.strftime('%Y-%m-%d')}")
-                            
-                            # Show breakdown
-                            st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
-                            
-                            try:
-                                if hasattr(baseline, 'biodiversity_index') and baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
-                                    st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
-                            except Exception:
-                                pass  # Skip biodiversity index if not available
-                            
-                            
-                    st.caption("P=Provisioning, R=Regulating, C=Cultural, S=Supporting")
-                else:
-                    st.info("No baselines established yet. Set a baseline after running an analysis.")
-                
-                db.close()
+                with get_db() as db:
+                    baselines = db.query(NaturalCapitalBaseline).filter(
+                        NaturalCapitalBaseline.user_session_id == st.session_state.get('user_id')
+                    ).order_by(NaturalCapitalBaseline.baseline_date.desc()).limit(5).all()
+
+                    if baselines:
+                        for baseline in baselines:
+                            with st.container():
+                                st.markdown(f"**{baseline.ecosystem_type} Baseline**")
+                                st.caption(f"${baseline.total_baseline_value:,.0f} • {baseline.area_hectares:.0f} ha • {baseline.baseline_date.strftime('%Y-%m-%d')}")
+                                st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
+                                try:
+                                    if hasattr(baseline, 'biodiversity_index') and baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
+                                        st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
+                                except Exception:
+                                    pass
+                        st.caption("P=Provisioning, R=Regulating, C=Cultural, S=Supporting")
+                    else:
+                        st.info("No baselines established yet. Set a baseline after running an analysis.")
             except Exception as e:
                 st.error(f"Failed to load baselines: {str(e)}")
         
