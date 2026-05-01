@@ -47,7 +47,6 @@ HTTP_ENV = {
     'GDAL_HTTP_VERSION': '2',
     'CPL_VSIL_CURL_VERBOSE': 'NO',
     'GDAL_NUM_THREADS': 'ALL_CPUS',
-    'VSI_CACHE_SIZE': '50000000',
     'GDAL_CACHEMAX': 512  # Limit GDAL memory cache to 512MB
 }
 
