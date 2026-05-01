@@ -1587,7 +1587,7 @@ st.markdown("""
     <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v3.1.2</p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v3.1.3</p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Choose a test area, load a saved area, or draw your own on the map</h2>', unsafe_allow_html=True)
 
@@ -3108,8 +3108,10 @@ with col3_map:
             analyze_button = st.session_state.get('analysis_in_progress', False)
     else:
         st.markdown("""
-        <div style='font-size:0.82rem; color:#388E3C; padding:0.5rem 0;'>
-            ✏️ Draw a polygon or rectangle on the map to select your area.
+        <div style='font-size:0.95rem; font-weight:600; color:#1B5E20;
+                    background:#E8F5E9; border-left:4px solid #2E7D32;
+                    border-radius:0 6px 6px 0; padding:0.6rem 0.75rem; margin-top:0.5rem;'>
+            ✏️ Draw a polygon or rectangle on the map to select your area
         </div>
         """, unsafe_allow_html=True)
 
