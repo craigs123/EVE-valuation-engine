@@ -794,8 +794,7 @@ def clear_analysis_cache():
         # Scenario and display state
         'summary_metrics', 'regional_adjustment_factor',
         'scenario_results', 'scenario_distribution', 'scenario_eco_intactness',
-        'scenario_builder_expanded', 'show_infographic', 'current_infographic',
-        'compact_infographic_data',
+        'scenario_builder_expanded',
     ]
     for key in delete_keys:
         if key in st.session_state:
@@ -1571,7 +1570,7 @@ loading_placeholder.empty()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.1.4</span>
+    <span class="version-text">v3.1.5</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1594,8 +1593,7 @@ def reset_analysis_state():
     keys_to_clear = [
         'analysis_results', 'detected_ecosystem', 'summary_metrics',
         'regional_adjustment_factor', 'scenario_results', 'scenario_distribution',
-        'scenario_eco_intactness', 'scenario_builder_expanded', 'show_infographic',
-        'current_infographic', 'compact_infographic_data', 'calculation_ready'
+        'scenario_eco_intactness', 'scenario_builder_expanded', 'calculation_ready'
     ]
     for key in keys_to_clear:
         if key in st.session_state:
@@ -4768,98 +4766,6 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         if st.button("📊 Switch to Summary View", type="secondary"):
             st.session_state['analysis_detail'] = 'Summary Analysis'
             st.rerun()
-    # Generate Infographic button at the bottom
-    results = st.session_state.get('analysis_results')
-    if results:
-        if st.button("📸 Generate Infographic", type="secondary", key="generate_infographic_bottom"):
-            try:
-                from utils.infographic_generator import generate_results_infographic
-                
-                with st.spinner("Creating your infographic..."):
-                    area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
-                    infographic_b64 = generate_results_infographic(
-                        results=results,
-                        area_name=area_name,
-                        style='full'
-                    )
-                    st.session_state['current_infographic'] = infographic_b64
-                    st.session_state['show_infographic'] = True
-                    st.success("Infographic created!")
-                    st.rerun()
-                    
-            except Exception as e:
-                st.error(f"Failed to generate infographic: {str(e)}")
-                st.info("Try again or contact support if the issue persists.")
-        
-        # Social Media Infographic Display and Download
-        if st.session_state.get('show_infographic', False) and st.session_state.get('current_infographic'):
-            
-            st.subheader("📸 Social Media Infographic")
-            
-            col_info1, col_info2 = st.columns([2, 1])
-            
-            with col_info1:
-                infographic_b64 = st.session_state['current_infographic']
-                st.image(f"data:image/png;base64,{infographic_b64}", 
-                        caption="Your Ecosystem Analysis Infographic", 
-                        use_container_width=True)
-                
-                st.info("""
-                **Perfect for sharing on:**
-                - LinkedIn (professional environmental content)
-                - Twitter/X (sustainability discussions) 
-                - Instagram (environmental awareness)
-                - Research presentations and reports
-                """)
-            
-            with col_info2:
-                st.markdown("**Download Options**")
-                
-                st.download_button(
-                    label="📥 Download PNG",
-                    data=base64.b64decode(infographic_b64),
-                    file_name=f"ecosystem_infographic_{datetime.now().strftime('%Y%m%d_%H%M')}.png",
-                    mime="image/png",
-                    type="primary"
-                )
-                
-                if st.button("🎯 Compact Version", type="secondary", key="compact_infographic_btn"):
-                    try:
-                        from utils.infographic_generator import generate_results_infographic
-                        
-                        with st.spinner("Creating compact version..."):
-                            area_name = st.session_state.get('current_area_name', 'Ecosystem Analysis')
-                            compact_b64 = generate_results_infographic(
-                                results=results,
-                                area_name=area_name,
-                                style='compact'
-                            )
-                            st.session_state['compact_infographic_data'] = compact_b64
-                            st.success("Compact version ready!")
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
-                
-                if st.session_state.get('compact_infographic_data'):
-                    st.markdown("**Compact Version:**")
-                    compact_b64 = st.session_state['compact_infographic_data']
-                    st.image(f"data:image/png;base64,{compact_b64}", 
-                            caption="Compact Summary Card", 
-                            width=300)
-                    
-                    st.download_button(
-                        label="📥 Download Compact",
-                        data=base64.b64decode(compact_b64),
-                        file_name=f"ecosystem_summary_{datetime.now().strftime('%Y%m%d_%H%M')}.png",
-                        mime="image/png"
-                    )
-                
-                if st.button("🗑️ Clear Infographics", type="secondary"):
-                    st.session_state['show_infographic'] = False
-                    st.session_state['current_infographic'] = None
-                    st.session_state['compact_infographic_data'] = None
-                    st.rerun()
-    
     # Scenario Builder Section
     st.markdown("---")
     st.subheader("🔮 Scenario Builder")
