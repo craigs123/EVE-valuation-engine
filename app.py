@@ -2998,47 +2998,6 @@ with col2_map:
     </div>
     """, unsafe_allow_html=True)
     
-    if not st.session_state.get('area_coordinates') and not use_test_area:
-        st.markdown("""
-        <style>
-        .map-draw-prompt {
-            position: relative;
-            width: 100%;
-            height: 400px;
-            background: rgba(232, 245, 233, 0.85);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            margin-bottom: -400px;
-            z-index: 9;
-            pointer-events: none;
-        }
-        .map-draw-prompt-icon {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .map-draw-prompt-text {
-            color: #1B5E20;
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-align: center;
-        }
-        .map-draw-prompt-sub {
-            color: #388E3C;
-            font-size: 0.85rem;
-            text-align: center;
-            margin-top: 0.25rem;
-        }
-        </style>
-        <div class="map-draw-prompt">
-            <div class="map-draw-prompt-icon">✏️</div>
-            <div class="map-draw-prompt-text">Draw a polygon or rectangle on the map</div>
-            <div class="map-draw-prompt-sub">Use the drawing tools in the top-left corner of the map</div>
-        </div>
-        """, unsafe_allow_html=True)
-
     map_data = st_folium(
         m,
         width="100%",  # Responsive width for all device sizes
