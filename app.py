@@ -276,7 +276,7 @@ st.markdown("""
             font-weight: 700 !important;
             color: #1B5E20 !important;
             padding: 0.35rem 0.75rem !important;
-            margin: 1.25rem 0 0.6rem 0 !important;
+            margin: 0.5rem 0 0.6rem 0 !important;
             border-left: 4px solid #2E7D32 !important;
             background: linear-gradient(90deg, #E8F5E9 0%, transparent 100%) !important;
             border-radius: 0 4px 4px 0 !important;
@@ -450,8 +450,8 @@ st.markdown("""
             padding: 1rem 0 0.5rem 0;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            margin-bottom: 0.5rem;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
             border-bottom: 2px solid #E8F5E9;
             background: none !important;
             background-image: none !important;
@@ -480,7 +480,7 @@ st.markdown("""
             font-size: 0.9rem !important;
             color: #9CA3AF !important;
             margin: 0 !important;
-            padding: 0 0 0.5rem 0 !important;
+            padding: 0 !important;
         }
         .version-text a {
             color: #6B7280 !important;
@@ -1515,19 +1515,6 @@ st.markdown("""
     font-size: 0.8rem;
     font-weight: 500;
 }
-/* Version info text */
-.version-text {
-    text-align: center;
-    font-weight: bold;
-    font-size: 0.9rem;
-    color: #666;
-    margin: 0;
-    padding: 0;
-}
-.version-text a {
-    color: #0891b2;
-    text-decoration: none;
-}
 /* Area selection label */
 .area-select-label {
     font-size: 1.1em;
@@ -1583,13 +1570,12 @@ loading_placeholder.empty()
 # Clean text-only header - Professional Dashboard Style
 st.markdown("""
 <div class="header-container">
-    <span class="header-icon">🌱</span>
-    <span class="header-text">Ecological Valuation Engine</span>
+    <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
+    <span class="version-text">v3.1.4</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v3.1.3</p>', unsafe_allow_html=True)
 
-st.markdown('<h2 class="section-header">🗺️ Choose a test area, load a saved area, or draw your own on the map</h2>', unsafe_allow_html=True)
+st.markdown('<h3 class="section-header">🗺️ Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
 
 
 # Initialize session state
@@ -3094,7 +3080,6 @@ with col3_map:
         if 'analysis_detail' not in st.session_state:
             st.session_state.analysis_detail = 'Summary Analysis'
         if st.button('🚀 Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
-            st.toast('🔄 Starting ecosystem analysis...', icon='🛰️')
             analyze_button = True
             st.session_state.analysis_in_progress = True
             if 'sampling_point_data' in st.session_state:
