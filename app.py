@@ -1587,7 +1587,7 @@ st.markdown("""
     <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v3.0.2</p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v3.1.0</p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Step 1: Select Area</h2>', unsafe_allow_html=True)
 
@@ -2965,7 +2965,7 @@ else:
 
 # Ultra-optimized map display with performance settings - two-thirds width
 from streamlit_folium import st_folium
-col1_map, col2_map, col3_map = st.columns([0.5, 2, 0.5])
+col1_map, col2_map, col3_map = st.columns([0.3, 2, 1.1])
 with col2_map:
     # Loading message that shows until map iframe loads
     st.markdown("""
@@ -3111,223 +3111,50 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
     else:
         st.warning("Please draw a polygon or rectangle area")
 
-# Display coordinates of selected area using pre-cached calculations
-if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
-    coords = st.session_state.area_coordinates
-    
-    # Use pre-cached bbox if available, otherwise calculate (with error handling)
-    if 'cached_bbox' in st.session_state and st.session_state.cached_bbox:
-        bbox = st.session_state.cached_bbox
+with col3_map:
+    analyze_button = False
+    if st.session_state.get('selected_area'):
+        # Compact coordinates
+        if st.session_state.get('area_coordinates'):
+            coords = st.session_state.area_coordinates
+            if 'cached_bbox' in st.session_state and st.session_state.cached_bbox:
+                bbox = st.session_state.cached_bbox
+            else:
+                try:
+                    bbox = calculate_bbox_optimized(coords)
+                    st.session_state.cached_bbox = bbox
+                except Exception:
+                    bbox = None
+            if bbox:
+                st.markdown(f"""
+                <div style='font-size:0.78rem; color:#2E7D32; line-height:1.8; padding:0.3rem 0 0.6rem 0;'>
+                    <strong>📍 Selected area</strong><br>
+                    Lat: {bbox['min_lat']:.4f} – {bbox['max_lat']:.4f}<br>
+                    Lon: {bbox['min_lon']:.4f} – {bbox['max_lon']:.4f}
+                </div>
+                """, unsafe_allow_html=True)
+
+        if 'analysis_detail' not in st.session_state:
+            st.session_state.analysis_detail = 'Summary Analysis'
+        if st.button('🚀 Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
+            st.toast('🔄 Starting ecosystem analysis...', icon='🛰️')
+            analyze_button = True
+            st.session_state.analysis_in_progress = True
+            if 'sampling_point_data' in st.session_state:
+                for point_data in st.session_state.sampling_point_data.values():
+                    if 'user_classified' in point_data:
+                        del point_data['user_classified']
+                    if point_data.get('landcover_class') == 210:
+                        if 'ecosystem_type' in point_data:
+                            del point_data['ecosystem_type']
+        else:
+            analyze_button = st.session_state.get('analysis_in_progress', False)
     else:
-        try:
-            bbox = calculate_bbox_optimized(coords)
-            st.session_state.cached_bbox = bbox
-        except Exception as e:
-            st.error(f"Error processing coordinates: {e}")
-            bbox = None
-    
-    st.markdown('<div class="small-coordinates">', unsafe_allow_html=True)
-    st.markdown("### 📍 Selected Area Coordinates")
-    
-    # Display cached bounding box
-    if bbox:
-        st.markdown(f"""
-        <div class="coordinate-bounds">
-            <div class="progress-row">
-                <span><span class="metric-label">Min Lat:</span> <span class="metric-value">{bbox['min_lat']:.6f}</span></span>
-                <span><span class="metric-label">Min Lon:</span> <span class="metric-value">{bbox['min_lon']:.6f}</span></span>
-            </div>
-            <div class="progress-row">
-                <span><span class="metric-label">Max Lat:</span> <span class="metric-value">{bbox['max_lat']:.6f}</span></span>
-                <span><span class="metric-label">Max Lon:</span> <span class="metric-value">{bbox['max_lon']:.6f}</span></span>
-            </div>
+        st.markdown("""
+        <div style='font-size:0.82rem; color:#388E3C; padding:0.5rem 0;'>
+            ✏️ Draw a polygon or rectangle on the map to select your area.
         </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Sustainability Assessment Questions in collapsible panel (when area IS selected)
-    with st.expander("🌱 **Sustainability Assessment**"):
-        st.markdown("*Please answer these questions about your land management practices*")
-        
-        # Initialize sustainability responses in session state if not present
-        if 'sustainability_responses' not in st.session_state:
-            st.session_state.sustainability_responses = {
-                'minimize_soil_disturbance': False,
-                'maintain_living_roots': False,
-                'cover_bare_soil': False,
-                'maximize_diversity': False,
-                'integrate_livestock': False
-            }
-        
-        sustainability_questions = [
-            ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
-            ("maintain_living_roots", "Do you maintain living roots in the soil?"),
-            ("cover_bare_soil", "Do you continuously cover bare soil?"),
-            ("maximize_diversity", "Do you maximize diversity, with emphasis on crops, soil microbes, and pollinators?"),
-            ("integrate_livestock", "Do you integrate livestock where feasible?")
-        ]
-        
-        # Display questions in a compact grid layout
-        col_q1, col_q2 = st.columns(2)
-        
-        with col_q1:
-            for i, (key, question) in enumerate(sustainability_questions[:3]):
-                st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
-                st.session_state.sustainability_responses[key] = st.radio(
-                    question,
-                    options=[True, False],
-                    format_func=lambda x: "Yes" if x else "No",
-                    key=f"sustainability_{key}",
-                    index=0 if st.session_state.sustainability_responses[key] else 1,
-                    label_visibility="collapsed"
-                )
-        
-        with col_q2:
-            for i, (key, question) in enumerate(sustainability_questions[3:], 3):
-                st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
-                st.session_state.sustainability_responses[key] = st.radio(
-                    question,
-                    options=[True, False],
-                    format_func=lambda x: "Yes" if x else "No",
-                    key=f"sustainability_{key}",
-                    index=0 if st.session_state.sustainability_responses[key] else 1,
-                    label_visibility="collapsed"
-                )
-        
-        # Show completion status and score
-        total_count = len(sustainability_questions)
-        yes_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is True)
-        score_percentage = (yes_count / total_count) * 100
-        
-        st.success(f"✅ Sustainability assessment complete")
-        st.metric("Current Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
-        
-        if score_percentage >= 80:
-            st.success("🌟 Excellent sustainability practices!")
-        elif score_percentage >= 60:
-            st.warning("⚡ Good sustainability practices with room for improvement")
-        else:
-            st.error("📈 Consider adopting more sustainable practices")
-
-else:
-    st.warning("No area selected yet. Use the drawing tools (rectangle/polygon) in the map toolbar.")
-    
-    # Show disabled sustainability assessment for no area selected
-    with st.expander("🌱 **Sustainability Assessment**"):
-        if True:
-            st.markdown("*Please select an area on the map above to complete the sustainability assessment*")
-            # Display greyed out questions
-            st.markdown("""
-            <div class="disabled-section">
-            <p><strong>Sustainability Questions:</strong></p>
-            <ul>
-            <li>Do you minimize soil disturbance?</li>
-            <li>Do you maintain living roots in the soil?</li>
-            <li>Do you continuously cover bare soil?</li>
-            <li>Do you maximize diversity (crops, soil microbes, pollinators)?</li>
-            <li>Do you integrate livestock where feasible?</li>
-            </ul>
-            <p><em>📍 Select an area on the map to activate these questions.</em></p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            sustainability_questions = [
-                ("minimize_soil_disturbance", "Do you minimize soil disturbance?"),
-                ("maintain_living_roots", "Do you maintain living roots in the soil?"),
-                ("cover_bare_soil", "Do you continuously cover bare soil?"),
-                ("maximize_diversity", "Do you maximize diversity, with emphasis on crops, soil microbes, and pollinators?"),
-                ("integrate_livestock", "Do you integrate livestock where feasible?")
-            ]
-            
-            # Display questions in a compact grid layout
-            col_q1, col_q2 = st.columns(2)
-            
-            with col_q1:
-                for i, (key, question) in enumerate(sustainability_questions[:3]):
-                    st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
-                    st.session_state.sustainability_responses[key] = st.radio(
-                        question,  # Using question as label for accessibility
-                        options=[True, False],
-                        format_func=lambda x: "Yes" if x else "No",
-                        key=f"sustainability_{key}",
-                        index=0 if st.session_state.sustainability_responses[key] else 1,
-                        label_visibility="collapsed"
-                    )
-            
-            with col_q2:
-                for i, (key, question) in enumerate(sustainability_questions[3:], 3):
-                    st.markdown(f'<p class="question-text">{question}</p>', unsafe_allow_html=True)
-                    st.session_state.sustainability_responses[key] = st.radio(
-                        question,  # Using question as label for accessibility
-                        options=[True, False],
-                        format_func=lambda x: "Yes" if x else "No",
-                        key=f"sustainability_{key}",
-                        index=0 if st.session_state.sustainability_responses[key] else 1,
-                        label_visibility="collapsed"
-                    )
-            
-            # Show completion status and score
-            total_count = len(sustainability_questions)
-            yes_count = sum(1 for response in st.session_state.sustainability_responses.values() if response is True)
-            score_percentage = (yes_count / total_count) * 100
-            
-            st.success(f"✅ Sustainability assessment complete")
-            st.metric("Current Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
-            
-            if score_percentage >= 80:
-                st.success("🌟 Excellent sustainability practices!")
-            elif score_percentage >= 60:
-                st.warning("⚡ Good sustainability practices with room for improvement")
-            else:
-                st.error("📈 Consider adopting more sustainable practices")
-    
-    # Analysis controls have been moved to sidebar to eliminate duplicate interfaces
-
-# Configuration and Calculate section
-st.markdown('<h2 class="section-header">📊 Step 2: Configure & Calculate</h2>', unsafe_allow_html=True)
-
-# Quick configuration in main area for better UX
-if st.session_state.get('selected_area'):
-    st.markdown("""
-    <div class="status-success">
-        <strong>✅ Area selected - click on '>>' (top left) to change default settings or click on 'Calculate' button to run analysis with default settings (recommended)</strong>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Analysis detail is now configured in sidebar only
-    if 'analysis_detail' not in st.session_state:
-        st.session_state.analysis_detail = "Summary Analysis"
-    
-    # Enhanced calculate button with modern styling
-    if st.button("🚀 Calculate Ecosystem Value", type="primary", use_container_width=True, help="Start the ecosystem analysis with your current settings"):
-        # Provide immediate feedback
-        st.toast("🔄 Starting ecosystem analysis...", icon="🛰️")
-        # Set analyze_button for processing and persist analysis state
-        analyze_button = True
-        st.session_state.analysis_in_progress = True
-        # Clear old water body classifications for fresh analysis
-        if 'sampling_point_data' in st.session_state:
-            for point_data in st.session_state.sampling_point_data.values():
-                if 'user_classified' in point_data:
-                    del point_data['user_classified']
-                # Also clear the ecosystem_type so it doesn't use old classifications
-                if point_data.get('landcover_class') == 210:
-                    if 'ecosystem_type' in point_data:
-                        del point_data['ecosystem_type']
-    else:
-        # Check if analysis should continue from water body classification
-        analyze_button = st.session_state.get('analysis_in_progress', False)
-        
-else:
-    st.markdown("""
-    <div class="info-card">
-        <strong>👆 Before proceeding you must either:</strong><br>
-        1) Select an area on the map above using the drawing tools or<br>
-        2) Choose a pre-defined test area from the dropdown list above.
-    </div>
-    """, unsafe_allow_html=True)
-    analyze_button = False
 
 # Enhanced Results section with data source indicator
 if st.session_state.get('analysis_results'):
