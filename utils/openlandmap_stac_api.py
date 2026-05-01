@@ -27,6 +27,12 @@ import gc
 import weakref
 from contextlib import contextmanager
 
+# Module-level coordinate cache — shared across all calls to avoid the memory leak
+# caused by defining @st.cache_data inside a method (creates a new cache bucket per call).
+# Uses OrderedDict for FIFO eviction when capacity is reached.
+_coordinate_cache: Dict[Tuple[float, float], Any] = OrderedDict()
+_COORDINATE_CACHE_MAX = 500
+
 # Enhanced GDAL environment configuration for reliable HTTP COG access
 HTTP_ENV = {
     'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
@@ -1496,34 +1502,29 @@ class OpenLandMapSTAC:
     
     def _get_ecosystem_type_cached(self, lat: float, lon: float) -> Dict[str, Any]:
         """
-        Cached version of ecosystem type extraction with geographic quantization
+        Cached version of ecosystem type extraction with geographic quantization.
+        Uses a module-level bounded OrderedDict (FIFO eviction) instead of a nested
+        @st.cache_data decorator, which was creating a new cache bucket on every call.
         """
-        try:
-            import streamlit as st
-            
-            # Quantize coordinates to increase cache hit rate (1e-4 ≈ 11m resolution)
-            quantized_lat = round(lat, 4)
-            quantized_lon = round(lon, 4)
-            
-            @st.cache_data(ttl=3600, max_entries=10000)  # 1 hour TTL, 10k max entries
-            def _cached_extract_landcover(q_lat: float, q_lon: float) -> Dict[str, Any]:
-                # Skip complex STAC discovery - use direct landcover extraction immediately
-                print(f"🔄 Fast mode: Trying direct landcover extraction for ({q_lat}, {q_lon})")
-                landcover_result = self._extract_landcover_direct(q_lat, q_lon)
-                if landcover_result:
-                    return landcover_result
-                else:
-                    print(f"⚠️ Direct landcover extraction failed, using fallback detection")
-                    return self._fallback_ecosystem_detection(q_lat, q_lon)
-            
-            return _cached_extract_landcover(quantized_lat, quantized_lon)
-        except ImportError:
-            # Fallback for non-Streamlit environments
-            landcover_result = self._extract_landcover_direct(lat, lon)
-            if landcover_result:
-                return landcover_result
-            else:
-                return self._fallback_ecosystem_detection(lat, lon)
+        # Quantize coordinates to increase cache hit rate (1e-4 ≈ 11m resolution)
+        quantized_lat = round(lat, 4)
+        quantized_lon = round(lon, 4)
+        cache_key = (quantized_lat, quantized_lon)
+
+        if cache_key in _coordinate_cache:
+            return _coordinate_cache[cache_key]
+
+        if len(_coordinate_cache) >= _COORDINATE_CACHE_MAX:
+            _coordinate_cache.popitem(last=False)  # evict oldest entry
+
+        print(f"🔄 Fast mode: Trying direct landcover extraction for ({quantized_lat}, {quantized_lon})")
+        result = self._extract_landcover_direct(quantized_lat, quantized_lon)
+        if not result:
+            print(f"⚠️ Direct landcover extraction failed, using fallback detection")
+            result = self._fallback_ecosystem_detection(quantized_lat, quantized_lon)
+
+        _coordinate_cache[cache_key] = result
+        return result
     
     def _query_stac_collections_sync(self, lat: float, lon: float) -> Optional[List[Dict]]:
         """

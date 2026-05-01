@@ -559,7 +559,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Production-optimized map caching with extended TTL
-@st.cache_data(ttl=7200, max_entries=20, show_spinner=False, persist="disk")  # Extended cache for production
+@st.cache_data(ttl=600, max_entries=20, show_spinner=False)
 def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satellite"):
     """Create and cache folium map with maximum performance optimizations"""
     import folium
@@ -760,10 +760,37 @@ def calculate_bbox_optimized(coordinates):
 
 # Performance-optimized session state management
 def clear_analysis_cache():
-    """Clear analysis-related cache for memory management"""
-    cache_keys = ['cached_bbox', 'cached_area_ha', 'cached_ecosystem_results', 
-                  'area_coords_cache', 'bbox_coords', 'map_center_cache']
-    for key in cache_keys:
+    """Clear all analysis-related state and cache to free memory between analyses"""
+    # Keys reset to a typed default rather than deleted
+    typed_defaults = {
+        'calculation_ready': False,
+        'analysis_results': None,
+        'area_coordinates': [],
+    }
+    for key, default in typed_defaults.items():
+        st.session_state[key] = default
+
+    # Keys removed entirely
+    delete_keys = [
+        # Computed cache
+        'cached_bbox', 'cached_area_ha', 'cached_ecosystem_results',
+        'area_coords_cache', 'bbox_coords', 'map_center_cache',
+        # Area and detection
+        'selected_area', 'detected_ecosystem', 'sampling_point_data',
+        'landcover_data_source',
+        # EEI / intactness
+        'point_eei_values', 'average_eei', 'ecosystem_eei',
+        # Water body tracking
+        'all_water_bodies_classified', 'water_bodies_already_processed',
+        # Progress flags
+        'analysis_in_progress',
+        # Scenario and display state
+        'summary_metrics', 'regional_adjustment_factor',
+        'scenario_results', 'scenario_distribution', 'scenario_eco_intactness',
+        'scenario_builder_expanded', 'show_infographic', 'current_infographic',
+        'compact_infographic_data',
+    ]
+    for key in delete_keys:
         if key in st.session_state:
             del st.session_state[key]
 
@@ -2003,86 +2030,8 @@ Example: 100ha Forest
             "Wetland", "Coastal", "Marine", "Shrubland", "polar"
         ]
         
-        # Complete ESA CCI Land Cover to ESVD ecosystem coefficient mapping
-        # Based on ESA CCI Land Cover 22-class classification system + Level 2 subcodes
-        default_landcover_mapping = {
-            # Agricultural Classes (descriptions in utils/esa_landcover_codes.py)
-            10: "agricultural", 11: "agricultural", 12: "agricultural", 
-            20: "agricultural", 30: "agricultural", 40: "Grassland",
-            
-            # Forest Classes (descriptions in utils/esa_landcover_codes.py)
-            50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
-            70: "Forest", 71: "Forest", 72: "Forest", 
-            80: "Forest", 81: "Forest", 82: "Forest",
-            90: "Forest", 100: "Forest",
-            
-            # Shrubland Classes
-            110: "Shrubland", 120: "Shrubland", 121: "Shrubland", 122: "Shrubland",
-            
-            # Grassland Classes
-            130: "Grassland", 140: "Grassland",
-            
-            # Sparse Vegetation / Desert Classes
-            150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
-            
-            # Wetland Classes
-            160: "Wetland",         # Tree cover, flooded, fresh or brakish water
-            170: "Wetland",         # Tree cover, flooded, saline water
-            180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
-            
-            # Urban/Built-up Classes
-            190: "Urban",           # Urban areas
-            
-            # Bare Areas Classes
-            200: "Desert",          # Bare areas
-            201: "Desert",          # Consolidated bare areas
-            202: "Desert",          # Unconsolidated bare areas
-            
-            # Water Body Classes
-            210: "Rivers and Lakes",  # Water bodies (freshwater)
-            211: "Marine",            # Marine/oceanic water bodies
-            
-            # Snow and Ice Classes  
-            220: "polar",           # Permanent snow and ice
-            
-            # Additional missing codes that may be returned by ESA CCI
-            52: "Shrubland",        # Shrub/Scrub
-            31: "Desert",           # Barren Land
-            21: "agricultural",     # Developed, Open Space
-            22: "agricultural",     # Developed, Low Intensity  
-            23: "agricultural",     # Developed, Medium Intensity
-            24: "agricultural",     # Developed, High Intensity
-            41: "Temperate Forest", # Deciduous Forest
-            42: "Forest",           # Evergreen Forest
-            43: "Forest",           # Mixed Forest
-            95: "Wetland",          # Emergent Herbaceous Wetlands
-            
-            # Extended forest coverage (ESA codes 51-99) to match STAC API
-            51: "Forest", 53: "Forest", 54: "Forest", 55: "Forest", 
-            63: "Forest", 64: "Forest", 65: "Forest", 66: "Forest",
-            73: "Forest", 74: "Forest", 75: "Forest", 76: "Forest",
-            83: "Forest", 84: "Forest", 85: "Forest", 86: "Forest",
-            91: "Forest", 92: "Forest", 93: "Forest", 94: "Forest",
-            96: "Forest", 97: "Forest", 98: "Forest", 99: "Forest",
-            101: "Forest", 102: "Forest",
-            
-            # Extended cropland coverage (ESA codes 13-20, 25-29) to match STAC API
-            13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
-            17: "agricultural", 18: "agricultural", 19: "agricultural", 20: "agricultural",
-            25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
-            
-            # Extended shrubland coverage (ESA codes 111-129) to match STAC API
-            111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",
-            115: "Shrubland", 116: "Shrubland", 117: "Shrubland", 118: "Shrubland", 119: "Shrubland",
-            123: "Shrubland", 124: "Shrubland", 125: "Shrubland", 126: "Shrubland",
-            127: "Shrubland", 128: "Shrubland", 129: "Shrubland",
-            
-            # Extended grassland coverage (ESA codes 131-149) to match STAC API
-            131: "Grassland", 132: "Grassland", 133: "Grassland", 134: "Grassland",
-            135: "Grassland", 136: "Grassland", 137: "Grassland", 138: "Grassland", 139: "Grassland",
-            141: "Grassland", 142: "Grassland", 143: "Grassland", 144: "Grassland",
-            145: "Grassland", 146: "Grassland", 147: "Grassland", 148: "Grassland", 149: "Grassland"
-        }
+        from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING
+        default_landcover_mapping = DEFAULT_LANDCOVER_MAPPING
         
         # Initialize session state for custom mapping with correct defaults
         if 'custom_landcover_mapping' not in st.session_state:
@@ -2451,14 +2400,7 @@ Example: 100ha Forest
     
     # Ultra-optimized clear button with memory management
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
-        # Batch clear with garbage collection
         clear_analysis_cache()
-        critical_keys = ['analysis_results', 'selected_area', 'area_coordinates', 'detected_ecosystem', 
-                        'all_water_bodies_classified', 'water_bodies_already_processed', 'analysis_in_progress']
-        for key in critical_keys:
-            if key in st.session_state:
-                del st.session_state[key]
-        # Force garbage collection for memory cleanup
         import gc
         gc.collect()
         st.rerun()

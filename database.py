@@ -12,7 +12,7 @@ import psycopg2
 import numpy as np
 
 logger = logging.getLogger(__name__)
-from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON
+from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import UUID
@@ -70,6 +70,11 @@ class EcosystemAnalysis(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    __table_args__ = (
+        Index('ix_ecosystem_analyses_user_session_id', 'user_session_id'),
+        Index('ix_ecosystem_analyses_created_at', 'created_at'),
+    )
+
 class SavedArea(Base):
     """Store user-saved areas for future analysis"""
     __tablename__ = "saved_areas"
@@ -83,6 +88,10 @@ class SavedArea(Base):
     is_favorite = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('ix_saved_areas_user_session_id', 'user_session_id'),
+    )
 
 class AnalysisHistory(Base):
     """Store historical tracking for areas over time"""
