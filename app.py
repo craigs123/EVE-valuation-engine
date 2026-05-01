@@ -1587,7 +1587,7 @@ st.markdown("""
     <span class="header-text">Ecological Valuation Engine</span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="version-text">v3.1.1</p>', unsafe_allow_html=True)
+st.markdown('<p class="version-text">v3.1.2</p>', unsafe_allow_html=True)
 
 st.markdown('<h2 class="section-header">🗺️ Choose a test area, load a saved area, or draw your own on the map</h2>', unsafe_allow_html=True)
 
