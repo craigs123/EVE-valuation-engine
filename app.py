@@ -1589,7 +1589,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('<p class="version-text">v3.1.1</p>', unsafe_allow_html=True)
 
-st.markdown('<h2 class="section-header">🗺️ Step 1: Select Area</h2>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">🗺️ Choose a test area, load a saved area, or draw your own on the map</h2>', unsafe_allow_html=True)
 
 
 # Initialize session state
@@ -2427,8 +2427,6 @@ test_area_options = [
     # "🎲 Test area (Random Global)"  # Hidden but kept for later use
 ]
 
-# Left-aligned area selection dropdown
-st.markdown('<p class="area-select-label">Choose a 1000 hectare test area, load saved area, or draw your own on the map:</p>', unsafe_allow_html=True)
 selected_test_area = st.selectbox(
     "Select Area Type",
     test_area_options,
