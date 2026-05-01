@@ -370,7 +370,7 @@ if 'time_preset' not in st.session_state:
     st.session_state.time_preset = "Current Year (2024)"
 
 if 'include_environmental_indicators' not in st.session_state:
-    st.session_state.include_environmental_indicators = True
+    st.session_state.include_environmental_indicators = False
 
 # Enhanced CSS for better UX and modern design
 st.markdown("""
@@ -1660,7 +1660,7 @@ with st.sidebar:
         # Environmental indicators toggle
         include_environmental_indicators = st.checkbox(
             "Include Environmental Indicators",
-            value=st.session_state.get('include_environmental_indicators', True),
+            value=st.session_state.get('include_environmental_indicators', False),
             help="When enabled: Collects FAPAR, soil carbon, and other environmental data shown in the sample points table. When disabled: Only collects land cover for ecosystem detection (faster)."
         )
         st.session_state.include_environmental_indicators = include_environmental_indicators
