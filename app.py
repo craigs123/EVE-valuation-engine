@@ -1574,7 +1574,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.2.0</span>
+    <span class="version-text">v3.2.2</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1678,18 +1678,30 @@ with st.sidebar:
                     from database import SavedAreaDB as _SADB2
                     _areas = _SADB2.get_user_saved_areas()
                     if _areas:
+                        st.markdown("""
+                        <style>
+                        [data-testid="stSidebar"] .ws-btn button {
+                            font-size: 0.72rem !important;
+                            padding: 0.2rem 0.4rem !important;
+                            min-height: 1.6rem !important;
+                        }
+                        </style>""", unsafe_allow_html=True)
                         for _area in _areas:
-                            _c1, _c2, _c3 = st.columns([5, 1, 1])
-                            with _c1:
+                            _col_info, _col_btns = st.columns([3, 1])
+                            with _col_info:
                                 st.markdown(
-                                    f"<div style='font-size:0.82rem;'><strong>{_area['name']}</strong>"
-                                    f"<br><span style='color:#666;font-size:0.75rem;'>"
+                                    f"<div style='font-size:0.8rem;padding:0.1rem 0;'>"
+                                    f"<strong>{_area['name']}</strong><br>"
+                                    f"<span style='color:#666;font-size:0.72rem;'>"
                                     f"{_area['area_hectares']:.0f} ha · "
-                                    f"{_area['created_at'].strftime('%Y-%m-%d')}</span></div>",
+                                    f"{_area['created_at'].strftime('%Y-%m-%d')}"
+                                    f"</span></div>",
                                     unsafe_allow_html=True,
                                 )
-                            with _c2:
-                                if st.button("Load", key=f"ws_load_{_area['id']}"):
+                            with _col_btns:
+                                if st.button("↩ Load", key=f"ws_load_{_area['id']}",
+                                             use_container_width=True,
+                                             help="Load this area onto the map"):
                                     clear_analysis_cache()
                                     st.session_state.area_coordinates = _area['coordinates']
                                     st.session_state.selected_area = True
@@ -1697,9 +1709,10 @@ with st.sidebar:
                                     st.session_state.cached_bbox = calculate_bbox_optimized(_area['coordinates'])
                                     st.session_state.use_test_area_zoom = True
                                     st.session_state.current_area_id = _area['id']
+                                    st.session_state.default_area_name = _area['name']
                                     st.rerun()
-                            with _c3:
-                                if st.button("Del", key=f"ws_del_{_area['id']}",
+                                if st.button("🗑️", key=f"ws_del_{_area['id']}",
+                                             use_container_width=True,
                                              help="Delete this saved area"):
                                     from database import SavedAreaDB as _SADB3
                                     _SADB3.delete_area(_area['id'])
@@ -4920,11 +4933,13 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             placeholder="Area name for report header",
         )
     with _pdf_col2:
-        _gen_pdf = st.button("Generate PDF", type="primary", use_container_width=True,
-                             key="gen_pdf_btn")
-    if _gen_pdf:
+        _dl_pdf = st.button("Download PDF Report", type="primary", use_container_width=True,
+                            key="dl_pdf_btn")
+    if _dl_pdf:
         with st.spinner("Building PDF report…"):
             try:
+                import base64 as _b64mod
+                import streamlit.components.v1 as _stc
                 from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
                 _pdf_results = st.session_state.analysis_results
                 _pdf_auth = st.session_state.get('auth_user')
@@ -4945,14 +4960,17 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 )
                 _ts = datetime.now().strftime('%Y%m%d_%H%M')
                 _fname = f"EVE_report_{_ts}.pdf"
-                st.download_button(
-                    label="⬇️ Download PDF Report",
-                    data=_pdf_bytes,
-                    file_name=_fname,
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="pdf_download_btn",
+                _b64 = _b64mod.b64encode(_pdf_bytes).decode()
+                _stc.html(
+                    f"<script>"
+                    f"var a=document.createElement('a');"
+                    f"a.href='data:application/pdf;base64,{_b64}';"
+                    f"a.download='{_fname}';"
+                    f"document.body.appendChild(a);a.click();document.body.removeChild(a);"
+                    f"</script>",
+                    height=0,
                 )
+                st.success("PDF report downloaded!")
             except Exception as _pdf_err:
                 st.error(f"PDF generation failed: {_pdf_err}")
 
