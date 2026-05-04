@@ -1681,10 +1681,11 @@ with st.sidebar:
                     if _areas:
                         st.markdown("""
                         <style>
-                        [data-testid="stSidebar"] .ws-btn button {
-                            font-size: 0.72rem !important;
-                            padding: 0.2rem 0.4rem !important;
-                            min-height: 1.6rem !important;
+                        [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+                            font-size: 0.65rem !important;
+                            padding: 0.1rem 0.25rem !important;
+                            min-height: 1.2rem !important;
+                            line-height: 1 !important;
                         }
                         </style>""", unsafe_allow_html=True)
                         for _area in _areas:
@@ -1865,37 +1866,21 @@ with st.sidebar:
             if eco_type not in st.session_state.ecosystem_intactness:
                 st.session_state.ecosystem_intactness[eco_type] = 100
         
-        # EEI toggle for automatic intactness defaults (default OFF, requires password)
+        # EEI toggle for automatic intactness defaults (default ON)
         if 'use_eei_for_intactness' not in st.session_state:
-            st.session_state.use_eei_for_intactness = False
-        if 'eei_authenticated' not in st.session_state:
-            st.session_state.eei_authenticated = False
-        
+            st.session_state.use_eei_for_intactness = True
+
         st.markdown("**🌿 EEI (Ecosystem Ecological Integrity) Integration**")
-        
-        if st.session_state.eei_authenticated:
-            use_eei = st.checkbox(
-                "Use EEI for Default Intactness",
-                value=st.session_state.use_eei_for_intactness,
-                help="When enabled, the Ecosystem Ecological Integrity API will automatically set intactness defaults based on actual ecosystem condition data."
-            )
-            st.session_state.use_eei_for_intactness = use_eei
-            
-            if use_eei:
-                st.caption("📡 EEI values will be fetched during analysis and used to set slider defaults")
-            else:
-                st.caption("✋ Manual intactness values below will be used")
+        use_eei = st.checkbox(
+            "Use EEI for Default Intactness",
+            value=st.session_state.use_eei_for_intactness,
+            help="When enabled, the Ecosystem Ecological Integrity API automatically sets intactness defaults based on actual ecosystem condition data."
+        )
+        st.session_state.use_eei_for_intactness = use_eei
+        if use_eei:
+            st.caption("📡 EEI values will be fetched during analysis and used to set slider defaults")
         else:
-            st.caption("🔒 EEI integration requires authentication")
-            eei_password = st.text_input("Enter EEI access password:", type="password", key="eei_password_input")
-            if st.button("Unlock EEI", key="unlock_eei_btn"):
-                if eei_password == "EVE123":
-                    st.session_state.eei_authenticated = True
-                    st.success("✅ EEI access unlocked!")
-                    st.rerun()
-                else:
-                    st.error("❌ Incorrect password")
-            st.session_state.use_eei_for_intactness = False
+            st.caption("✋ Manual intactness values below will be used")
         
         st.markdown("---")
         
