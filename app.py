@@ -1566,15 +1566,76 @@ st.markdown("""
 # Clear initial loading message - header is about to appear
 loading_placeholder.empty()
 
+# ── Handle email verification and password reset links ────────────────────────
+_qp = st.query_params
+_verify_token = _qp.get('verify')
+_reset_token = _qp.get('reset')
+
+if _verify_token:
+    from database import UserDB as _UserDB
+    if _UserDB.verify_email(_verify_token):
+        st.query_params.clear()
+        st.success("✅ Email verified! You can now sign in.")
+    else:
+        st.query_params.clear()
+        st.error("This verification link has expired or is invalid. Please sign in and request a new one.")
+    st.stop()
+
+if _reset_token:
+    from database import UserDB as _UserDB
+    st.markdown("""
+    <div style="text-align:center; padding: 3rem 0 1rem 0;">
+        <div style="font-size:3rem; line-height:1;">🌱</div>
+        <h1 style="color:#2E7D32; font-size:1.9rem; font-weight:700; margin:0.8rem 0 0.5rem 0;">
+            Reset your password
+        </h1>
+    </div>
+    """, unsafe_allow_html=True)
+    _, _rc, _ = st.columns([1, 2, 1])
+    with _rc:
+        with st.form("reset_pw_form"):
+            _new_pw = st.text_input("New password", type="password", help="At least 8 characters")
+            _new_pw2 = st.text_input("Confirm new password", type="password")
+            _reset_submitted = st.form_submit_button("Set new password", type="primary",
+                                                      use_container_width=True)
+        if _reset_submitted:
+            if len(_new_pw) < 8:
+                st.error("Password must be at least 8 characters.")
+            elif _new_pw != _new_pw2:
+                st.error("Passwords do not match.")
+            else:
+                if _UserDB.reset_password(_reset_token, _new_pw):
+                    st.query_params.clear()
+                    st.success("Password updated. Please sign in with your new password.")
+                    st.rerun()
+                else:
+                    st.error("This reset link has expired or is invalid. Please request a new one.")
+    st.stop()
+
 # Auth gate — unauthenticated visitors see only the login/register UI
 from utils.auth import require_login
 require_login()
+
+# ── Post-login banners ────────────────────────────────────────────────────────
+_auth_user_now = st.session_state.get('auth_user', {})
+if _auth_user_now and not _auth_user_now.get('email_verified', True):
+    _unverified_col, _resend_col = st.columns([5, 1])
+    with _unverified_col:
+        st.warning("⚠️ Please verify your email address. Check your inbox for a verification link.")
+    with _resend_col:
+        if st.button("Resend", key="_resend_verify_btn", use_container_width=True):
+            from database import UserDB as _UserDB2
+            _UserDB2.resend_verification(_auth_user_now['email'])
+            st.info("Verification email sent.")
+
+if st.session_state.pop('_just_registered', False):
+    st.info("🎉 Account created! A verification email has been sent to your inbox.")
 
 # Clean text-only header - Professional Dashboard Style
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.3.0</span>
+    <span class="version-text">v3.4.0</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1945,167 +2006,6 @@ with st.sidebar:
 
         st.divider()
 
-    # Database Section
-    if st.session_state.get('db_initialized', False):
-        st.subheader("💾 Saved Data")
-        
-        # Database status indicator  
-        try:
-            db_modules = get_database_modules()
-            if db_modules and db_modules['test_database_connection']():
-                st.success("🟢 Database connected")
-            else:
-                st.warning("🟡 Database connection issue")
-        except Exception as e:
-            st.warning("⚠️ Database temporarily unavailable")
-            st.caption("Analysis functionality remains available")
-        
-        # Tabs for different data views
-        tab1, tab2, tab3, tab4 = st.tabs(["Recent Analyses", "Saved Areas", "Baselines", "Sustainability"])
-        
-        with tab1:
-            st.markdown("**📊 Your Recent Analyses**")
-            try:
-                db_modules = get_database_modules()
-                if db_modules:
-                    recent_analyses = db_modules['EcosystemAnalysisDB'].get_user_analyses(limit=5)
-                else:
-                    recent_analyses = []
-                
-                if recent_analyses:
-                    for analysis in recent_analyses:
-                        with st.container():
-                            st.markdown(f"**{analysis.get('area_name', 'Unnamed Area')}**")
-                            st.caption(f"{analysis['ecosystem_type']} • ${analysis['total_value']:,.0f} • {analysis['created_at'].strftime('%Y-%m-%d')}")
-                            
-                            if st.button(f"Load Analysis", key=f"load_{analysis['id']}", use_container_width=True):
-                                # Load the analysis data
-                                if db_modules:
-                                    full_analysis = db_modules['EcosystemAnalysisDB'].get_analysis_by_id(analysis['id'])
-                                else:
-                                    full_analysis = None
-                                if full_analysis:
-                                    st.session_state.area_coordinates = full_analysis['coordinates']
-                                    st.session_state.analysis_results = full_analysis['analysis_results']
-                                    st.session_state.calculation_ready = True
-                                    st.session_state.selected_area = True
-                                    # Clear cached area to recalculate for map centering
-                                    st.session_state.cached_area_ha = None
-                                    st.session_state.cached_bbox = None
-                                    st.rerun()
-                            
-                else:
-                    st.info("No saved analyses yet. Run an analysis to save results.")
-            except Exception as e:
-                st.error(f"Error loading analyses: {str(e)}")
-                st.caption(f"User ID: {st.session_state.get('user_id', 'Not set')}")
-                st.info("No saved analyses yet. Run an analysis to save results.")
-        
-        with tab2:
-            st.markdown("**📍 Your Saved Areas**")
-            try:
-                db_modules = get_database_modules()
-                if db_modules:
-                    saved_areas = db_modules['SavedAreaDB'].get_user_saved_areas()
-                else:
-                    saved_areas = []
-                
-                if saved_areas:
-                    for area in saved_areas:
-                        with st.container():
-                            st.markdown(f"**{area['name']}**")
-                            st.caption(f"{area['area_hectares']:.0f} ha • {area['created_at'].strftime('%Y-%m-%d')}")
-                            
-                            if area.get('description'):
-                                st.caption(f"📝 {area['description']}")
-                            
-                            if st.button(f"Load Area", key=f"load_area_{area['id']}", use_container_width=True):
-                                # Load the area coordinates
-                                st.session_state.area_coordinates = area['coordinates']
-                                st.session_state.selected_area = True
-                                st.session_state.cached_area_ha = area['area_hectares']
-                                st.session_state.current_area_id = area['id']
-                                # Clear bbox cache to force map re-centering
-                                st.session_state.cached_bbox = None
-                                st.rerun()
-                            
-                else:
-                    st.info("No saved areas yet. Select and save an area first.")
-            except Exception as e:
-                st.error(f"Error loading saved areas: {str(e)}")
-                st.caption(f"User ID: {st.session_state.get('user_id', 'Not set')}")
-                st.info("No saved areas yet. Select and save an area first.")
-        
-        with tab3:
-            st.markdown("**📊 Natural Capital Baselines**")
-            # Get baselines for current user
-            try:
-                from database import get_db, NaturalCapitalBaseline
-                with get_db() as db:
-                    baselines = db.query(NaturalCapitalBaseline).filter(
-                        NaturalCapitalBaseline.user_session_id == st.session_state.get('user_id')
-                    ).order_by(NaturalCapitalBaseline.baseline_date.desc()).limit(5).all()
-
-                    if baselines:
-                        for baseline in baselines:
-                            with st.container():
-                                st.markdown(f"**{baseline.ecosystem_type} Baseline**")
-                                st.caption(f"${baseline.total_baseline_value:,.0f} • {baseline.area_hectares:.0f} ha • {baseline.baseline_date.strftime('%Y-%m-%d')}")
-                                st.caption(f"P: ${baseline.provisioning_baseline:,.0f} | R: ${baseline.regulating_baseline:,.0f} | C: ${baseline.cultural_baseline:,.0f} | S: ${baseline.supporting_baseline:,.0f}")
-                                try:
-                                    if hasattr(baseline, 'biodiversity_index') and baseline.biodiversity_index is not None and baseline.biodiversity_index > 0:
-                                        st.caption(f"🌿 Biodiversity Index: {baseline.biodiversity_index:.2f}")
-                                except Exception:
-                                    pass
-                        st.caption("P=Provisioning, R=Regulating, C=Cultural, S=Supporting")
-                    else:
-                        st.info("No baselines established yet. Set a baseline after running an analysis.")
-            except Exception as e:
-                st.error(f"Failed to load baselines: {str(e)}")
-        
-        with tab4:
-            st.markdown("**🌱 Sustainability Assessment**")
-            
-            # Show current sustainability responses
-            if 'sustainability_responses' in st.session_state:
-                responses = st.session_state.sustainability_responses
-                questions = [
-                    ("minimize_soil_disturbance", "Minimize soil disturbance"),
-                    ("maintain_living_roots", "Maintain living roots in soil"),
-                    ("cover_bare_soil", "Continuously cover bare soil"),
-                    ("maximize_diversity", "Maximize diversity (crops, microbes, pollinators)"),
-                    ("integrate_livestock", "Integrate livestock where feasible")
-                ]
-                
-                total_count = len(questions)
-                yes_count = sum(1 for response in responses.values() if response is True)
-                score_percentage = (yes_count / total_count) * 100
-                
-                st.info(f"Sustainability assessment responses:")
-                
-                for key, label in questions:
-                    response = responses.get(key, False)
-                    status = "✅ Yes" if response else "❌ No"
-                    st.markdown(f"**{label}**: {status}")
-                
-                # Show sustainability score
-                
-                st.metric("Sustainability Score", f"{score_percentage:.0f}%", f"{yes_count}/{total_count} sustainable practices")
-                
-                if score_percentage >= 80:
-                    st.success("🌟 Excellent sustainability practices!")
-                elif score_percentage >= 60:
-                    st.warning("⚡ Good sustainability practices with room for improvement")
-                else:
-                    st.error("📈 Consider adopting more sustainable practices")
-            else:
-                st.info("No sustainability assessment completed yet.")
-    else:
-        st.info("💡 Database features disabled")
-        st.caption("Core analysis functionality remains available")
-    
-    
-    
     # Ultra-optimized clear button with memory management
     if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
         clear_analysis_cache()

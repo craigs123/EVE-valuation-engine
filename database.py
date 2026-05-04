@@ -5,7 +5,7 @@ Database configuration and models for Ecosystem Valuation Engine
 import os
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import json
 import psycopg2
@@ -60,11 +60,18 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     display_name = Column(String(255), nullable=True)
+    email_verified = Column(Boolean, default=False, nullable=False)
+    verification_token = Column(String(64), nullable=True)
+    verification_token_expiry = Column(DateTime, nullable=True)
+    reset_token = Column(String(64), nullable=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
         Index('ix_users_email', 'email'),
+        Index('ix_users_verification_token', 'verification_token'),
+        Index('ix_users_reset_token', 'reset_token'),
     )
 
 
@@ -259,24 +266,44 @@ class UserDB:
     """Database operations for registered user accounts."""
 
     @staticmethod
+    def _user_dict(user: 'User') -> Dict:
+        return {
+            'id': str(user.id),
+            'email': user.email,
+            'display_name': user.display_name,
+            'email_verified': bool(user.email_verified),
+        }
+
+    @staticmethod
     def register(email: str, password: str, display_name: Optional[str] = None) -> Dict:
         """Hash password and create a new user. Raises ValueError on duplicate email."""
         import bcrypt
+        import secrets
         try:
             with get_db() as db:
                 existing = db.query(User).filter(User.email == email.lower()).first()
                 if existing:
                     raise ValueError("An account with that email address already exists.")
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                token = secrets.token_urlsafe(32)
+                expiry = datetime.utcnow() + timedelta(hours=24)
                 user = User(
                     email=email.lower(),
                     password_hash=password_hash,
                     display_name=display_name,
+                    email_verified=False,
+                    verification_token=token,
+                    verification_token_expiry=expiry,
                 )
                 db.add(user)
                 db.commit()
                 db.refresh(user)
-                return {'id': str(user.id), 'email': user.email, 'display_name': user.display_name}
+                try:
+                    from utils.email_utils import send_verification_email
+                    send_verification_email(user.email, token)
+                except Exception as e:
+                    logger.warning(f"Verification email failed: {e}")
+                return UserDB._user_dict(user)
         except ValueError:
             raise
         except Exception as e:
@@ -293,7 +320,7 @@ class UserDB:
                 if not user:
                     return None
                 if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-                    return {'id': str(user.id), 'email': user.email, 'display_name': user.display_name}
+                    return UserDB._user_dict(user)
                 return None
         except Exception as e:
             logger.error(f"Login failed: {e}")
@@ -307,10 +334,95 @@ class UserDB:
                 user = db.query(User).filter(User.id == user_id).first()
                 if not user:
                     return None
-                return {'id': str(user.id), 'email': user.email, 'display_name': user.display_name}
+                return UserDB._user_dict(user)
         except Exception as e:
             logger.error(f"get_by_id failed: {e}")
             return None
+
+    @staticmethod
+    def verify_email(token: str) -> bool:
+        """Mark email as verified. Returns True on success, False if token invalid/expired."""
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.verification_token == token).first()
+                if not user:
+                    return False
+                if user.verification_token_expiry and user.verification_token_expiry < datetime.utcnow():
+                    return False
+                user.email_verified = True
+                user.verification_token = None
+                user.verification_token_expiry = None
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"verify_email failed: {e}")
+            return False
+
+    @staticmethod
+    def create_password_reset(email: str) -> bool:
+        """Generate a reset token, persist it, and email a reset link. Returns True if the
+        email was found (regardless of whether the SMTP send succeeded)."""
+        import secrets
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.email == email.lower()).first()
+                if not user:
+                    return False
+                token = secrets.token_urlsafe(32)
+                user.reset_token = token
+                user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+                db.commit()
+                try:
+                    from utils.email_utils import send_password_reset_email
+                    send_password_reset_email(user.email, token)
+                except Exception as e:
+                    logger.warning(f"Password reset email failed: {e}")
+                return True
+        except Exception as e:
+            logger.error(f"create_password_reset failed: {e}")
+            return False
+
+    @staticmethod
+    def reset_password(token: str, new_password: str) -> bool:
+        """Set a new password using a valid reset token. Returns True on success."""
+        import bcrypt
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.reset_token == token).first()
+                if not user:
+                    return False
+                if user.reset_token_expiry and user.reset_token_expiry < datetime.utcnow():
+                    return False
+                user.password_hash = bcrypt.hashpw(
+                    new_password.encode('utf-8'), bcrypt.gensalt()
+                ).decode('utf-8')
+                user.reset_token = None
+                user.reset_token_expiry = None
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"reset_password failed: {e}")
+            return False
+
+    @staticmethod
+    def resend_verification(email: str) -> bool:
+        """Regenerate and resend verification email for an unverified account."""
+        import secrets
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.email == email.lower()).first()
+                if not user or user.email_verified:
+                    return False
+                token = secrets.token_urlsafe(32)
+                user.verification_token = token
+                user.verification_token_expiry = datetime.utcnow() + timedelta(hours=24)
+                db.commit()
+                from utils.email_utils import send_verification_email
+                send_verification_email(user.email, token)
+                return True
+        except Exception as e:
+            logger.error(f"resend_verification failed: {e}")
+            return False
 
 
 # Database operations for ecosystem analyses

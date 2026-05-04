@@ -17,7 +17,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def get_current_user():
-    """Return the logged-in user dict {'id', 'email', 'display_name'}, or None."""
+    """Return the logged-in user dict {'id', 'email', 'display_name', 'email_verified'}, or None."""
     return st.session_state.get('auth_user')
 
 
@@ -68,21 +68,56 @@ def _render_auth_ui():
         # ---- Sign In ----
         with tab_in:
             st.markdown("<div class='auth-tab-panel'>", unsafe_allow_html=True)
-            with st.form("login_form"):
-                email = st.text_input("Email", key="login_email", placeholder="you@example.com")
-                password = st.text_input("Password", type="password", key="login_password")
-                submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-            if submitted:
-                if not email or not password:
-                    st.error("Please enter your email and password.")
-                else:
-                    user = UserDB.login(email.strip(), password)
-                    if user:
-                        st.session_state['auth_user'] = user
+
+            # Forgot-password flow lives inside an expander to avoid layout jumps
+            if st.session_state.get('_show_forgot_pw'):
+                st.markdown("**Reset your password**")
+                fp_email = st.text_input("Enter your account email", key="fp_email",
+                                         placeholder="you@example.com")
+                col_send, col_back = st.columns(2)
+                with col_send:
+                    if st.button("Send reset link", type="primary", use_container_width=True, key="fp_send"):
+                        if fp_email and _EMAIL_RE.match(fp_email.strip()):
+                            UserDB.create_password_reset(fp_email.strip())
+                            # Always show success to avoid email enumeration
+                            st.success("If that email is registered you'll receive a reset link shortly.")
+                            st.session_state['_show_forgot_pw'] = False
+                        else:
+                            st.error("Please enter a valid email address.")
+                with col_back:
+                    if st.button("← Back to sign in", use_container_width=True, key="fp_back"):
+                        st.session_state['_show_forgot_pw'] = False
                         st.rerun()
+            else:
+                with st.form("login_form"):
+                    email = st.text_input("Email", key="login_email", placeholder="you@example.com")
+                    password = st.text_input("Password", type="password", key="login_password")
+                    submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
+
+                if submitted:
+                    if not email or not password:
+                        st.error("Please enter your email and password.")
                     else:
-                        st.error("Invalid email or password.")
+                        user = UserDB.login(email.strip(), password)
+                        if user:
+                            st.session_state['auth_user'] = user
+                            st.rerun()
+                        else:
+                            st.error("Invalid email or password.")
+
+                st.markdown(
+                    "<p style='text-align:right;margin-top:0.3rem;'>"
+                    "<small><a href='#' id='forgot-pw-link' style='color:#2E7D32;'>Forgot password?</a></small>"
+                    "</p>",
+                    unsafe_allow_html=True,
+                )
+                if st.button("Forgot password?", key="forgot_pw_btn",
+                             help="Reset your password via email",
+                             use_container_width=False):
+                    st.session_state['_show_forgot_pw'] = True
+                    st.rerun()
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
         # ---- Create Account ----
         with tab_reg:
@@ -115,7 +150,7 @@ def _render_auth_ui():
                             reg_name.strip() or None,
                         )
                         st.session_state['auth_user'] = user
-                        st.success("Account created — welcome to EVE!")
+                        st.session_state['_just_registered'] = True
                         st.rerun()
                     except ValueError as exc:
                         st.error(str(exc))
