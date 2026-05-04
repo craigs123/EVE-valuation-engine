@@ -1574,7 +1574,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.2.2</span>
+    <span class="version-text">v3.2.3</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1640,7 +1640,8 @@ with st.sidebar:
 
     # ── My Workspace ──────────────────────────────────────────────────────────
     if _auth_user:
-        with st.expander("🗂️ My Workspace", expanded=False):
+        st.markdown("**🗂️ My Workspace**")
+        if True:
             _ws_tab_areas, _ws_tab_history = st.tabs(["Saved Areas", "Analysis History"])
 
             with _ws_tab_areas:
@@ -1749,35 +1750,33 @@ with st.sidebar:
         st.divider()
 
     st.header("Analysis Settings")
-    
+
     # Cache ecosystem options to avoid recreation
     @st.cache_data
     def get_ecosystem_options():
         return [
-            "Auto-detect", 
-            "Tropical Forest", 
-            "Temperate Forest", 
-            "Boreal Forest", 
+            "Auto-detect",
+            "Tropical Forest",
+            "Temperate Forest",
+            "Boreal Forest",
             "polar",
-            "Grassland", 
-            "Wetland", 
+            "Grassland",
+            "Wetland",
             "Water (ocean)",
             "Rivers and Lakes",
             "Coastal",
             "Marine",
-            "Agricultural", 
-            "Urban", 
+            "Agricultural",
+            "Urban",
             "Desert"
         ]
-    
-    # Basic Settings (always visible)
-    with st.expander("🌿 **Ecosystem Detection**", expanded=True):
-        ecosystem_override = st.selectbox(
-            "Ecosystem Type",
-            options=get_ecosystem_options(),
-            help="Auto-detection uses geographic analysis for ecosystem classification"
-        )
-        st.session_state.ecosystem_override = ecosystem_override
+
+    ecosystem_override = st.selectbox(
+        "🌿 Ecosystem Type",
+        options=get_ecosystem_options(),
+        help="Auto-detection uses geographic analysis for ecosystem classification"
+    )
+    st.session_state.ecosystem_override = ecosystem_override
     
     # Performance Settings (expandable)
     with st.expander("⚡ **Performance & Data Collection**"):
@@ -1811,22 +1810,7 @@ with st.sidebar:
         # Set sampling frequency to match the current sample points selection
         st.session_state.sampling_frequency = max_sampling_limit
     
-        # Sampling strategy information  
-        if st.session_state.get('area_coordinates'):
-            st.markdown(f"""
-            **📏 Current Sampling Strategy:**
-            - **Even distribution**: {max_sampling_limit} sample points distributed evenly across your selected area
-            - **Performance control**: Adjust sample points to balance speed vs accuracy for your analysis
-            """)
-        else:
-            st.markdown(f"""
-            **📏 Sampling Strategy (when area selected):**
-            - **Even distribution**: {max_sampling_limit} sample points will be distributed evenly across selected area
-            - **No area size limit**: Analyze areas of any size - from small forest patches to entire watersheds
-            - **Performance control**: Adjust sample points to balance speed vs accuracy for your needs
-            """)
-        
-        # Optimized sampling guide - reduce conditional rendering
+        # Sampling guide
         sampling_guide = {
             (0, 20): "🔹 **Low Sampling**: Very fast analysis, suitable for uniform areas",
             (21, 40): "🔸 **Moderate Sampling**: Fast with good accuracy balance", 

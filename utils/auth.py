@@ -45,12 +45,17 @@ def _render_auth_ui():
     from database import UserDB
 
     st.markdown("""
-    <div style="text-align:center; padding: 2.5rem 0 1.5rem 0;">
+    <style>
+    .auth-tab-panel { padding-top: 1.4rem; }
+    .stTabs [data-baseweb="tab-list"] { gap: 1rem; }
+    .stTabs [data-baseweb="tab"] { padding: 0.5rem 1.2rem; }
+    </style>
+    <div style="text-align:center; padding: 3rem 0 2rem 0;">
         <div style="font-size:3rem; line-height:1;">🌱</div>
-        <h1 style="color:#2E7D32; font-size:1.9rem; font-weight:700; margin:0.6rem 0 0.3rem 0;">
+        <h1 style="color:#2E7D32; font-size:1.9rem; font-weight:700; margin:0.8rem 0 0.5rem 0;">
             Ecosystem Valuation Engine
         </h1>
-        <p style="color:#555; font-size:0.9rem; margin:0;">
+        <p style="color:#555; font-size:0.95rem; margin:0 0 0.5rem 0;">
             Sign in to access your workspace and run ecosystem analyses.
         </p>
     </div>
@@ -62,8 +67,10 @@ def _render_auth_ui():
 
         # ---- Sign In ----
         with tab_in:
+            st.markdown("<div class='auth-tab-panel'>", unsafe_allow_html=True)
             email = st.text_input("Email", key="login_email", placeholder="you@example.com")
             password = st.text_input("Password", type="password", key="login_password")
+            st.markdown("</div>", unsafe_allow_html=True)
             if st.button("Sign in", type="primary", use_container_width=True, key="login_btn"):
                 if not email or not password:
                     st.error("Please enter your email and password.")
@@ -77,12 +84,14 @@ def _render_auth_ui():
 
         # ---- Create Account ----
         with tab_reg:
+            st.markdown("<div class='auth-tab-panel'>", unsafe_allow_html=True)
             reg_email = st.text_input("Email", key="reg_email", placeholder="you@example.com")
             reg_name = st.text_input("Display name (optional)", key="reg_name",
                                      placeholder="Your name")
             reg_password = st.text_input("Password", type="password", key="reg_password",
                                          help="At least 8 characters")
             reg_confirm = st.text_input("Confirm password", type="password", key="reg_confirm")
+            st.markdown("</div>", unsafe_allow_html=True)
 
             if st.button("Create account", type="primary", use_container_width=True, key="reg_btn"):
                 errors = []
