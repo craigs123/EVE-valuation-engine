@@ -1342,7 +1342,7 @@ class OpenLandMapSTAC:
                         "ecosystem_type": ecosystem_type,
                         "landcover_class": landcover_code,
                         "coordinates": {"lat": lat, "lon": lon},
-                        "data_source": "Direct ESA Land Cover Extraction",
+                        "data_source": "Real ESA Satellite Data",
                         "raw_stac_data": {
                             "extraction_method": "direct_landcover_fallback",
                             "landcover_code": landcover_code,

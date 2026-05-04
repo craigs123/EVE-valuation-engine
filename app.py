@@ -1635,7 +1635,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.2</span>
+    <span class="version-text">v3.4.3</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1938,11 +1938,8 @@ with st.sidebar:
                         st.markdown("""
                         <style>
                         [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
-                            font-size: 0.6rem !important;
-                            padding: 0.02rem 0.05rem !important;
-                            min-height: unset !important;
-                            height: 1.3rem !important;
-                            line-height: 1 !important;
+                            padding: 0.15rem 0.1rem !important;
+                            font-size: 0.75rem !important;
                         }
                         </style>""", unsafe_allow_html=True)
                         for _area in _areas:
