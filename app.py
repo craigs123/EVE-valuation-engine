@@ -1635,7 +1635,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.0</span>
+    <span class="version-text">v3.4.2</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1938,14 +1938,15 @@ with st.sidebar:
                         st.markdown("""
                         <style>
                         [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
-                            font-size: 0.65rem !important;
-                            padding: 0.1rem 0.25rem !important;
-                            min-height: 1.2rem !important;
+                            font-size: 0.6rem !important;
+                            padding: 0.02rem 0.05rem !important;
+                            min-height: unset !important;
+                            height: 1.3rem !important;
                             line-height: 1 !important;
                         }
                         </style>""", unsafe_allow_html=True)
                         for _area in _areas:
-                            _col_info, _col_btns = st.columns([3, 1])
+                            _col_info, _col_btns = st.columns([4, 1])
                             with _col_info:
                                 st.markdown(
                                     f"<div style='font-size:0.8rem;padding:0.1rem 0;'>"
@@ -1957,24 +1958,27 @@ with st.sidebar:
                                     unsafe_allow_html=True,
                                 )
                             with _col_btns:
-                                if st.button("↩", key=f"ws_load_{_area['id']}",
-                                             use_container_width=True,
-                                             help="Load this area onto the map"):
-                                    clear_analysis_cache()
-                                    st.session_state.area_coordinates = _area['coordinates']
-                                    st.session_state.selected_area = True
-                                    st.session_state.cached_area_ha = _area['area_hectares']
-                                    st.session_state.cached_bbox = calculate_bbox_optimized(_area['coordinates'])
-                                    st.session_state.use_test_area_zoom = True
-                                    st.session_state.current_area_id = _area['id']
-                                    st.session_state.default_area_name = _area['name']
-                                    st.rerun()
-                                if st.button("🗑️", key=f"ws_del_{_area['id']}",
-                                             use_container_width=True,
-                                             help="Delete this saved area"):
-                                    from database import SavedAreaDB as _SADB3
-                                    _SADB3.delete_area(_area['id'])
-                                    st.rerun()
+                                _sub_l, _sub_d = st.columns(2)
+                                with _sub_l:
+                                    if st.button("↩", key=f"ws_load_{_area['id']}",
+                                                 use_container_width=True,
+                                                 help="Load this area onto the map"):
+                                        clear_analysis_cache()
+                                        st.session_state.area_coordinates = _area['coordinates']
+                                        st.session_state.selected_area = True
+                                        st.session_state.cached_area_ha = _area['area_hectares']
+                                        st.session_state.cached_bbox = calculate_bbox_optimized(_area['coordinates'])
+                                        st.session_state.use_test_area_zoom = True
+                                        st.session_state.current_area_id = _area['id']
+                                        st.session_state.default_area_name = _area['name']
+                                        st.rerun()
+                                with _sub_d:
+                                    if st.button("🗑️", key=f"ws_del_{_area['id']}",
+                                                 use_container_width=True,
+                                                 help="Delete this saved area"):
+                                        from database import SavedAreaDB as _SADB3
+                                        _SADB3.delete_area(_area['id'])
+                                        st.rerun()
                     else:
                         st.info("No saved areas yet. Draw an area and save it above.")
                 except Exception as _e:

@@ -1518,9 +1518,16 @@ class OpenLandMapSTAC:
             _coordinate_cache.popitem(last=False)  # evict oldest entry
 
         print(f"🔄 Fast mode: Trying direct landcover extraction for ({quantized_lat}, {quantized_lon})")
-        result = self._extract_landcover_direct(quantized_lat, quantized_lon)
+        result = None
+        for _attempt in range(3):
+            result = self._extract_landcover_direct(quantized_lat, quantized_lon)
+            if result:
+                break
+            if _attempt < 2:
+                print(f"⚠️ Landcover extraction attempt {_attempt + 1}/3 failed, retrying...")
+                time.sleep(1.5 * (_attempt + 1))
         if not result:
-            print(f"⚠️ Direct landcover extraction failed, using fallback detection")
+            print(f"⚠️ All 3 landcover extraction attempts failed, using geographic fallback")
             result = self._fallback_ecosystem_detection(quantized_lat, quantized_lon)
 
         _coordinate_cache[cache_key] = result
