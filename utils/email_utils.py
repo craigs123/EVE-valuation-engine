@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 _GMAIL_USER = os.getenv('GMAIL_USER', '')
 _GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD', '')
+_GMAIL_FROM = os.getenv('GMAIL_FROM', _GMAIL_USER)  # alias to send from (defaults to auth account)
 
 _APP_NAME = "Ecosystem Valuation Engine"
 _APP_BASE_URL = os.getenv('APP_BASE_URL', 'https://eve-valuation-engine-1025191764754.us-central1.run.app')
@@ -25,7 +26,7 @@ def _send(to_email: str, subject: str, html_body: str) -> bool:
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = f"{_APP_NAME} <{_GMAIL_USER}>"
+        msg['From'] = f"{_APP_NAME} <{_GMAIL_FROM}>"
         msg['To'] = to_email
         msg.attach(MIMEText(html_body, 'html'))
         with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as smtp:
