@@ -492,8 +492,8 @@ class SavedAreaDB:
                     user_account_id=auth_user_id,
                     name=name,
                     description=description,
-                    coordinates=coordinates,
-                    area_hectares=area_hectares
+                    coordinates=convert_numpy_types(coordinates),
+                    area_hectares=float(area_hectares),
                 )
 
                 db.add(saved_area)
