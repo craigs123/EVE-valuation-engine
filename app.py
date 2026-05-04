@@ -1574,7 +1574,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.2.4</span>
+    <span class="version-text">v3.2.5</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1700,7 +1700,7 @@ with st.sidebar:
                                     unsafe_allow_html=True,
                                 )
                             with _col_btns:
-                                if st.button("↩ Load", key=f"ws_load_{_area['id']}",
+                                if st.button("↩", key=f"ws_load_{_area['id']}",
                                              use_container_width=True,
                                              help="Load this area onto the map"):
                                     clear_analysis_cache()
@@ -4719,13 +4719,11 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             placeholder="Area name for report header",
         )
     with _pdf_col2:
-        _dl_pdf = st.button("Download PDF Report", type="primary", use_container_width=True,
-                            key="dl_pdf_btn")
-    if _dl_pdf:
+        _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
+                                 key="prepare_pdf_btn")
+    if _prepare_pdf:
         with st.spinner("Building PDF report…"):
             try:
-                import base64 as _b64mod
-                import streamlit.components.v1 as _stc
                 from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
                 _pdf_results = st.session_state.analysis_results
                 _pdf_auth = st.session_state.get('auth_user')
@@ -4745,20 +4743,19 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     country=_pdf_country,
                 )
                 _ts = datetime.now().strftime('%Y%m%d_%H%M')
-                _fname = f"EVE_report_{_ts}.pdf"
-                _b64 = _b64mod.b64encode(_pdf_bytes).decode()
-                _stc.html(
-                    f"<script>"
-                    f"var a=document.createElement('a');"
-                    f"a.href='data:application/pdf;base64,{_b64}';"
-                    f"a.download='{_fname}';"
-                    f"document.body.appendChild(a);a.click();document.body.removeChild(a);"
-                    f"</script>",
-                    height=0,
-                )
-                st.success("PDF report downloaded!")
+                st.session_state['_pdf_bytes'] = _pdf_bytes
+                st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
             except Exception as _pdf_err:
                 st.error(f"PDF generation failed: {_pdf_err}")
+    if st.session_state.get('_pdf_bytes'):
+        st.download_button(
+            label="⬇️ Download PDF Report",
+            data=st.session_state['_pdf_bytes'],
+            file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
+            mime="application/pdf",
+            use_container_width=True,
+            key="pdf_dl_btn",
+        )
 
     # Scenario Builder Section
     st.markdown("---")
