@@ -1574,7 +1574,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.2.5</span>
+    <span class="version-text">v3.3.0</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1617,6 +1617,199 @@ income_elasticity = st.session_state.get('income_elasticity', 0.6)
 time_preset = st.session_state.get('time_preset', 'Current Year (2024)')
 analyze_button = False
 
+
+# ── Analysis Settings dialog ───────────────────────────────────────────────
+@st.dialog("⚙️ Analysis Settings", width="large")
+def analysis_settings_dialog():
+    @st.cache_data
+    def get_ecosystem_options():
+        return [
+            "Auto-detect", "Tropical Forest", "Temperate Forest", "Boreal Forest",
+            "polar", "Grassland", "Wetland", "Water (ocean)", "Rivers and Lakes",
+            "Coastal", "Marine", "Agricultural", "Urban", "Desert"
+        ]
+
+    st.markdown("##### 🌿 Ecosystem Detection")
+    _eco = st.selectbox(
+        "Ecosystem Type",
+        options=get_ecosystem_options(),
+        index=get_ecosystem_options().index(st.session_state.get('ecosystem_override', 'Auto-detect'))
+            if st.session_state.get('ecosystem_override', 'Auto-detect') in get_ecosystem_options() else 0,
+        help="Auto-detection uses geographic analysis for ecosystem classification",
+        key="dlg_ecosystem_override",
+    )
+    st.session_state.ecosystem_override = _eco
+
+    st.divider()
+
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        with st.expander("⚡ **Performance & Data Collection**"):
+            _inc_env = st.checkbox(
+                "Include Environmental Indicators",
+                value=st.session_state.get('include_environmental_indicators', False),
+                help="Collects FAPAR, soil carbon, and other environmental data (slower).",
+                key="dlg_include_env",
+            )
+            st.session_state.include_environmental_indicators = _inc_env
+            if _inc_env:
+                st.info("🔬 **Comprehensive Mode**: Environmental data collected.")
+            else:
+                st.success("🚀 **Fast Mode**: Land cover only.")
+
+        with st.expander("🎯 **Sampling Configuration**"):
+            _samp = st.slider(
+                "Sample Points", min_value=9, max_value=100,
+                value=st.session_state.get('max_sampling_limit', 9), step=1,
+                help="Lower = faster, higher = more accurate.",
+                key="dlg_sampling",
+            )
+            st.session_state.max_sampling_limit = _samp
+            st.session_state.sampling_frequency = _samp
+            _sampling_guide = {
+                (0, 20): "🔹 Low Sampling — very fast",
+                (21, 40): "🔸 Moderate Sampling",
+                (41, 70): "🔸 High Sampling — good for mixed areas",
+                (71, 100): "🔴 Maximum Sampling — most accurate",
+            }
+            for (lo, hi), msg in _sampling_guide.items():
+                if lo <= _samp <= hi:
+                    st.info(msg)
+                    break
+            if st.session_state.get('cached_area_ha'):
+                _gs = int(np.sqrt(_samp))
+                st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+
+        with st.expander("🌍 **Regional Adjustments**"):
+            _elast = st.slider(
+                "Income elasticity factor", min_value=0.1, max_value=1.0,
+                value=st.session_state.get('income_elasticity', 0.6), step=0.1,
+                help="0.5–0.6 recommended. Scales regional GDP differences.",
+                key="dlg_income_elasticity",
+            )
+            st.session_state['income_elasticity'] = _elast
+            st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
+
+        with st.expander("📊 **Analysis Configuration**"):
+            _detail = st.selectbox(
+                "Analysis Detail",
+                options=["Summary Analysis", "Detailed Analysis"],
+                index=0 if st.session_state.get('analysis_detail', 'Summary Analysis') == 'Summary Analysis' else 1,
+                help="Detailed includes service breakdown and methodology.",
+                key="dlg_analysis_detail",
+            )
+            st.session_state.analysis_detail = _detail
+
+    with col_b:
+        with st.expander("🏙️ **Urban Green/Blue Infrastructure**"):
+            if 'urban_green_blue_multiplier' not in st.session_state:
+                st.session_state.urban_green_blue_multiplier = 18.0
+            _urb = st.slider(
+                "Green/Blue Coverage (%)", min_value=0.0, max_value=100.0,
+                value=st.session_state.urban_green_blue_multiplier, step=1.0,
+                key="dlg_urban_multiplier",
+                help="WHO minimum ~10-15%; European cities 30-50%; North American 20-40%.",
+            )
+            st.session_state.urban_green_blue_multiplier = _urb
+            st.info(f"Urban multiplier: {_urb/100:.2f}× ({_urb:.0f}%)")
+
+        with st.expander("🌿 **Ecosystem Intactness by Type**"):
+            st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
+
+            if 'use_eei_for_intactness' not in st.session_state:
+                st.session_state.use_eei_for_intactness = True
+            _eei = st.checkbox(
+                "Use EEI for Default Intactness",
+                value=st.session_state.use_eei_for_intactness,
+                key="dlg_use_eei",
+                help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
+            )
+            st.session_state.use_eei_for_intactness = _eei
+            st.caption("📡 EEI active" if _eei else "✋ Manual sliders below")
+
+            _eco_types = {
+                'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
+                'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
+                'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
+                'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
+            }
+            if 'ecosystem_intactness' not in st.session_state:
+                st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
+            for et in _eco_types:
+                if et not in st.session_state.ecosystem_intactness:
+                    st.session_state.ecosystem_intactness[et] = 100
+
+            _changed = False
+            for eco_type, icon in _eco_types.items():
+                _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
+                _val = st.slider(
+                    f"{icon} {eco_type} (%)", 0, 100,
+                    int(round(_cur)) if isinstance(_cur, float) else _cur,
+                    step=5, key=f"dlg_intactness_{eco_type}",
+                )
+                if _val != _cur:
+                    _changed = True
+                st.session_state.ecosystem_intactness[eco_type] = _val
+            if _changed:
+                reset_analysis_state()
+
+        with st.expander("🔬 Scientific Methodology"):
+            st.markdown("""
+**EVE** combines satellite remote sensing with the ESVD (10,874 peer-reviewed values) to measure natural capital.
+
+**Service Categories**: Provisioning · Regulating · Cultural · Supporting
+
+**Formula**: `Final Value = ESVD_Base × Regional_Adjustment × Quality_Factor`
+
+**Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
+            """)
+
+    st.divider()
+    with st.expander("🌍 **OpenLandMap Settings** (advanced)"):
+        from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
+        _default_map = DEFAULT_LANDCOVER_MAPPING
+        _esvd_types = [
+            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
+            "Grassland", "agricultural", "Urban", "Desert",
+            "Wetland", "Coastal", "Marine", "Shrubland", "polar"
+        ]
+        if 'custom_landcover_mapping' not in st.session_state:
+            st.session_state.custom_landcover_mapping = _default_map.copy()
+        for code, eco in _default_map.items():
+            if code not in st.session_state.custom_landcover_mapping:
+                st.session_state.custom_landcover_mapping[code] = eco
+
+        _desc = get_all_esa_codes()
+        st.markdown("**Landcover → Ecosystem mapping**")
+        if st.button("🔄 Reset to defaults", key="dlg_reset_mapping"):
+            st.session_state.custom_landcover_mapping = _default_map.copy()
+            st.rerun()
+        _changes = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() if v != _default_map.get(k))
+        if _changes:
+            st.info(f"📝 {_changes} custom mappings active")
+
+        for code in sorted(_default_map.keys()):
+            _mc1, _mc2 = st.columns([1, 2])
+            with _mc1:
+                st.markdown(f"**{code}**", help=_desc.get(code, ""))
+            with _mc2:
+                _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
+                _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
+                _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
+                                   key=f"dlg_lcmap_{code}", label_visibility="collapsed")
+                st.session_state.custom_landcover_mapping[code] = _nm
+
+        try:
+            from utils.openlandmap_stac_api import openlandmap_stac
+            openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
+        except Exception:
+            pass
+
+    if st.button("✅ Close", use_container_width=True, key="dlg_close"):
+        st.rerun()
+
+
 # Sidebar configuration - optimized for performance with expandable sections
 with st.sidebar:
 
@@ -1636,6 +1829,8 @@ with st.sidebar:
                 from utils.auth import logout as _logout
                 _logout()
                 st.rerun()
+        if st.button("⚙️ Settings", use_container_width=True, key="open_settings_btn"):
+            analysis_settings_dialog()
         st.divider()
 
     # ── My Workspace ──────────────────────────────────────────────────────────
@@ -1750,579 +1945,6 @@ with st.sidebar:
 
         st.divider()
 
-    st.header("Analysis Settings")
-
-    # Cache ecosystem options to avoid recreation
-    @st.cache_data
-    def get_ecosystem_options():
-        return [
-            "Auto-detect",
-            "Tropical Forest",
-            "Temperate Forest",
-            "Boreal Forest",
-            "polar",
-            "Grassland",
-            "Wetland",
-            "Water (ocean)",
-            "Rivers and Lakes",
-            "Coastal",
-            "Marine",
-            "Agricultural",
-            "Urban",
-            "Desert"
-        ]
-
-    ecosystem_override = st.selectbox(
-        "🌿 Ecosystem Type",
-        options=get_ecosystem_options(),
-        help="Auto-detection uses geographic analysis for ecosystem classification"
-    )
-    st.session_state.ecosystem_override = ecosystem_override
-    
-    # Performance Settings (expandable)
-    with st.expander("⚡ **Performance & Data Collection**"):
-        # Environmental indicators toggle
-        include_environmental_indicators = st.checkbox(
-            "Include Environmental Indicators",
-            value=st.session_state.get('include_environmental_indicators', False),
-            help="When enabled: Collects FAPAR, soil carbon, and other environmental data shown in the sample points table. When disabled: Only collects land cover for ecosystem detection (faster)."
-        )
-        st.session_state.include_environmental_indicators = include_environmental_indicators
-        
-        # Performance information
-        if include_environmental_indicators:
-            st.info("🔬 **Comprehensive Mode**: Collecting FAPAR, soil carbon, and environmental data. This data is shown in the sample points table.")
-        else:
-            st.success("🚀 **Fast Mode**: Only collecting land cover data. FAPAR and Soil Carbon columns will show '—' in the sample points table.")
-    
-    # Sampling Settings (expandable)
-    with st.expander("🎯 **Sampling Configuration**"):
-        # Maximum sampling limit setting (simplified approach)
-        max_sampling_limit = st.slider(
-            "Sample Points",
-            min_value=9,
-            max_value=100,
-            value=st.session_state.get('max_sampling_limit', 9),
-            step=1,
-            help="Number of sample points for ecosystem detection. Lower values = faster analysis, higher values = more accuracy."
-        )
-        st.session_state.max_sampling_limit = max_sampling_limit
-        
-        # Set sampling frequency to match the current sample points selection
-        st.session_state.sampling_frequency = max_sampling_limit
-    
-        # Sampling guide
-        sampling_guide = {
-            (0, 20): "🔹 **Low Sampling**: Very fast analysis, suitable for uniform areas",
-            (21, 40): "🔸 **Moderate Sampling**: Fast with good accuracy balance", 
-            (41, 70): "🔸 **High Sampling**: Detailed analysis for mixed ecosystems",
-            (71, 100): "🔴 **Maximum Sampling**: Most accurate, longer processing"
-        }
-        
-        for (min_val, max_val), message in sampling_guide.items():
-            if min_val <= max_sampling_limit <= max_val:
-                st.info(message)
-                break
-        
-        # Optimized sampling info display - only show when needed
-        if st.session_state.get('area_coordinates') and st.session_state.get('cached_area_ha'):
-        
-            area_ha = st.session_state.cached_area_ha
-            grid_size = int(np.sqrt(max_sampling_limit))
-            actual_final = grid_size ** 2
-            st.caption(f"Current area: ~{area_ha:.0f} ha → {actual_final} sample points")
-        elif st.session_state.get('area_coordinates'):
-            st.caption("Area calculation in progress...")
-        else:
-            st.caption("Select an area to see sampling estimation")
-    
-    # Ecosystem Intactness Settings (expandable)
-    with st.expander("🌿 **Ecosystem Intactness by Type**"):
-        st.markdown("**Set intactness level for each ecosystem type:**")
-        st.caption("Assess ecosystem condition: 100% = totally intact, 50% = moderately degraded, 0% = totally unproductive")
-        
-        # Define ecosystem types with their icons (separate forest types)
-        ecosystem_types = {
-            'Agricultural': '🌾',
-            'Temperate Forest': '🌳', 
-            'Boreal Forest': '🌲',
-            'Tropical Forest': '🌴',
-            'Grassland': '🌱',
-            'Shrubland': '🌵',
-            'Desert': '🏜️',
-            'Wetland': '🌿',
-            'Coastal': '🏖️',
-            'Marine': '🌊',
-            'Rivers And Lakes': '🏞️',
-            'Urban': '🏙️'
-        }
-        
-        # Initialize ecosystem intactness in session state if not exists
-        if 'ecosystem_intactness' not in st.session_state:
-            st.session_state.ecosystem_intactness = {eco_type: 100 for eco_type in ecosystem_types.keys()}
-        
-        # Add any missing ecosystem types (for existing sessions)
-        for eco_type in ecosystem_types.keys():
-            if eco_type not in st.session_state.ecosystem_intactness:
-                st.session_state.ecosystem_intactness[eco_type] = 100
-        
-        # EEI toggle for automatic intactness defaults (default ON)
-        if 'use_eei_for_intactness' not in st.session_state:
-            st.session_state.use_eei_for_intactness = True
-
-        st.markdown("**🌿 EEI (Ecosystem Ecological Integrity) Integration**")
-        use_eei = st.checkbox(
-            "Use EEI for Default Intactness",
-            value=st.session_state.use_eei_for_intactness,
-            help="When enabled, the Ecosystem Ecological Integrity API automatically sets intactness defaults based on actual ecosystem condition data."
-        )
-        st.session_state.use_eei_for_intactness = use_eei
-        if use_eei:
-            st.caption("📡 EEI values will be fetched during analysis and used to set slider defaults")
-        else:
-            st.caption("✋ Manual intactness values below will be used")
-        
-        st.markdown("---")
-        
-        # Create sliders for each ecosystem type - use explicit change detection instead of on_change
-        # to avoid callback conflicts with the Calculate button
-        intactness_changed = False
-        for eco_type, icon in ecosystem_types.items():
-            current_value = st.session_state.ecosystem_intactness.get(eco_type, 100)
-            # Convert to int for slider compatibility (slider requires matching types)
-            slider_value = int(round(current_value)) if isinstance(current_value, float) else current_value
-            intactness_value = st.slider(
-                f"{icon} {eco_type} Intactness (%)",
-                min_value=0,
-                max_value=100,
-                value=slider_value,
-                step=5,
-                key=f"intactness_{eco_type}",
-                help=f"Intactness level for {eco_type} ecosystems: 100% = pristine condition, 0% = completely degraded"
-            )
-            # Detect if value actually changed
-            if intactness_value != current_value:
-                intactness_changed = True
-            st.session_state.ecosystem_intactness[eco_type] = intactness_value
-        
-        # Reset analysis state only if intactness values actually changed
-        if intactness_changed:
-            reset_analysis_state()
-        
-        # Show summary of current settings
-        st.markdown("**Current Multipliers:**")
-        multiplier_text = []
-        for eco_type, icon in ecosystem_types.items():
-            percentage = st.session_state.ecosystem_intactness[eco_type]
-            multiplier = percentage / 100.0
-            multiplier_text.append(f"{icon} {eco_type}: {multiplier:.2f}x")
-        
-        # Display in two columns for better organization
-        col1, col2 = st.columns(2)
-        for i, text in enumerate(multiplier_text):
-            if i % 2 == 0:
-                col1.caption(text)
-            else:
-                col2.caption(text)
-    
-
-    
-    # Regional Adjustment Settings (expandable)
-    with st.expander("🌍 **Regional Adjustments**"):
-        st.markdown("**Income Elasticity of Willingness to Pay**")
-        
-        income_elasticity = st.slider(
-            "Income elasticity factor",
-            min_value=0.1,
-            max_value=1.0,
-            value=0.6,
-            step=0.1,
-            help="Higher values increase regional income differences in valuation. Research suggests 0.5-0.6 for environmental services."
-        )
-        
-        # Updated methodology explanation with authentic data sources
-        st.markdown("""
-        **📚 Methodology:** Income elasticity of willingness to pay method from environmental economics literature  
-        **🔬 Formula:** 1 + (elasticity × (regional_GDP/global_GDP - 1))  
-        **📊 Data Source:** World Bank GDP per capita (2024), aligned with ESVD baseline year  
-        **🔒 Bounds:** 0.4x to 2.5x adjustment range prevents extreme values
-        """)
-        
-        # Show country-specific examples
-        if st.checkbox("Show country-specific examples", key="show_country_examples"):
-            st.markdown("""
-            **Country-Specific GDP Examples (World Bank 2024):**
-            - USA: $80,706 → 2.5x adjustment
-            - Germany: $53,528 → 2.4x adjustment
-            - China: $12,509 → 0.95x adjustment
-            - Brazil: $8,917 → 0.82x adjustment
-            - Kenya: $2,024 → 0.52x adjustment
-            - Global Average: $13,673 (baseline)
-            
-            *Note: Now uses individual country data instead of regional averages*
-            """)
-        
-        # Store in session state
-        st.session_state['income_elasticity'] = income_elasticity
-    
-    # Urban Green/Blue Infrastructure Settings (expandable)
-    with st.expander("🏙️ **Urban Green/Blue Infrastructure**"):
-        st.markdown("**Urban ecosystem multiplier for green and blue spaces:**")
-        st.caption("Only a portion of urban areas contain actual green/blue infrastructure that provides ecosystem services")
-        
-        # Initialize urban multiplier in session state if not exists
-        if 'urban_green_blue_multiplier' not in st.session_state:
-            st.session_state.urban_green_blue_multiplier = 18.0  # Default 18%
-        
-        urban_multiplier = st.slider(
-            "🌳 Green/Blue Infrastructure Coverage (%)",
-            min_value=0.0,
-            max_value=100.0,
-            value=st.session_state.urban_green_blue_multiplier,
-            step=1.0,
-            key="urban_multiplier_slider",
-            help="Based on global satellite studies (Huang et al. 2018). The WHO minimum guidelines equate to about 10-15% of the City area (depending on population size). Many cities have much a higher percentage of green/blue infrastructure. According to the EEA (Urban Atlas 2018), European cities tend to have coverage of 30-50%. North American cities have 20%-40% coverage (US EPA 2021)."
-        )
-        st.session_state.urban_green_blue_multiplier = urban_multiplier
-        
-        # Show current multiplier
-        multiplier_value = urban_multiplier / 100.0
-        st.info(f"🏙️ **Current Urban Multiplier**: {multiplier_value:.2f}x ({urban_multiplier:.0f}%)")
-        
-        # Explanation
-        st.markdown("""
-        **📚 Background:** Studies show that urban areas vary significantly in green and blue infrastructure coverage:
-        - **Green Infrastructure**: Parks, urban forests, green roofs, tree-lined streets
-        - **Blue Infrastructure**: Urban waterways, constructed wetlands, retention ponds
-        - **Mixed Areas**: Green corridors, riparian zones, urban gardens
-        
-        **🔬 Default (18%)**: Based on global satellite studies (Huang et al. 2018) - only green/blue portions provide ecosystem services
-        """)
-        
-        # Store in session state
-        st.session_state['urban_green_blue_multiplier'] = urban_multiplier
-    
-    # Analysis Configuration (expandable)
-    with st.expander("📊 **Analysis Configuration**"):
-        # Analysis period settings
-        time_preset = st.selectbox(
-            "Analysis Period",
-            options=["Past Year", "Past 6 Months", "Past 3 Months", "Custom Range"],
-            index=0,
-            key="sidebar_time_preset"
-        )
-        
-        if time_preset == "Custom Range":
-            start_date = st.date_input("From", value=datetime.now() - timedelta(days=365), key="sidebar_start_date")
-            end_date = st.date_input("To", value=datetime.now(), key="sidebar_end_date")
-        else:
-            preset_options = {
-                "Past Year": (datetime.now() - timedelta(days=365), datetime.now()),
-                "Past 6 Months": (datetime.now() - timedelta(days=180), datetime.now()),
-                "Past 3 Months": (datetime.now() - timedelta(days=90), datetime.now())
-            }
-            start_date, end_date = preset_options[time_preset]
-        
-        # Analysis detail level
-        analysis_detail = st.selectbox(
-            "Analysis Detail",
-            options=["Summary Analysis", "Detailed Analysis"],
-            help="Summary shows total value and basic metrics. Detailed includes service breakdown, calculations, and methodology.",
-            key="sidebar_analysis_detail"
-        )
-        
-        # Store settings
-        st.session_state.analysis_detail = analysis_detail
-        st.session_state.analysis_start_date = start_date
-        st.session_state.analysis_end_date = end_date
-    
-    # Scientific Methodology section
-    with st.expander("🔬 Scientific Methodology"):
-        st.markdown("""
-        **Ecological Valuation Engine (EVE)** combines satellite remote sensing with the world's largest ecosystem service valuation database to measure natural capital in economic terms.
-        
-        EVE tracks four categories of ecosystem services: **provisioning** (food, water, timber), **regulating** (climate, water regulation, erosion control), **cultural** (recreation, spiritual value), and **supporting** (soil formation, nutrient cycling).
-        """)
-        st.markdown("""
-        **Data Sources:**
-        - **ESVD Database**: 10,874 peer-reviewed ecosystem service values from 1,354+ scientific studies
-        - **Ecosystem Detection**: OpenLandMap STAC API for global land cover classification
-        - **Ecosystem Intactness**: User assessment of ecosystem condition and health
-        
-        **Economic Valuation:**
-        - All values standardized to 2020 International dollars per hectare per year
-        - Regional adjustment factors for income and cost of living
-        - Quality multipliers (0.4x to 1.2x) based on ecosystem health
-        
-        **Service Categories:**
-        - **Provisioning**: Food production, Fresh water, Timber, Genetic resources
-        - **Regulating**: Climate regulation, Water purification, Disease control, Pollination  
-        - **Cultural**: Recreation, Aesthetic value, Spiritual significance, Education
-        - **Supporting**: Habitat provision, Nutrient cycling, Soil formation, Primary production
-        """)
-        
-        st.markdown("**Calculation Method:**")
-        st.code("""
-Final Value = AUTHENTIC_ESVD_BASE × REGIONAL_ADJUSTMENT × QUALITY_FACTOR
-
-Example: 100ha Forest
-• Cultural Services: $1,417/ha/year (from 46 peer-reviewed studies)
-• Total Value: $141,653/year (authentic data only)
-        """, language="text")
-        
-        # Ecosystem Intactness Assessment Details
-        st.markdown("**Ecosystem Intactness Assessment:**")
-        col_q1, col_q2 = st.columns(2)
-        
-        with col_q1:
-            st.markdown("""
-            **Input Data:**
-            - Red band reflectance
-            - Near-infrared reflectance  
-            - Cloud coverage %
-            - Data quality flags
-            
-            **NDVI Calculation:**
-            ```
-            NDVI = (NIR - Red) / (NIR + Red)
-            ```
-            """)
-        
-        with col_q2:
-            st.markdown("""
-            **Weighted Scoring (100 points):**
-            - NDVI Health: 40% weight
-            - Data Quality: 30% weight
-            - Cloud Coverage: 20% weight
-            - Spectral Health: 10% weight
-            """)
-        
-        st.markdown("**Quality Categories & Multipliers:**")
-        quality_data = {
-            "Excellent (≥85pts)": "1.2x - Premium ecosystem health",
-            "Good (70-84pts)": "1.0x - Standard baseline",
-            "Fair (55-69pts)": "0.8x - Moderate degradation", 
-            "Poor (40-54pts)": "0.6x - Significant degradation",
-            "Degraded (<40pts)": "0.4x - Severely degraded"
-        }
-        
-        for category, description in quality_data.items():
-            st.info(f"**{category}**: {description}")
-        
-        st.success("Healthy ecosystems provide up to 20% more value than baseline ESVD averages, while degraded ecosystems provide only 40% of baseline value.")
-    
-    # OpenLandMap Configuration
-    with st.expander("🌍 **OpenLandMap Settings**"):
-        st.markdown("**Landcover to Ecosystem Mapping Configuration**")
-        st.info("Customize how OpenLandMap landcover codes map to ESVD ecosystem types")
-        
-        # All possible ESVD ecosystem types (including forest subtypes)
-        esvd_ecosystem_types = [
-            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-            "Grassland", "agricultural", "Urban", "Desert", 
-            "Wetland", "Coastal", "Marine", "Shrubland", "polar"
-        ]
-        
-        from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING
-        default_landcover_mapping = DEFAULT_LANDCOVER_MAPPING
-        
-        # Initialize session state for custom mapping with correct defaults
-        if 'custom_landcover_mapping' not in st.session_state:
-            st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
-        
-        # Update only missing keys to preserve user customizations while ensuring new defaults are present
-        for code, ecosystem in default_landcover_mapping.items():
-            if code not in st.session_state.custom_landcover_mapping:
-                st.session_state.custom_landcover_mapping[code] = ecosystem
-        
-        st.markdown("**Landcover Code Mapping Table:**")
-        st.caption("Modify the dropdown selections to customize ecosystem detection. Hover over codes for descriptions.")
-        
-        # Add reset to defaults button
-        if st.button("🔄 Reset All to Default Mapping", help="Reset all mappings to the original default values"):
-            st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
-            st.rerun()
-        
-        # Create compact mapping table with tooltips
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col1:
-            st.markdown("**Code**")
-        with col2:
-            st.markdown("**Current Mapping**")
-        with col3:
-            st.markdown("**Status**")
-        
-        # Import centralized ESA land cover descriptions  
-        from utils.esa_landcover_codes import get_all_esa_codes
-        landcover_descriptions = get_all_esa_codes()
-        
-        # Display compact mapping table with tooltips
-        for code in sorted(default_landcover_mapping.keys()):
-            col1, col2, col3 = st.columns([1, 2, 1])
-            
-            with col1:
-                # Use help parameter to show description on hover
-                st.markdown(
-                    f"**{code}**", 
-                    help=landcover_descriptions.get(code, "Unknown landcover type")
-                )
-            
-            with col2:
-                current_mapping = st.session_state.custom_landcover_mapping.get(code, "Grassland")
-                current_index = esvd_ecosystem_types.index(current_mapping) if current_mapping in esvd_ecosystem_types else 0
-                
-                new_mapping = st.selectbox(
-                    f"Ecosystem for code {code}",
-                    esvd_ecosystem_types,
-                    index=current_index,
-                    key=f"landcover_mapping_{code}",
-                    label_visibility="collapsed"
-                )
-                
-                # Update session state when user changes selection
-                st.session_state.custom_landcover_mapping[code] = new_mapping
-            
-            with col3:
-                # Show if this is default or custom mapping
-                default_value = default_landcover_mapping[code]
-                if current_mapping == default_value:
-                    st.markdown("✅ Default")
-                else:
-                    st.markdown(f"🔧 Custom  \n*Default: {default_value}*")
-        
-        # ESA Land Cover Code Value Multipliers
-        
-        st.markdown("**ESA Land Cover Code Value Multipliers**")
-        st.info("Adjust ecosystem valuation percentages for specific ESA land cover codes. Default: 100%")
-        
-        # Initialize default multipliers using centralized defaults
-        from utils.esa_landcover_codes import get_default_multipliers
-        if 'esa_code_multipliers' not in st.session_state:
-            st.session_state.esa_code_multipliers = get_default_multipliers()
-        
-        # Add any missing codes to the multipliers using centralized defaults
-        default_multipliers = get_default_multipliers()
-        for code, default_value in default_multipliers.items():
-            if code not in st.session_state.esa_code_multipliers:
-                st.session_state.esa_code_multipliers[code] = default_value
-        
-        # Create tabbed interface for better organization
-        tab1, tab2 = st.tabs(["🌾 Agricultural & Grassland", "🌲 Forest & Other"])
-        
-        with tab1:
-            st.markdown("**Agricultural, Grassland, and Farming Areas**")
-            cropland_codes = [10, 11, 12, 20, 30, 40, 130, 140]
-            
-            for code in sorted([c for c in cropland_codes if c in default_landcover_mapping]):
-                col1, col2 = st.columns([2, 1])
-                with col1:
-                    from utils.esa_landcover_codes import get_esa_description
-                    description = get_esa_description(code)
-                    st.markdown(f"**{code}**: {description}")
-                with col2:
-                    current_value = st.session_state.esa_code_multipliers.get(code, 100)
-                    new_value = st.number_input(
-                        f"Multiplier %",
-                        min_value=0,
-                        max_value=500,
-                        value=current_value,
-                        step=5,
-                        key=f"multiplier_{code}",
-                        label_visibility="collapsed"
-                    )
-                    st.session_state.esa_code_multipliers[code] = new_value
-        
-        with tab2:
-            st.markdown("**Forest, Wetland, Urban, and Other Areas**")
-            other_codes = [50, 60, 61, 62, 70, 71, 72, 80, 81, 82, 90, 100, 110, 120, 121, 122, 
-                          150, 151, 152, 153, 160, 170, 180, 190, 200, 201, 202, 210, 220]
-            
-            for code in sorted([c for c in other_codes if c in default_landcover_mapping]):
-                col1, col2 = st.columns([2, 1])
-                with col1:
-                    from utils.esa_landcover_codes import get_esa_description
-                    description = get_esa_description(code)
-                    st.markdown(f"**{code}**: {description}")
-                with col2:
-                    current_value = st.session_state.esa_code_multipliers.get(code, 100)
-                    new_value = st.number_input(
-                        f"Multiplier %",
-                        min_value=0,
-                        max_value=500,
-                        value=current_value,
-                        step=5,
-                        key=f"multiplier_{code}",
-                        label_visibility="collapsed"
-                    )
-                    st.session_state.esa_code_multipliers[code] = new_value
-        
-        # Reset to defaults button
-        if st.button("🔄 Reset All Multipliers to 100%", use_container_width=True):
-            from utils.esa_landcover_codes import get_default_multipliers
-            st.session_state.esa_code_multipliers = get_default_multipliers()
-            st.rerun()
-        
-        
-        
-        # Action buttons
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        
-        with col_btn1:
-            if st.button("🔄 Reset to Defaults", help="Reset all mappings to default values"):
-                st.session_state.custom_landcover_mapping = default_landcover_mapping.copy()
-                st.success("✅ Mappings reset to defaults")
-                st.rerun()
-        
-        with col_btn2:
-            # Show current status
-            changes_count = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() 
-                               if v != default_landcover_mapping.get(k))
-            if changes_count > 0:
-                st.info(f"📝 {changes_count} custom mappings active")
-            else:
-                st.success("✅ Using default mappings")
-        
-        with col_btn3:
-            if st.button("💾 Export Mapping", help="Export current mapping as JSON"):
-                import json
-                mapping_json = json.dumps(st.session_state.custom_landcover_mapping, indent=2)
-                st.download_button(
-                    "Download mapping.json",
-                    mapping_json,
-                    file_name="openlandmap_ecosystem_mapping.json",
-                    mime="application/json"
-                )
-        
-        # Update the OpenLandMap STAC API instance with custom mapping
-        try:
-            from utils.openlandmap_stac_api import openlandmap_stac
-            openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
-        except Exception as e:
-            st.warning(f"Could not update STAC API mapping: {e}")
-        
-        # Status information
-        with st.expander("📊 OpenLandMap Data Source Info"):
-            st.markdown("**🌍 OpenLandMap STAC API Status:**")
-            st.success("✅ **Active Data Source**: OpenLandMap STAC Collections")
-            st.info("🛰️ Global landcover data from ESA CCI Land Cover")
-            st.info("🌱 Real-time ecosystem detection worldwide")
-            st.info("📡 No authentication required - direct API access")
-            
-            st.markdown("**Key Collections Queried:**")
-            collections_info = {
-                "Land Cover": "ESA CCI Land Cover classification",
-                "Soil Organic Carbon": "Soil carbon content (g/kg)", 
-                "Vegetation Index": "Enhanced Vegetation Index (EVI)",
-                "Photosynthetic Activity": "Fraction of absorbed PAR",
-                "Terrain Elevation": "Digital terrain model (m)"
-            }
-            
-            for collection, description in collections_info.items():
-                st.markdown(f"• **{collection}**: {description}")
-    
-    
-    
     # Database Section
     if st.session_state.get('db_initialized', False):
         st.subheader("💾 Saved Data")
