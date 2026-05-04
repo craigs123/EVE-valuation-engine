@@ -11,9 +11,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import EVE models so autogenerate can detect them
-from database import Base  # noqa: F401 — registers all models onto Base.metadata
-target_metadata = Base.metadata
+# Import EVE models so autogenerate can detect them.
+# Falls back gracefully when heavy deps (numpy, streamlit) aren't in the local env.
+try:
+    from database import Base  # noqa: F401
+    target_metadata = Base.metadata
+except Exception:
+    target_metadata = None
 
 # Override sqlalchemy.url from DATABASE_URL env var
 database_url = os.environ.get("DATABASE_URL")
