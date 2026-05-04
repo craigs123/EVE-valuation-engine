@@ -68,10 +68,12 @@ def _render_auth_ui():
         # ---- Sign In ----
         with tab_in:
             st.markdown("<div class='auth-tab-panel'>", unsafe_allow_html=True)
-            email = st.text_input("Email", key="login_email", placeholder="you@example.com")
-            password = st.text_input("Password", type="password", key="login_password")
+            with st.form("login_form"):
+                email = st.text_input("Email", key="login_email", placeholder="you@example.com")
+                password = st.text_input("Password", type="password", key="login_password")
+                submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
-            if st.button("Sign in", type="primary", use_container_width=True, key="login_btn"):
+            if submitted:
                 if not email or not password:
                     st.error("Please enter your email and password.")
                 else:
