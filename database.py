@@ -12,7 +12,7 @@ import psycopg2
 import numpy as np
 
 logger = logging.getLogger(__name__)
-from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON, Index
+from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, Boolean, JSON, Index, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
@@ -52,12 +52,29 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+class User(Base):
+    """Registered user accounts"""
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    display_name = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('ix_users_email', 'email'),
+    )
+
+
 class EcosystemAnalysis(Base):
     """Store ecosystem analysis results"""
     __tablename__ = "ecosystem_analyses"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_session_id = Column(String(255), nullable=True)  # For tracking user sessions
+    user_account_id = Column(UUID(as_uuid=True), nullable=True)  # Registered user FK
     area_name = Column(String(255), nullable=True)
     coordinates = Column(JSON, nullable=False)  # Store GeoJSON coordinates
     area_hectares = Column(Float, nullable=False)
@@ -74,14 +91,16 @@ class EcosystemAnalysis(Base):
     __table_args__ = (
         Index('ix_ecosystem_analyses_user_session_id', 'user_session_id'),
         Index('ix_ecosystem_analyses_created_at', 'created_at'),
+        Index('ix_ecosystem_analyses_user_account_id', 'user_account_id'),
     )
 
 class SavedArea(Base):
     """Store user-saved areas for future analysis"""
     __tablename__ = "saved_areas"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_session_id = Column(String(255), nullable=True)
+    user_account_id = Column(UUID(as_uuid=True), nullable=True)  # Registered user FK
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     coordinates = Column(JSON, nullable=False)
@@ -92,6 +111,7 @@ class SavedArea(Base):
 
     __table_args__ = (
         Index('ix_saved_areas_user_session_id', 'user_session_id'),
+        Index('ix_saved_areas_user_account_id', 'user_account_id'),
     )
 
 class AnalysisHistory(Base):
@@ -110,10 +130,11 @@ class AnalysisHistory(Base):
 class NaturalCapitalBaseline(Base):
     """Store baseline natural capital values for ecosystem tracking"""
     __tablename__ = "natural_capital_baselines"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     area_id = Column(UUID(as_uuid=True), nullable=True)  # Reference to SavedArea
     user_session_id = Column(String(255), nullable=True)
+    user_account_id = Column(UUID(as_uuid=True), nullable=True)  # Registered user FK
     baseline_date = Column(DateTime, nullable=False)
     ecosystem_type = Column(String(255), nullable=False)
     
@@ -149,10 +170,11 @@ class NaturalCapitalBaseline(Base):
 class NaturalCapitalTrend(Base):
     """Track natural capital changes over time"""
     __tablename__ = "natural_capital_trends"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     baseline_id = Column(UUID(as_uuid=True), nullable=False)  # Reference to baseline
     area_id = Column(UUID(as_uuid=True), nullable=True)
+    user_account_id = Column(UUID(as_uuid=True), nullable=True)  # Registered user FK
     measurement_date = Column(DateTime, nullable=False)
     
     # Value changes from baseline
@@ -221,6 +243,76 @@ def test_database_connection():
         # Error will be shown elsewhere if needed
         return False
 
+def _get_auth_user_id() -> Optional[str]:
+    """Return the logged-in user's UUID string, or None."""
+    try:
+        if hasattr(st, 'session_state'):
+            auth_user = st.session_state.get('auth_user')
+            if auth_user and isinstance(auth_user, dict):
+                return auth_user.get('id')
+    except Exception:
+        pass
+    return None
+
+
+class UserDB:
+    """Database operations for registered user accounts."""
+
+    @staticmethod
+    def register(email: str, password: str, display_name: Optional[str] = None) -> Dict:
+        """Hash password and create a new user. Raises ValueError on duplicate email."""
+        import bcrypt
+        try:
+            with get_db() as db:
+                existing = db.query(User).filter(User.email == email.lower()).first()
+                if existing:
+                    raise ValueError("An account with that email address already exists.")
+                password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user = User(
+                    email=email.lower(),
+                    password_hash=password_hash,
+                    display_name=display_name,
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                return {'id': str(user.id), 'email': user.email, 'display_name': user.display_name}
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(f"Registration failed: {e}")
+            raise
+
+    @staticmethod
+    def login(email: str, password: str) -> Optional[Dict]:
+        """Verify credentials and return user dict, or None on failure."""
+        import bcrypt
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.email == email.lower()).first()
+                if not user:
+                    return None
+                if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+                    return {'id': str(user.id), 'email': user.email, 'display_name': user.display_name}
+                return None
+        except Exception as e:
+            logger.error(f"Login failed: {e}")
+            return None
+
+    @staticmethod
+    def get_by_id(user_id: str) -> Optional[Dict]:
+        """Return user dict by UUID string, or None."""
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.id == user_id).first()
+                if not user:
+                    return None
+                return {'id': str(user.id), 'email': user.email, 'display_name': user.display_name}
+        except Exception as e:
+            logger.error(f"get_by_id failed: {e}")
+            return None
+
+
 # Database operations for ecosystem analyses
 class EcosystemAnalysisDB:
     """Database operations for ecosystem analyses"""
@@ -248,6 +340,8 @@ class EcosystemAnalysisDB:
                 except Exception as e:
                     logger.warning(f"Could not access session state for user_id: {e}")
 
+                auth_user_id = _get_auth_user_id()
+
                 clean_coordinates = convert_numpy_types(coordinates)
                 clean_analysis_results = convert_numpy_types(analysis_results)
                 clean_sustainability_responses = convert_numpy_types(sustainability_responses) if sustainability_responses else None
@@ -257,6 +351,7 @@ class EcosystemAnalysisDB:
 
                 analysis = EcosystemAnalysis(
                     user_session_id=user_session_id or session_user_id,
+                    user_account_id=auth_user_id,
                     area_name=area_name,
                     coordinates=clean_coordinates,
                     area_hectares=clean_area_hectares,
@@ -300,13 +395,18 @@ class EcosystemAnalysisDB:
                 except Exception as e:
                     logger.warning(f"Could not access session state for user_id: {e}")
 
-                session_id = user_session_id or session_user_id
-                if not session_id:
-                    return []
-
-                analyses = db.query(EcosystemAnalysis).filter(
-                    EcosystemAnalysis.user_session_id == session_id
-                ).order_by(EcosystemAnalysis.created_at.desc()).limit(limit).all()
+                auth_user_id = _get_auth_user_id()
+                if auth_user_id:
+                    analyses = db.query(EcosystemAnalysis).filter(
+                        EcosystemAnalysis.user_account_id == auth_user_id
+                    ).order_by(EcosystemAnalysis.created_at.desc()).limit(limit).all()
+                else:
+                    session_id = user_session_id or session_user_id
+                    if not session_id:
+                        return []
+                    analyses = db.query(EcosystemAnalysis).filter(
+                        EcosystemAnalysis.user_session_id == session_id
+                    ).order_by(EcosystemAnalysis.created_at.desc()).limit(limit).all()
 
                 return [
                     {
@@ -385,8 +485,11 @@ class SavedAreaDB:
                 except Exception as e:
                     logger.warning(f"Could not access session state for user_id: {e}")
 
+                auth_user_id = _get_auth_user_id()
+
                 saved_area = SavedArea(
                     user_session_id=user_session_id or session_user_id,
+                    user_account_id=auth_user_id,
                     name=name,
                     description=description,
                     coordinates=coordinates,
@@ -424,13 +527,18 @@ class SavedAreaDB:
                 except Exception as e:
                     logger.warning(f"Could not access session state for user_id: {e}")
 
-                session_id = user_session_id or session_user_id
-                if not session_id:
-                    return []
-
-                areas = db.query(SavedArea).filter(
-                    SavedArea.user_session_id == session_id
-                ).order_by(SavedArea.updated_at.desc()).all()
+                auth_user_id = _get_auth_user_id()
+                if auth_user_id:
+                    areas = db.query(SavedArea).filter(
+                        SavedArea.user_account_id == auth_user_id
+                    ).order_by(SavedArea.updated_at.desc()).all()
+                else:
+                    session_id = user_session_id or session_user_id
+                    if not session_id:
+                        return []
+                    areas = db.query(SavedArea).filter(
+                        SavedArea.user_session_id == session_id
+                    ).order_by(SavedArea.updated_at.desc()).all()
 
                 return [
                     {
@@ -453,6 +561,33 @@ class SavedAreaDB:
             except Exception:
                 print(f"Failed to retrieve saved areas: {str(e)}")
             return []
+
+    @staticmethod
+    def delete_area(area_id: str) -> bool:
+        """Delete a saved area; only succeeds if it belongs to the current user."""
+        try:
+            with get_db() as db:
+                query = db.query(SavedArea).filter(SavedArea.id == area_id)
+                auth_user_id = _get_auth_user_id()
+                if auth_user_id:
+                    query = query.filter(SavedArea.user_account_id == auth_user_id)
+                else:
+                    try:
+                        session_id = st.session_state.get('user_id') if hasattr(st, 'session_state') else None
+                    except Exception:
+                        session_id = None
+                    if session_id:
+                        query = query.filter(SavedArea.user_session_id == session_id)
+                area = query.first()
+                if area:
+                    db.delete(area)
+                    db.commit()
+                    return True
+                return False
+        except Exception as e:
+            logger.error(f"Failed to delete area: {e}")
+            return False
+
 
 # Database operations for natural capital baselines
 class NaturalCapitalBaselineDB:
@@ -493,6 +628,7 @@ class NaturalCapitalBaselineDB:
                 baseline = NaturalCapitalBaseline(
                     area_id=area_id,
                     user_session_id=user_session_id or st.session_state.get('user_id'),
+                    user_account_id=_get_auth_user_id(),
                     baseline_date=datetime.utcnow(),
                     ecosystem_type=ecosystem_type,
                     total_baseline_value=analysis_results['total_value'],

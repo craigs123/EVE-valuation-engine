@@ -1566,11 +1566,15 @@ st.markdown("""
 # Clear initial loading message - header is about to appear
 loading_placeholder.empty()
 
+# Auth gate — unauthenticated visitors see only the login/register UI
+from utils.auth import require_login
+require_login()
+
 # Clean text-only header - Professional Dashboard Style
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.1.5</span>
+    <span class="version-text">v3.2.0</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1615,6 +1619,122 @@ analyze_button = False
 
 # Sidebar configuration - optimized for performance with expandable sections
 with st.sidebar:
+
+    # ── Auth indicator ────────────────────────────────────────────────────────
+    _auth_user = st.session_state.get('auth_user')
+    if _auth_user:
+        _display = _auth_user.get('display_name') or _auth_user.get('email', 'User')
+        _col_u, _col_lo = st.columns([4, 1])
+        with _col_u:
+            st.markdown(
+                f"<div style='font-size:0.78rem;color:#2E7D32;padding:0.2rem 0;'>"
+                f"Signed in as <strong>{_display}</strong></div>",
+                unsafe_allow_html=True,
+            )
+        with _col_lo:
+            if st.button("↩", key="signout_btn", help="Sign out"):
+                from utils.auth import logout as _logout
+                _logout()
+                st.rerun()
+        st.divider()
+
+    # ── My Workspace ──────────────────────────────────────────────────────────
+    if _auth_user:
+        with st.expander("🗂️ My Workspace", expanded=False):
+            _ws_tab_areas, _ws_tab_history = st.tabs(["Saved Areas", "Analysis History"])
+
+            with _ws_tab_areas:
+                # Save current area
+                if st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+                    st.markdown("**Save current area**")
+                    _save_name = st.text_input(
+                        "Area name", key="ws_save_name",
+                        placeholder="e.g. River Wye Catchment",
+                    )
+                    if st.button("💾 Save area", key="ws_save_btn", use_container_width=True):
+                        if _save_name.strip():
+                            try:
+                                from database import SavedAreaDB as _SADB
+                                _coords = st.session_state.area_coordinates
+                                _ha = st.session_state.get('cached_area_ha') or calculate_area_optimized(_coords)
+                                _sid = _SADB.save_area(
+                                    name=_save_name.strip(),
+                                    coordinates=_coords,
+                                    area_hectares=_ha,
+                                )
+                                if _sid:
+                                    st.success(f"Saved: {_save_name.strip()}")
+                                else:
+                                    st.error("Save failed — check database connection.")
+                            except Exception as _e:
+                                st.error(f"Save failed: {_e}")
+                        else:
+                            st.warning("Please enter a name for this area.")
+                    st.divider()
+
+                st.markdown("**Your saved areas**")
+                st.caption("Analysis is run fresh each time using the latest satellite and coefficient data.")
+                try:
+                    from database import SavedAreaDB as _SADB2
+                    _areas = _SADB2.get_user_saved_areas()
+                    if _areas:
+                        for _area in _areas:
+                            _c1, _c2, _c3 = st.columns([5, 1, 1])
+                            with _c1:
+                                st.markdown(
+                                    f"<div style='font-size:0.82rem;'><strong>{_area['name']}</strong>"
+                                    f"<br><span style='color:#666;font-size:0.75rem;'>"
+                                    f"{_area['area_hectares']:.0f} ha · "
+                                    f"{_area['created_at'].strftime('%Y-%m-%d')}</span></div>",
+                                    unsafe_allow_html=True,
+                                )
+                            with _c2:
+                                if st.button("Load", key=f"ws_load_{_area['id']}"):
+                                    clear_analysis_cache()
+                                    st.session_state.area_coordinates = _area['coordinates']
+                                    st.session_state.selected_area = True
+                                    st.session_state.cached_area_ha = _area['area_hectares']
+                                    st.session_state.cached_bbox = calculate_bbox_optimized(_area['coordinates'])
+                                    st.session_state.use_test_area_zoom = True
+                                    st.session_state.current_area_id = _area['id']
+                                    st.rerun()
+                            with _c3:
+                                if st.button("Del", key=f"ws_del_{_area['id']}",
+                                             help="Delete this saved area"):
+                                    from database import SavedAreaDB as _SADB3
+                                    _SADB3.delete_area(_area['id'])
+                                    st.rerun()
+                    else:
+                        st.info("No saved areas yet. Draw an area and save it above.")
+                except Exception as _e:
+                    st.error(f"Could not load saved areas: {_e}")
+
+            with _ws_tab_history:
+                st.markdown("**Recent analyses** (last 10)")
+                try:
+                    from database import EcosystemAnalysisDB as _EADB
+                    _hist = _EADB.get_user_analyses(limit=10)
+                    if _hist:
+                        for _h in _hist:
+                            st.markdown(
+                                f"<div style='font-size:0.8rem;border-left:3px solid #4CAF50;"
+                                f"padding-left:6px;margin-bottom:4px;'>"
+                                f"<strong>{_h.get('area_name') or 'Unnamed area'}</strong><br>"
+                                f"<span style='color:#2E7D32;'>"
+                                f"Int$ {_h.get('total_value', 0):,.0f}/yr</span> · "
+                                f"{_h.get('ecosystem_type', '—')} · "
+                                f"{_h.get('area_hectares', 0):.0f} ha<br>"
+                                f"<span style='color:#999;font-size:0.73rem;'>"
+                                f"{_h['created_at'].strftime('%Y-%m-%d %H:%M')}</span></div>",
+                                unsafe_allow_html=True,
+                            )
+                    else:
+                        st.info("No analyses saved yet.")
+                except Exception as _e:
+                    st.error(f"Could not load history: {_e}")
+
+        st.divider()
+
     st.header("Analysis Settings")
     
     # Cache ecosystem options to avoid recreation
@@ -4097,6 +4217,27 @@ if analyze_button and st.session_state.selected_area:
             
             st.session_state.analysis_results = analysis_results
             st.session_state.calculation_ready = True
+
+            # Auto-save to DB for logged-in users
+            if st.session_state.get('auth_user'):
+                try:
+                    _db_mods = get_database_modules()
+                    if _db_mods:
+                        _saved_id = _db_mods['EcosystemAnalysisDB'].save_analysis(
+                            coordinates=st.session_state.area_coordinates,
+                            area_hectares=area_ha,
+                            ecosystem_type=final_ecosystem_type,
+                            total_value=analysis_results['total_value'],
+                            value_per_hectare=analysis_results['value_per_ha'],
+                            analysis_results=analysis_results,
+                            sampling_points=st.session_state.get('max_sampling_limit', 10),
+                            area_name=st.session_state.get('default_area_name'),
+                        )
+                        if _saved_id:
+                            st.session_state['last_saved_analysis_id'] = _saved_id
+                except Exception as _save_err:
+                    logger.warning(f"Auto-save analysis failed: {_save_err}")
+
             # Clear analysis in progress flag - analysis is now complete
             if 'analysis_in_progress' in st.session_state:
                 del st.session_state['analysis_in_progress']
@@ -4766,6 +4907,55 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         if st.button("📊 Switch to Summary View", type="secondary"):
             st.session_state['analysis_detail'] = 'Summary Analysis'
             st.rerun()
+    # ── PDF Download ──────────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 📄 Download Report")
+    _pdf_col1, _pdf_col2 = st.columns([3, 1])
+    with _pdf_col1:
+        _pdf_area_name = st.text_input(
+            "Report title (area name)",
+            value=st.session_state.get('default_area_name', 'Analysis Area'),
+            key="pdf_area_name",
+            label_visibility="collapsed",
+            placeholder="Area name for report header",
+        )
+    with _pdf_col2:
+        _gen_pdf = st.button("Generate PDF", type="primary", use_container_width=True,
+                             key="gen_pdf_btn")
+    if _gen_pdf:
+        with st.spinner("Building PDF report…"):
+            try:
+                from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
+                _pdf_results = st.session_state.analysis_results
+                _pdf_auth = st.session_state.get('auth_user')
+                _pdf_country = ''
+                try:
+                    _bbox = st.session_state.get('cached_bbox', {})
+                    if _bbox:
+                        _clat = (_bbox.get('min_lat', 0) + _bbox.get('max_lat', 0)) / 2
+                        _clon = (_bbox.get('min_lon', 0) + _bbox.get('max_lon', 0)) / 2
+                        _pdf_country = get_country_from_coordinates(_clat, _clon)
+                except Exception:
+                    pass
+                _pdf_bytes = _gen_pdf_fn(
+                    results=_pdf_results,
+                    auth_user=_pdf_auth,
+                    area_name=_pdf_area_name or 'Analysis Area',
+                    country=_pdf_country,
+                )
+                _ts = datetime.now().strftime('%Y%m%d_%H%M')
+                _fname = f"EVE_report_{_ts}.pdf"
+                st.download_button(
+                    label="⬇️ Download PDF Report",
+                    data=_pdf_bytes,
+                    file_name=_fname,
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="pdf_download_btn",
+                )
+            except Exception as _pdf_err:
+                st.error(f"PDF generation failed: {_pdf_err}")
+
     # Scenario Builder Section
     st.markdown("---")
     st.subheader("🔮 Scenario Builder")
