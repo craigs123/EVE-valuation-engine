@@ -1512,6 +1512,7 @@ class OpenLandMapSTAC:
         cache_key = (quantized_lat, quantized_lon)
 
         if cache_key in _coordinate_cache:
+            print(f"✅ Cache hit for ({quantized_lat}, {quantized_lon}): {_coordinate_cache[cache_key].get('data_source', '?')}")
             return _coordinate_cache[cache_key]
 
         if len(_coordinate_cache) >= _COORDINATE_CACHE_MAX:
@@ -1528,7 +1529,8 @@ class OpenLandMapSTAC:
                 time.sleep(1.5 * (_attempt + 1))
         if not result:
             print(f"⚠️ All 3 landcover extraction attempts failed, using geographic fallback")
-            result = self._fallback_ecosystem_detection(quantized_lat, quantized_lon)
+            # Don't cache fallback results — a transient failure should be retried next run
+            return self._fallback_ecosystem_detection(quantized_lat, quantized_lon)
 
         _coordinate_cache[cache_key] = result
         return result

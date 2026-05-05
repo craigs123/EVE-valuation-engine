@@ -124,6 +124,15 @@ st.markdown("""
             font-weight: 600;
             transition: all 0.3s ease;
             margin-top: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stButton > button p {
+            text-align: center;
+            width: 100%;
+            margin: 0 !important;
         }
         
         .stButton > button:hover {
@@ -1635,7 +1644,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.3</span>
+    <span class="version-text">v3.4.4</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1658,7 +1667,9 @@ def reset_analysis_state():
     keys_to_clear = [
         'analysis_results', 'detected_ecosystem', 'summary_metrics',
         'regional_adjustment_factor', 'scenario_results', 'scenario_distribution',
-        'scenario_eco_intactness', 'scenario_builder_expanded', 'calculation_ready'
+        'scenario_eco_intactness', 'scenario_builder_expanded', 'calculation_ready',
+        'skip_ecosystem_detection', 'sampling_point_data', 'water_bodies_classified',
+        'landcover_codes'
     ]
     for key in keys_to_clear:
         if key in st.session_state:
