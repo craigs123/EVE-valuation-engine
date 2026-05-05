@@ -124,16 +124,21 @@ st.markdown("""
             font-weight: 600;
             transition: all 0.3s ease;
             margin-top: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-            text-align: center !important;
+            padding: 0.25rem 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
 
         .stButton > button > div,
         .stButton > button [data-testid="stMarkdownContainer"] {
             width: 100% !important;
             text-align: center !important;
-            display: block !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
         .stButton > button p {
@@ -398,6 +403,20 @@ if 'time_preset' not in st.session_state:
 
 if 'include_environmental_indicators' not in st.session_state:
     st.session_state.include_environmental_indicators = False
+
+if 'use_eei_for_intactness' not in st.session_state:
+    st.session_state.use_eei_for_intactness = True
+
+if 'urban_green_blue_multiplier' not in st.session_state:
+    st.session_state.urban_green_blue_multiplier = 18.0
+
+if 'ecosystem_intactness' not in st.session_state:
+    st.session_state.ecosystem_intactness = {
+        'Agricultural': 100, 'Temperate Forest': 100, 'Boreal Forest': 100,
+        'Tropical Forest': 100, 'Grassland': 100, 'Shrubland': 100,
+        'Desert': 100, 'Wetland': 100, 'Coastal': 100,
+        'Marine': 100, 'Rivers And Lakes': 100, 'Urban': 100,
+    }
 
 # Enhanced CSS for better UX and modern design
 st.markdown("""
@@ -1655,7 +1674,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.5</span>
+    <span class="version-text">v3.4.7</span>
 </div>
 """, unsafe_allow_html=True)
 
