@@ -124,19 +124,16 @@ st.markdown("""
             font-weight: 600;
             transition: all 0.3s ease;
             margin-top: 0 !important;
-            padding: 0.25rem 0 !important;
-            display: inline-flex !important;
-            align-items: center !important;
             justify-content: center !important;
+            align-items: center !important;
         }
 
         .stButton > button > div,
         .stButton > button [data-testid="stMarkdownContainer"] {
             width: 100% !important;
             text-align: center !important;
-            display: flex !important;
-            align-items: center !important;
             justify-content: center !important;
+            align-items: center !important;
             padding: 0 !important;
             margin: 0 !important;
         }
@@ -1674,7 +1671,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.7</span>
+    <span class="version-text">v3.4.8</span>
 </div>
 """, unsafe_allow_html=True)
 

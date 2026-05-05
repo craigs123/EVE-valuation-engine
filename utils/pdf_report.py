@@ -160,7 +160,63 @@ def generate_pdf_report(
         story.append(Paragraph(
             f'Total Annual Value: <b>Int$ {total_value:,.0f}/yr</b>  |  '
             f'Per Hectare: <b>Int$ {per_ha:,.0f}/ha/yr</b>', body))
-    story.append(Spacer(1, 0.4 * cm))
+    story.append(Spacer(1, 0.3 * cm))
+
+    # ------------------------------------------------ service-by-service breakdown
+    if has_cats:
+        _SERVICE_LABELS = {
+            'food': 'Food',
+            'water': 'Water',
+            'raw_materials': 'Raw Materials',
+            'genetic_resources': 'Genetic Resources',
+            'medicinal_resources': 'Medicinal Resources',
+            'ornamental_resources': 'Ornamental Resources',
+            'air_quality_regulation': 'Air Quality Regulation',
+            'climate_regulation': 'Climate Regulation',
+            'moderation_of_extreme_events': 'Moderation of Extreme Events',
+            'regulation_of_water_flows': 'Water Flow Regulation',
+            'waste_treatment': 'Waste Treatment',
+            'erosion_prevention': 'Erosion Prevention',
+            'maintenance_of_soil_fertility': 'Soil Fertility',
+            'pollination': 'Pollination',
+            'biological_control': 'Biological Control',
+            'aesthetic_information': 'Aesthetic Information',
+            'recreation_and_tourism': 'Recreation & Tourism',
+            'culture_art_and_design': 'Culture, Art & Design',
+            'spiritual_experience': 'Spiritual & Existence',
+            'cognitive_development': 'Cognitive Development',
+            'maintenance_of_life_cycles': 'Maintenance of Life Cycles',
+            'maintenance_of_genetic_diversity': 'Maintenance of Genetic Diversity',
+        }
+        detail_rows = [['Category', 'Ecosystem Service', 'Annual Value (Int$/yr)', 'Per Ha (Int$/ha/yr)', '% of Total']]
+        for cat in categories:
+            services = esvd.get(cat, {}).get('services', {})
+            if not services:
+                continue
+            first_in_cat = True
+            for svc_key, svc_val in sorted(services.items(), key=lambda x: -x[1]):
+                if svc_val == 0:
+                    continue
+                svc_per_ha = svc_val / area_ha if area_ha else 0
+                pct = (svc_val / grand_total * 100) if grand_total else 0
+                detail_rows.append([
+                    cat.title() if first_in_cat else '',
+                    _SERVICE_LABELS.get(svc_key, svc_key.replace('_', ' ').title()),
+                    f'Int$ {svc_val:,.0f}',
+                    f'Int$ {svc_per_ha:,.0f}',
+                    f'{pct:.1f}%',
+                ])
+                first_in_cat = False
+
+        if len(detail_rows) > 1:
+            story.append(Paragraph('Service-by-Service Breakdown', h2))
+            detail_table = Table(detail_rows, colWidths=[2.5 * cm, 5 * cm, 3.5 * cm, 3.5 * cm, 2.5 * cm])
+            ts2 = _standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT)
+            ts2.add('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold')
+            ts2.add('TEXTCOLOR', (0, 1), (0, -1), EVE_DARK)
+            detail_table.setStyle(ts2)
+            story.append(detail_table)
+            story.append(Spacer(1, 0.4 * cm))
 
     # --------------------------------------------------- embedded chart (if kaleido)
     chart_img = _try_chart_image(results)
