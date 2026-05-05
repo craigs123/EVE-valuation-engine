@@ -124,15 +124,23 @@ st.markdown("""
             font-weight: 600;
             transition: all 0.3s ease;
             margin-top: 0 !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            text-align: center !important;
+        }
+
+        .stButton > button > div,
+        .stButton > button [data-testid="stMarkdownContainer"] {
+            width: 100% !important;
+            text-align: center !important;
+            display: block !important;
         }
 
         .stButton > button p {
-            text-align: center;
-            width: 100%;
+            text-align: center !important;
+            width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
         }
         
         .stButton > button:hover {
@@ -374,7 +382,7 @@ if 'max_sampling_limit' not in st.session_state:
     st.session_state.max_sampling_limit = 10
     
 if 'ecosystem_override' not in st.session_state:
-    st.session_state.ecosystem_override = "Auto-detect (Recommended)"
+    st.session_state.ecosystem_override = "Auto-detect"
     
 if 'analysis_detail' not in st.session_state:
     st.session_state.analysis_detail = "Summary Analysis"
@@ -1644,7 +1652,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.4</span>
+    <span class="version-text">v3.4.5</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1763,15 +1771,6 @@ def analysis_settings_dialog():
             st.session_state['income_elasticity'] = _elast
             st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
 
-        with st.expander("📊 **Analysis Configuration**"):
-            _detail = st.selectbox(
-                "Analysis Detail",
-                options=["Summary Analysis", "Detailed Analysis"],
-                index=0 if st.session_state.get('analysis_detail', 'Summary Analysis') == 'Summary Analysis' else 1,
-                help="Detailed includes service breakdown and methodology.",
-                key="dlg_analysis_detail",
-            )
-            st.session_state.analysis_detail = _detail
 
     with col_b:
         with st.expander("🏙️ **Urban Green/Blue Infrastructure**"):
@@ -2734,8 +2733,8 @@ with col3_map:
         </div>
         """, unsafe_allow_html=True)
 
-# Enhanced Results section with data source indicator
-if st.session_state.get('analysis_results'):
+# Legacy results section — disabled; display handled by the calculation_ready block below
+if False and st.session_state.get('analysis_results'):
     st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
     
     # Clear data source indicator at top of results

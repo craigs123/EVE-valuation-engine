@@ -55,9 +55,10 @@ def _render_auth_ui():
         <h1 style="color:#2E7D32; font-size:1.9rem; font-weight:700; margin:0.8rem 0 0.5rem 0;">
             Ecosystem Valuation Engine
         </h1>
-        <p style="color:#555; font-size:0.95rem; margin:0 0 0.5rem 0;">
+        <p style="color:#555; font-size:0.95rem; margin:0 0 0.3rem 0;">
             Sign in to access your workspace and run ecosystem analyses.
         </p>
+        <p style="color:#aaa; font-size:0.75rem; margin:0;">v3.4.5</p>
     </div>
     """, unsafe_allow_html=True)
 
