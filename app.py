@@ -380,6 +380,9 @@ if 'system_message' not in st.session_state:
 
 if 'max_sampling_limit' not in st.session_state:
     st.session_state.max_sampling_limit = 10
+
+if 'sampling_frequency' not in st.session_state:
+    st.session_state.sampling_frequency = 10
     
 if 'ecosystem_override' not in st.session_state:
     st.session_state.ecosystem_override = "Auto-detect"
