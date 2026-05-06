@@ -50,9 +50,9 @@ class OpenLandMapIntegrator:
             # Sparse Vegetation / Desert Classes
             150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
             
-            # Wetland Classes
+            # Wetland Classes (170 = mangroves → Coastal)
             160: "Wetland",         # Tree cover, flooded, fresh or brakish water
-            170: "Wetland",         # Tree cover, flooded, saline water
+            170: "Coastal",         # Tree cover, flooded, saline water (mangroves)
             180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
             
             # Urban Classes
@@ -309,7 +309,7 @@ class OpenLandMapIntegrator:
             # ESA WorldCover class mapping to ecosystem types
             esa_to_ecosystem = {
                 10: "Forest",           # Tree cover
-                20: "Forest",           # Shrubland  
+                20: "Shrubland",        # Shrubland
                 30: "Grassland",        # Grassland
                 40: "Agricultural",     # Cropland
                 50: "Urban",           # Built-up
@@ -413,7 +413,7 @@ class OpenLandMapIntegrator:
                 # ESA WorldCover class mapping  
                 worldcover_to_ecosystem = {
                     10: "Forest",       # Tree cover
-                    20: "Forest",       # Shrubland
+                    20: "Shrubland",    # Shrubland
                     30: "Grassland",    # Grassland
                     40: "Agricultural", # Cropland
                     50: "Urban",        # Built-up

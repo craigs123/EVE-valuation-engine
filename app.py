@@ -1671,7 +1671,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.8</span>
+    <span class="version-text">v3.4.9</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1854,6 +1854,22 @@ def analysis_settings_dialog():
 
 **Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
             """)
+
+            if st.button("📋 View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
+                st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
+
+            if st.session_state.get('show_default_mapping', False):
+                from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_esa_description
+                import pandas as pd
+                _rows = [
+                    {"ESA CCI Code": code,
+                     "ESA Description": get_esa_description(code),
+                     "ESVD Type": DEFAULT_LANDCOVER_MAPPING[code]}
+                    for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
+                ]
+                st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
+                           "Customise per-code values under **OpenLandMap Settings** below.")
+                st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
     st.divider()
     with st.expander("🌍 **OpenLandMap Settings** (advanced)"):

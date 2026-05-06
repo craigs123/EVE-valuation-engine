@@ -179,9 +179,9 @@ class OpenLandMapSTAC:
             # Sparse Vegetation / Desert Classes
             150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
             
-            # Wetland Classes
+            # Wetland Classes (170 = mangroves → Coastal)
             160: "Wetland",         # Tree cover, flooded, fresh or brakish water
-            170: "Wetland",         # Tree cover, flooded, saline water
+            170: "Coastal",         # Tree cover, flooded, saline water (mangroves)
             180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
             
             # Urban Classes
@@ -1367,34 +1367,14 @@ class OpenLandMapSTAC:
         if 50 <= abs_lat <= 70:
             return 'Boreal Forest'
         
-        # Tropical forest zones (0-25° latitude)  
+        # Tropical forest zones (0-25° latitude)
         elif abs_lat <= 25:
             return 'Tropical Forest'
-        
-        # Mediterranean climate zones (30-45° latitude, specific regions)
-        elif 30 <= abs_lat <= 45:
-            # Mediterranean Basin
-            if (30 <= lat <= 45 and -10 <= lon <= 45):
-                return 'Temperate Forest'
-            # California
-            elif (32 <= lat <= 42 and -125 <= lon <= -115):
-                return 'Temperate Forest'
-            # Central Chile  
-            elif (-40 <= lat <= -30 and -75 <= lon <= -70):
-                return 'Temperate Forest'
-            # South Africa (Western Cape)
-            elif (-35 <= lat <= -30 and 15 <= lon <= 25):
-                return 'Temperate Forest'
-            # Southwestern Australia
-            elif (-35 <= lat <= -30 and 110 <= lon <= 125):
-                return 'Temperate Forest'
-            else:
-                return 'Temperate Forest'
-        
-        # Temperate forest zones (25-50° latitude, excluding Mediterranean)
+
+        # Temperate forest zones (25-50° latitude)
         elif 25 < abs_lat < 50:
             return 'Temperate Forest'
-        
+
         # Default fallback
         return 'Temperate Forest'
     

@@ -146,8 +146,8 @@ DEFAULT_LANDCOVER_MAPPING = {
     # Sparse Vegetation / Desert Classes
     150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
 
-    # Wetland Classes
-    160: "Wetland", 170: "Wetland", 180: "Wetland",
+    # Wetland Classes (170 = mangroves → Coastal)
+    160: "Wetland", 170: "Coastal", 180: "Wetland",
 
     # Urban Classes
     190: "Urban",
