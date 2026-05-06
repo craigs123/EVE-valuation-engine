@@ -65,6 +65,7 @@ class User(Base):
     verification_token_expiry = Column(DateTime, nullable=True)
     reset_token = Column(String(64), nullable=True)
     reset_token_expiry = Column(DateTime, nullable=True)
+    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -82,6 +83,7 @@ class EcosystemAnalysis(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_session_id = Column(String(255), nullable=True)  # For tracking user sessions
     user_account_id = Column(UUID(as_uuid=True), nullable=True)  # Registered user FK
+    project_type_id = Column(UUID(as_uuid=True), ForeignKey('pi_project_types.id'), nullable=True)
     area_name = Column(String(255), nullable=True)
     coordinates = Column(JSON, nullable=False)  # Store GeoJSON coordinates
     area_hectares = Column(Float, nullable=False)
@@ -201,8 +203,129 @@ class NaturalCapitalTrend(Base):
     trend_direction = Column(String(50), nullable=True)  # 'improving', 'declining', 'stable'
     confidence_level = Column(Float, nullable=True)  # Statistical confidence
     driving_factors = Column(JSON, nullable=True)  # Identified causes of change
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ── Project Indicator (pi_*) models ──────────────────────────────────────────
+# Project-typed structured field assessments. Seeded from
+# utils/project_indicators_seed.py on first init. v1 is calc-neutral; v2+ will
+# layer composite intactness aggregation, comparison vs EEI, and forecast.
+
+class ProjectType(Base):
+    __tablename__ = "pi_project_types"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug = Column(String(64), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    icon = Column(String(16), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Indicator(Base):
+    __tablename__ = "pi_indicators"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug = Column(String(64), unique=True, nullable=False)
+    code = Column(String(8), nullable=False)
+    name = Column(String(255), nullable=False)
+    commitment_question = Column(Text, nullable=False)
+    prospectus_scope_statement = Column(Text, nullable=False)
+    baseline_question = Column(Text, nullable=False)
+    why_matters = Column(Text, nullable=True)
+    field_method = Column(Text, nullable=True)
+    remote_sensing_alternative = Column(Text, nullable=True)
+    sources = Column(Text, nullable=True)
+    applicable_ecosystems = Column(JSON, nullable=True)
+    is_mandatory = Column(Boolean, default=False, nullable=False)
+    mapping_kind = Column(String(32), nullable=False, default='band_lookup')
+    mapping_params = Column(JSON, nullable=False, default=dict)
+    service_weights = Column(JSON, nullable=True)
+    weight = Column(Float, default=1.0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class IndicatorBand(Base):
+    __tablename__ = "pi_indicator_bands"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    indicator_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicators.id', ondelete='CASCADE'), nullable=False)
+    score = Column(Float, nullable=False)
+    label = Column(String(64), nullable=False)
+    criteria = Column(Text, nullable=False)
+    meaning = Column(Text, nullable=True)
+    sort_order = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        Index('ix_pi_indicator_bands_indicator_id', 'indicator_id'),
+        Index('ix_pi_indicator_bands_indicator_score', 'indicator_id', 'score', unique=True),
+    )
+
+
+class IndicatorFollowup(Base):
+    __tablename__ = "pi_indicator_followups"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    indicator_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicators.id', ondelete='CASCADE'), nullable=False)
+    slug = Column(String(64), nullable=False)
+    question_text = Column(Text, nullable=False)
+    input_kind = Column(String(16), nullable=False)
+    options = Column(JSON, nullable=True)
+    trigger_max_score = Column(Float, nullable=True)
+    sort_order = Column(Integer, default=0, nullable=False)
+
+    __table_args__ = (
+        Index('ix_pi_indicator_followups_indicator_slug', 'indicator_id', 'slug', unique=True),
+    )
+
+
+class ProjectTypeIndicator(Base):
+    __tablename__ = "pi_project_type_indicators"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_type_id = Column(UUID(as_uuid=True), ForeignKey('pi_project_types.id', ondelete='CASCADE'), nullable=False)
+    indicator_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicators.id'), nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    is_recommended = Column(Boolean, default=False, nullable=False)
+    weight_override = Column(Float, nullable=True)
+
+    __table_args__ = (
+        Index('ix_pi_project_type_indicators_unique', 'project_type_id', 'indicator_id', unique=True),
+    )
+
+
+class AnalysisResponse(Base):
+    __tablename__ = "pi_analysis_responses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    analysis_id = Column(UUID(as_uuid=True), ForeignKey('ecosystem_analyses.id', ondelete='CASCADE'), nullable=False)
+    project_type_id = Column(UUID(as_uuid=True), ForeignKey('pi_project_types.id'), nullable=False)
+    indicator_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicators.id'), nullable=False)
+    is_committed = Column(Boolean, default=False, nullable=False)
+    baseline_band_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicator_bands.id'), nullable=True)
+    baseline_score = Column(Float, nullable=True)
+    baseline_year = Column(Integer, nullable=True)
+    target_band_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicator_bands.id'), nullable=True)
+    target_score = Column(Float, nullable=True)
+    target_year = Column(Integer, nullable=True)
+    applies_to_ecosystem = Column(String(64), nullable=True)
+    followup_responses = Column(JSON, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('ix_pi_analysis_responses_analysis_id', 'analysis_id'),
+        Index('ix_pi_analysis_responses_unique',
+              'analysis_id', 'indicator_id', 'applies_to_ecosystem', unique=True),
+    )
+
 
 # Database utility functions
 def initialize_user_session():
@@ -232,6 +355,15 @@ def init_database():
 
         # Create tables - but handle gracefully if they exist
         Base.metadata.create_all(bind=engine)
+
+        # Idempotent seed of project-indicator taxonomy
+        try:
+            from utils.project_indicators_seed import seed_project_indicators
+            with get_db() as db:
+                seed_project_indicators(db)
+        except Exception as seed_err:
+            logger.warning(f"Project indicator seeding skipped: {seed_err}")
+
         return True
     except Exception as e:
         # Database not available - app should work without it
@@ -431,7 +563,7 @@ class EcosystemAnalysisDB:
     
     @staticmethod
     def save_analysis(
-        coordinates: List[List[float]], 
+        coordinates: List[List[float]],
         area_hectares: float,
         ecosystem_type: str,
         total_value: float,
@@ -440,7 +572,8 @@ class EcosystemAnalysisDB:
         sampling_points: int = 10,
         area_name: Optional[str] = None,
         user_session_id: Optional[str] = None,
-        sustainability_responses: Optional[Dict[str, Any]] = None
+        sustainability_responses: Optional[Dict[str, Any]] = None,
+        project_type_slug: Optional[str] = None,
     ) -> Optional[str]:
         """Save ecosystem analysis to database"""
         try:
@@ -454,6 +587,12 @@ class EcosystemAnalysisDB:
 
                 auth_user_id = _get_auth_user_id()
 
+                project_type_id = None
+                if project_type_slug:
+                    pt = db.query(ProjectType).filter(ProjectType.slug == project_type_slug).first()
+                    if pt:
+                        project_type_id = pt.id
+
                 clean_coordinates = convert_numpy_types(coordinates)
                 clean_analysis_results = convert_numpy_types(analysis_results)
                 clean_sustainability_responses = convert_numpy_types(sustainability_responses) if sustainability_responses else None
@@ -464,6 +603,7 @@ class EcosystemAnalysisDB:
                 analysis = EcosystemAnalysis(
                     user_session_id=user_session_id or session_user_id,
                     user_account_id=auth_user_id,
+                    project_type_id=project_type_id,
                     area_name=area_name,
                     coordinates=clean_coordinates,
                     area_hectares=clean_area_hectares,
@@ -877,6 +1017,268 @@ class NaturalCapitalBaselineDB:
         except Exception as e:
             st.error(f"Failed to compare to baseline: {str(e)}")
             return None
+
+# ── Project Indicator DB access ──────────────────────────────────────────────
+
+class ProjectIndicatorDB:
+    """Database operations for project-typed indicator commitments and responses."""
+
+    @staticmethod
+    def get_active_project_types() -> List[Dict]:
+        try:
+            with get_db() as db:
+                rows = db.query(ProjectType).filter(
+                    ProjectType.is_active == True
+                ).order_by(ProjectType.sort_order, ProjectType.name).all()
+                return [
+                    {'id': str(r.id), 'slug': r.slug, 'name': r.name,
+                     'icon': r.icon, 'description': r.description,
+                     'sort_order': r.sort_order}
+                    for r in rows
+                ]
+        except Exception as e:
+            logger.error(f"get_active_project_types failed: {e}")
+            return []
+
+    @staticmethod
+    def get_project_type_with_indicators(slug: str) -> Optional[Dict]:
+        """Return project type + ordered indicators + bands + followups in one call."""
+        try:
+            with get_db() as db:
+                pt = db.query(ProjectType).filter(ProjectType.slug == slug).first()
+                if not pt:
+                    return None
+                joins = (
+                    db.query(ProjectTypeIndicator, Indicator)
+                    .join(Indicator, ProjectTypeIndicator.indicator_id == Indicator.id)
+                    .filter(ProjectTypeIndicator.project_type_id == pt.id,
+                            Indicator.is_active == True)
+                    .order_by(ProjectTypeIndicator.sort_order)
+                    .all()
+                )
+                indicators = []
+                for join, ind in joins:
+                    bands = (
+                        db.query(IndicatorBand)
+                        .filter(IndicatorBand.indicator_id == ind.id)
+                        .order_by(IndicatorBand.sort_order)
+                        .all()
+                    )
+                    followups = (
+                        db.query(IndicatorFollowup)
+                        .filter(IndicatorFollowup.indicator_id == ind.id)
+                        .order_by(IndicatorFollowup.sort_order)
+                        .all()
+                    )
+                    indicators.append({
+                        'id': str(ind.id),
+                        'slug': ind.slug,
+                        'code': ind.code,
+                        'name': ind.name,
+                        'commitment_question': ind.commitment_question,
+                        'prospectus_scope_statement': ind.prospectus_scope_statement,
+                        'baseline_question': ind.baseline_question,
+                        'why_matters': ind.why_matters,
+                        'field_method': ind.field_method,
+                        'remote_sensing_alternative': ind.remote_sensing_alternative,
+                        'sources': ind.sources,
+                        'applicable_ecosystems': ind.applicable_ecosystems,
+                        'is_mandatory': bool(ind.is_mandatory),
+                        'mapping_kind': ind.mapping_kind,
+                        'service_weights': ind.service_weights or {},
+                        'weight': float(ind.weight),
+                        'sort_order': join.sort_order,
+                        'is_recommended': bool(join.is_recommended),
+                        'weight_override': float(join.weight_override) if join.weight_override is not None else None,
+                        'bands': [
+                            {'id': str(b.id), 'score': float(b.score),
+                             'label': b.label, 'criteria': b.criteria,
+                             'meaning': b.meaning, 'sort_order': b.sort_order}
+                            for b in bands
+                        ],
+                        'followups': [
+                            {'id': str(f.id), 'slug': f.slug,
+                             'question_text': f.question_text,
+                             'input_kind': f.input_kind,
+                             'options': f.options,
+                             'trigger_max_score': float(f.trigger_max_score) if f.trigger_max_score is not None else None,
+                             'sort_order': f.sort_order}
+                            for f in followups
+                        ],
+                    })
+                return {
+                    'id': str(pt.id),
+                    'slug': pt.slug,
+                    'name': pt.name,
+                    'icon': pt.icon,
+                    'description': pt.description,
+                    'indicators': indicators,
+                }
+        except Exception as e:
+            logger.error(f"get_project_type_with_indicators failed: {e}")
+            return None
+
+    @staticmethod
+    def set_analysis_project_type(analysis_id: str, project_type_slug: Optional[str]) -> bool:
+        try:
+            with get_db() as db:
+                analysis = db.query(EcosystemAnalysis).filter(
+                    EcosystemAnalysis.id == analysis_id
+                ).first()
+                if not analysis:
+                    return False
+                if project_type_slug:
+                    pt = db.query(ProjectType).filter(ProjectType.slug == project_type_slug).first()
+                    analysis.project_type_id = pt.id if pt else None
+                else:
+                    analysis.project_type_id = None
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"set_analysis_project_type failed: {e}")
+            return False
+
+    @staticmethod
+    def save_commitments(analysis_id: str, project_type_slug: str,
+                         committed_indicator_slugs: List[str]) -> bool:
+        """Upsert is_committed flag per indicator. Indicators not in the list are
+        marked is_committed=False but rows are kept so measurement data persists."""
+        try:
+            with get_db() as db:
+                pt = db.query(ProjectType).filter(ProjectType.slug == project_type_slug).first()
+                if not pt:
+                    return False
+                joins = (
+                    db.query(ProjectTypeIndicator, Indicator)
+                    .join(Indicator, ProjectTypeIndicator.indicator_id == Indicator.id)
+                    .filter(ProjectTypeIndicator.project_type_id == pt.id)
+                    .all()
+                )
+                committed_set = set(committed_indicator_slugs or [])
+                for _, ind in joins:
+                    desired = (ind.slug in committed_set) or bool(ind.is_mandatory)
+                    existing = db.query(AnalysisResponse).filter(
+                        AnalysisResponse.analysis_id == analysis_id,
+                        AnalysisResponse.indicator_id == ind.id,
+                        AnalysisResponse.applies_to_ecosystem.is_(None),
+                    ).first()
+                    if existing:
+                        existing.is_committed = desired
+                        existing.project_type_id = pt.id
+                    else:
+                        db.add(AnalysisResponse(
+                            analysis_id=analysis_id,
+                            project_type_id=pt.id,
+                            indicator_id=ind.id,
+                            is_committed=desired,
+                        ))
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"save_commitments failed: {e}")
+            return False
+
+    @staticmethod
+    def save_response(analysis_id: str, project_type_slug: str, indicator_slug: str,
+                      baseline_band_id: Optional[str], baseline_year: Optional[int],
+                      target_band_id: Optional[str], target_year: Optional[int],
+                      applies_to_ecosystem: Optional[str],
+                      followup_responses: Optional[Dict[str, Any]],
+                      notes: Optional[str]) -> Optional[str]:
+        """Upsert a measurement row for (analysis, indicator, applies_to_ecosystem)."""
+        try:
+            with get_db() as db:
+                pt = db.query(ProjectType).filter(ProjectType.slug == project_type_slug).first()
+                ind = db.query(Indicator).filter(Indicator.slug == indicator_slug).first()
+                if not pt or not ind:
+                    return None
+
+                baseline_score = None
+                if baseline_band_id:
+                    b = db.query(IndicatorBand).filter(IndicatorBand.id == baseline_band_id).first()
+                    if b:
+                        baseline_score = float(b.score)
+                target_score = None
+                if target_band_id:
+                    b = db.query(IndicatorBand).filter(IndicatorBand.id == target_band_id).first()
+                    if b:
+                        target_score = float(b.score)
+
+                existing = db.query(AnalysisResponse).filter(
+                    AnalysisResponse.analysis_id == analysis_id,
+                    AnalysisResponse.indicator_id == ind.id,
+                    AnalysisResponse.applies_to_ecosystem == applies_to_ecosystem,
+                ).first()
+                if existing:
+                    existing.project_type_id = pt.id
+                    existing.is_committed = True
+                    existing.baseline_band_id = baseline_band_id
+                    existing.baseline_score = baseline_score
+                    existing.baseline_year = baseline_year
+                    existing.target_band_id = target_band_id
+                    existing.target_score = target_score
+                    existing.target_year = target_year
+                    existing.followup_responses = followup_responses
+                    existing.notes = notes
+                    db.commit()
+                    return str(existing.id)
+                row = AnalysisResponse(
+                    analysis_id=analysis_id,
+                    project_type_id=pt.id,
+                    indicator_id=ind.id,
+                    is_committed=True,
+                    baseline_band_id=baseline_band_id,
+                    baseline_score=baseline_score,
+                    baseline_year=baseline_year,
+                    target_band_id=target_band_id,
+                    target_score=target_score,
+                    target_year=target_year,
+                    applies_to_ecosystem=applies_to_ecosystem,
+                    followup_responses=followup_responses,
+                    notes=notes,
+                )
+                db.add(row)
+                db.commit()
+                db.refresh(row)
+                return str(row.id)
+        except Exception as e:
+            logger.error(f"save_response failed: {e}")
+            return None
+
+    @staticmethod
+    def get_responses(analysis_id: str) -> List[Dict]:
+        """Return all response rows for an analysis, joined with indicator slug."""
+        try:
+            with get_db() as db:
+                rows = (
+                    db.query(AnalysisResponse, Indicator)
+                    .join(Indicator, AnalysisResponse.indicator_id == Indicator.id)
+                    .filter(AnalysisResponse.analysis_id == analysis_id)
+                    .all()
+                )
+                out = []
+                for r, ind in rows:
+                    out.append({
+                        'id': str(r.id),
+                        'indicator_slug': ind.slug,
+                        'indicator_code': ind.code,
+                        'project_type_id': str(r.project_type_id) if r.project_type_id else None,
+                        'is_committed': bool(r.is_committed),
+                        'baseline_band_id': str(r.baseline_band_id) if r.baseline_band_id else None,
+                        'baseline_score': float(r.baseline_score) if r.baseline_score is not None else None,
+                        'baseline_year': r.baseline_year,
+                        'target_band_id': str(r.target_band_id) if r.target_band_id else None,
+                        'target_score': float(r.target_score) if r.target_score is not None else None,
+                        'target_year': r.target_year,
+                        'applies_to_ecosystem': r.applies_to_ecosystem,
+                        'followup_responses': r.followup_responses,
+                        'notes': r.notes,
+                    })
+                return out
+        except Exception as e:
+            logger.error(f"get_responses failed: {e}")
+            return []
+
 
 # Initialize user session
 def initialize_user_session():

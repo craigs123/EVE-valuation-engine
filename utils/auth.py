@@ -58,7 +58,7 @@ def _render_auth_ui():
         <p style="color:#555; font-size:0.95rem; margin:0 0 0.3rem 0;">
             Sign in to access your workspace and run ecosystem analyses.
         </p>
-        <p style="color:#aaa; font-size:0.75rem; margin:0;">v3.4.9</p>
+        <p style="color:#aaa; font-size:0.75rem; margin:0;">v3.5.0</p>
     </div>
     """, unsafe_allow_html=True)
 

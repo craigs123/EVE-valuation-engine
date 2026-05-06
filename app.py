@@ -28,18 +28,20 @@ def get_database_modules():
     """Lazy load database modules with extended caching for production performance"""
     try:
         from database import (
-            init_database, 
+            init_database,
             initialize_user_session,
             SavedAreaDB,
             EcosystemAnalysisDB,
-            NaturalCapitalBaselineDB
+            NaturalCapitalBaselineDB,
+            ProjectIndicatorDB,
         )
         return {
             'init_database': init_database,
             'initialize_user_session': initialize_user_session,
             'SavedAreaDB': SavedAreaDB,
             'EcosystemAnalysisDB': EcosystemAnalysisDB,
-            'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB
+            'NaturalCapitalBaselineDB': NaturalCapitalBaselineDB,
+            'ProjectIndicatorDB': ProjectIndicatorDB,
         }
     except ImportError:
         return None  # Graceful fallback
@@ -1671,7 +1673,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.4.9</span>
+    <span class="version-text">v3.5.0</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1738,6 +1740,19 @@ def analysis_settings_dialog():
         key="dlg_ecosystem_override",
     )
     st.session_state.ecosystem_override = _eco
+
+    st.divider()
+
+    st.markdown("##### 📋 Project Indicators (optional)")
+    _pi_enabled = st.checkbox(
+        "Enable project-specific indicator questions",
+        value=st.session_state.get('project_indicators_enabled', False),
+        key='dlg_project_indicators_enabled',
+        help=("Adds a project-typed questionnaire (e.g. Mangrove Restoration) to "
+              "the results section. Captures field measurements with baseline + "
+              "target values. Calc-neutral in v1. Off by default."),
+    )
+    st.session_state.project_indicators_enabled = _pi_enabled
 
     st.divider()
 
@@ -1914,6 +1929,280 @@ def analysis_settings_dialog():
 
     if st.button("✅ Close", use_container_width=True, key="dlg_close"):
         st.rerun()
+
+
+# ── Project Indicators section (optional, gated by Settings toggle) ──────────
+def render_project_indicators_section():
+    """Two-phase Project Indicators UI. Calc-neutral in v1.
+
+    Phase 1: project type picker + indicator commitment list with TEEB coverage.
+    Phase 2: per-committed-indicator measurement (band picker + years +
+    applies-to + conditional followups + notes). Persists to
+    pi_analysis_responses via ProjectIndicatorDB.
+    """
+    st.markdown("---")
+    st.subheader("📋 Project Indicators")
+
+    if not st.session_state.get('auth_user'):
+        st.info("Sign in to record project-typed indicator answers for this analysis.")
+        return
+
+    analysis_id = st.session_state.get('last_saved_analysis_id')
+    if not analysis_id:
+        st.info("Run and save an analysis first to attach project indicator answers.")
+        return
+
+    db_modules = get_database_modules()
+    if not db_modules or 'ProjectIndicatorDB' not in db_modules:
+        st.info("Project Indicators unavailable — database connection issue.")
+        return
+    PI = db_modules['ProjectIndicatorDB']
+
+    project_types = PI.get_active_project_types()
+    if not project_types:
+        st.warning("No project types configured.")
+        return
+
+    options = ["— None —"] + [f"{(pt.get('icon') or '')} {pt['name']}".strip() for pt in project_types]
+    slug_by_label = {f"{(pt.get('icon') or '')} {pt['name']}".strip(): pt['slug'] for pt in project_types}
+
+    current_slug = st.session_state.get('project_type_slug')
+    current_label = next((lbl for lbl, sl in slug_by_label.items() if sl == current_slug), "— None —")
+    selected_label = st.selectbox(
+        "Project Type",
+        options=options,
+        index=options.index(current_label) if current_label in options else 0,
+        key="pi_project_type_selectbox",
+    )
+    selected_slug = slug_by_label.get(selected_label) if selected_label != "— None —" else None
+
+    if selected_slug != current_slug:
+        st.session_state.project_type_slug = selected_slug
+        PI.set_analysis_project_type(analysis_id, selected_slug)
+
+    if not selected_slug:
+        st.caption("Select a project type to begin recording indicators.")
+        return
+
+    snapshot = PI.get_project_type_with_indicators(selected_slug)
+    if not snapshot:
+        st.warning("Selected project type could not be loaded.")
+        return
+
+    existing_responses = PI.get_responses(analysis_id)
+    responses_by_key = {(r['indicator_slug'], r['applies_to_ecosystem']): r for r in existing_responses}
+
+    ecosystem_options = ["Whole area"]
+    detected = st.session_state.get('detected_ecosystem', {})
+    if isinstance(detected, dict):
+        for eco_type in (detected.get('ecosystem_distribution') or {}).keys():
+            label = eco_type.replace('_', ' ').title()
+            if label not in ecosystem_options:
+                ecosystem_options.append(label)
+
+    st.markdown(f"### {snapshot.get('icon', '')} {snapshot['name']}")
+    if snapshot.get('description'):
+        st.caption(snapshot['description'])
+
+    # ── Phase 1: commitment ──────────────────────────────────────────────────
+    st.markdown("**Step 1 — Which indicators will your team monitor?**")
+
+    committed_slugs = []
+    for ind in snapshot['indicators']:
+        existing = responses_by_key.get((ind['slug'], None))
+        default_committed = bool(existing['is_committed']) if existing else bool(ind['is_recommended'])
+        if ind['is_mandatory']:
+            default_committed = True
+
+        col_chk, col_text = st.columns([1, 12])
+        with col_chk:
+            chk = st.checkbox(
+                "_",
+                value=default_committed,
+                key=f"pi_commit_{ind['slug']}",
+                disabled=ind['is_mandatory'],
+                label_visibility="collapsed",
+            )
+        with col_text:
+            badges = []
+            if ind['is_mandatory']:
+                badges.append("🔒 Required")
+            if ind['is_recommended']:
+                badges.append("⭐ Recommended")
+            badge_str = " ".join(badges)
+            st.markdown(f"**{ind['code']} · {ind['name']}** {badge_str}".strip())
+            st.caption(ind['commitment_question'])
+
+        if chk or ind['is_mandatory']:
+            committed_slugs.append(ind['slug'])
+
+    # Coverage display: aggregate TEEB services across committed indicators.
+    services_covered = {}
+    for ind in snapshot['indicators']:
+        if ind['slug'] not in committed_slugs:
+            continue
+        for service, weight in (ind.get('service_weights') or {}).items():
+            if weight in (None, 'multiplier'):
+                continue
+            if services_covered.get(service) != 'primary':
+                services_covered[service] = weight
+
+    if services_covered:
+        st.markdown("**Prospectus scope (TEEB services covered):**")
+        primary = sorted(s.replace('_', ' ').title() for s, w in services_covered.items() if w == 'primary')
+        secondary = sorted(s.replace('_', ' ').title() for s, w in services_covered.items() if w == 'secondary')
+        bullets = []
+        if primary:
+            bullets.append("• **Primary**: " + ", ".join(primary))
+        if secondary:
+            bullets.append("• **Secondary**: " + ", ".join(secondary))
+        st.markdown("  \n".join(bullets))
+    else:
+        st.caption("No TEEB services covered yet — commit at least one indicator.")
+
+    recommended_slugs = {ind['slug'] for ind in snapshot['indicators'] if ind['is_recommended']}
+    missing_recommended = recommended_slugs - set(committed_slugs)
+    if missing_recommended:
+        labels = [f"{ind['code']} {ind['name']}" for ind in snapshot['indicators']
+                  if ind['slug'] in missing_recommended]
+        st.info(f"💡 Minimum recommended set excludes: {', '.join(labels)}")
+
+    if st.button("💾 Save commitment", key="pi_save_commitment", type="primary"):
+        PI.save_commitments(analysis_id, selected_slug, committed_slugs)
+        st.success("Commitment saved.")
+        st.rerun()
+
+    # ── Phase 2: measurement ─────────────────────────────────────────────────
+    persisted_committed = {r['indicator_slug'] for r in existing_responses if r['is_committed']}
+    if not persisted_committed:
+        st.caption("Save commitment to begin entering measurements.")
+        return
+
+    st.markdown("---")
+    st.markdown("**Step 2 — Record baseline and target for each committed indicator**")
+
+    current_year = datetime.now().year
+
+    for ind in snapshot['indicators']:
+        if ind['slug'] not in persisted_committed:
+            continue
+
+        with st.expander(f"{ind['code']} · {ind['name']}", expanded=False):
+            if ind.get('why_matters'):
+                st.markdown("**Why this matters**")
+                st.caption(ind['why_matters'])
+
+            with st.popover("📖 Field method & remote sensing"):
+                if ind.get('field_method'):
+                    st.markdown("**Field method**")
+                    st.markdown(ind['field_method'])
+                if ind.get('remote_sensing_alternative'):
+                    st.markdown("**Remote sensing alternative**")
+                    st.markdown(ind['remote_sensing_alternative'])
+                if ind.get('sources'):
+                    st.markdown(f"_Sources: {ind['sources']}_")
+
+            applies_to_label = st.selectbox(
+                "Applies to",
+                options=ecosystem_options,
+                key=f"pi_applies_{ind['slug']}",
+            )
+            applies_to_value = None if applies_to_label == "Whole area" else applies_to_label
+            existing = responses_by_key.get((ind['slug'], applies_to_value))
+
+            st.markdown(f"**{ind['baseline_question']}**")
+
+            bands = ind['bands']
+            band_labels = [f"{b['score']} · {b['label']} — {b['criteria']}" for b in bands]
+            label_to_id = {band_labels[i]: bands[i]['id'] for i in range(len(bands))}
+            id_to_label = {bands[i]['id']: band_labels[i] for i in range(len(bands))}
+
+            col_b1, col_b2 = st.columns([3, 1])
+            with col_b1:
+                default_baseline_label = id_to_label.get(existing['baseline_band_id']) if existing and existing.get('baseline_band_id') else None
+                baseline_label = st.radio(
+                    "Baseline (current condition)",
+                    options=band_labels,
+                    index=band_labels.index(default_baseline_label) if default_baseline_label in band_labels else 0,
+                    key=f"pi_baseline_band_{ind['slug']}_{applies_to_label}",
+                )
+                baseline_band_id = label_to_id[baseline_label]
+            with col_b2:
+                baseline_year = st.number_input(
+                    "Baseline year",
+                    value=int(existing['baseline_year']) if existing and existing.get('baseline_year') else current_year,
+                    min_value=1990, max_value=2100, step=1,
+                    key=f"pi_baseline_year_{ind['slug']}_{applies_to_label}",
+                )
+
+            col_t1, col_t2 = st.columns([3, 1])
+            with col_t1:
+                default_target_label = id_to_label.get(existing['target_band_id']) if existing and existing.get('target_band_id') else None
+                target_label = st.radio(
+                    "Target (future condition)",
+                    options=band_labels,
+                    index=band_labels.index(default_target_label) if default_target_label in band_labels else len(band_labels) - 1,
+                    key=f"pi_target_band_{ind['slug']}_{applies_to_label}",
+                )
+                target_band_id = label_to_id[target_label]
+            with col_t2:
+                target_year = st.number_input(
+                    "Target year",
+                    value=int(existing['target_year']) if existing and existing.get('target_year') else current_year + 5,
+                    min_value=1990, max_value=2100, step=1,
+                    key=f"pi_target_year_{ind['slug']}_{applies_to_label}",
+                )
+
+            # Conditional followups based on chosen baseline score
+            chosen_baseline_score = next((b['score'] for b in bands if b['id'] == baseline_band_id), None)
+            followup_responses = dict(existing['followup_responses']) if existing and existing.get('followup_responses') else {}
+
+            for f in ind.get('followups', []):
+                trigger = f.get('trigger_max_score')
+                if trigger is None or (chosen_baseline_score is not None and chosen_baseline_score <= trigger):
+                    if f['input_kind'] == 'select':
+                        opts_with_blank = ["— Select —"] + (f.get('options') or [])
+                        prev = followup_responses.get(f['slug'])
+                        idx = opts_with_blank.index(prev) if prev in opts_with_blank else 0
+                        choice = st.selectbox(
+                            f['question_text'],
+                            options=opts_with_blank, index=idx,
+                            key=f"pi_followup_{ind['slug']}_{applies_to_label}_{f['slug']}",
+                        )
+                        followup_responses[f['slug']] = None if choice == "— Select —" else choice
+                    else:
+                        prev_text = followup_responses.get(f['slug'], "") or ""
+                        text = st.text_input(
+                            f['question_text'],
+                            value=prev_text,
+                            key=f"pi_followup_{ind['slug']}_{applies_to_label}_{f['slug']}",
+                        )
+                        followup_responses[f['slug']] = text or None
+
+            notes = st.text_input(
+                "Notes (optional)",
+                value=(existing.get('notes') if existing else "") or "",
+                key=f"pi_notes_{ind['slug']}_{applies_to_label}",
+            )
+
+            if st.button(
+                "💾 Save measurement",
+                key=f"pi_save_measure_{ind['slug']}_{applies_to_label}",
+            ):
+                PI.save_response(
+                    analysis_id=analysis_id,
+                    project_type_slug=selected_slug,
+                    indicator_slug=ind['slug'],
+                    baseline_band_id=baseline_band_id,
+                    baseline_year=int(baseline_year),
+                    target_band_id=target_band_id,
+                    target_year=int(target_year),
+                    applies_to_ecosystem=applies_to_value,
+                    followup_responses={k: v for k, v in followup_responses.items() if v is not None} or None,
+                    notes=notes or None,
+                )
+                st.success(f"{ind['code']} saved.")
+                st.rerun()
 
 
 # Sidebar configuration - optimized for performance with expandable sections
@@ -4652,3 +4941,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 st.rerun(scope="fragment")
 
     render_scenario_builder(results)
+
+    # ── Project Indicators (optional, gated by Settings toggle) ──────────────
+    if st.session_state.get('project_indicators_enabled', False):
+        render_project_indicators_section()
