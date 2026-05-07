@@ -60,6 +60,7 @@ st.set_page_config(
 )
 
 # PWA Support - inject manifest and meta tags for installability
+# Plus Inter webfont for typography (Pass B rebrand).
 st.markdown("""
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#2E7D32">
@@ -68,6 +69,9 @@ st.markdown("""
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="EVE">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 """, unsafe_allow_html=True)
 
 # Early loading message - displayed immediately while app initializes
@@ -284,12 +288,36 @@ st.markdown("""
             color: #1B5E20 !important;
         }
 
-        /* Headings — charcoal */
+        /* Typography — Inter for body and headings */
+        html, body, .stApp,
+        [data-testid="stSidebar"],
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMarkdownContainer"],
+        .stMarkdown, .stButton > button,
+        [data-baseweb], [class^="st-"] {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont,
+                         'Segoe UI', Roboto, sans-serif !important;
+            font-feature-settings: 'cv11', 'ss01', 'ss03';
+        }
+
+        /* Headings — charcoal, tighter scale, slight negative tracking */
         h1, h2, h3, h4, h5, h6 {
             color: #1F2937;
             margin: 0 !important;
             padding: 0 !important;
             line-height: 1.2 !important;
+            font-family: 'Inter', system-ui, sans-serif !important;
+            letter-spacing: -0.01em !important;
+            font-weight: 600 !important;
+        }
+        h1 { font-size: 1.5rem !important; font-weight: 700 !important; }
+        h2 { font-size: 1.25rem !important; }
+        h3 { font-size: 1.05rem !important; }
+
+        /* Tabular numerals for tables and metric values (numbers align in columns) */
+        [data-testid="stMetric"] [data-testid="stMetricValue"],
+        .stDataFrame, [data-testid="stDataFrame"] {
+            font-variant-numeric: tabular-nums;
         }
 
         /* Card-like containers */
@@ -1747,7 +1775,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.7 beta</span>
+    <span class="version-text">v3.5.8 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
