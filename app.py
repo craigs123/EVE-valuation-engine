@@ -325,13 +325,13 @@ st.markdown("""
             border-radius: 10px;
         }
 
-        /* Step section headers — single green accent stripe on neutral surface */
+        /* Step section headers — green accent stripe on neutral surface, generous top margin for breathing room */
         .section-header {
             font-size: 1.05rem !important;
             font-weight: 700 !important;
             color: #1F2937 !important;
-            padding: 0.35rem 0.75rem !important;
-            margin: 0.5rem 0 0.6rem 0 !important;
+            padding: 0.5rem 0.75rem !important;
+            margin: 1.5rem 0 0.75rem 0 !important;
             border-left: 4px solid #2E7D32 !important;
             background: #F7F8FA !important;
             border-radius: 0 4px 4px 0 !important;
@@ -339,62 +339,45 @@ st.markdown("""
             display: block !important;
         }
 
-        /* Reduce general vertical spacing */
-        .stMarkdown {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        
-        /* Reduce padding in main content blocks */
-        .block-container {
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
-        }
-        
-        /* Reduce spacing in vertical blocks */
-        [data-testid="stVerticalBlock"] > div {
-            margin-bottom: 0.1rem;
-            padding: 0;
-        }
-        
-        /* Reduce gap between elements in main content */
-        .element-container {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        
-        /* Tighten the main app container */
+        /* Main content padding — modest, not aggressive */
         .main .block-container {
-            padding-top: 0.25rem !important;
+            padding-top: 1rem !important;
+            padding-bottom: 1.5rem !important;
             max-width: 100%;
         }
-        
-        /* Remove spacing after markdown paragraphs */
+
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1.5rem !important;
+        }
+
+        /* Vertical block spacing — moderate gap between stacked elements */
+        [data-testid="stVerticalBlock"] > div {
+            margin-bottom: 0.4rem;
+            padding: 0;
+        }
+
+        /* Body copy line-height (markdown paragraphs) — comfortable reading */
         .stMarkdown p {
-            margin: 0 !important;
+            margin: 0 0 0.5rem 0 !important;
             padding: 0 !important;
-            line-height: 1.3 !important;
+            line-height: 1.55 !important;
         }
-        
-        /* Remove hidden label space from selectboxes */
-        [data-testid="stSelectbox"] {
-            margin-top: -1rem !important;
+        .stMarkdown p:last-child {
+            margin-bottom: 0 !important;
         }
-        
-        /* Reduce spacing in stMarkdownContainer */
+
+        /* Markdown container — no extra padding, but allow children to set their own line-height */
+        .stMarkdown,
         [data-testid="stMarkdownContainer"] {
             margin: 0 !important;
             padding: 0 !important;
         }
-        
-        [data-testid="stMarkdownContainer"] p {
+
+        /* Element container — minimal margin, no padding */
+        .element-container {
             margin: 0 !important;
             padding: 0 !important;
-        }
-        
-        /* All text elements tight spacing */
-        p, span, div, label {
-            line-height: 1.3 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -1140,7 +1123,7 @@ def display_data_source_status(analysis_results: Dict = None):
                         break
             
             if data_source_active == 'openlandmap' or has_real_data:
-                st.success("✅ **Active Source**: Real ESA Satellite Data")
+                st.success("**Active Source**: Real ESA Satellite Data")
                 st.caption("Using authentic ESA CCI land cover from satellite imagery")
             else:
                 st.warning("⚠️  **Active Source**: Geographic Fallback")
@@ -1172,7 +1155,7 @@ def display_data_source_status(analysis_results: Dict = None):
                         break
                 
                 if (data_source_check == 'openlandmap' or has_real_sampling_data) and sampling_point_data:
-                    st.markdown("**🌍 OpenLandMap STAC Data:**")
+                    st.markdown("**OpenLandMap STAC Data:**")
                     st.write(f"• Data Source: Authentic satellite-derived landcover classifications")
                     st.write(f"• Sample Points Analyzed: {len(sampling_point_data)} points")
                     st.markdown("**Sample Points Summary Table:**")
@@ -1352,7 +1335,7 @@ def display_data_source_status(analysis_results: Dict = None):
                             # Show raw STAC response data
                             raw_stac_data = point_data.get('raw_stac_data', {})
                             if raw_stac_data:
-                                st.markdown("**🔍 Raw STAC Response:**")
+                                st.markdown("**Raw STAC Response:**")
                                 st.json(raw_stac_data)
                             else:
                                 st.info("No raw STAC data available for this point")
@@ -1360,7 +1343,7 @@ def display_data_source_status(analysis_results: Dict = None):
                             # Show processed STAC data
                             stac_data = point_data.get('stac_data', {})
                             if stac_data:
-                                st.markdown("**📊 Processed STAC Data:**")
+                                st.markdown("**Processed STAC Data:**")
                                 st.json(stac_data)
                             
                             st.divider()
@@ -1381,10 +1364,10 @@ def display_data_source_status(analysis_results: Dict = None):
                     if not any(point_data.get('raw_stac_data') for point_data in sampling_point_data.values()):
                         st.warning("⚠️ No raw STAC data found. This may indicate the analysis used fallback methods instead of genuine satellite data.")
                     else:
-                        st.success("✅ Genuine STAC satellite data detected for this analysis.")
+                        st.success("Genuine STAC satellite data detected for this analysis.")
                     
                     # Summary statistics
-                    st.markdown("**📊 Summary Statistics:**")
+                    st.markdown("**Summary Statistics:**")
                     
                     # Show average EEI if available (only when EEI is enabled)
                     if st.session_state.get('use_eei_for_intactness', False):
@@ -1715,7 +1698,7 @@ if _verify_token:
     from database import UserDB as _UserDB
     if _UserDB.verify_email(_verify_token):
         st.query_params.clear()
-        st.success("✅ Email verified! You can now sign in.")
+        st.success("Email verified. You can now sign in.")
     else:
         st.query_params.clear()
         st.error("This verification link has expired or is invalid. Please sign in and request a new one.")
@@ -1775,11 +1758,11 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.8 beta</span>
+    <span class="version-text">v3.5.9 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<h3 class="section-header">🗺️ Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
+st.markdown('<h3 class="section-header">Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
 
 
 # Initialize session state
@@ -1825,7 +1808,7 @@ analyze_button = False
 
 
 # ── Analysis Settings dialog ───────────────────────────────────────────────
-@st.dialog("⚙️ Analysis Settings", width="large")
+@st.dialog("Analysis Settings", width="large")
 def analysis_settings_dialog():
     @st.cache_data
     def get_ecosystem_options():
@@ -1835,7 +1818,7 @@ def analysis_settings_dialog():
             "Coastal", "Marine", "Agricultural", "Urban", "Desert"
         ]
 
-    st.markdown("##### 🌿 Ecosystem Detection")
+    st.markdown("##### Ecosystem Detection")
     _eco = st.selectbox(
         "Ecosystem Type",
         options=get_ecosystem_options(),
@@ -1848,7 +1831,7 @@ def analysis_settings_dialog():
 
     st.divider()
 
-    st.markdown("##### 📋 Project Indicators (optional)")
+    st.markdown("##### Project Indicators (optional)")
     _pi_enabled = st.checkbox(
         "Enable project-specific indicator questions",
         value=st.session_state.get('project_indicators_enabled', False),
@@ -1864,7 +1847,7 @@ def analysis_settings_dialog():
     col_a, col_b = st.columns(2)
 
     with col_a:
-        st.markdown("##### ⚡ Environmental Indicators")
+        st.markdown("##### Environmental Indicators")
         st.caption("Each indicator adds a column to the Sample Points panel. STAC indicators "
                    "are fetched during analysis; SoilGrids indicators are fetched on demand.")
 
@@ -1927,7 +1910,7 @@ def analysis_settings_dialog():
 
         st.divider()
 
-        st.markdown("##### 🎯 Sampling Configuration")
+        st.markdown("##### Sampling Configuration")
         _samp = st.slider(
             "Sample Points", min_value=9, max_value=100,
             value=st.session_state.get('max_sampling_limit', 9), step=1,
@@ -1952,7 +1935,7 @@ def analysis_settings_dialog():
 
         st.divider()
 
-        st.markdown("##### 🌍 Regional Adjustments")
+        st.markdown("##### Regional Adjustments")
         _elast = st.slider(
             "Income elasticity factor", min_value=0.1, max_value=1.0,
             value=st.session_state.get('income_elasticity', 0.6), step=0.1,
@@ -1964,7 +1947,7 @@ def analysis_settings_dialog():
 
 
     with col_b:
-        st.markdown("##### 🏙️ Urban Green/Blue Infrastructure")
+        st.markdown("##### Urban Green/Blue Infrastructure")
         if 'urban_green_blue_multiplier' not in st.session_state:
             st.session_state.urban_green_blue_multiplier = 18.0
         _urb = st.slider(
@@ -1978,7 +1961,7 @@ def analysis_settings_dialog():
 
         st.divider()
 
-        st.markdown("##### 🌿 Ecosystem Intactness by Type")
+        st.markdown("##### Ecosystem Intactness by Type")
         st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
 
         if 'use_eei_for_intactness' not in st.session_state:
@@ -2020,7 +2003,7 @@ def analysis_settings_dialog():
 
         st.divider()
 
-        st.markdown("##### 🔬 Scientific Methodology")
+        st.markdown("##### Scientific Methodology")
         st.markdown("""
 **EVE** combines satellite remote sensing with the ESVD (10,874 peer-reviewed values) to measure natural capital.
 
@@ -2031,7 +2014,7 @@ def analysis_settings_dialog():
 **Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
         """)
 
-        if st.button("📋 View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
+        if st.button("View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
             st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
 
         if st.session_state.get('show_default_mapping', False):
@@ -2048,7 +2031,7 @@ def analysis_settings_dialog():
             st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
     st.divider()
-    st.markdown("##### 🌍 OpenLandMap Settings (advanced)")
+    st.markdown("##### OpenLandMap Settings (advanced)")
     from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
     _default_map = DEFAULT_LANDCOVER_MAPPING
     _esvd_types = [
@@ -2069,7 +2052,7 @@ def analysis_settings_dialog():
         "type. The ESA description is shown alongside each code; change the "
         "ecosystem on the right to override that code's default routing."
     )
-    if st.button("🔄 Reset to defaults", key="dlg_reset_mapping"):
+    if st.button("Reset to defaults", key="dlg_reset_mapping"):
         st.session_state.custom_landcover_mapping = _default_map.copy()
         st.rerun()
     _changes = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() if v != _default_map.get(k))
@@ -2257,7 +2240,7 @@ def render_project_indicators_section():
                   if ind['slug'] in missing_recommended]
         st.info(f"💡 Minimum recommended set excludes: {', '.join(labels)}")
 
-    if st.button("💾 Save commitment", key="pi_save_commitment", type="primary"):
+    if st.button("Save commitment", key="pi_save_commitment", type="primary"):
         PI.save_commitments(analysis_id, selected_slug, committed_slugs)
         st.success("Commitment saved.")
         st.rerun()
@@ -2414,7 +2397,7 @@ with st.sidebar:
                 from utils.auth import logout as _logout
                 _logout()
                 st.rerun()
-        if st.button("⚙️ Settings", use_container_width=True, key="open_settings_btn"):
+        if st.button("Settings", use_container_width=True, key="open_settings_btn"):
             analysis_settings_dialog()
         st.divider()
 
@@ -2432,7 +2415,7 @@ with st.sidebar:
                         "Area name", key="ws_save_name",
                         placeholder="e.g. River Wye Catchment",
                     )
-                    if st.button("💾 Save area", key="ws_save_btn", use_container_width=True):
+                    if st.button("Save area", key="ws_save_btn", use_container_width=True):
                         if _save_name.strip():
                             try:
                                 from database import SavedAreaDB as _SADB
@@ -2525,7 +2508,7 @@ with st.sidebar:
         st.divider()
 
     # Ultra-optimized clear button with memory management
-    if st.button("🗑️ Clear Area & Results", help="Start over with a new area"):
+    if st.button("Clear Area & Results", help="Start over with a new area"):
         clear_analysis_cache()
         import gc
         gc.collect()
@@ -2611,7 +2594,7 @@ if use_load_saved_area:
                 st.session_state.cached_bbox = calculate_bbox_optimized(selected_area_data['coordinates'])
                 st.session_state.area_coords_cache = selected_area_data['coordinates']
                 
-                st.success(f"✅ **Loaded: {selected_area_data['name']}**")
+                st.success(f"**Loaded: {selected_area_data['name']}**")
                 st.caption(f"📍 Area: {area_ha:.1f} hectares")
                 if selected_area_data.get('description'):
                     st.caption(f"💬 {selected_area_data['description']}")
@@ -2736,7 +2719,7 @@ elif use_test_area_single:
         st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
         st.session_state.area_coords_cache = test_coordinates
         
-        st.success(f"✅ **{selected_test_area} Selected!**")
+        st.success(f"**{selected_test_area} Selected**")
         st.caption(area_data["description"])
 
 elif use_test_area_multi:
@@ -2773,7 +2756,7 @@ elif use_test_area_multi:
     st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
     st.session_state.area_coords_cache = test_coordinates
     
-    st.success("✅ **Multi-Ecosystem Test Area Selected!**")
+    st.success("**Multi-Ecosystem Test Area Selected**")
     st.caption("🌍 Michigan Transition Zone (42.0°N, 84.0°W) | Expected: Agricultural, Forest, and Grassland ecosystems")
 
 elif use_test_area_random:
@@ -2864,7 +2847,7 @@ elif use_test_area_random:
     }
     region_name = region_names.get(selected_region, "Unknown Region")
     
-    st.success("✅ **Random Global Test Area Selected!**")
+    st.success("**Random Global Test Area Selected**")
     st.caption(f"🎲 Random location in {region_name} ({lat_center:.2f}°N, {lon_center:.2f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
 else:
     # Clear test area flag when unchecked, but preserve manual area zoom
@@ -3219,7 +3202,7 @@ with col3_map:
 
         if 'analysis_detail' not in st.session_state:
             st.session_state.analysis_detail = 'Summary Analysis'
-        if st.button('🚀 Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
+        if st.button('Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
             analyze_button = True
             st.session_state.analysis_in_progress = True
             for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
@@ -3245,7 +3228,7 @@ with col3_map:
 
 # Legacy results section — disabled; display handled by the calculation_ready block below
 if False and st.session_state.get('analysis_results'):
-    st.markdown('<h2 class="section-header">📈 Step 3: Results</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Step 3: Results</h2>', unsafe_allow_html=True)
     
     # Clear data source indicator at top of results
     data_source_check = st.session_state.get('landcover_data_source', st.session_state.get('analysis_results', {}).get('landcover_data_source', ''))
@@ -3793,7 +3776,7 @@ if analyze_button and st.session_state.selected_area:
                         st.session_state.landcover_data_source = data_source
                         st.session_state.pending_water_classification = True
 
-                        st.warning("🌊 **Water Bodies Detected!**")
+                        st.warning("**Water bodies detected**")
                         st.markdown(f"Found **{len(water_body_points)}** sample points with water bodies.")
                         
                         # Show sample point locations
@@ -3868,7 +3851,7 @@ if analyze_button and st.session_state.selected_area:
                                 st.session_state.average_eei = None
                                 st.session_state.ecosystem_eei = {}
                             
-                            st.success(f"✅ All {len(water_body_points)} water bodies classified as {selected_ecosystem}! Analysis continues below...")
+                            st.success(f"All {len(water_body_points)} water bodies classified as {selected_ecosystem}. Analysis continues below.")
                             
                             # Skip re-sampling and go directly to valuation with updated classifications
                             st.session_state.water_bodies_classified = True
@@ -4610,7 +4593,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 st.caption("Different ecosystem types in this area")
             
             # Show total composition breakdown
-            st.markdown("**📊 Total Area Composition:**")
+            st.markdown("**Total Area Composition:**")
             comp_cols = st.columns(min(len(ecosystem_results), 4))
             for i, (ecosystem_type, eco_data) in enumerate(ecosystem_results.items()):
                 with comp_cols[i % 4]:
@@ -4621,7 +4604,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             
             # Show combined services breakdown
             if 'esvd_results' in results:
-                st.markdown("**🌿 Combined Ecosystem Services (Total from All Ecosystems):**")
+                st.markdown("**Combined Ecosystem Services (Total from All Ecosystems):**")
                 esvd_data = results['esvd_results']
                 
                 if 'provisioning' in esvd_data:
@@ -4735,7 +4718,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             
             with st.expander("ℹ️ Data Source Information"):
                 if esvd_status['authentic']:
-                    st.success("**✅ AUTHENTIC ESVD DATABASE INTEGRATED**")
+                    st.success("**Authentic ESVD database integrated**")
                     st.markdown(f"""
                     **Data Source**: {esvd_status['source']}  
                     **Database Version**: APR2024 V1.1  
@@ -4925,7 +4908,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             st.markdown("**Scenario Parameters**")
             
             # Ecosystem mix sliders
-            st.markdown("🌍 **Adjust Ecosystem Mix**")
+            st.markdown("**Adjust Ecosystem Mix**")
             st.markdown("*Set percentages for each ecosystem type (must total 100%)*")
             
             scenario_mix = {}
@@ -4965,7 +4948,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             st.markdown("---")
             
             # Per-ecosystem intactness sliders
-            st.markdown("**🌿 Ecosystem Intactness**")
+            st.markdown("**Ecosystem Intactness**")
             st.markdown("*Set condition/health for each ecosystem type*")
             
             scenario_intactness_values = {}
@@ -4988,7 +4971,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 st.session_state.scenario_eco_intactness[eco_name] = scenario_intactness_values[eco_name]
         
         # Calculate scenario values
-        if st.button("🔄 Calculate Scenario", type="primary", use_container_width=True):
+        if st.button("Calculate Scenario", type="primary", use_container_width=True):
             with st.spinner("Calculating scenario values..."):
                 try:
                     # Build original mix percentages for comparison
@@ -5156,7 +5139,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         intactness_val = scenario_intactness.get(eco, 100) if isinstance(scenario_intactness, dict) else scenario_intactness
                         st.write(f"• {eco}: {pct:.0f}% @ {intactness_val:.0f}% intactness")
             
-            if st.button("🗑️ Clear Scenario", type="secondary"):
+            if st.button("Clear Scenario", type="secondary"):
                 if 'scenario_results' in st.session_state:
                     del st.session_state['scenario_results']
                 st.rerun(scope="fragment")
