@@ -400,8 +400,10 @@ if 'income_elasticity' not in st.session_state:
 if 'time_preset' not in st.session_state:
     st.session_state.time_preset = "Current Year (2024)"
 
-if 'include_environmental_indicators' not in st.session_state:
-    st.session_state.include_environmental_indicators = False
+for _ind_key in ('fapar', 'soil_c', 'phh2o', 'soc', 'bdod', 'nitrogen'):
+    _full_key = f'show_indicator_{_ind_key}'
+    if _full_key not in st.session_state:
+        st.session_state[_full_key] = False
 
 if 'use_eei_for_intactness' not in st.session_state:
     st.session_state.use_eei_for_intactness = True
@@ -1205,84 +1207,96 @@ def display_data_source_status(analysis_results: Dict = None):
                     df = pd.DataFrame(table_data)
                     st.dataframe(df, use_container_width=True, hide_index=True)
 
-                    # Supplementary indicators table (FAPAR, Soil C from STAC + SoilGrids)
-                    # Only rendered when "Include Environmental Indicators" is enabled.
-                    if st.session_state.get('include_environmental_indicators', False):
-                        from utils.soilgrids_api import (
-                            PROPERTIES as SOILGRIDS_PROPERTIES,
-                            PROPERTY_DISPLAY as SOILGRIDS_DISPLAY,
-                            format_value as soilgrids_format,
-                            get_soil_properties_batch,
-                        )
+                    # Supplementary indicators table — columns gated per-indicator by
+                    # the show_indicator_* flags set in the Analysis Settings dialog.
+                    show_fapar = st.session_state.get('show_indicator_fapar', False)
+                    show_soil_c = st.session_state.get('show_indicator_soil_c', False)
+                    show_phh2o = st.session_state.get('show_indicator_phh2o', False)
+                    show_soc = st.session_state.get('show_indicator_soc', False)
+                    show_bdod = st.session_state.get('show_indicator_bdod', False)
+                    show_nitrogen = st.session_state.get('show_indicator_nitrogen', False)
+                    show_any_soilgrids = show_phh2o or show_soc or show_bdod or show_nitrogen
+                    show_any = show_fapar or show_soil_c or show_any_soilgrids
 
+                    if show_any:
                         st.markdown("**Supplementary Environmental Indicators:**")
                         st.caption(
-                            "FAPAR and Soil C from OpenLandMap STAC; pH, SOC, Bulk Density, "
-                            "Nitrogen from ISRIC SoilGrids 2.0 (0–5cm topsoil, 250m, CC BY 4.0)."
+                            "Columns shown reflect your selection in Analysis Settings → "
+                            "Environmental Indicators. STAC indicators are collected during "
+                            "analysis; SoilGrids 2.0 (0–5cm topsoil, 250m, CC BY 4.0) is fetched "
+                            "on demand."
                         )
 
-                        # Collect coordinates for SoilGrids batch fetch
-                        sg_coords = []
+                        soil_results = {}
                         sg_coord_by_point = {}
-                        for point_id, point_data in sampling_point_data.items():
-                            coords = point_data.get('coordinates', {})
-                            if coords and isinstance(coords, dict):
-                                lat = coords.get('lat', 0)
-                                lon = coords.get('lon', 0)
-                                if lat != 0 or lon != 0:
-                                    sg_coords.append((lat, lon))
-                                    sg_coord_by_point[point_id] = (lat, lon)
+                        if show_any_soilgrids:
+                            from utils.soilgrids_api import (
+                                format_value as soilgrids_format,
+                                get_soil_properties_batch,
+                            )
 
-                        with st.spinner("Fetching SoilGrids data..."):
-                            soil_results = get_soil_properties_batch(sg_coords) if sg_coords else {}
+                            sg_coords = []
+                            for point_id, point_data in sampling_point_data.items():
+                                coords = point_data.get('coordinates', {})
+                                if coords and isinstance(coords, dict):
+                                    lat = coords.get('lat', 0)
+                                    lon = coords.get('lon', 0)
+                                    if lat != 0 or lon != 0:
+                                        sg_coords.append((lat, lon))
+                                        sg_coord_by_point[point_id] = (lat, lon)
 
-                        # Detect total API failure for a single banner
-                        api_unavailable = bool(sg_coords) and all(
-                            all(v is None for v in props.values())
-                            for props in soil_results.values()
-                        )
-                        if api_unavailable:
-                            st.warning("Soil data temporarily unavailable")
+                            with st.spinner("Fetching SoilGrids data..."):
+                                soil_results = get_soil_properties_batch(sg_coords) if sg_coords else {}
+
+                            api_unavailable = bool(sg_coords) and all(
+                                all(v is None for v in props.values())
+                                for props in soil_results.values()
+                            )
+                            if api_unavailable:
+                                st.warning("Soil data temporarily unavailable")
 
                         supp_rows = []
                         for point_id, point_data in sampling_point_data.items():
                             point_num = int(point_id.replace('point_', '')) + 1
 
-                            fapar_value = "—"
-                            soil_carbon_value = "—"
-                            stac_data = point_data.get('stac_data', {})
-                            if stac_data:
-                                for item in stac_data.get('vegetation', []) or []:
-                                    name = item.get('name', '').lower()
-                                    value = item.get('value')
-                                    if 'fapar' in name or 'absorbed' in name:
-                                        if value is not None:
-                                            if value > 1:
-                                                value = value / 255.0
-                                            fapar_value = f"{value:.3f}"
-                                        break
-                                for item in stac_data.get('soil', []) or []:
-                                    name = item.get('name', '').lower()
-                                    value = item.get('value')
-                                    if 'carbon' in name or 'organic' in name:
-                                        if value is not None and isinstance(value, (int, float)):
-                                            soil_carbon_value = f"{value:.1f}"
-                                        break
+                            row = {"Sample Point": f"Point {point_num}"}
 
-                            row = {
-                                "Sample Point": f"Point {point_num}",
-                                "FAPAR (0-1)": fapar_value,
-                                "Soil C (g/kg)": soil_carbon_value,
-                            }
+                            if show_fapar or show_soil_c:
+                                fapar_value = "—"
+                                soil_carbon_value = "—"
+                                stac_data = point_data.get('stac_data', {})
+                                if stac_data:
+                                    for item in stac_data.get('vegetation', []) or []:
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        if 'fapar' in name or 'absorbed' in name:
+                                            if value is not None:
+                                                if value > 1:
+                                                    value = value / 255.0
+                                                fapar_value = f"{value:.3f}"
+                                            break
+                                    for item in stac_data.get('soil', []) or []:
+                                        name = item.get('name', '').lower()
+                                        value = item.get('value')
+                                        if 'carbon' in name or 'organic' in name:
+                                            if value is not None and isinstance(value, (int, float)):
+                                                soil_carbon_value = f"{value:.1f}"
+                                            break
+                                if show_fapar:
+                                    row["FAPAR (0-1)"] = fapar_value
+                                if show_soil_c:
+                                    row["Soil C (g/kg)"] = soil_carbon_value
 
-                            sg_props = soil_results.get(sg_coord_by_point.get(point_id), {})
-                            for prop in SOILGRIDS_PROPERTIES:
-                                meta = SOILGRIDS_DISPLAY[prop]
-                                col_name = (
-                                    f"{meta['label']} ({meta['units']})"
-                                    if meta['units'] else meta['label']
-                                )
-                                row[col_name] = soilgrids_format(prop, sg_props.get(prop))
+                            if show_any_soilgrids:
+                                sg_props = soil_results.get(sg_coord_by_point.get(point_id), {})
+                                if show_phh2o:
+                                    row["pH (H₂O)"] = soilgrids_format('phh2o', sg_props.get('phh2o'))
+                                if show_soc:
+                                    row["SOC (g/kg)"] = soilgrids_format('soc', sg_props.get('soc'))
+                                if show_bdod:
+                                    row["Bulk Density (g/cm³)"] = soilgrids_format('bdod', sg_props.get('bdod'))
+                                if show_nitrogen:
+                                    row["Nitrogen (g/kg)"] = soilgrids_format('nitrogen', sg_props.get('nitrogen'))
 
                             supp_rows.append(row)
 
@@ -1727,7 +1741,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.1 beta</span>
+    <span class="version-text">v3.5.3 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1765,7 +1779,10 @@ def reset_analysis_state():
 
 # Initialize local fallbacks to prevent LSP "unbound" diagnostics
 ecosystem_override = st.session_state.get('ecosystem_override', 'Auto-detect')
-include_environmental_indicators = st.session_state.get('include_environmental_indicators', False)
+include_environmental_indicators = (
+    st.session_state.get('show_indicator_fapar', False)
+    or st.session_state.get('show_indicator_soil_c', False)
+)
 max_sampling_limit = st.session_state.get('max_sampling_limit', 9)
 analysis_detail = st.session_state.get('analysis_detail', 'Summary Analysis')
 income_elasticity = st.session_state.get('income_elasticity', 0.6)
@@ -1813,108 +1830,164 @@ def analysis_settings_dialog():
     col_a, col_b = st.columns(2)
 
     with col_a:
-        with st.expander("⚡ **Performance & Data Collection**"):
-            _inc_env = st.checkbox(
-                "Include Environmental Indicators",
-                value=st.session_state.get('include_environmental_indicators', False),
-                help="Collects FAPAR, soil carbon, and other environmental data (slower).",
-                key="dlg_include_env",
-            )
-            st.session_state.include_environmental_indicators = _inc_env
-            if _inc_env:
-                st.info("🔬 **Comprehensive Mode**: Environmental data collected.")
-            else:
-                st.success("🚀 **Fast Mode**: Land cover only.")
+        st.markdown("##### ⚡ Environmental Indicators")
+        st.caption("Each indicator adds a column to the Sample Points panel. STAC indicators "
+                   "are fetched during analysis; SoilGrids indicators are fetched on demand.")
 
-        with st.expander("🎯 **Sampling Configuration**"):
-            _samp = st.slider(
-                "Sample Points", min_value=9, max_value=100,
-                value=st.session_state.get('max_sampling_limit', 9), step=1,
-                help="Lower = faster, higher = more accurate.",
-                key="dlg_sampling",
-            )
-            st.session_state.max_sampling_limit = _samp
-            st.session_state.sampling_frequency = _samp
-            _sampling_guide = {
-                (0, 20): "🔹 Low Sampling — very fast",
-                (21, 40): "🔸 Moderate Sampling",
-                (41, 70): "🔸 High Sampling — good for mixed areas",
-                (71, 100): "🔴 Maximum Sampling — most accurate",
-            }
-            for (lo, hi), msg in _sampling_guide.items():
-                if lo <= _samp <= hi:
-                    st.info(msg)
-                    break
-            if st.session_state.get('cached_area_ha'):
-                _gs = int(np.sqrt(_samp))
-                st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+        _indicator_specs = [
+            ('fapar', 'FAPAR',
+             "Fraction of Absorbed Photosynthetically Active Radiation (0–1). "
+             "Proportion of incoming sunlight that the vegetation canopy captures — "
+             "an indicator of photosynthetic productivity. Source: OpenLandMap STAC."),
+            ('soil_c', 'Soil Carbon (STAC)',
+             "Soil organic carbon content from OpenLandMap STAC, reported in g/kg. "
+             "Higher values indicate greater carbon storage."),
+            ('phh2o', 'pH (H₂O)',
+             "Soil acidity/alkalinity measured in water suspension at 0–5cm depth from "
+             "ISRIC SoilGrids 2.0. 7 = neutral, <7 acidic, >7 alkaline."),
+            ('soc', 'Soil Organic Carbon (SOC)',
+             "Soil organic carbon at 0–5cm depth from ISRIC SoilGrids 2.0, in g/kg. "
+             "Topsoil carbon stocks indicator."),
+            ('bdod', 'Bulk Density',
+             "Mass of dry soil per unit volume at 0–5cm from ISRIC SoilGrids 2.0, in g/cm³. "
+             "Lower values indicate more pore space and organic matter."),
+            ('nitrogen', 'Total Nitrogen',
+             "Total nitrogen at 0–5cm depth from ISRIC SoilGrids 2.0, in g/kg. "
+             "Indicator of soil fertility."),
+        ]
+        _ind_state_keys = [f'show_indicator_{k}' for k, *_ in _indicator_specs]
+        _ind_widget_keys = [f'dlg_{k}' for k in _ind_state_keys]
 
-        with st.expander("🌍 **Regional Adjustments**"):
-            _elast = st.slider(
-                "Income elasticity factor", min_value=0.1, max_value=1.0,
-                value=st.session_state.get('income_elasticity', 0.6), step=0.1,
-                help="0.5–0.6 recommended. Scales regional GDP differences.",
-                key="dlg_income_elasticity",
+        def _toggle_all_indicators():
+            new_val = bool(st.session_state.get('dlg_show_all_indicators', False))
+            for sk, wk in zip(_ind_state_keys, _ind_widget_keys):
+                st.session_state[sk] = new_val
+                st.session_state[wk] = new_val
+
+        def _toggle_one_indicator(state_key, widget_key):
+            new_val = bool(st.session_state.get(widget_key, False))
+            st.session_state[state_key] = new_val
+            st.session_state['dlg_show_all_indicators'] = all(
+                st.session_state.get(k, False) for k in _ind_state_keys
             )
-            st.session_state['income_elasticity'] = _elast
-            st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
+
+        _all_on = all(st.session_state.get(k, False) for k in _ind_state_keys)
+        st.checkbox(
+            "**Show all**",
+            value=_all_on,
+            key="dlg_show_all_indicators",
+            on_change=_toggle_all_indicators,
+            help="Toggle every environmental indicator on or off at once.",
+        )
+        for (short, label, help_text), state_key, widget_key in zip(
+            _indicator_specs, _ind_state_keys, _ind_widget_keys
+        ):
+            st.checkbox(
+                label,
+                value=st.session_state.get(state_key, False),
+                key=widget_key,
+                on_change=_toggle_one_indicator,
+                args=(state_key, widget_key),
+                help=help_text,
+            )
+
+        st.divider()
+
+        st.markdown("##### 🎯 Sampling Configuration")
+        _samp = st.slider(
+            "Sample Points", min_value=9, max_value=100,
+            value=st.session_state.get('max_sampling_limit', 9), step=1,
+            help="Lower = faster, higher = more accurate.",
+            key="dlg_sampling",
+        )
+        st.session_state.max_sampling_limit = _samp
+        st.session_state.sampling_frequency = _samp
+        _sampling_guide = {
+            (0, 20): "🔹 Low Sampling — very fast",
+            (21, 40): "🔸 Moderate Sampling",
+            (41, 70): "🔸 High Sampling — good for mixed areas",
+            (71, 100): "🔴 Maximum Sampling — most accurate",
+        }
+        for (lo, hi), msg in _sampling_guide.items():
+            if lo <= _samp <= hi:
+                st.info(msg)
+                break
+        if st.session_state.get('cached_area_ha'):
+            _gs = int(np.sqrt(_samp))
+            st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+
+        st.divider()
+
+        st.markdown("##### 🌍 Regional Adjustments")
+        _elast = st.slider(
+            "Income elasticity factor", min_value=0.1, max_value=1.0,
+            value=st.session_state.get('income_elasticity', 0.6), step=0.1,
+            help="0.5–0.6 recommended. Scales regional GDP differences.",
+            key="dlg_income_elasticity",
+        )
+        st.session_state['income_elasticity'] = _elast
+        st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
 
 
     with col_b:
-        with st.expander("🏙️ **Urban Green/Blue Infrastructure**"):
-            if 'urban_green_blue_multiplier' not in st.session_state:
-                st.session_state.urban_green_blue_multiplier = 18.0
-            _urb = st.slider(
-                "Green/Blue Coverage (%)", min_value=0.0, max_value=100.0,
-                value=st.session_state.urban_green_blue_multiplier, step=1.0,
-                key="dlg_urban_multiplier",
-                help="WHO minimum ~10-15%; European cities 30-50%; North American 20-40%.",
+        st.markdown("##### 🏙️ Urban Green/Blue Infrastructure")
+        if 'urban_green_blue_multiplier' not in st.session_state:
+            st.session_state.urban_green_blue_multiplier = 18.0
+        _urb = st.slider(
+            "Green/Blue Coverage (%)", min_value=0.0, max_value=100.0,
+            value=st.session_state.urban_green_blue_multiplier, step=1.0,
+            key="dlg_urban_multiplier",
+            help="WHO minimum ~10-15%; European cities 30-50%; North American 20-40%.",
+        )
+        st.session_state.urban_green_blue_multiplier = _urb
+        st.info(f"Urban multiplier: {_urb/100:.2f}× ({_urb:.0f}%)")
+
+        st.divider()
+
+        st.markdown("##### 🌿 Ecosystem Intactness by Type")
+        st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
+
+        if 'use_eei_for_intactness' not in st.session_state:
+            st.session_state.use_eei_for_intactness = True
+        _eei = st.checkbox(
+            "Use EEI for Default Intactness",
+            value=st.session_state.use_eei_for_intactness,
+            key="dlg_use_eei",
+            help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
+        )
+        st.session_state.use_eei_for_intactness = _eei
+        st.caption("📡 EEI active" if _eei else "✋ Manual sliders below")
+
+        _eco_types = {
+            'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
+            'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
+            'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
+            'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
+        }
+        if 'ecosystem_intactness' not in st.session_state:
+            st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
+        for et in _eco_types:
+            if et not in st.session_state.ecosystem_intactness:
+                st.session_state.ecosystem_intactness[et] = 100
+
+        _changed = False
+        for eco_type, icon in _eco_types.items():
+            _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
+            _val = st.slider(
+                f"{icon} {eco_type} (%)", 0, 100,
+                int(round(_cur)) if isinstance(_cur, float) else _cur,
+                step=5, key=f"dlg_intactness_{eco_type}",
             )
-            st.session_state.urban_green_blue_multiplier = _urb
-            st.info(f"Urban multiplier: {_urb/100:.2f}× ({_urb:.0f}%)")
+            if _val != _cur:
+                _changed = True
+            st.session_state.ecosystem_intactness[eco_type] = _val
+        if _changed:
+            reset_analysis_state()
 
-        with st.expander("🌿 **Ecosystem Intactness by Type**"):
-            st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
+        st.divider()
 
-            if 'use_eei_for_intactness' not in st.session_state:
-                st.session_state.use_eei_for_intactness = True
-            _eei = st.checkbox(
-                "Use EEI for Default Intactness",
-                value=st.session_state.use_eei_for_intactness,
-                key="dlg_use_eei",
-                help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
-            )
-            st.session_state.use_eei_for_intactness = _eei
-            st.caption("📡 EEI active" if _eei else "✋ Manual sliders below")
-
-            _eco_types = {
-                'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
-                'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
-                'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
-                'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
-            }
-            if 'ecosystem_intactness' not in st.session_state:
-                st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
-            for et in _eco_types:
-                if et not in st.session_state.ecosystem_intactness:
-                    st.session_state.ecosystem_intactness[et] = 100
-
-            _changed = False
-            for eco_type, icon in _eco_types.items():
-                _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
-                _val = st.slider(
-                    f"{icon} {eco_type} (%)", 0, 100,
-                    int(round(_cur)) if isinstance(_cur, float) else _cur,
-                    step=5, key=f"dlg_intactness_{eco_type}",
-                )
-                if _val != _cur:
-                    _changed = True
-                st.session_state.ecosystem_intactness[eco_type] = _val
-            if _changed:
-                reset_analysis_state()
-
-        with st.expander("🔬 Scientific Methodology"):
-            st.markdown("""
+        st.markdown("##### 🔬 Scientific Methodology")
+        st.markdown("""
 **EVE** combines satellite remote sensing with the ESVD (10,874 peer-reviewed values) to measure natural capital.
 
 **Service Categories**: Provisioning · Regulating · Cultural · Supporting
@@ -1922,64 +1995,64 @@ def analysis_settings_dialog():
 **Formula**: `Final Value = ESVD_Base × Regional_Adjustment × Quality_Factor`
 
 **Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
-            """)
+        """)
 
-            if st.button("📋 View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
-                st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
+        if st.button("📋 View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
+            st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
 
-            if st.session_state.get('show_default_mapping', False):
-                from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_esa_description
-                import pandas as pd
-                _rows = [
-                    {"ESA CCI Code": code,
-                     "ESA Description": get_esa_description(code),
-                     "ESVD Type": DEFAULT_LANDCOVER_MAPPING[code]}
-                    for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
-                ]
-                st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
-                           "Customise per-code values under **OpenLandMap Settings** below.")
-                st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
+        if st.session_state.get('show_default_mapping', False):
+            from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_esa_description
+            import pandas as pd
+            _rows = [
+                {"ESA CCI Code": code,
+                 "ESA Description": get_esa_description(code),
+                 "ESVD Type": DEFAULT_LANDCOVER_MAPPING[code]}
+                for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
+            ]
+            st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
+                       "Customise per-code values under **OpenLandMap Settings** below.")
+            st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
     st.divider()
-    with st.expander("🌍 **OpenLandMap Settings** (advanced)"):
-        from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
-        _default_map = DEFAULT_LANDCOVER_MAPPING
-        _esvd_types = [
-            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-            "Grassland", "agricultural", "Urban", "Desert",
-            "Wetland", "Coastal", "Marine", "Shrubland", "polar"
-        ]
-        if 'custom_landcover_mapping' not in st.session_state:
-            st.session_state.custom_landcover_mapping = _default_map.copy()
-        for code, eco in _default_map.items():
-            if code not in st.session_state.custom_landcover_mapping:
-                st.session_state.custom_landcover_mapping[code] = eco
+    st.markdown("##### 🌍 OpenLandMap Settings (advanced)")
+    from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
+    _default_map = DEFAULT_LANDCOVER_MAPPING
+    _esvd_types = [
+        "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
+        "Grassland", "agricultural", "Urban", "Desert",
+        "Wetland", "Coastal", "Marine", "Shrubland", "polar"
+    ]
+    if 'custom_landcover_mapping' not in st.session_state:
+        st.session_state.custom_landcover_mapping = _default_map.copy()
+    for code, eco in _default_map.items():
+        if code not in st.session_state.custom_landcover_mapping:
+            st.session_state.custom_landcover_mapping[code] = eco
 
-        _desc = get_all_esa_codes()
-        st.markdown("**Landcover → Ecosystem mapping**")
-        if st.button("🔄 Reset to defaults", key="dlg_reset_mapping"):
-            st.session_state.custom_landcover_mapping = _default_map.copy()
-            st.rerun()
-        _changes = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() if v != _default_map.get(k))
-        if _changes:
-            st.info(f"📝 {_changes} custom mappings active")
+    _desc = get_all_esa_codes()
+    st.markdown("**Landcover → Ecosystem mapping**")
+    if st.button("🔄 Reset to defaults", key="dlg_reset_mapping"):
+        st.session_state.custom_landcover_mapping = _default_map.copy()
+        st.rerun()
+    _changes = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() if v != _default_map.get(k))
+    if _changes:
+        st.info(f"📝 {_changes} custom mappings active")
 
-        for code in sorted(_default_map.keys()):
-            _mc1, _mc2 = st.columns([1, 2])
-            with _mc1:
-                st.markdown(f"**{code}**", help=_desc.get(code, ""))
-            with _mc2:
-                _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
-                _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
-                _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
-                                   key=f"dlg_lcmap_{code}", label_visibility="collapsed")
-                st.session_state.custom_landcover_mapping[code] = _nm
+    for code in sorted(_default_map.keys()):
+        _mc1, _mc2 = st.columns([1, 2])
+        with _mc1:
+            st.markdown(f"**{code}**", help=_desc.get(code, ""))
+        with _mc2:
+            _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
+            _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
+            _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
+                               key=f"dlg_lcmap_{code}", label_visibility="collapsed")
+            st.session_state.custom_landcover_mapping[code] = _nm
 
-        try:
-            from utils.openlandmap_stac_api import openlandmap_stac
-            openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
-        except Exception:
-            pass
+    try:
+        from utils.openlandmap_stac_api import openlandmap_stac
+        openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
+    except Exception:
+        pass
 
     if st.button("✅ Close", use_container_width=True, key="dlg_close"):
         st.rerun()
@@ -3562,7 +3635,10 @@ if analyze_button and st.session_state.selected_area:
                         st.session_state.sampling_frequency,
                         max_sampling_limit=max_limit,
                         progress_callback=update_progress,
-                        include_environmental_indicators=st.session_state.get('include_environmental_indicators', False)
+                        include_environmental_indicators=(
+                            st.session_state.get('show_indicator_fapar', False)
+                            or st.session_state.get('show_indicator_soil_c', False)
+                        )
                     )
                     
                     # Always do fresh sampling for each analysis
