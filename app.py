@@ -1741,7 +1741,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.3 beta</span>
+    <span class="version-text">v3.5.4 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1766,7 +1766,7 @@ def reset_analysis_state():
         'regional_adjustment_factor', 'scenario_results', 'scenario_distribution',
         'scenario_eco_intactness', 'scenario_builder_expanded', 'calculation_ready',
         'skip_ecosystem_detection', 'sampling_point_data', 'water_bodies_classified',
-        'landcover_codes'
+        'pending_water_classification', 'landcover_codes'
     ]
     for key in keys_to_clear:
         if key in st.session_state:
@@ -3166,6 +3166,9 @@ with col3_map:
         if st.button('🚀 Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
             analyze_button = True
             st.session_state.analysis_in_progress = True
+            for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
+                if _stale in st.session_state:
+                    del st.session_state[_stale]
             if 'sampling_point_data' in st.session_state:
                 for point_data in st.session_state.sampling_point_data.values():
                     if 'user_classified' in point_data:
@@ -3602,10 +3605,30 @@ if analyze_button and st.session_state.selected_area:
             elif (st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode) and not st.session_state.get('skip_ecosystem_detection', False):
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
-                    
+
+                    # If a previous render already detected water bodies and is
+                    # waiting on the user to classify them, reuse the cached
+                    # sampling data instead of re-running detect_ecosystem_type.
+                    # Re-detection would fetch a different random sample, blank
+                    # the user_classified flags, and re-render the radio — the
+                    # symptom users see as the classification "looping".
+                    _pending_classification = (
+                        st.session_state.get('pending_water_classification', False)
+                        and st.session_state.get('sampling_point_data')
+                        and st.session_state.get('detected_ecosystem')
+                    )
+
+                    if _pending_classification:
+                        sampling_point_data = dict(st.session_state['sampling_point_data'])
+                        data_source = st.session_state.get('landcover_data_source', 'openlandmap')
+                        ecosystem_info = st.session_state['detected_ecosystem']
+                        has_real_satellite_data = data_source == 'openlandmap'
+                    else:
+                        sampling_point_data = None  # populated below
+
                     # Use cached area calculation for performance
                     area_hectares = area_ha
-                    
+
                     # Ultra-optimized sampling with user-configurable limits
                     max_limit = st.session_state.get('max_sampling_limit', 9)
                     expected_points = max_limit
@@ -3630,56 +3653,57 @@ if analyze_button and st.session_state.selected_area:
                             else:
                                 progress_text.info(f"🔍 Sampling progress: {current_point}/{total_points} samples ({progress:.0%})")
                     
-                    ecosystem_info = detect_ecosystem_type(
-                        st.session_state.area_coordinates, 
-                        st.session_state.sampling_frequency,
-                        max_sampling_limit=max_limit,
-                        progress_callback=update_progress,
-                        include_environmental_indicators=(
-                            st.session_state.get('show_indicator_fapar', False)
-                            or st.session_state.get('show_indicator_soil_c', False)
+                    if not _pending_classification:
+                        ecosystem_info = detect_ecosystem_type(
+                            st.session_state.area_coordinates,
+                            st.session_state.sampling_frequency,
+                            max_sampling_limit=max_limit,
+                            progress_callback=update_progress,
+                            include_environmental_indicators=(
+                                st.session_state.get('show_indicator_fapar', False)
+                                or st.session_state.get('show_indicator_soil_c', False)
+                            )
                         )
-                    )
-                    
-                    # Always do fresh sampling for each analysis
-                    # Extract complete sampling point data from ecosystem detection
-                    sampling_point_data = {}
-                    data_source = 'estimated'
-                    has_real_satellite_data = False  # Track if we find any real satellite data
-                    
-                    if ecosystem_info and 'sample_results' in ecosystem_info:
-                        for i, result in enumerate(ecosystem_info['sample_results']):
-                            if result:
-                                # Extract all available data from OpenLandMap API
-                                # Extract source from multiple possible fields
-                                actual_source = (result.get('source') or 
-                                               result.get('data_source') or 
-                                               result.get('stac_data', {}).get('data_source') or 
-                                               'Unknown')
-                                
-                                point_data = {
-                                    'landcover_class': result.get('landcover_class', 'Unknown'),
-                                    'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
-                                    'source': actual_source,  # Use the extracted source
-                                    'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
-                                    'stac_data': result.get('stac_data', {}),
-                                    'raw_stac_data': result.get('raw_stac_data', {})  # Include raw STAC response data
-                                }
-                                sampling_point_data[f'point_{i}'] = point_data
-                                
-                                # Check for real ESA satellite data vs geographic fallback using extracted source
-                                source_to_check = (result.get('source') or 
-                                                 result.get('data_source') or 
-                                                 result.get('stac_data', {}).get('data_source') or 
-                                                 'Unknown')
-                                if 'Real ESA Satellite Data' in source_to_check or 'GeoTIFF Pixel' in source_to_check:
-                                    has_real_satellite_data = True
-                                elif any(term in source_to_check for term in ['OpenLandMap', 'STAC']):
-                                    has_real_satellite_data = True
-                        
-                        # Set final data source based on whether we found any real satellite data
-                        if has_real_satellite_data:
-                            data_source = 'openlandmap'
+
+                        # Always do fresh sampling for each analysis
+                        # Extract complete sampling point data from ecosystem detection
+                        sampling_point_data = {}
+                        data_source = 'estimated'
+                        has_real_satellite_data = False  # Track if we find any real satellite data
+
+                        if ecosystem_info and 'sample_results' in ecosystem_info:
+                            for i, result in enumerate(ecosystem_info['sample_results']):
+                                if result:
+                                    # Extract all available data from OpenLandMap API
+                                    # Extract source from multiple possible fields
+                                    actual_source = (result.get('source') or
+                                                   result.get('data_source') or
+                                                   result.get('stac_data', {}).get('data_source') or
+                                                   'Unknown')
+
+                                    point_data = {
+                                        'landcover_class': result.get('landcover_class', 'Unknown'),
+                                        'ecosystem_type': result.get('ecosystem_type', 'Unknown'),
+                                        'source': actual_source,  # Use the extracted source
+                                        'coordinates': result.get('coordinates', {'lat': 0, 'lon': 0}),
+                                        'stac_data': result.get('stac_data', {}),
+                                        'raw_stac_data': result.get('raw_stac_data', {})  # Include raw STAC response data
+                                    }
+                                    sampling_point_data[f'point_{i}'] = point_data
+
+                                    # Check for real ESA satellite data vs geographic fallback using extracted source
+                                    source_to_check = (result.get('source') or
+                                                     result.get('data_source') or
+                                                     result.get('stac_data', {}).get('data_source') or
+                                                     'Unknown')
+                                    if 'Real ESA Satellite Data' in source_to_check or 'GeoTIFF Pixel' in source_to_check:
+                                        has_real_satellite_data = True
+                                    elif any(term in source_to_check for term in ['OpenLandMap', 'STAC']):
+                                        has_real_satellite_data = True
+
+                            # Set final data source based on whether we found any real satellite data
+                            if has_real_satellite_data:
+                                data_source = 'openlandmap'
                     
                     # Handle water body classification with automatic continuation
                     water_body_points = {}
@@ -3705,7 +3729,14 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Show classification dialog only if needed
                     if needs_classification:
-                        
+                        # Cache sampling data + ecosystem info so the rerun
+                        # triggered by the radio click can short-circuit
+                        # detection and reuse this exact data.
+                        st.session_state.sampling_point_data = sampling_point_data
+                        st.session_state.detected_ecosystem = ecosystem_info
+                        st.session_state.landcover_data_source = data_source
+                        st.session_state.pending_water_classification = True
+
                         st.warning("🌊 **Water Bodies Detected!**")
                         st.markdown(f"Found **{len(water_body_points)}** sample points with water bodies.")
                         
@@ -3786,6 +3817,8 @@ if analyze_button and st.session_state.selected_area:
                             # Skip re-sampling and go directly to valuation with updated classifications
                             st.session_state.water_bodies_classified = True
                             st.session_state.skip_ecosystem_detection = True
+                            if 'pending_water_classification' in st.session_state:
+                                del st.session_state['pending_water_classification']
                             
                             # Create ecosystem_info from existing classified data
                             ecosystem_counts = {}
@@ -4201,6 +4234,8 @@ if analyze_button and st.session_state.selected_area:
                 del st.session_state['skip_ecosystem_detection']
             if 'water_bodies_classified' in st.session_state:
                 del st.session_state['water_bodies_classified']
+            if 'pending_water_classification' in st.session_state:
+                del st.session_state['pending_water_classification']
             
             # Show final completion
             with analysis_progress_container.container():

@@ -1,0 +1,13 @@
+.gcloudignore
+.git
+.claude
+__pycache__
+*.pyc
+*.pyo
+.env
+unused/
+attached_assets/
+*.xlsx
+*.xlsm
+*.xls
+~$*
