@@ -288,13 +288,17 @@ st.markdown("""
             color: #1B5E20 !important;
         }
 
-        /* Typography — Inter for body and headings */
+        /* Typography — Inter for body and headings.
+           Targeted selectors only; broad selectors like [class^="st-"]
+           also catch Streamlit's icon-font widgets (e.g. expander chevron)
+           and replace their glyphs with Inter, which does not contain
+           those icons. Inheritance covers most widgets; we only force
+           Inter where Streamlit's own !important rules win otherwise. */
         html, body, .stApp,
         [data-testid="stSidebar"],
         [data-testid="stAppViewContainer"],
         [data-testid="stMarkdownContainer"],
-        .stMarkdown, .stButton > button,
-        [data-baseweb], [class^="st-"] {
+        .stMarkdown, .stButton > button {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont,
                          'Segoe UI', Roboto, sans-serif !important;
             font-feature-settings: 'cv11', 'ss01', 'ss03';
@@ -1135,7 +1139,7 @@ def display_data_source_status(analysis_results: Dict = None):
             landcover_codes = analysis_results.get('landcover_codes', {})
             data_source = analysis_results.get('landcover_data_source', 'estimated')
             
-            with st.expander("📊 Sampling Points Analysis Details", expanded=False):
+            with st.expander("Sampling Points Analysis Details", expanded=False):
                 data_source_check = st.session_state.get('landcover_data_source', data_source)
                 
                 # Check for real satellite data in sampling points
@@ -1324,7 +1328,7 @@ def display_data_source_status(analysis_results: Dict = None):
                     st.markdown("### 🔍 Raw Satellite Data Transparency")
                     
                     # Raw data verification section - always visible for data authenticity verification
-                    with st.expander("📡 **View Raw STAC Data** (Click to verify data authenticity)", expanded=False):
+                    with st.expander("View Raw STAC Data (click to verify data authenticity)", expanded=False):
                         st.markdown("**This section shows the raw satellite data sources and extraction details for complete transparency.**")
                         
                         # Display raw data for each sample point
@@ -1483,7 +1487,7 @@ def display_data_source_status(analysis_results: Dict = None):
                     
                     
                     # Show raw ESA codes in expandable section for transparency
-                    with st.expander("🔍 Raw ESA Code Breakdown"):
+                    with st.expander("Raw ESA Code Breakdown"):
                         # Filter out None keys and sort only valid integer codes
                         valid_codes = {k: v for k, v in code_counts.items() if k is not None}
                         for code, count in sorted(valid_codes.items()):
@@ -1758,7 +1762,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.9 beta</span>
+    <span class="version-text">v3.5.10 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1961,45 +1965,45 @@ def analysis_settings_dialog():
 
         st.divider()
 
-        st.markdown("##### Ecosystem Intactness by Type")
-        st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
+        with st.expander("Ecosystem Intactness by Type", expanded=False):
+            st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
 
-        if 'use_eei_for_intactness' not in st.session_state:
-            st.session_state.use_eei_for_intactness = True
-        _eei = st.checkbox(
-            "Use EEI for Default Intactness",
-            value=st.session_state.use_eei_for_intactness,
-            key="dlg_use_eei",
-            help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
-        )
-        st.session_state.use_eei_for_intactness = _eei
-        st.caption("📡 EEI active" if _eei else "✋ Manual sliders below")
-
-        _eco_types = {
-            'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
-            'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
-            'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
-            'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
-        }
-        if 'ecosystem_intactness' not in st.session_state:
-            st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
-        for et in _eco_types:
-            if et not in st.session_state.ecosystem_intactness:
-                st.session_state.ecosystem_intactness[et] = 100
-
-        _changed = False
-        for eco_type, icon in _eco_types.items():
-            _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
-            _val = st.slider(
-                f"{icon} {eco_type} (%)", 0, 100,
-                int(round(_cur)) if isinstance(_cur, float) else _cur,
-                step=5, key=f"dlg_intactness_{eco_type}",
+            if 'use_eei_for_intactness' not in st.session_state:
+                st.session_state.use_eei_for_intactness = True
+            _eei = st.checkbox(
+                "Use EEI for Default Intactness",
+                value=st.session_state.use_eei_for_intactness,
+                key="dlg_use_eei",
+                help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
             )
-            if _val != _cur:
-                _changed = True
-            st.session_state.ecosystem_intactness[eco_type] = _val
-        if _changed:
-            reset_analysis_state()
+            st.session_state.use_eei_for_intactness = _eei
+            st.caption("EEI active" if _eei else "Manual sliders below")
+
+            _eco_types = {
+                'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
+                'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
+                'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
+                'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
+            }
+            if 'ecosystem_intactness' not in st.session_state:
+                st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
+            for et in _eco_types:
+                if et not in st.session_state.ecosystem_intactness:
+                    st.session_state.ecosystem_intactness[et] = 100
+
+            _changed = False
+            for eco_type, icon in _eco_types.items():
+                _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
+                _val = st.slider(
+                    f"{icon} {eco_type} (%)", 0, 100,
+                    int(round(_cur)) if isinstance(_cur, float) else _cur,
+                    step=5, key=f"dlg_intactness_{eco_type}",
+                )
+                if _val != _cur:
+                    _changed = True
+                st.session_state.ecosystem_intactness[eco_type] = _val
+            if _changed:
+                reset_analysis_state()
 
         st.divider()
 
@@ -2031,76 +2035,76 @@ def analysis_settings_dialog():
             st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
     st.divider()
-    st.markdown("##### OpenLandMap Settings (advanced)")
-    from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
-    _default_map = DEFAULT_LANDCOVER_MAPPING
-    _esvd_types = [
-        "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-        "Grassland", "agricultural", "Urban", "Desert",
-        "Wetland", "Coastal", "Mangroves", "Marine", "Shrubland", "polar"
-    ]
-    if 'custom_landcover_mapping' not in st.session_state:
-        st.session_state.custom_landcover_mapping = _default_map.copy()
-    for code, eco in _default_map.items():
-        if code not in st.session_state.custom_landcover_mapping:
-            st.session_state.custom_landcover_mapping[code] = eco
+    with st.expander("OpenLandMap Settings (advanced — landcover → ecosystem mapping)", expanded=False):
+        from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
+        _default_map = DEFAULT_LANDCOVER_MAPPING
+        _esvd_types = [
+            "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
+            "Grassland", "agricultural", "Urban", "Desert",
+            "Wetland", "Coastal", "Mangroves", "Marine", "Shrubland", "polar"
+        ]
+        if 'custom_landcover_mapping' not in st.session_state:
+            st.session_state.custom_landcover_mapping = _default_map.copy()
+        for code, eco in _default_map.items():
+            if code not in st.session_state.custom_landcover_mapping:
+                st.session_state.custom_landcover_mapping[code] = eco
 
-    _desc = get_all_esa_codes()
-    st.markdown("**Landcover → Ecosystem mapping**")
-    st.caption(
-        "Each ESA CCI / WorldCover land-cover code maps to one ESVD ecosystem "
-        "type. The ESA description is shown alongside each code; change the "
-        "ecosystem on the right to override that code's default routing."
-    )
-    if st.button("Reset to defaults", key="dlg_reset_mapping"):
-        st.session_state.custom_landcover_mapping = _default_map.copy()
-        st.rerun()
-    _changes = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() if v != _default_map.get(k))
-    if _changes:
-        st.info(f"📝 {_changes} custom mappings active")
+        _desc = get_all_esa_codes()
+        st.markdown("**Landcover → Ecosystem mapping**")
+        st.caption(
+            "Each ESA CCI / WorldCover land-cover code maps to one ESVD ecosystem "
+            "type. The ESA description is shown alongside each code; change the "
+            "ecosystem on the right to override that code's default routing."
+        )
+        if st.button("Reset to defaults", key="dlg_reset_mapping"):
+            st.session_state.custom_landcover_mapping = _default_map.copy()
+            st.rerun()
+        _changes = sum(1 for k, v in st.session_state.custom_landcover_mapping.items() if v != _default_map.get(k))
+        if _changes:
+            st.info(f"{_changes} custom mappings active")
 
-    # Header row
-    _hc1, _hc2, _hc3 = st.columns([1, 5, 3])
-    with _hc1:
-        st.markdown("**Code**")
-    with _hc2:
-        st.markdown("**ESA description**")
-    with _hc3:
-        st.markdown("**ESVD ecosystem type**")
-    st.divider()
+        # Header row
+        _hc1, _hc2, _hc3 = st.columns([1, 5, 3])
+        with _hc1:
+            st.markdown("**Code**")
+        with _hc2:
+            st.markdown("**ESA description**")
+        with _hc3:
+            st.markdown("**ESVD ecosystem type**")
+        st.divider()
 
-    for code in sorted(_default_map.keys()):
-        _mc1, _mc2, _mc3 = st.columns([1, 5, 3])
-        with _mc1:
-            st.markdown(f"**{code}**")
-        with _mc2:
-            _is_custom = (
-                st.session_state.custom_landcover_mapping.get(code)
-                != _default_map.get(code)
-            )
-            _label = _desc.get(code, f"ESA Land Cover Class {code}")
-            if _is_custom:
-                st.markdown(
-                    f"{_label} <span style='color:#FF8F00; font-size:0.85em;'>"
-                    f"(default: {_default_map.get(code)})</span>",
-                    unsafe_allow_html=True,
+        for code in sorted(_default_map.keys()):
+            _mc1, _mc2, _mc3 = st.columns([1, 5, 3])
+            with _mc1:
+                st.markdown(f"**{code}**")
+            with _mc2:
+                _is_custom = (
+                    st.session_state.custom_landcover_mapping.get(code)
+                    != _default_map.get(code)
                 )
-            else:
-                st.write(_label)
-        with _mc3:
-            _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
-            _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
-            _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
-                               key=f"dlg_lcmap_{code}", label_visibility="collapsed")
-            st.session_state.custom_landcover_mapping[code] = _nm
+                _label = _desc.get(code, f"ESA Land Cover Class {code}")
+                if _is_custom:
+                    st.markdown(
+                        f"{_label} <span style='color:#FF8F00; font-size:0.85em;'>"
+                        f"(default: {_default_map.get(code)})</span>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.write(_label)
+            with _mc3:
+                _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
+                _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
+                _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
+                                   key=f"dlg_lcmap_{code}", label_visibility="collapsed")
+                st.session_state.custom_landcover_mapping[code] = _nm
 
-    try:
-        from utils.openlandmap_stac_api import openlandmap_stac
-        openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
-    except Exception:
-        pass
+        try:
+            from utils.openlandmap_stac_api import openlandmap_stac
+            openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
+        except Exception:
+            pass
 
-    if st.button("✅ Close", use_container_width=True, key="dlg_close"):
+    if st.button("Close", use_container_width=True, key="dlg_close"):
         st.rerun()
 
 
@@ -2550,6 +2554,18 @@ use_test_area_single = selected_test_area in ["🌾 Test area (Agricultural)", "
 use_test_area_multi = selected_test_area == "🌍 Test area (Multi-Ecosystem)" 
 use_test_area_random = selected_test_area == "🎲 Test area (Random Global)"
 
+# Track which area is currently set up. Without this, every Streamlit rerun
+# (e.g. clicking the water-classification radio) re-enters the matching test-
+# area branch below and re-runs clear_analysis_cache() — wiping
+# analysis_in_progress and sending the user back to the map mid-flow.
+_current_area_signature = (
+    selected_test_area,
+    st.session_state.get('saved_area_selector') if use_load_saved_area else None,
+)
+_area_selection_changed = (
+    st.session_state.get('_active_area_signature') != _current_area_signature
+)
+
 # Handle load saved area functionality
 if use_load_saved_area:
     from database import SavedAreaDB
@@ -2571,33 +2587,36 @@ if use_load_saved_area:
                 help="Select a previously saved area to load onto the map"
             )
             
-            # Load selected saved area
-            if selected_saved_area != "Select a saved area...":
+            # Load selected saved area — only run setup when the user's choice
+            # actually changes, otherwise the radio reruns wipe analysis state.
+            if selected_saved_area != "Select a saved area..." and _area_selection_changed:
                 selected_index = saved_area_names.index(selected_saved_area) - 1  # Subtract 1 for the placeholder
                 selected_area_data = saved_areas[selected_index]
-                
+
                 # Clear all cached values first to ensure clean state
                 clear_analysis_cache()
-                
+
                 # Set the loaded area coordinates
                 st.session_state.area_coordinates = selected_area_data['coordinates']
                 st.session_state.selected_area = True
                 st.session_state.use_test_area_zoom = True
-                
+
                 # Reset default area name for loaded area
                 if 'default_area_name' in st.session_state:
                     del st.session_state['default_area_name']
-                
+
                 # Calculate and cache area data
                 area_ha = selected_area_data['area_hectares']
                 st.session_state.cached_area_ha = area_ha
                 st.session_state.cached_bbox = calculate_bbox_optimized(selected_area_data['coordinates'])
                 st.session_state.area_coords_cache = selected_area_data['coordinates']
-                
+
+                st.session_state['_active_area_signature'] = _current_area_signature
+
                 st.success(f"**Loaded: {selected_area_data['name']}**")
-                st.caption(f"📍 Area: {area_ha:.1f} hectares")
+                st.caption(f"Area: {area_ha:.1f} hectares")
                 if selected_area_data.get('description'):
-                    st.caption(f"💬 {selected_area_data['description']}")
+                    st.caption(selected_area_data['description'])
         else:
             st.info("No saved areas found. Save an area first by drawing on the map and using the save functionality.")
             st.caption("Draw an area on the map below to get started, then save it for future use.")
@@ -2697,39 +2716,41 @@ elif use_test_area_single:
         }
     }
     
-    if selected_test_area in single_ecosystem_areas:
+    if selected_test_area in single_ecosystem_areas and _area_selection_changed:
         area_data = single_ecosystem_areas[selected_test_area]
         test_coordinates = area_data["coords"]
-        
+
         # Clear all cached values first to ensure clean state
         clear_analysis_cache()
-        
+
         # Set the test area coordinates
         st.session_state.area_coordinates = test_coordinates
         st.session_state.selected_area = True
         st.session_state.use_test_area_zoom = True
-        
+
         # Reset default area name for test area
         if 'default_area_name' in st.session_state:
             del st.session_state['default_area_name']
-        
+
         # Calculate area using the actual formula (should be exactly 1000ha)
         area_ha = calculate_area_optimized(test_coordinates)
         st.session_state.cached_area_ha = area_ha
         st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
         st.session_state.area_coords_cache = test_coordinates
-        
+
+        st.session_state['_active_area_signature'] = _current_area_signature
+
         st.success(f"**{selected_test_area} Selected**")
         st.caption(area_data["description"])
 
-elif use_test_area_multi:
+elif use_test_area_multi and _area_selection_changed:
     # Define coordinates for multi-ecosystem test area (Michigan agricultural-forest transition)
     # Area spanning agricultural-forest-grassland transition zone, calculated for exactly 1000ha at 42°N latitude
     # Using latitude correction factor for 42°N: cos(42°) ≈ 0.743
     lat_center, lon_center = 42.0, -84.0
     # Side length precisely calculated for exactly 1000ha at 42°N
     half_side = 0.01647631
-    
+
     test_coordinates = [
         [lon_center - half_side, lat_center - half_side],  # SW
         [lon_center + half_side, lat_center - half_side],  # SE
@@ -2737,29 +2758,31 @@ elif use_test_area_multi:
         [lon_center - half_side, lat_center + half_side],  # NW
         [lon_center - half_side, lat_center - half_side]   # Close
     ]
-    
+
     # Clear all cached values first to ensure clean state
     clear_analysis_cache()
-    
+
     # Set the test area coordinates
     st.session_state.area_coordinates = test_coordinates
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True
-    
+
     # Reset default area name for test area
     if 'default_area_name' in st.session_state:
         del st.session_state['default_area_name']
-    
+
     # Calculate area using the actual formula (should be exactly 1000ha)
     area_ha = calculate_area_optimized(test_coordinates)
     st.session_state.cached_area_ha = area_ha
     st.session_state.cached_bbox = calculate_bbox_optimized(test_coordinates)
     st.session_state.area_coords_cache = test_coordinates
-    
-    st.success("**Multi-Ecosystem Test Area Selected**")
-    st.caption("🌍 Michigan Transition Zone (42.0°N, 84.0°W) | Expected: Agricultural, Forest, and Grassland ecosystems")
 
-elif use_test_area_random:
+    st.session_state['_active_area_signature'] = _current_area_signature
+
+    st.success("**Multi-Ecosystem Test Area Selected**")
+    st.caption("Michigan Transition Zone (42.0°N, 84.0°W) | Expected: Agricultural, Forest, and Grassland ecosystems")
+
+elif use_test_area_random and _area_selection_changed:
     # Generate random global coordinates for 1000ha test area
     import random
     
@@ -2846,9 +2869,11 @@ elif use_test_area_random:
         (110, 155, -45, -10): "Australia/Oceania"
     }
     region_name = region_names.get(selected_region, "Unknown Region")
-    
+
+    st.session_state['_active_area_signature'] = _current_area_signature
+
     st.success("**Random Global Test Area Selected**")
-    st.caption(f"🎲 Random location in {region_name} ({lat_center:.2f}°N, {lon_center:.2f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
+    st.caption(f"Random location in {region_name} ({lat_center:.2f}°N, {lon_center:.2f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
 else:
     # Clear test area flag when unchecked, but preserve manual area zoom
     if not st.session_state.get('area_coordinates'):
@@ -4422,7 +4447,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         # Show data source and methodology
         st.info(f"📊 **Data Source**: Pre-computed ESVD Coefficients (Static) | **Regional Adjustment**: Applied")
         
-        with st.expander("💡 Data sources and methodology"):
+        with st.expander("Data sources and methodology"):
             st.markdown(f"""
             **Primary Data Sources**:
             
@@ -4488,7 +4513,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     tv = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1))) or 1
                     st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
                     st.caption(f"${per_ha_cat:.0f}/ha · {(total/tv*100):.0f}% of total")
-            with st.expander("📋 Service-by-service breakdown"):
+            with st.expander("Service-by-service breakdown"):
                 for category in categories:
                     cat_data = data_source.get(category, {})
                     services = cat_data.get('services', {})
@@ -5131,7 +5156,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             st.plotly_chart(fig, use_container_width=True)
             
             # Scenario details
-            with st.expander("📋 Scenario Details"):
+            with st.expander("Scenario Details"):
                 st.markdown("**Ecosystem Mix & Intactness:**")
                 scenario_intactness = scenario.get('intactness', {})
                 for eco, pct in scenario['mix'].items():
