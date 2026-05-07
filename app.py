@@ -1183,39 +1183,11 @@ def display_data_source_status(analysis_results: Dict = None):
                         if landcover_code == 210 and point_data.get('user_classified', False):
                             esvd_ecosystem += " (User classified)"
                         
-                        # Extract FAPAR and Soil Carbon from STAC data
-                        fapar_value = "—"
-                        soil_carbon_value = "—"
-                        stac_data = point_data.get('stac_data', {})
-                        if stac_data:
-                            # Get FAPAR from vegetation data
-                            vegetation_data = stac_data.get('vegetation', [])
-                            for item in vegetation_data:
-                                name = item.get('name', '').lower()
-                                value = item.get('value')
-                                if 'fapar' in name or 'absorbed' in name:
-                                    if value is not None:
-                                        # Scale 0-255 to 0-1
-                                        if value > 1:
-                                            value = value / 255.0
-                                        fapar_value = f"{value:.3f}"
-                                    break
-                            
-                            # Get Soil Carbon from soil data
-                            soil_data = stac_data.get('soil', [])
-                            for item in soil_data:
-                                name = item.get('name', '').lower()
-                                value = item.get('value')
-                                if 'carbon' in name or 'organic' in name:
-                                    if value is not None and isinstance(value, (int, float)):
-                                        soil_carbon_value = f"{value:.1f}"
-                                    break
-                        
                         # Get EEI value for this point from session state
                         point_eei_values = st.session_state.get('point_eei_values', {})
                         eei_value = point_eei_values.get(point_id)
                         eei_display = f"{eei_value:.3f}" if eei_value is not None else "—"
-                        
+
                         table_data.append({
                             "Sample Point": f"Point {point_num}",
                             "ESA CCI Code": landcover_code,
@@ -1225,15 +1197,97 @@ def display_data_source_status(analysis_results: Dict = None):
                             "Country": country,
                             "Regional Factor": regional_factor,
                             "EEI (0-1)": eei_display,
-                            "FAPAR (0-1)": fapar_value,
-                            "Soil C (g/kg)": soil_carbon_value,
                             "Data Source": data_source
                         })
-                    
+
                     # Display main table
                     import pandas as pd
                     df = pd.DataFrame(table_data)
                     st.dataframe(df, use_container_width=True, hide_index=True)
+
+                    # Supplementary indicators table (FAPAR, Soil C from STAC + SoilGrids)
+                    # Only rendered when "Include Environmental Indicators" is enabled.
+                    if st.session_state.get('include_environmental_indicators', False):
+                        from utils.soilgrids_api import (
+                            PROPERTIES as SOILGRIDS_PROPERTIES,
+                            PROPERTY_DISPLAY as SOILGRIDS_DISPLAY,
+                            format_value as soilgrids_format,
+                            get_soil_properties_batch,
+                        )
+
+                        st.markdown("**Supplementary Environmental Indicators:**")
+                        st.caption(
+                            "FAPAR and Soil C from OpenLandMap STAC; pH, SOC, Bulk Density, "
+                            "Nitrogen from ISRIC SoilGrids 2.0 (0–5cm topsoil, 250m, CC BY 4.0)."
+                        )
+
+                        # Collect coordinates for SoilGrids batch fetch
+                        sg_coords = []
+                        sg_coord_by_point = {}
+                        for point_id, point_data in sampling_point_data.items():
+                            coords = point_data.get('coordinates', {})
+                            if coords and isinstance(coords, dict):
+                                lat = coords.get('lat', 0)
+                                lon = coords.get('lon', 0)
+                                if lat != 0 or lon != 0:
+                                    sg_coords.append((lat, lon))
+                                    sg_coord_by_point[point_id] = (lat, lon)
+
+                        with st.spinner("Fetching SoilGrids data..."):
+                            soil_results = get_soil_properties_batch(sg_coords) if sg_coords else {}
+
+                        # Detect total API failure for a single banner
+                        api_unavailable = bool(sg_coords) and all(
+                            all(v is None for v in props.values())
+                            for props in soil_results.values()
+                        )
+                        if api_unavailable:
+                            st.warning("Soil data temporarily unavailable")
+
+                        supp_rows = []
+                        for point_id, point_data in sampling_point_data.items():
+                            point_num = int(point_id.replace('point_', '')) + 1
+
+                            fapar_value = "—"
+                            soil_carbon_value = "—"
+                            stac_data = point_data.get('stac_data', {})
+                            if stac_data:
+                                for item in stac_data.get('vegetation', []) or []:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'fapar' in name or 'absorbed' in name:
+                                        if value is not None:
+                                            if value > 1:
+                                                value = value / 255.0
+                                            fapar_value = f"{value:.3f}"
+                                        break
+                                for item in stac_data.get('soil', []) or []:
+                                    name = item.get('name', '').lower()
+                                    value = item.get('value')
+                                    if 'carbon' in name or 'organic' in name:
+                                        if value is not None and isinstance(value, (int, float)):
+                                            soil_carbon_value = f"{value:.1f}"
+                                        break
+
+                            row = {
+                                "Sample Point": f"Point {point_num}",
+                                "FAPAR (0-1)": fapar_value,
+                                "Soil C (g/kg)": soil_carbon_value,
+                            }
+
+                            sg_props = soil_results.get(sg_coord_by_point.get(point_id), {})
+                            for prop in SOILGRIDS_PROPERTIES:
+                                meta = SOILGRIDS_DISPLAY[prop]
+                                col_name = (
+                                    f"{meta['label']} ({meta['units']})"
+                                    if meta['units'] else meta['label']
+                                )
+                                row[col_name] = soilgrids_format(prop, sg_props.get(prop))
+
+                            supp_rows.append(row)
+
+                        supp_df = pd.DataFrame(supp_rows)
+                        st.dataframe(supp_df, use_container_width=True, hide_index=True)
                     
                     # Always show raw STAC data for transparency (moved outside environmental indicators toggle)
                     st.markdown("### 🔍 Raw Satellite Data Transparency")
@@ -1673,7 +1727,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.0</span>
+    <span class="version-text">v3.5.1 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
