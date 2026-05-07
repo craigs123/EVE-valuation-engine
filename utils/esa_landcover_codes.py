@@ -74,7 +74,7 @@ ESA_LANDCOVER_DESCRIPTIONS = {
     42: "Evergreen Forest",
     43: "Mixed Forest",
     52: "Shrub/Scrub",
-    95: "Emergent Herbaceous Wetlands"
+    95: "Mangroves"  # WorldCover class 95: Mangroves
 }
 
 # Default ESA Code Multipliers (100% = no adjustment)
@@ -146,8 +146,12 @@ DEFAULT_LANDCOVER_MAPPING = {
     # Sparse Vegetation / Desert Classes
     150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
 
-    # Wetland Classes (170 = mangroves → Coastal)
-    160: "Wetland", 170: "Coastal", 180: "Wetland",
+    # Wetland Classes (160 = freshwater/brackish swamp forest → Wetland;
+    #                  170 = CCI mangroves → Mangroves;
+    #                  180 = saline-influenced herbaceous → Coastal — covers salt
+    #                  marshes; also pulls in freshwater marshes/peatlands since
+    #                  CCI does not sub-divide 180.)
+    160: "Wetland", 170: "Mangroves", 180: "Coastal",
 
     # Urban Classes
     190: "Urban",
@@ -166,7 +170,7 @@ DEFAULT_LANDCOVER_MAPPING = {
     31: "Desert",
     41: "Temperate Forest", 42: "Forest", 43: "Forest",
     52: "Shrubland",
-    95: "Wetland",
+    95: "Mangroves",  # WorldCover class 95: Mangroves
 
     # Extended forest coverage (ESA codes 51-99)
     51: "Forest", 53: "Forest", 54: "Forest", 55: "Forest",

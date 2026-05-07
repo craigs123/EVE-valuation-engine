@@ -574,6 +574,32 @@ class PrecomputedESVDCoefficients:
                 'spiritual_value': 4.00,        # Service 21: Spiritual experience
                 'primary_production': 1556.00   # Service 22: Cognitive development
             },
+            # TODO: replace with ESVD mangrove-specific values when validated
+            # Placeholder duplicates 'coastal' values (WorldCover class 95).
+            'mangroves': {
+                'food': 7050.00,         # Service 1: Food
+                'water': 6397.00,        # Service 2: Water
+                'raw_materials': 6172.00,       # Service 3: Raw materials
+                'genetic_resources': 14.00,      # Service 4: Genetic resources
+                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
+                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
+                'pollution': 496.00,     # Service 7: Air quality regulation
+                'climate': 760.00,       # Service 8: Climate regulation
+                'extreme_events': 15746.00,     # Service 9: Moderation of extreme events
+                'water_regulation': 35.00,       # Service 10: Regulation of water flows
+                'water_purification': 7145.00,  # Service 11: Waste treatment
+                'erosion': 7736.00,      # Service 12: Erosion prevention
+                'soil_formation': 6340.00,      # Service 13: Maintenance of soil fertility
+                'pollination': 0.00,            # Service 14: Pollination
+                'biological_control': 0.00,     # Service 15: Biological control
+                'nursery_services': 2262.00,    # Service 16: Maintenance of life cycles
+                'habitat': 6029.00,      # Service 17: Maintenance of genetic diversity
+                'aesthetic_value': 857.00,      # Service 18: Aesthetic information
+                'recreation': 6318.00,   # Service 19: Recreation and tourism
+                'cultural': 278.00,      # Service 20: Culture, art and design
+                'spiritual_value': 4.00,        # Service 21: Spiritual experience
+                'primary_production': 1556.00   # Service 22: Cognitive development
+            },
             'urban': {
                 'food': 1240.00,           # Service 1: Food
                 'water': 1747.00,          # Service 2: Water

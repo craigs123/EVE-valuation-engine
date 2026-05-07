@@ -1741,7 +1741,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.4 beta</span>
+    <span class="version-text">v3.5.5 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -2020,7 +2020,7 @@ def analysis_settings_dialog():
     _esvd_types = [
         "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
         "Grassland", "agricultural", "Urban", "Desert",
-        "Wetland", "Coastal", "Marine", "Shrubland", "polar"
+        "Wetland", "Coastal", "Mangroves", "Marine", "Shrubland", "polar"
     ]
     if 'custom_landcover_mapping' not in st.session_state:
         st.session_state.custom_landcover_mapping = _default_map.copy()
@@ -2030,6 +2030,11 @@ def analysis_settings_dialog():
 
     _desc = get_all_esa_codes()
     st.markdown("**Landcover → Ecosystem mapping**")
+    st.caption(
+        "Each ESA CCI / WorldCover land-cover code maps to one ESVD ecosystem "
+        "type. The ESA description is shown alongside each code; change the "
+        "ecosystem on the right to override that code's default routing."
+    )
     if st.button("🔄 Reset to defaults", key="dlg_reset_mapping"):
         st.session_state.custom_landcover_mapping = _default_map.copy()
         st.rerun()
@@ -2037,11 +2042,35 @@ def analysis_settings_dialog():
     if _changes:
         st.info(f"📝 {_changes} custom mappings active")
 
+    # Header row
+    _hc1, _hc2, _hc3 = st.columns([1, 5, 3])
+    with _hc1:
+        st.markdown("**Code**")
+    with _hc2:
+        st.markdown("**ESA description**")
+    with _hc3:
+        st.markdown("**ESVD ecosystem type**")
+    st.divider()
+
     for code in sorted(_default_map.keys()):
-        _mc1, _mc2 = st.columns([1, 2])
+        _mc1, _mc2, _mc3 = st.columns([1, 5, 3])
         with _mc1:
-            st.markdown(f"**{code}**", help=_desc.get(code, ""))
+            st.markdown(f"**{code}**")
         with _mc2:
+            _is_custom = (
+                st.session_state.custom_landcover_mapping.get(code)
+                != _default_map.get(code)
+            )
+            _label = _desc.get(code, f"ESA Land Cover Class {code}")
+            if _is_custom:
+                st.markdown(
+                    f"{_label} <span style='color:#FF8F00; font-size:0.85em;'>"
+                    f"(default: {_default_map.get(code)})</span>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.write(_label)
+        with _mc3:
             _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
             _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
             _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,

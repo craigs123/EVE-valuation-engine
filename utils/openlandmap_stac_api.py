@@ -179,10 +179,12 @@ class OpenLandMapSTAC:
             # Sparse Vegetation / Desert Classes
             150: "Desert", 151: "Desert", 152: "Desert", 153: "Desert",
             
-            # Wetland Classes (170 = mangroves → Coastal)
+            # Wetland Classes (160 → Wetland, 170 → Mangroves, 180 → Coastal
+            # to capture salt marshes; freshwater marshes/peatlands are bundled
+            # in 180 too because CCI does not sub-divide it.)
             160: "Wetland",         # Tree cover, flooded, fresh or brakish water
-            170: "Coastal",         # Tree cover, flooded, saline water (mangroves)
-            180: "Wetland",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
+            170: "Mangroves",       # Tree cover, flooded, saline water (mangroves)
+            180: "Coastal",         # Shrub or herbaceous cover, flooded, fresh/saline/brakish water
             
             # Urban Classes
             190: "Urban",           # Urban areas
@@ -204,7 +206,7 @@ class OpenLandMapSTAC:
             31: "Desert",           # Barren Land
             41: "Temperate Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
             52: "Shrubland",        # NLCD Shrub/Scrub
-            95: "Wetland",          # NLCD Emergent Herbaceous Wetlands
+            95: "Mangroves",        # WorldCover class 95: Mangroves
             
             # Extended forest coverage (ESA codes 51-99)
             51: "Forest", 53: "Forest", 54: "Forest", 55: "Forest", 
