@@ -58,7 +58,7 @@ def _render_auth_ui():
         <p style="color:#555; font-size:0.95rem; margin:0 0 0.3rem 0;">
             Sign in to access your workspace and run ecosystem analyses.
         </p>
-        <p style="color:#aaa; font-size:0.75rem; margin:0;">v3.5.5 beta</p>
+        <p style="color:#aaa; font-size:0.75rem; margin:0;">v3.5.6 beta</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -106,12 +106,6 @@ def _render_auth_ui():
                         else:
                             st.error("Invalid email or password.")
 
-                st.markdown(
-                    "<p style='text-align:right;margin-top:0.3rem;'>"
-                    "<small><a href='#' id='forgot-pw-link' style='color:#2E7D32;'>Forgot password?</a></small>"
-                    "</p>",
-                    unsafe_allow_html=True,
-                )
                 if st.button("Forgot password?", key="forgot_pw_btn",
                              help="Reset your password via email",
                              use_container_width=False):

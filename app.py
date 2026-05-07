@@ -1741,7 +1741,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.5 beta</span>
+    <span class="version-text">v3.5.6 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -2425,13 +2425,6 @@ with st.sidebar:
                     from database import SavedAreaDB as _SADB2
                     _areas = _SADB2.get_user_saved_areas()
                     if _areas:
-                        st.markdown("""
-                        <style>
-                        [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
-                            padding: 0.15rem 0.1rem !important;
-                            font-size: 0.75rem !important;
-                        }
-                        </style>""", unsafe_allow_html=True)
                         for _area in _areas:
                             _col_info, _col_btns = st.columns([4, 1])
                             with _col_info:
