@@ -87,44 +87,50 @@ st.markdown("""
         }
         
         
-        /* EVE Solutions Green Color Palette */
+        /* EVE — Green & Grey palette: green as accent, neutral grey as canvas */
         :root {
             --eve-primary: #2E7D32;
             --eve-primary-dark: #1B5E20;
             --eve-primary-light: #4CAF50;
             --eve-accent: #81C784;
-            --eve-bg-light: #E8F5E9;
-            --eve-text-dark: #1B5E20;
+            --eve-bg-light: #E8F5E9;        /* retained for success-tint only */
+            --eve-text-dark: #1F2937;       /* charcoal, was forest-green */
             --eve-gold: #FFB300;
+            --eve-neutral-bg: #F7F8FA;
+            --eve-neutral-bg-2: #EFF2F4;
+            --eve-neutral-border: #E5E7EB;
+            --eve-neutral-text: #1F2937;
+            --eve-neutral-text-muted: #6B7280;
         }
-        
+
         /* Main header styling */
         .stApp > header {
             background-color: transparent;
         }
-        
-        /* Sidebar styling */
+
+        /* Sidebar — neutral surface, charcoal text */
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 100%);
+            background: #F7F8FA;
+            border-right: 1px solid #E5E7EB;
         }
-        
+
         [data-testid="stSidebar"] .stMarkdown {
-            color: #1B5E20;
+            color: #1F2937;
         }
-        
+
         /* Button styling */
         .stButton {
             margin-top: 0 !important;
             padding-top: 0 !important;
         }
-        
+
         .stButton > button {
             background-color: #2E7D32;
             color: white;
             border: none;
             border-radius: 8px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             margin-top: 0 !important;
             justify-content: center !important;
             align-items: center !important;
@@ -146,160 +152,160 @@ st.markdown("""
             margin: 0 !important;
             padding: 0 !important;
         }
-        
+
         .stButton > button:hover {
             background-color: #1B5E20;
-            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
             transform: translateY(-1px);
         }
-        
+
         /* Primary button variant */
         .stButton > button[kind="primary"] {
             background-color: #2E7D32;
         }
-        
-        /* Professional Metric Cards - Clean Dashboard Style with Green Accent */
+
+        /* Metric cards — neutral surface, single green accent stripe */
         [data-testid="stMetric"],
         [data-testid="stMetric"] > div {
-            background: linear-gradient(135deg, #FFFFFF 0%, #F8FDF8 100%) !important;
+            background: #FFFFFF !important;
             padding: 1rem !important;
             border-radius: 8px !important;
-            border: 1px solid #C8E6C9 !important;
+            border: 1px solid #E5E7EB !important;
             border-left: 4px solid #2E7D32 !important;
-            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.08) !important;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
         }
-        
+
         [data-testid="stMetric"] label,
         [data-testid="stMetric"] [data-testid="stMetricLabel"] {
-            color: #2E7D32 !important;
+            color: #6B7280 !important;
             font-size: 0.8rem !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.5px !important;
         }
-        
+
         [data-testid="stMetric"] [data-testid="stMetricValue"] {
-            color: #1B5E20 !important;
+            color: #1F2937 !important;
             font-weight: 700 !important;
             font-size: 0.95rem !important;
         }
-        
-        /* Professional Expander/Collapsible Panel Style with Green Header */
+
+        /* Expanders — neutral surface, neutral border, no gradient */
         [data-testid="stExpander"] {
-            border: 1px solid #C8E6C9 !important;
+            border: 1px solid #E5E7EB !important;
             border-radius: 8px !important;
             overflow: hidden !important;
             background: #FFFFFF !important;
             margin-bottom: 0.5rem !important;
         }
-        
+
         [data-testid="stExpander"] > div:first-child,
         [data-testid="stExpander"] summary,
         .streamlit-expanderHeader {
-            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%) !important;
+            background: #F7F8FA !important;
             border: none !important;
-            border-bottom: 1px solid #A5D6A7 !important;
-            color: #1B5E20 !important;
+            border-bottom: 1px solid #E5E7EB !important;
+            color: #1F2937 !important;
             font-weight: 600 !important;
             padding: 0.75rem 1rem !important;
         }
-        
+
         [data-testid="stExpander"]:hover > div:first-child,
         [data-testid="stExpander"] summary:hover {
-            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%) !important;
+            background: #EFF2F4 !important;
         }
-        
+
         /* Expander content area */
         [data-testid="stExpander"] > div:last-child {
             background: #FFFFFF !important;
             padding: 1rem !important;
         }
-        
-        /* Success/Info/Warning boxes */
+
+        /* Success/Info/Warning boxes — keep green tint on success */
         .stSuccess {
             background-color: #E8F5E9;
             border-left-color: #2E7D32;
         }
-        
+
         .stInfo {
             background-color: #E3F2FD;
             border-left-color: #1976D2;
         }
-        
-        /* Selectbox and input styling */
+
+        /* Selectbox and input styling — neutral border, green focus */
         .stSelectbox > div > div {
-            border-color: #81C784;
+            border-color: #E5E7EB;
         }
-        
+
         .stSelectbox > div > div:focus-within {
             border-color: #2E7D32;
             box-shadow: 0 0 0 1px #2E7D32;
         }
-        
-        /* Slider styling */
+
+        /* Slider — keep green */
         .stSlider > div > div > div {
             background-color: #2E7D32;
         }
-        
-        /* Tab styling */
+
+        /* Tabs — neutral unselected, green selected */
         .stTabs [data-baseweb="tab-list"] {
             gap: 8px;
         }
-        
+
         .stTabs [data-baseweb="tab"] {
-            background-color: #E8F5E9;
+            background-color: #F7F8FA;
             border-radius: 8px 8px 0 0;
-            color: #1B5E20;
+            color: #1F2937;
             font-weight: 500;
         }
-        
+
         .stTabs [aria-selected="true"] {
             background-color: #2E7D32 !important;
             color: white !important;
         }
-        
-        /* DataFrame/Table styling */
+
+        /* DataFrame/Table — neutral border */
         .stDataFrame {
-            border: 1px solid #C8E6C9;
+            border: 1px solid #E5E7EB;
             border-radius: 8px;
         }
-        
-        /* Progress bar */
+
+        /* Progress bar — keep green */
         .stProgress > div > div > div {
             background-color: #2E7D32;
         }
-        
-        /* Links */
+
+        /* Links — keep green */
         a {
             color: #2E7D32 !important;
         }
-        
+
         a:hover {
             color: #1B5E20 !important;
         }
-        
-        /* Custom heading colors */
+
+        /* Headings — charcoal */
         h1, h2, h3, h4, h5, h6 {
-            color: #1B5E20;
+            color: #1F2937;
             margin: 0 !important;
             padding: 0 !important;
             line-height: 1.2 !important;
         }
-        
+
         /* Card-like containers */
         [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
             border-radius: 10px;
         }
-        
-        /* Step section headers — clear visual hierarchy */
+
+        /* Step section headers — single green accent stripe on neutral surface */
         .section-header {
             font-size: 1.05rem !important;
             font-weight: 700 !important;
-            color: #1B5E20 !important;
+            color: #1F2937 !important;
             padding: 0.35rem 0.75rem !important;
             margin: 0.5rem 0 0.6rem 0 !important;
             border-left: 4px solid #2E7D32 !important;
-            background: linear-gradient(90deg, #E8F5E9 0%, transparent 100%) !important;
+            background: #F7F8FA !important;
             border-radius: 0 4px 4px 0 !important;
             line-height: 1.3 !important;
             display: block !important;
@@ -1741,7 +1747,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.6 beta</span>
+    <span class="version-text">v3.5.7 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
