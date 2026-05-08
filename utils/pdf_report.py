@@ -260,6 +260,12 @@ def generate_pdf_report(
         f'{user_display}'
     )
     story.append(Paragraph(footer_text, footer_style))
+    attribution_text = (
+        'Built by '
+        '<link href="https://www.greenandgreyassociates.com" color="#2E7D32">'
+        'Green &amp; Grey Associates</link>'
+    )
+    story.append(Paragraph(attribution_text, footer_style))
 
     doc.build(story)
     return buf.getvalue()

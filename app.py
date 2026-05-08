@@ -277,6 +277,8 @@ st.markdown("""
             border-radius: 8px 8px 0 0;
             color: #1F2937;
             font-weight: 500;
+            padding: 0.6rem 1.25rem !important;
+            margin-right: 0.25rem !important;
         }
 
         .stTabs [aria-selected="true"] {
@@ -1385,126 +1387,17 @@ def display_data_source_status(analysis_results: Dict = None):
 
                             st.divider()
                     
-                    # Summary statistics
-                    st.markdown("**Summary Statistics:**")
-                    
-                    # Show average EEI if available (only when EEI is enabled)
-                    if st.session_state.get('use_eei_for_intactness', False):
-                        average_eei = st.session_state.get('average_eei')
-                        ecosystem_eei = st.session_state.get('ecosystem_eei', {})
-                        
-                        if average_eei is not None:
-                            eei_percent = int(average_eei * 100)
-                            st.info(f"🌿 **Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%)")
-                            
-                            # Show per-ecosystem EEI values if there are multiple ecosystems
-                            if ecosystem_eei and len(ecosystem_eei) > 1:
-                                st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
-                                for eco_type, eei_value in sorted(ecosystem_eei.items()):
-                                    if eei_value is not None:
-                                        eco_eei_percent = eei_value * 100
-                                        st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent:.3f}%)")
-                            elif ecosystem_eei and len(ecosystem_eei) == 1:
-                                eco_type, eei_value = list(ecosystem_eei.items())[0]
-                                if eei_value is not None:
-                                    st.caption(f"Single ecosystem ({eco_type}) - EEI {eei_value:.3f} used for intactness default")
-                    else:
-                        st.caption("ℹ️ EEI disabled - using manual intactness values from settings")
-                    
-                    code_counts = {}
-                    
-                    for point_data in sampling_point_data.values():
-                        code = point_data.get('landcover_class', 'Unknown')
-                        code_counts[code] = code_counts.get(code, 0) + 1
-                    
-                    # Count ecosystem types (consistent with Mixed Ecosystem Composition filtering)
-                    ecosystem_counts = {}
-                    for code, count in code_counts.items():
-                        # Get ecosystem type from actual point data (includes forest specialization)
-                        specialized_ecosystem = None
-                        for point_data in sampling_point_data.values():
-                            if point_data.get('landcover_class') == code:
-                                specialized_ecosystem = point_data.get('ecosystem_type')
-                                break
-                        
-                        # Fallback to generic mapping if specialized type not found
-                        esvd_ecosystem = specialized_ecosystem or get_esvd_ecosystem_from_landcover_code(code, analysis_results)
-                        ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
-                    
-                    st.markdown("**Ecosystem Composition (from Sample Points):**")
-                    total_area = results.get('area_ha', results.get('area_hectares', 0))
-                    for ecosystem_type, count in sorted(ecosystem_counts.items()):
-                        percentage = (count / len(sampling_point_data)) * 100
-                        area_ha = total_area * (percentage / 100)
-                        if percentage >= 1.0:  # Apply same 1% threshold as Mixed Ecosystem Composition
-                            st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
-                    
-                    # Count countries from sample points (exclude water bodies - ESA code 210)
-                    country_counts = {}
-                    land_points_count = 0
-                    for point_data in sampling_point_data.values():
-                        # Skip water bodies (ESA code 210) from country assignment
-                        landcover_class = point_data.get('landcover_class')
-                        if landcover_class == 210:
-                            continue  # Don't assign country to water bodies
-                        
-                        coords = point_data.get('coordinates', {})
-                        if coords and isinstance(coords, dict):
-                            lat = coords.get('lat', 0)
-                            lon = coords.get('lon', 0)
-                            if lat != 0 or lon != 0:  # Valid coordinates
-                                country = get_country_from_coordinates(lat, lon)
-                                country_counts[country] = country_counts.get(country, 0) + 1
-                                land_points_count += 1
-                    
-                    # Display predominant country information (exclude water bodies from count)
-                    if country_counts and land_points_count > 0:
-                        st.markdown("**Geographic Distribution (from Land Sample Points):**")
-                        # Sort by count (descending) to show predominant country first
-                        for country, count in sorted(country_counts.items(), key=lambda x: x[1], reverse=True):
-                            percentage = (count / land_points_count) * 100
-                            if percentage >= 5.0:  # Only show countries with 5%+ representation
-                                st.write(f"• **{country}**: {percentage:.1f}% ({count} points)")
-                        
-                        # Show predominant country
-                        predominant_country = max(country_counts.items(), key=lambda x: x[1])
-                        if predominant_country[1] > land_points_count * 0.5:  # Majority (>50%)
-                            st.info(f"🌍 **Predominant Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
-                        else:
-                            st.info(f"🌍 **Most Common Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
-                        
-                        # Show resulting regional factor
-                        try:
-                            from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
-                            esvd_calc = PrecomputedESVDCoefficients()
-                            # Get a representative coordinate from the predominant country
-                            representative_coords = None
-                            for point_data in sampling_point_data.values():
-                                coords = point_data.get('coordinates', {})
-                                lat = coords.get('lat')
-                                lon = coords.get('lon')
-                                if lat is not None and lon is not None:
-                                    point_country = get_country_from_coordinates(lat, lon)
-                                    if point_country == predominant_country[0]:
-                                        representative_coords = (lat, lon)
-                                        break
-                            
-                            if representative_coords:
-                                regional_factor = esvd_calc.get_regional_factor(representative_coords)
-                                st.write(f"💰 **Regional Economic Factor**: {regional_factor:.2f}x (applied to all ecosystem valuations)")
-                        except Exception as e:
-                            st.write("💰 **Regional Economic Factor**: Unable to calculate")
-                        
-                        # Show water exclusion info if applicable
-                        water_points = len(sampling_point_data) - land_points_count
-                        if water_points > 0:
-                            st.caption(f"ℹ️ {water_points} water body points excluded from country statistics")
-                    
-                    
+                    # Summary Statistics block moved out of this expander —
+                    # see "Summary Statistics" section after the expander closes.
+
                     # Show raw ESA codes in expandable section for transparency
                     with st.expander("Raw ESA Code Breakdown"):
+                        _code_counts_local = {}
+                        for _pt in sampling_point_data.values():
+                            _c = _pt.get('landcover_class', 'Unknown')
+                            _code_counts_local[_c] = _code_counts_local.get(_c, 0) + 1
                         # Filter out None keys and sort only valid integer codes
-                        valid_codes = {k: v for k, v in code_counts.items() if k is not None}
+                        valid_codes = {k: v for k, v in _code_counts_local.items() if k is not None}
                         for code, count in sorted(valid_codes.items()):
                             openlandmap_description = get_landcover_code_description(code)
                             esvd_ecosystem = get_esvd_ecosystem_from_landcover_code(code, analysis_results)
@@ -1534,7 +1427,118 @@ def display_data_source_status(analysis_results: Dict = None):
                 else:
                     st.markdown("**ℹ️ No Sampling Data Available**")
                     st.write("No sampling point data available for this analysis.")
-    
+
+            # Summary Statistics — rendered AFTER the analysis-details expander
+            # (moved out so users see it without expanding). Only shown when
+            # OpenLandMap sample data is present.
+            _has_real_summary = any(
+                ('Real ESA Satellite Data' in (p.get('source') or ''))
+                or ('GeoTIFF Pixel' in (p.get('source') or ''))
+                or ('Direct ESA Land Cover Extraction' in (p.get('source') or ''))
+                or (p.get('stac_data') and len(p.get('stac_data', {})) > 0)
+                for p in sampling_point_data.values()
+            )
+            _data_source_check_summary = st.session_state.get('landcover_data_source', data_source)
+            if (_data_source_check_summary == 'openlandmap' or _has_real_summary) and sampling_point_data:
+                st.markdown("**Summary Statistics:**")
+
+                # Show average EEI if available (only when EEI is enabled)
+                if st.session_state.get('use_eei_for_intactness', False):
+                    average_eei = st.session_state.get('average_eei')
+                    ecosystem_eei = st.session_state.get('ecosystem_eei', {})
+
+                    if average_eei is not None:
+                        eei_percent = int(average_eei * 100)
+                        st.info(f"**Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%)")
+
+                        if ecosystem_eei and len(ecosystem_eei) > 1:
+                            st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
+                            for eco_type, eei_value in sorted(ecosystem_eei.items()):
+                                if eei_value is not None:
+                                    eco_eei_percent = eei_value * 100
+                                    st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent:.3f}%)")
+                        elif ecosystem_eei and len(ecosystem_eei) == 1:
+                            eco_type, eei_value = list(ecosystem_eei.items())[0]
+                            if eei_value is not None:
+                                st.caption(f"Single ecosystem ({eco_type}) — EEI {eei_value:.3f} used for intactness default")
+                else:
+                    st.caption("EEI disabled — using manual intactness values from settings")
+
+                # Count codes / ecosystem types
+                code_counts = {}
+                for point_data in sampling_point_data.values():
+                    code = point_data.get('landcover_class', 'Unknown')
+                    code_counts[code] = code_counts.get(code, 0) + 1
+
+                ecosystem_counts = {}
+                for code, count in code_counts.items():
+                    specialized_ecosystem = None
+                    for point_data in sampling_point_data.values():
+                        if point_data.get('landcover_class') == code:
+                            specialized_ecosystem = point_data.get('ecosystem_type')
+                            break
+                    esvd_ecosystem = specialized_ecosystem or get_esvd_ecosystem_from_landcover_code(code, analysis_results)
+                    ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
+
+                st.markdown("**Ecosystem Composition (from Sample Points):**")
+                total_area = results.get('area_ha', results.get('area_hectares', 0))
+                for ecosystem_type, count in sorted(ecosystem_counts.items()):
+                    percentage = (count / len(sampling_point_data)) * 100
+                    area_ha = total_area * (percentage / 100)
+                    if percentage >= 1.0:
+                        st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
+
+                # Country breakdown (water bodies excluded)
+                country_counts = {}
+                land_points_count = 0
+                for point_data in sampling_point_data.values():
+                    if point_data.get('landcover_class') == 210:
+                        continue  # skip water bodies
+                    coords = point_data.get('coordinates', {})
+                    if coords and isinstance(coords, dict):
+                        lat = coords.get('lat', 0)
+                        lon = coords.get('lon', 0)
+                        if lat != 0 or lon != 0:
+                            country = get_country_from_coordinates(lat, lon)
+                            country_counts[country] = country_counts.get(country, 0) + 1
+                            land_points_count += 1
+
+                if country_counts and land_points_count > 0:
+                    st.markdown("**Geographic Distribution (from Land Sample Points):**")
+                    for country, count in sorted(country_counts.items(), key=lambda x: x[1], reverse=True):
+                        percentage = (count / land_points_count) * 100
+                        if percentage >= 5.0:
+                            st.write(f"• **{country}**: {percentage:.1f}% ({count} points)")
+
+                    predominant_country = max(country_counts.items(), key=lambda x: x[1])
+                    if predominant_country[1] > land_points_count * 0.5:
+                        st.info(f"**Predominant Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
+                    else:
+                        st.info(f"**Most Common Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
+
+                    try:
+                        from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                        esvd_calc = PrecomputedESVDCoefficients()
+                        representative_coords = None
+                        for point_data in sampling_point_data.values():
+                            coords = point_data.get('coordinates', {})
+                            lat = coords.get('lat')
+                            lon = coords.get('lon')
+                            if lat is not None and lon is not None:
+                                point_country = get_country_from_coordinates(lat, lon)
+                                if point_country == predominant_country[0]:
+                                    representative_coords = (lat, lon)
+                                    break
+                        if representative_coords:
+                            regional_factor = esvd_calc.get_regional_factor(representative_coords)
+                            st.write(f"**Regional Economic Factor**: {regional_factor:.2f}x (applied to all ecosystem valuations)")
+                    except Exception:
+                        st.write("**Regional Economic Factor**: Unable to calculate")
+
+                    water_points = len(sampling_point_data) - land_points_count
+                    if water_points > 0:
+                        st.caption(f"{water_points} water body points excluded from country statistics")
+
     return openlandmap_status.get('authentication_success', False)
 
 # Performance-optimized lazy loading for heavy analysis modules
@@ -1777,7 +1781,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.11 beta</span>
+    <span class="version-text">v3.5.12 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -2118,6 +2122,41 @@ def analysis_settings_dialog():
             openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
         except Exception:
             pass
+
+    # Admin-only section: list of registered users.
+    _auth_user = st.session_state.get('auth_user') or {}
+    if _auth_user.get('is_admin'):
+        st.divider()
+        with st.expander("User Administration (admin)", expanded=False):
+            try:
+                from database import UserDB as _AdminUserDB
+                _all_users = _AdminUserDB.list_all_users()
+                if _all_users:
+                    import pandas as pd
+                    _user_rows = [
+                        {
+                            "Registered (UTC)": (
+                                u['created_at'].strftime('%Y-%m-%d %H:%M')
+                                if u.get('created_at') else ''
+                            ),
+                            "Email": u['email'],
+                            "Display name": u['display_name'] or '—',
+                            "Verified": "Yes" if u['email_verified'] else "No",
+                            "Admin": "Yes" if u['is_admin'] else "No",
+                        }
+                        for u in _all_users
+                    ]
+                    st.caption(f"{len(_all_users)} registered users")
+                    st.dataframe(
+                        pd.DataFrame(_user_rows),
+                        use_container_width=True,
+                        hide_index=True,
+                        height=320,
+                    )
+                else:
+                    st.info("No users found.")
+            except Exception as _admin_err:
+                st.error(f"Could not load user list: {_admin_err}")
 
     if st.button("Close", use_container_width=True, key="dlg_close"):
         st.rerun()
@@ -2477,7 +2516,6 @@ with st.sidebar:
                                 _sub_l, _sub_d = st.columns(2)
                                 with _sub_l:
                                     if st.button("↩", key=f"ws_load_{_area['id']}",
-                                                 use_container_width=True,
                                                  help="Load this area onto the map"):
                                         clear_analysis_cache()
                                         st.session_state.area_coordinates = _area['coordinates']
@@ -2490,7 +2528,6 @@ with st.sidebar:
                                         st.rerun()
                                 with _sub_d:
                                     if st.button("🗑️", key=f"ws_del_{_area['id']}",
-                                                 use_container_width=True,
                                                  help="Delete this saved area"):
                                         from database import SavedAreaDB as _SADB3
                                         _SADB3.delete_area(_area['id'])

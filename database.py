@@ -404,7 +404,29 @@ class UserDB:
             'email': user.email,
             'display_name': user.display_name,
             'email_verified': bool(user.email_verified),
+            'is_admin': bool(user.is_admin),
         }
+
+    @staticmethod
+    def list_all_users() -> list:
+        """Return all registered users for admin display. The caller is
+        responsible for verifying that the requester is an admin."""
+        try:
+            with get_db() as db:
+                users = db.query(User).order_by(User.created_at.desc()).all()
+                return [
+                    {
+                        'email': u.email,
+                        'display_name': u.display_name,
+                        'email_verified': bool(u.email_verified),
+                        'is_admin': bool(u.is_admin),
+                        'created_at': u.created_at,
+                    }
+                    for u in users
+                ]
+        except Exception as e:
+            logger.error(f"list_all_users failed: {e}")
+            return []
 
     @staticmethod
     def register(email: str, password: str, display_name: Optional[str] = None) -> Dict:

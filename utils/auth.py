@@ -52,22 +52,35 @@ def _render_auth_ui():
     .auth-hero { text-align:center; padding: 3.5rem 0 1.25rem 0; }
     .auth-hero .mark { font-size:2.75rem; line-height:1; margin-bottom: 0.5rem; }
     .auth-hero h1 {
-        color:#1F2937; font-size:1.9rem; font-weight:700;
-        letter-spacing:-0.01em; margin:0.5rem 0 0.75rem 0;
+        color:#1F2937 !important; font-size:1.9rem !important;
+        font-weight:700 !important; letter-spacing:-0.01em !important;
+        margin:0.5rem auto 0.75rem auto !important;
+    }
+    .auth-hero .tagline,
+    .auth-hero .sub {
+        max-width:32rem !important;
+        margin-left:auto !important;
+        margin-right:auto !important;
+        text-align:center !important;
     }
     .auth-hero .tagline {
-        color:#374151; font-size:1rem; font-weight:500;
-        max-width:32rem; margin:0 auto 0.4rem auto;
+        color:#374151 !important; font-size:1rem !important;
+        font-weight:500 !important;
+        margin-top:0 !important; margin-bottom:0.4rem !important;
     }
     .auth-hero .sub {
-        color:#6B7280; font-size:0.9rem;
-        max-width:32rem; margin:0 auto;
+        color:#6B7280 !important; font-size:0.9rem !important;
+        margin-top:0 !important; margin-bottom:0 !important;
     }
     .auth-hero .accent {
         width:48px; height:3px; background:#2E7D32;
         margin:1.5rem auto 0; border-radius:2px;
     }
-    .auth-hero .ver { color:#9CA3AF; font-size:0.72rem; margin:1.25rem 0 0; }
+    .auth-hero .ver {
+        color:#9CA3AF !important; font-size:0.72rem !important;
+        margin:1.25rem auto 0 auto !important;
+        text-align:center !important;
+    }
     </style>
     <div class="auth-hero">
         <div class="mark">🌱</div>
@@ -75,7 +88,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.11 beta</p>
+        <p class="ver">v3.5.12 beta</p>
     </div>
     """, unsafe_allow_html=True)
 
