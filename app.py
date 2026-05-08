@@ -128,11 +128,10 @@ st.markdown("""
             padding-top: 0 !important;
         }
 
+        /* Base button styling — applies to both primary and secondary */
         .stButton > button {
-            background-color: #2E7D32;
-            color: white;
-            border: none;
-            border-radius: 8px;
+            border: 1px solid transparent;
+            border-radius: 10px;
             font-weight: 600;
             transition: all 0.2s ease;
             margin-top: 0 !important;
@@ -157,15 +156,32 @@ st.markdown("""
             padding: 0 !important;
         }
 
-        .stButton > button:hover {
+        /* Primary — solid green CTA */
+        .stButton > button[kind="primary"] {
+            background-color: #2E7D32;
+            color: white;
+            border-color: #2E7D32;
+        }
+        .stButton > button[kind="primary"]:hover {
             background-color: #1B5E20;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
+            border-color: #1B5E20;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
             transform: translateY(-1px);
         }
 
-        /* Primary button variant */
-        .stButton > button[kind="primary"] {
-            background-color: #2E7D32;
+        /* Secondary — ghost / outline (default st.button without type=) */
+        .stButton > button[kind="secondary"] {
+            background-color: #FFFFFF;
+            color: #2E7D32;
+            border-color: #C8E6C9;
+            font-weight: 500;
+        }
+        .stButton > button[kind="secondary"]:hover {
+            background-color: #F7F8FA;
+            color: #1B5E20;
+            border-color: #2E7D32;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+            transform: translateY(-1px);
         }
 
         /* Metric cards — neutral surface, single green accent stripe */
@@ -1324,18 +1340,35 @@ def display_data_source_status(analysis_results: Dict = None):
                         supp_df = pd.DataFrame(supp_rows)
                         st.dataframe(supp_df, use_container_width=True, hide_index=True)
                     
-                    # Always show raw STAC data for transparency (moved outside environmental indicators toggle)
-                    st.markdown("### 🔍 Raw Satellite Data Transparency")
-                    
-                    # Raw data verification section - always visible for data authenticity verification
+                    # Raw STAC data + verification details — collapsed by default.
                     with st.expander("View Raw STAC Data (click to verify data authenticity)", expanded=False):
                         st.markdown("**This section shows the raw satellite data sources and extraction details for complete transparency.**")
-                        
+
+                        # Authenticity status — surfaced first inside the panel
+                        if not any(point_data.get('raw_stac_data') for point_data in sampling_point_data.values()):
+                            st.warning("No raw STAC data found. This may indicate the analysis used fallback methods instead of genuine satellite data.")
+                        else:
+                            st.success("Genuine STAC satellite data detected for this analysis.")
+
+                        # How-to-verify guidance
+                        st.info("""
+                        **How to Verify This Data:**
+                        1. **Asset URL**: Copy the asset URL above and access it directly to verify the GeoTIFF source
+                        2. **Year**: Confirm the dataset year (2020) in the asset URL path
+                        3. **Pixel Values**: Check that raw pixel values match ESA CCI landcover codes
+                        4. **Coordinates**: Verify sample point coordinates match your selected area
+                        5. **Collection**: Confirm data comes from ESA CCI landcover collection (land.cover_esacci.lc.l4)
+
+                        This transparency section provides complete traceability from raw satellite data to final results.
+                        """)
+
+                        st.divider()
+
                         # Display raw data for each sample point
                         for point_id, point_data in sampling_point_data.items():
                             point_num = int(point_id.replace('point_', '')) + 1
                             st.markdown(f"**Sample Point {point_num}:**")
-                            
+
                             # Show raw STAC response data
                             raw_stac_data = point_data.get('raw_stac_data', {})
                             if raw_stac_data:
@@ -1343,32 +1376,14 @@ def display_data_source_status(analysis_results: Dict = None):
                                 st.json(raw_stac_data)
                             else:
                                 st.info("No raw STAC data available for this point")
-                            
+
                             # Show processed STAC data
                             stac_data = point_data.get('stac_data', {})
                             if stac_data:
                                 st.markdown("**Processed STAC Data:**")
                                 st.json(stac_data)
-                            
+
                             st.divider()
-                    
-                    # Data verification section - always visible
-                    st.markdown("### ✅ Data Verification")
-                    st.info("""
-                    **How to Verify This Data:**
-                    1. **Asset URL**: Copy the asset URL above and access it directly to verify the GeoTIFF source
-                    2. **Year**: Confirm the dataset year (2020) in the asset URL path  
-                    3. **Pixel Values**: Check that raw pixel values match ESA CCI landcover codes
-                    4. **Coordinates**: Verify sample point coordinates match your selected area
-                    5. **Collection**: Confirm data comes from ESA CCI landcover collection (land.cover_esacci.lc.l4)
-                    
-                    This transparency section provides complete traceability from raw satellite data to final results.
-                    """)
-                    
-                    if not any(point_data.get('raw_stac_data') for point_data in sampling_point_data.values()):
-                        st.warning("⚠️ No raw STAC data found. This may indicate the analysis used fallback methods instead of genuine satellite data.")
-                    else:
-                        st.success("Genuine STAC satellite data detected for this analysis.")
                     
                     # Summary statistics
                     st.markdown("**Summary Statistics:**")
@@ -1762,7 +1777,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.10 beta</span>
+    <span class="version-text">v3.5.11 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -5174,3 +5189,17 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     # ── Project Indicators (optional, gated by Settings toggle) ──────────────
     if st.session_state.get('project_indicators_enabled', False):
         render_project_indicators_section()
+
+
+# ── Brand attribution footer ────────────────────────────────────────────────
+st.markdown(
+    """<div style='text-align:center; color:#6B7280; font-size:0.78rem;
+                   padding:2.5rem 0 1rem 0; margin-top:2rem;
+                   border-top:1px solid #E5E7EB;'>
+    Built by
+    <a href='https://www.greenandgreyassociates.com' target='_blank'
+       style='color:#2E7D32; text-decoration:none; font-weight:500;'>
+    Green &amp; Grey Associates</a>
+    </div>""",
+    unsafe_allow_html=True,
+)

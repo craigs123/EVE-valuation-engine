@@ -49,16 +49,33 @@ def _render_auth_ui():
     .auth-tab-panel { padding-top: 1.4rem; }
     .stTabs [data-baseweb="tab-list"] { gap: 1rem; }
     .stTabs [data-baseweb="tab"] { padding: 0.5rem 1.2rem; }
+    .auth-hero { text-align:center; padding: 3.5rem 0 1.25rem 0; }
+    .auth-hero .mark { font-size:2.75rem; line-height:1; margin-bottom: 0.5rem; }
+    .auth-hero h1 {
+        color:#1F2937; font-size:1.9rem; font-weight:700;
+        letter-spacing:-0.01em; margin:0.5rem 0 0.75rem 0;
+    }
+    .auth-hero .tagline {
+        color:#374151; font-size:1rem; font-weight:500;
+        max-width:32rem; margin:0 auto 0.4rem auto;
+    }
+    .auth-hero .sub {
+        color:#6B7280; font-size:0.9rem;
+        max-width:32rem; margin:0 auto;
+    }
+    .auth-hero .accent {
+        width:48px; height:3px; background:#2E7D32;
+        margin:1.5rem auto 0; border-radius:2px;
+    }
+    .auth-hero .ver { color:#9CA3AF; font-size:0.72rem; margin:1.25rem 0 0; }
     </style>
-    <div style="text-align:center; padding: 3rem 0 2rem 0;">
-        <div style="font-size:3rem; line-height:1;">🌱</div>
-        <h1 style="color:#2E7D32; font-size:1.9rem; font-weight:700; margin:0.8rem 0 0.5rem 0;">
-            Ecosystem Valuation Engine
-        </h1>
-        <p style="color:#555; font-size:0.95rem; margin:0 0 0.3rem 0;">
-            Sign in to access your workspace and run ecosystem analyses.
-        </p>
-        <p style="color:#aaa; font-size:0.75rem; margin:0;">v3.5.10 beta</p>
+    <div class="auth-hero">
+        <div class="mark">🌱</div>
+        <h1>Ecosystem Valuation Engine</h1>
+        <p class="tagline">Empowering nature-based projects everywhere.</p>
+        <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
+        <div class="accent"></div>
+        <p class="ver">v3.5.11 beta</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -151,3 +168,15 @@ def _render_auth_ui():
                         st.error(str(exc))
                     except Exception as exc:
                         st.error(f"Registration failed: {exc}")
+
+    # Brand attribution footer
+    st.markdown(
+        """<div style='text-align:center; color:#6B7280; font-size:0.78rem;
+                       padding:3rem 0 1rem 0;'>
+        Built by
+        <a href='https://www.greenandgreyassociates.com' target='_blank'
+           style='color:#2E7D32; text-decoration:none; font-weight:500;'>
+        Green &amp; Grey Associates</a>
+        </div>""",
+        unsafe_allow_html=True,
+    )
