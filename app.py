@@ -1781,7 +1781,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.12 beta</span>
+    <span class="version-text">v3.5.13 beta</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -2653,9 +2653,8 @@ if use_load_saved_area:
                 st.session_state.selected_area = True
                 st.session_state.use_test_area_zoom = True
 
-                # Reset default area name for loaded area
-                if 'default_area_name' in st.session_state:
-                    del st.session_state['default_area_name']
+                # Use the saved area's name as the analysis-history label
+                st.session_state.default_area_name = selected_area_data['name']
 
                 # Calculate and cache area data
                 area_ha = selected_area_data['area_hectares']
@@ -2780,9 +2779,9 @@ elif use_test_area_single:
         st.session_state.selected_area = True
         st.session_state.use_test_area_zoom = True
 
-        # Reset default area name for test area
-        if 'default_area_name' in st.session_state:
-            del st.session_state['default_area_name']
+        # Name the analysis after the test-area label (strip the leading emoji)
+        _ta_label = selected_test_area.split(' ', 1)[1] if ' ' in selected_test_area else selected_test_area
+        st.session_state.default_area_name = _ta_label
 
         # Calculate area using the actual formula (should be exactly 1000ha)
         area_ha = calculate_area_optimized(test_coordinates)
@@ -2819,9 +2818,8 @@ elif use_test_area_multi and _area_selection_changed:
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True
 
-    # Reset default area name for test area
-    if 'default_area_name' in st.session_state:
-        del st.session_state['default_area_name']
+    # Name the analysis after the multi-ecosystem test area
+    st.session_state.default_area_name = "Test area (Multi-Ecosystem)"
 
     # Calculate area using the actual formula (should be exactly 1000ha)
     area_ha = calculate_area_optimized(test_coordinates)
@@ -2900,11 +2898,10 @@ elif use_test_area_random and _area_selection_changed:
     st.session_state.area_coordinates = test_coordinates
     st.session_state.selected_area = True
     st.session_state.use_test_area_zoom = True
-    
-    # Reset default area name for test area
-    if 'default_area_name' in st.session_state:
-        del st.session_state['default_area_name']
-    
+
+    # Name the analysis after the random global test area
+    st.session_state.default_area_name = "Test area (Random Global)"
+
     # Calculate area using the actual formula (should be close to 1000ha)
     area_ha = calculate_area_optimized(test_coordinates)
     st.session_state.cached_area_ha = area_ha
