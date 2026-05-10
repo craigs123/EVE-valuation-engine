@@ -184,14 +184,6 @@ st.markdown("""
             transform: translateY(-1px);
         }
 
-        /* Workspace saved-area icon buttons — 50% wider than default */
-        [class*="st-key-ws_load_"] .stButton > button,
-        [class*="st-key-ws_del_"] .stButton > button {
-            padding-left: 1.125rem !important;
-            padding-right: 1.125rem !important;
-            min-width: 3.75rem !important;
-        }
-
         /* Unified results panels — strip per-metric card chrome so each
            outer container reads as one panel, not nested ones */
         [class*="st-key-results_totals_panel"] [data-testid="stMetric"],
@@ -305,6 +297,11 @@ st.markdown("""
         .stTabs [aria-selected="true"] {
             background-color: #2E7D32 !important;
             color: white !important;
+        }
+
+        /* My Workspace tabs — tighter label padding than other tabs */
+        [class*="st-key-ws_tabs_wrap"] .stTabs [data-baseweb="tab"] {
+            padding: 0.4rem 0.9rem !important;
         }
 
         /* DataFrame/Table — neutral border */
@@ -1804,7 +1801,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.15 beta</span>
+    <span class="version-text">v3.5.16 beta</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1812,7 +1809,7 @@ st.markdown("""
        style='display:inline-flex; align-items:center;'>
         <img src='/app/static/greengrey-logo.png'
              alt='Green & Grey Associates'
-             style='height:20px; width:auto; opacity:0.85;' />
+             style='height:40px; width:auto; opacity:0.85;' />
     </a>
     <span style='color:#6B7280; font-size:0.75rem;'>Built by
         <a href='https://www.greenandgreyassociates.com' target='_blank'
@@ -2499,7 +2496,7 @@ with st.sidebar:
     # ── My Workspace ──────────────────────────────────────────────────────────
     if _auth_user:
         st.markdown("**🗂️ My Workspace**")
-        if True:
+        with st.container(key="ws_tabs_wrap"):
             _ws_tab_areas, _ws_tab_history = st.tabs(["Saved Areas", "History"])
 
             with _ws_tab_areas:
@@ -2532,13 +2529,13 @@ with st.sidebar:
                     st.divider()
 
                 st.markdown("**Your saved areas**")
-                st.caption("Analysis is run fresh each time using the latest satellite and coefficient data.")
+                st.caption("Analysis is rerun each time using the latest satellite and coefficient data.")
                 try:
                     from database import SavedAreaDB as _SADB2
                     _areas = _SADB2.get_user_saved_areas()
                     if _areas:
                         for _area in _areas:
-                            _col_info, _col_btns = st.columns([4, 1])
+                            _col_info, _col_btns = st.columns([3, 2])
                             with _col_info:
                                 st.markdown(
                                     f"<div style='font-size:0.8rem;padding:0.1rem 0;'>"
@@ -2553,7 +2550,8 @@ with st.sidebar:
                                 _sub_l, _sub_d = st.columns(2)
                                 with _sub_l:
                                     if st.button("↩", key=f"ws_load_{_area['id']}",
-                                                 help="Load this area onto the map"):
+                                                 help="Load this area onto the map",
+                                                 use_container_width=True):
                                         clear_analysis_cache()
                                         st.session_state.area_coordinates = _area['coordinates']
                                         st.session_state.selected_area = True
@@ -2565,7 +2563,8 @@ with st.sidebar:
                                         st.rerun()
                                 with _sub_d:
                                     if st.button("🗑️", key=f"ws_del_{_area['id']}",
-                                                 help="Delete this saved area"):
+                                                 help="Delete this saved area",
+                                                 use_container_width=True):
                                         from database import SavedAreaDB as _SADB3
                                         _SADB3.delete_area(_area['id'])
                                         st.rerun()
@@ -5235,20 +5234,64 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
                 _pdf_results = st.session_state.analysis_results
                 _pdf_auth = st.session_state.get('auth_user')
+                _pdf_coords = st.session_state.get('area_coordinates', [])
+                _pdf_bbox = st.session_state.get('cached_bbox', {}) or {}
                 _pdf_country = ''
                 try:
-                    _bbox = st.session_state.get('cached_bbox', {})
-                    if _bbox:
-                        _clat = (_bbox.get('min_lat', 0) + _bbox.get('max_lat', 0)) / 2
-                        _clon = (_bbox.get('min_lon', 0) + _bbox.get('max_lon', 0)) / 2
+                    if _pdf_bbox:
+                        _clat = (_pdf_bbox.get('min_lat', 0) + _pdf_bbox.get('max_lat', 0)) / 2
+                        _clon = (_pdf_bbox.get('min_lon', 0) + _pdf_bbox.get('max_lon', 0)) / 2
                         _pdf_country = get_country_from_coordinates(_clat, _clon)
                 except Exception:
                     pass
+
+                # Recompute the Summary Statistics bundle (sample-point breakdown)
+                # so the PDF mirrors what the UI shows.
+                _pdf_summary = None
+                try:
+                    _sampling = st.session_state.get('sampling_point_data', {}) or {}
+                    if _sampling:
+                        _country_counts: Dict[str, int] = {}
+                        _eco_counts: Dict[str, int] = {}
+                        _land_pts = 0
+                        _water_pts = 0
+                        for _pt in _sampling.values():
+                            if _pt.get('landcover_class') == 210:
+                                _water_pts += 1
+                                continue
+                            _land_pts += 1
+                            _pt_coords = _pt.get('coordinates', {}) or {}
+                            _lat = _pt_coords.get('lat', 0)
+                            _lon = _pt_coords.get('lon', 0)
+                            if _lat or _lon:
+                                _c = get_country_from_coordinates(_lat, _lon)
+                                _country_counts[_c] = _country_counts.get(_c, 0) + 1
+                            _eco = _pt.get('ecosystem_type') or get_esvd_ecosystem_from_landcover_code(
+                                _pt.get('landcover_class'), _pdf_results
+                            ) or 'Unknown'
+                            _eco_counts[_eco] = _eco_counts.get(_eco, 0) + 1
+                        _pdf_summary = {
+                            'sample_points_total': len(_sampling),
+                            'land_points': _land_pts,
+                            'water_points': _water_pts,
+                            'country_counts': _country_counts,
+                            'ecosystem_counts': _eco_counts,
+                            'average_eei': st.session_state.get('average_eei'),
+                            'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
+                            'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
+                            'predominant_country': st.session_state.get('predominant_country_info'),
+                        }
+                except Exception:
+                    _pdf_summary = None
+
                 _pdf_bytes = _gen_pdf_fn(
                     results=_pdf_results,
                     auth_user=_pdf_auth,
                     area_name=_pdf_area_name or 'Analysis Area',
                     country=_pdf_country,
+                    bbox=_pdf_bbox,
+                    coordinates=_pdf_coords,
+                    summary_stats=_pdf_summary,
                 )
                 _ts = datetime.now().strftime('%Y%m%d_%H%M')
                 st.session_state['_pdf_bytes'] = _pdf_bytes

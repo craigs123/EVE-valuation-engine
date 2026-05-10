@@ -13,15 +13,24 @@ def generate_pdf_report(
     auth_user: Optional[Dict] = None,
     area_name: str = "Analysis Area",
     country: str = "",
+    bbox: Optional[Dict] = None,
+    coordinates: Optional[list] = None,
+    summary_stats: Optional[Dict] = None,
 ) -> bytes:
     """
     Build a PDF report from analysis results and return the raw bytes.
 
     Args:
-        results:   st.session_state.analysis_results dict
-        auth_user: st.session_state.get('auth_user') dict or None
-        area_name: user-facing name for the area
-        country:   display country/region string
+        results:        st.session_state.analysis_results dict
+        auth_user:      st.session_state.get('auth_user') dict or None
+        area_name:      user-facing name for the area
+        country:        display country/region string
+        bbox:           dict with min_lat/max_lat/min_lon/max_lon (optional)
+        coordinates:    polygon vertex list (optional, for vertex count)
+        summary_stats:  dict from the UI's Summary Statistics section
+                        (sample_points_total, land_points, water_points,
+                         country_counts, ecosystem_counts, average_eei,
+                         ecosystem_eei, eei_enabled, predominant_country)
     """
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -107,6 +116,41 @@ def generate_pdf_report(
     story.append(meta_table)
     story.append(Spacer(1, 0.4 * cm))
 
+    # --------------------------------------------------- geographic coordinates
+    if bbox:
+        story.append(Paragraph('Geographic Coordinates', h2))
+        min_lat = bbox.get('min_lat', 0)
+        max_lat = bbox.get('max_lat', 0)
+        min_lon = bbox.get('min_lon', 0)
+        max_lon = bbox.get('max_lon', 0)
+        c_lat = (min_lat + max_lat) / 2
+        c_lon = (min_lon + max_lon) / 2
+        n_vertices = len(coordinates) if coordinates else 0
+        geo_rows = [
+            ['Centre', f'{c_lat:.5f}, {c_lon:.5f}',
+             'Bounding box (N, S)', f'{max_lat:.5f}, {min_lat:.5f}'],
+            ['Polygon vertices', f'{n_vertices}' if n_vertices else '—',
+             'Bounding box (E, W)', f'{max_lon:.5f}, {min_lon:.5f}'],
+        ]
+        geo_table = Table(geo_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
+        geo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('TEXTCOLOR', (2, 0), (2, -1), EVE_DARK),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(geo_table)
+        story.append(Spacer(1, 0.4 * cm))
+
     # -------------------------------------------------------- ecosystem composition
     esvd = results.get('esvd_results', {})
     metadata = esvd.get('metadata', {})
@@ -121,19 +165,102 @@ def generate_pdf_report(
         story.append(comp_table)
         story.append(Spacer(1, 0.3 * cm))
 
+    # --------------------------------------------------- sample-point summary
+    if summary_stats and summary_stats.get('sample_points_total'):
+        story.append(Paragraph('Sample Point Summary', h2))
+
+        total_pts = summary_stats.get('sample_points_total', 0)
+        land_pts = summary_stats.get('land_points', 0)
+        water_pts = summary_stats.get('water_points', 0)
+        avg_eei = summary_stats.get('average_eei')
+        eei_enabled = summary_stats.get('eei_enabled', False)
+
+        sample_meta = [
+            ['Total Sample Points', str(total_pts),
+             'Land Points', str(land_pts)],
+            ['Water Points (excluded)', str(water_pts),
+             'Average EEI',
+             f'{avg_eei:.3f} ({avg_eei * 100:.1f}%)' if (eei_enabled and avg_eei is not None) else '—'],
+        ]
+        sm_table = Table(sample_meta, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
+        sm_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('TEXTCOLOR', (2, 0), (2, -1), EVE_DARK),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(sm_table)
+        story.append(Spacer(1, 0.25 * cm))
+
+        # Ecosystem composition from sample points
+        eco_counts = summary_stats.get('ecosystem_counts', {})
+        if eco_counts:
+            eco_rows = [['Ecosystem Type (from samples)', 'Points', '%']]
+            for eco, count in sorted(eco_counts.items(), key=lambda x: -x[1]):
+                pct = (count / total_pts * 100) if total_pts else 0
+                eco_rows.append([eco, str(count), f'{pct:.1f}%'])
+            eco_table = Table(eco_rows, colWidths=[10 * cm, 4 * cm, 4 * cm])
+            eco_table.setStyle(_standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT))
+            story.append(eco_table)
+            story.append(Spacer(1, 0.25 * cm))
+
+        # Country distribution (water bodies excluded)
+        country_counts = summary_stats.get('country_counts', {})
+        if country_counts and land_pts > 0:
+            country_rows = [['Country (land points only)', 'Points', '%']]
+            for c, count in sorted(country_counts.items(), key=lambda x: -x[1]):
+                pct = (count / land_pts * 100) if land_pts else 0
+                country_rows.append([c, str(count), f'{pct:.1f}%'])
+            country_table = Table(country_rows, colWidths=[10 * cm, 4 * cm, 4 * cm])
+            country_table.setStyle(_standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT))
+            story.append(country_table)
+            story.append(Spacer(1, 0.25 * cm))
+
+        # EEI by ecosystem type (if available)
+        ecosystem_eei = summary_stats.get('ecosystem_eei', {})
+        if eei_enabled and ecosystem_eei:
+            eei_rows = [['Ecosystem Type', 'EEI', 'EEI %']]
+            for eco_type, eei_v in sorted(ecosystem_eei.items()):
+                if eei_v is None:
+                    continue
+                eei_rows.append([eco_type, f'{eei_v:.3f}', f'{eei_v * 100:.1f}%'])
+            if len(eei_rows) > 1:
+                eei_table = Table(eei_rows, colWidths=[10 * cm, 4 * cm, 4 * cm])
+                eei_table.setStyle(_standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT))
+                story.append(eei_table)
+                story.append(Spacer(1, 0.25 * cm))
+
+        story.append(Spacer(1, 0.15 * cm))
+
     # ------------------------------------------------------ service value table
     story.append(Paragraph('Ecosystem Service Values', h2))
 
     categories = ['provisioning', 'regulating', 'cultural', 'supporting']
-    has_cats = any(c in esvd for c in categories)
+    # Build a flat {cat: {'total': N, 'services': {...}}} dict that works for
+    # both single-ecosystem (categories at top level of esvd) and
+    # multi-ecosystem (categories nested under ecosystem_breakdown /
+    # ecosystem_results). Mirrors app.py _render_service_columns wiring.
+    categories_data = _resolve_categories_data(esvd, results, categories)
+    has_cats = categories_data is not None and any(
+        categories_data.get(c, {}).get('total', 0) for c in categories
+    )
 
     if has_cats:
         svc_rows = [
             ['Service Category', 'Total (Int$/yr)', 'Per Hectare (Int$/ha/yr)', '% of Total'],
         ]
-        grand_total = sum(esvd.get(c, {}).get('total', 0) for c in categories)
+        grand_total = sum(categories_data.get(c, {}).get('total', 0) for c in categories)
         for cat in categories:
-            cat_data = esvd.get(cat, {})
+            cat_data = categories_data.get(cat, {})
             cat_total = cat_data.get('total', 0)
             cat_per_ha = cat_total / area_ha if area_ha else 0
             pct = (cat_total / grand_total * 100) if grand_total else 0
@@ -190,12 +317,12 @@ def generate_pdf_report(
         }
         detail_rows = [['Category', 'Ecosystem Service', 'Annual Value (Int$/yr)', 'Per Ha (Int$/ha/yr)', '% of Total']]
         for cat in categories:
-            services = esvd.get(cat, {}).get('services', {})
+            services = categories_data.get(cat, {}).get('services', {})
             if not services:
                 continue
             first_in_cat = True
             for svc_key, svc_val in sorted(services.items(), key=lambda x: -x[1]):
-                if svc_val == 0:
+                if not isinstance(svc_val, (int, float)) or svc_val == 0:
                     continue
                 svc_per_ha = svc_val / area_ha if area_ha else 0
                 pct = (svc_val / grand_total * 100) if grand_total else 0
@@ -240,7 +367,7 @@ def generate_pdf_report(
     ))
     story.append(Spacer(1, 0.3 * cm))
     story.append(Paragraph(
-        '<i>Analysis is run fresh each time using the latest satellite and coefficient data. '
+        '<i>Analysis is rerun each time using the latest satellite and coefficient data. '
         'Past reports may differ from current values if data sources have been updated.</i>',
         caption,
     ))
@@ -269,6 +396,31 @@ def generate_pdf_report(
 
     doc.build(story)
     return buf.getvalue()
+
+
+def _resolve_categories_data(esvd: Dict[str, Any], results: Dict[str, Any], categories) -> Optional[Dict]:
+    """Return a flat {cat: {'total', 'services'}} dict, aggregating from
+    ecosystem_breakdown / ecosystem_results when categories are nested
+    (multi-ecosystem analyses)."""
+    if any(c in esvd for c in categories):
+        return {c: esvd.get(c, {}) for c in categories}
+
+    ecosystem_data = esvd.get('ecosystem_breakdown', esvd.get('ecosystem_results', {}))
+    if ecosystem_data:
+        aggregated = {c: {'total': 0, 'services': {}} for c in categories}
+        for eco_result in ecosystem_data.values():
+            if not isinstance(eco_result, dict):
+                continue
+            for category in categories:
+                if category in eco_result and isinstance(eco_result[category], dict):
+                    aggregated[category]['total'] += eco_result[category].get('total', 0)
+                    for svc, val in (eco_result[category].get('services', {}) or {}).items():
+                        if isinstance(val, (int, float)):
+                            aggregated[category]['services'][svc] = (
+                                aggregated[category]['services'].get(svc, 0) + val
+                            )
+        return aggregated
+    return None
 
 
 def _standard_table_style(header_colour, stripe_colour):

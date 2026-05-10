@@ -88,7 +88,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.15 beta</p>
+        <p class="ver">v3.5.16 beta</p>
     </div>
     """, unsafe_allow_html=True)
 
