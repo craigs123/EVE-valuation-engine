@@ -1806,26 +1806,14 @@ if _reset_token:
 from utils.auth import require_login
 require_login()
 
-# ── Post-login banners ────────────────────────────────────────────────────────
-_auth_user_now = st.session_state.get('auth_user', {})
-if _auth_user_now and not _auth_user_now.get('email_verified', True):
-    _unverified_col, _resend_col = st.columns([5, 1])
-    with _unverified_col:
-        st.warning("⚠️ Please verify your email address. Check your inbox for a verification link.")
-    with _resend_col:
-        if st.button("Resend", key="_resend_verify_btn", use_container_width=True):
-            from database import UserDB as _UserDB2
-            _UserDB2.resend_verification(_auth_user_now['email'])
-            st.info("Verification email sent.")
-
-if st.session_state.pop('_just_registered', False):
-    st.info("🎉 Account created! A verification email has been sent to your inbox.")
+# Post-login banners removed: signup now requires email verification before the
+# first sign-in, so an authenticated session always implies a verified email.
 
 # Clean text-only header - Professional Dashboard Style
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.17 beta</span>
+    <span class="version-text">v3.5.18 beta</span>
 </div>
 <div style='display:flex; flex-direction:column; align-items:center;
              justify-content:center; gap:0.15rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2202,6 +2190,7 @@ def analysis_settings_dialog():
                             ),
                             "Email": u['email'],
                             "Display name": u['display_name'] or '—',
+                            "Status": u.get('status', '—'),
                             "Verified": "Yes" if u['email_verified'] else "No",
                             "Admin": "Yes" if u['is_admin'] else "No",
                         }

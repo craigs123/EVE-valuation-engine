@@ -63,9 +63,15 @@ class User(Base):
     email_verified = Column(Boolean, default=False, nullable=False)
     verification_token = Column(String(64), nullable=True)
     verification_token_expiry = Column(DateTime, nullable=True)
+    verification_reminder_sent_at = Column(DateTime, nullable=True)
     reset_token = Column(String(64), nullable=True)
     reset_token_expiry = Column(DateTime, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
+    # 'Pending' = signed up, awaiting verification (cannot log in)
+    # 'Active'  = email verified, normal user
+    # 'Removed' = soft-deleted after failing to verify within 48h; row retained
+    #             for audit (email + display_name kept, credentials cleared)
+    status = Column(String(16), default='Pending', nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -73,6 +79,7 @@ class User(Base):
         Index('ix_users_email', 'email'),
         Index('ix_users_verification_token', 'verification_token'),
         Index('ix_users_reset_token', 'reset_token'),
+        Index('ix_users_status', 'status'),
     )
 
 
@@ -405,6 +412,7 @@ class UserDB:
             'display_name': user.display_name,
             'email_verified': bool(user.email_verified),
             'is_admin': bool(user.is_admin),
+            'status': user.status or 'Pending',
         }
 
     @staticmethod
@@ -420,6 +428,7 @@ class UserDB:
                         'display_name': u.display_name,
                         'email_verified': bool(u.email_verified),
                         'is_admin': bool(u.is_admin),
+                        'status': u.status or 'Pending',
                         'created_at': u.created_at,
                     }
                     for u in users
@@ -430,28 +439,53 @@ class UserDB:
 
     @staticmethod
     def register(email: str, password: str, display_name: Optional[str] = None) -> Dict:
-        """Hash password and create a new user. Raises ValueError on duplicate email."""
+        """Create a new user (status='Pending') and send the verification email.
+        If the email already belongs to a soft-deleted ('Removed') row, that row
+        is reused: password and display name are overwritten and the account
+        returns to 'Pending' awaiting fresh verification.
+
+        Returns the user dict. The caller MUST NOT log the user in — the account
+        cannot be used until the verification link is clicked.
+        Raises ValueError if an Active or Pending account already exists.
+        """
         import bcrypt
         import secrets
         try:
             with get_db() as db:
                 existing = db.query(User).filter(User.email == email.lower()).first()
-                if existing:
-                    raise ValueError("An account with that email address already exists.")
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 token = secrets.token_urlsafe(32)
                 expiry = datetime.utcnow() + timedelta(hours=24)
-                user = User(
-                    email=email.lower(),
-                    password_hash=password_hash,
-                    display_name=display_name,
-                    email_verified=False,
-                    verification_token=token,
-                    verification_token_expiry=expiry,
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
+
+                if existing:
+                    if existing.status == 'Removed':
+                        # Reactivate the soft-deleted row.
+                        existing.password_hash = password_hash
+                        existing.display_name = display_name
+                        existing.email_verified = False
+                        existing.verification_token = token
+                        existing.verification_token_expiry = expiry
+                        existing.verification_reminder_sent_at = None
+                        existing.status = 'Pending'
+                        existing.created_at = datetime.utcnow()  # restart the 24h clock
+                        db.commit()
+                        db.refresh(existing)
+                        user = existing
+                    else:
+                        raise ValueError("An account with that email address already exists.")
+                else:
+                    user = User(
+                        email=email.lower(),
+                        password_hash=password_hash,
+                        display_name=display_name,
+                        email_verified=False,
+                        verification_token=token,
+                        verification_token_expiry=expiry,
+                        status='Pending',
+                    )
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
                 try:
                     from utils.email_utils import send_verification_email
                     send_verification_email(user.email, token)
@@ -465,20 +499,33 @@ class UserDB:
             raise
 
     @staticmethod
-    def login(email: str, password: str) -> Optional[Dict]:
-        """Verify credentials and return user dict, or None on failure."""
+    def login(email: str, password: str) -> tuple:
+        """Verify credentials and return (user_dict, error_code).
+        error_code is None on success, or one of:
+            'invalid_credentials' — email not found or wrong password
+            'pending_verification' — credentials OK but email not verified
+            'removed' — account has been soft-deleted
+        """
         import bcrypt
         try:
             with get_db() as db:
                 user = db.query(User).filter(User.email == email.lower()).first()
                 if not user:
-                    return None
-                if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-                    return UserDB._user_dict(user)
-                return None
+                    return None, 'invalid_credentials'
+                # Removed accounts have password_hash cleared, so the bcrypt
+                # check below would fail anyway — but be explicit about state.
+                if user.status == 'Removed':
+                    return None, 'removed'
+                if not user.password_hash or not bcrypt.checkpw(
+                    password.encode('utf-8'), user.password_hash.encode('utf-8')
+                ):
+                    return None, 'invalid_credentials'
+                if user.status != 'Active':
+                    return None, 'pending_verification'
+                return UserDB._user_dict(user), None
         except Exception as e:
             logger.error(f"Login failed: {e}")
-            return None
+            return None, 'invalid_credentials'
 
     @staticmethod
     def get_by_id(user_id: str) -> Optional[Dict]:
@@ -495,17 +542,22 @@ class UserDB:
 
     @staticmethod
     def verify_email(token: str) -> bool:
-        """Mark email as verified. Returns True on success, False if token invalid/expired."""
+        """Mark email as verified and promote the account to Active. Returns
+        True on success, False if the token is invalid/expired/removed."""
         try:
             with get_db() as db:
                 user = db.query(User).filter(User.verification_token == token).first()
                 if not user:
+                    return False
+                if user.status == 'Removed':
                     return False
                 if user.verification_token_expiry and user.verification_token_expiry < datetime.utcnow():
                     return False
                 user.email_verified = True
                 user.verification_token = None
                 user.verification_token_expiry = None
+                user.verification_reminder_sent_at = None
+                user.status = 'Active'
                 db.commit()
                 return True
         except Exception as e:
@@ -560,12 +612,14 @@ class UserDB:
 
     @staticmethod
     def resend_verification(email: str) -> bool:
-        """Regenerate and resend verification email for an unverified account."""
+        """Regenerate and resend the verification email for a Pending account.
+        Returns False for unknown emails, already-Active accounts, and Removed
+        accounts (the latter must re-register)."""
         import secrets
         try:
             with get_db() as db:
                 user = db.query(User).filter(User.email == email.lower()).first()
-                if not user or user.email_verified:
+                if not user or user.email_verified or user.status != 'Pending':
                     return False
                 token = secrets.token_urlsafe(32)
                 user.verification_token = token
@@ -577,6 +631,72 @@ class UserDB:
         except Exception as e:
             logger.error(f"resend_verification failed: {e}")
             return False
+
+    @staticmethod
+    def process_unverified_accounts() -> Dict[str, int]:
+        """Daily lifecycle pass.
+
+        Phase 1 — Unverified > 24h, no reminder sent yet:
+            Regenerate the verification token, send the 'final warning' email,
+            stamp verification_reminder_sent_at = now.
+
+        Phase 2 — Reminder sent > 24h ago, still unverified:
+            Soft-delete: status='Removed', clear password_hash and tokens,
+            keep email + display_name for the audit log.
+
+        Returns a counts dict: {'reminded': N, 'removed': M, 'errors': E}.
+        Designed to run from a Cloud Run Job triggered by Cloud Scheduler.
+        """
+        import secrets
+        reminded = removed = errors = 0
+        now = datetime.utcnow()
+        try:
+            with get_db() as db:
+                # ─── Phase 1: send the final-warning reminder ────────────────
+                reminder_due = db.query(User).filter(
+                    User.status == 'Pending',
+                    User.created_at < now - timedelta(hours=24),
+                    User.verification_reminder_sent_at.is_(None),
+                ).all()
+                for user in reminder_due:
+                    try:
+                        token = secrets.token_urlsafe(32)
+                        user.verification_token = token
+                        user.verification_token_expiry = now + timedelta(hours=24)
+                        user.verification_reminder_sent_at = now
+                        db.commit()
+                        from utils.email_utils import send_final_verification_warning_email
+                        send_final_verification_warning_email(user.email, token)
+                        reminded += 1
+                    except Exception as e:
+                        errors += 1
+                        logger.error(f"reminder send failed for {user.email}: {e}")
+                        db.rollback()
+
+                # ─── Phase 2: soft-delete after another 24h of silence ──────
+                delete_due = db.query(User).filter(
+                    User.status == 'Pending',
+                    User.verification_reminder_sent_at.isnot(None),
+                    User.verification_reminder_sent_at < now - timedelta(hours=24),
+                ).all()
+                for user in delete_due:
+                    try:
+                        user.status = 'Removed'
+                        user.password_hash = ''
+                        user.verification_token = None
+                        user.verification_token_expiry = None
+                        user.reset_token = None
+                        user.reset_token_expiry = None
+                        db.commit()
+                        removed += 1
+                    except Exception as e:
+                        errors += 1
+                        logger.error(f"soft-delete failed for {user.email}: {e}")
+                        db.rollback()
+        except Exception as e:
+            logger.error(f"process_unverified_accounts failed: {e}")
+            errors += 1
+        return {'reminded': reminded, 'removed': removed, 'errors': errors}
 
 
 # Database operations for ecosystem analyses

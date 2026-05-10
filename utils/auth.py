@@ -93,7 +93,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.17 beta</p>
+        <p class="ver">v3.5.18 beta</p>
         <p class="copyright">© 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
@@ -135,10 +135,22 @@ def _render_auth_ui():
                     if not email or not password:
                         st.error("Please enter your email and password.")
                     else:
-                        user = UserDB.login(email.strip(), password)
+                        user, err = UserDB.login(email.strip(), password)
                         if user:
                             st.session_state['auth_user'] = user
                             st.rerun()
+                        elif err == 'pending_verification':
+                            st.error(
+                                "Email has not been verified. Please check your "
+                                "inbox and verify your email before returning here "
+                                "and signing in."
+                            )
+                        elif err == 'removed':
+                            st.error(
+                                "This account has been removed because the email "
+                                "was not verified in time. Use the **Create Account** "
+                                "tab to sign up again with this email."
+                            )
                         else:
                             st.error("Invalid email or password.")
 
@@ -175,14 +187,17 @@ def _render_auth_ui():
                         st.error(err)
                 else:
                     try:
-                        user = UserDB.register(
+                        UserDB.register(
                             reg_email.strip(),
                             reg_password,
                             reg_name.strip() or None,
                         )
-                        st.session_state['auth_user'] = user
-                        st.session_state['_just_registered'] = True
-                        st.rerun()
+                        # Do NOT log the user in — verification is required first.
+                        st.success(
+                            "Account created. A verification email has been sent — "
+                            "please check your inbox (and your spam folder) and click "
+                            "the verification link before signing in."
+                        )
                     except ValueError as exc:
                         st.error(str(exc))
                     except Exception as exc:

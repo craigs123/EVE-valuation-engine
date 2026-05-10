@@ -64,6 +64,40 @@ def send_verification_email(to_email: str, token: str) -> bool:
     return _send(to_email, f"Verify your {_APP_NAME} account", html)
 
 
+def send_final_verification_warning_email(to_email: str, token: str) -> bool:
+    """Final warning sent 24h after signup if the account is still unverified.
+    Tells the user their access will be cut off if they don't verify within
+    the next 24h."""
+    verify_url = f"{_APP_BASE_URL}?verify={token}"
+    html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:2rem;">
+      <h2 style="color:#2E7D32;">{_APP_NAME} — Final reminder to verify</h2>
+      <p>You signed up for {_APP_NAME} but haven't verified your email address yet.</p>
+      <p style="background:#FFF4E5;border-left:4px solid #C62828;padding:0.85rem 1rem;
+                margin:1.25rem 0;color:#1F2937;">
+        <strong style="color:#B71C1C;">Important:</strong>
+        <strong>Your account will be removed in 24 hours if you do not verify your email address.</strong>
+        Click the button below to verify and keep your access.
+      </p>
+      <p style="margin:1.5rem 0;">
+        <a href="{verify_url}"
+           style="background:#2E7D32;color:white;padding:0.7rem 1.4rem;border-radius:6px;text-decoration:none;font-weight:600;">
+          Verify Email Address
+        </a>
+      </p>
+      <p style="color:#666;font-size:0.85rem;">
+        This link expires in 24 hours. If you no longer want an account, you can ignore this email
+        and your details will be removed automatically.
+      </p>
+      <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
+      <p style="color:#aaa;font-size:0.8rem;">
+        Or copy this URL: {verify_url}
+      </p>
+    </div>
+    """
+    return _send(to_email, f"Final reminder — verify your {_APP_NAME} account", html)
+
+
 def send_password_reset_email(to_email: str, token: str) -> bool:
     reset_url = f"{_APP_BASE_URL}?reset={token}"
     html = f"""
