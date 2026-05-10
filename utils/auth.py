@@ -81,6 +81,11 @@ def _render_auth_ui():
         margin:1.25rem auto 0 auto !important;
         text-align:center !important;
     }
+    .auth-hero .copyright {
+        color:#9CA3AF !important; font-size:0.7rem !important;
+        margin:0.25rem auto 0 auto !important;
+        text-align:center !important;
+    }
     </style>
     <div class="auth-hero">
         <div class="mark">🌱</div>
@@ -89,6 +94,7 @@ def _render_auth_ui():
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
         <p class="ver">v3.5.17 beta</p>
+        <p class="copyright">© 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 

@@ -393,6 +393,7 @@ def generate_pdf_report(
         'Green &amp; Grey Associates</link>'
     )
     story.append(Paragraph(attribution_text, footer_style))
+    story.append(Paragraph('© 2026 Green &amp; Grey Associates', footer_style))
 
     doc.build(story)
     return buf.getvalue()
