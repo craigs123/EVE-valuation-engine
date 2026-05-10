@@ -38,18 +38,25 @@ INVOKER_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 CLOUDSQL_INSTANCE="eve-solutions-482317:us-central1:eve-db"
 
 echo "─── Reading env vars from current web service ───────────────────────────"
-# Pull the full env block from the live service as JSON, build a name=value
-# list (commas separated, single ^@^ delimiter so commas inside values don't
-# break the parse). Uses --update-env-vars so existing Job vars (e.g. set by
-# previous runs) are preserved per the project's env-var policy.
-ENV_KV=$(gcloud run services describe "$SERVICE" \
+# Pull env vars from the live service and write them to a temp YAML file.
+# Using --env-vars-file avoids all the delimiter-escaping headaches that come
+# with --set/--update-env-vars when values contain '@', ',', or '/'.
+ENV_FILE=$(mktemp --suffix=.yaml)
+trap 'rm -f "$ENV_FILE"' EXIT
+
+gcloud run services describe "$SERVICE" \
     --region "$REGION" \
     --project "$PROJECT_ID" \
     --format='json(spec.template.spec.containers[0].env)' \
-    | python -c "import sys,json; env=(json.load(sys.stdin).get('spec',{}).get('template',{}).get('spec',{}).get('containers',[{}])[0].get('env') or []); print('^@^'.join(f\"{e['name']}={e.get('value','')}\" for e in env if 'name' in e and 'value' in e))" \
-    2>/dev/null || true)
+    | python -c "
+import sys, json, yaml
+env = (json.load(sys.stdin).get('spec', {}).get('template', {})
+       .get('spec', {}).get('containers', [{}])[0].get('env') or [])
+pairs = {e['name']: e.get('value', '') for e in env if 'name' in e and 'value' in e}
+print(yaml.safe_dump(pairs, default_flow_style=False, allow_unicode=True))
+" > "$ENV_FILE" 2>/dev/null || true
 
-if [[ -z "$ENV_KV" ]]; then
+if [[ ! -s "$ENV_FILE" ]]; then
     echo "WARNING: could not read env vars from service $SERVICE."
     echo "         Job will be deployed without env vars; set them manually after."
 fi
@@ -60,22 +67,20 @@ gcloud run jobs deploy "$JOB_NAME" \
     --source . \
     --region "$REGION" \
     --project "$PROJECT_ID" \
-    --command "python" \
-    --args "-m,scripts.check_unverified" \
+    --command=python \
+    --args=-m,scripts.check_unverified \
     --set-cloudsql-instances "$CLOUDSQL_INSTANCE" \
     --task-timeout=300 \
     --max-retries=1 \
     --quiet
 
-if [[ -n "$ENV_KV" ]]; then
+if [[ -s "$ENV_FILE" ]]; then
     echo ""
     echo "─── Copying env vars from web service to Job ────────────────────────────"
-    # `^@^` is gcloud's escaped-delimiter syntax: tells gcloud the list
-    # separator is `@` (instead of comma), so commas inside values are safe.
     gcloud run jobs update "$JOB_NAME" \
         --region "$REGION" \
         --project "$PROJECT_ID" \
-        --update-env-vars "^@^${ENV_KV//\^@\^/@}" \
+        --env-vars-file "$ENV_FILE" \
         --quiet
     echo "Env vars copied across."
 fi
