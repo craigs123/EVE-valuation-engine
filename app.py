@@ -184,6 +184,27 @@ st.markdown("""
             transform: translateY(-1px);
         }
 
+        /* Workspace saved-area icon buttons — 50% wider than default */
+        [class*="st-key-ws_load_"] .stButton > button,
+        [class*="st-key-ws_del_"] .stButton > button {
+            padding-left: 1.125rem !important;
+            padding-right: 1.125rem !important;
+            min-width: 3.75rem !important;
+        }
+
+        /* Unified results panels — strip per-metric card chrome so each
+           outer container reads as one panel, not nested ones */
+        [class*="st-key-results_totals_panel"] [data-testid="stMetric"],
+        [class*="st-key-results_totals_panel"] [data-testid="stMetric"] > div,
+        [class*="st-key-results_services_panel"] [data-testid="stMetric"],
+        [class*="st-key-results_services_panel"] [data-testid="stMetric"] > div {
+            background: transparent !important;
+            padding: 0 !important;
+            border: none !important;
+            border-left: none !important;
+            box-shadow: none !important;
+        }
+
         /* Metric cards — neutral surface, single green accent stripe */
         [data-testid="stMetric"],
         [data-testid="stMetric"] > div {
@@ -1511,10 +1532,12 @@ def display_data_source_status(analysis_results: Dict = None):
                             st.write(f"• **{country}**: {percentage:.1f}% ({count} points)")
 
                     predominant_country = max(country_counts.items(), key=lambda x: x[1])
-                    if predominant_country[1] > land_points_count * 0.5:
-                        st.info(f"**Predominant Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
-                    else:
-                        st.info(f"**Most Common Country**: {predominant_country[0]} ({predominant_country[1]}/{land_points_count} land points)")
+                    # Country panel merged into the Predominant Ecosystem Type panel
+                    # in the results display; just stash for that to read.
+                    st.session_state['predominant_country_info'] = {
+                        'label': "Predominant Country" if predominant_country[1] > land_points_count * 0.5 else "Most Common Country",
+                        'name': predominant_country[0],
+                    }
 
                     try:
                         from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
@@ -1781,7 +1804,21 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.13 beta</span>
+    <span class="version-text">v3.5.15 beta</span>
+</div>
+<div style='display:flex; align-items:center; justify-content:center;
+             gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
+    <a href='https://www.greenandgreyassociates.com' target='_blank'
+       style='display:inline-flex; align-items:center;'>
+        <img src='/app/static/greengrey-logo.png'
+             alt='Green & Grey Associates'
+             style='height:20px; width:auto; opacity:0.85;' />
+    </a>
+    <span style='color:#6B7280; font-size:0.75rem;'>Built by
+        <a href='https://www.greenandgreyassociates.com' target='_blank'
+           style='color:#2E7D32; text-decoration:none; font-weight:500;'>
+        Green &amp; Grey Associates</a>
+    </span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1806,7 +1843,7 @@ def reset_analysis_state():
         'regional_adjustment_factor', 'scenario_results', 'scenario_distribution',
         'scenario_eco_intactness', 'scenario_builder_expanded', 'calculation_ready',
         'skip_ecosystem_detection', 'sampling_point_data', 'water_bodies_classified',
-        'pending_water_classification', 'landcover_codes'
+        'pending_water_classification', 'landcover_codes', 'predominant_country_info'
     ]
     for key in keys_to_clear:
         if key in st.session_state:
@@ -2463,7 +2500,7 @@ with st.sidebar:
     if _auth_user:
         st.markdown("**🗂️ My Workspace**")
         if True:
-            _ws_tab_areas, _ws_tab_history = st.tabs(["Saved Areas", "Analysis History"])
+            _ws_tab_areas, _ws_tab_history = st.tabs(["Saved Areas", "History"])
 
             with _ws_tab_areas:
                 # Save current area
@@ -4385,28 +4422,33 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         # Show toast notification while results render
         st.toast("Loading valuation results...", icon="⏳")
         
-        # Simple metrics display for summary
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total Annual Value", f"${results['total_value']:,}")
-        with col2:
-            per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
-            st.metric("Value per Hectare", f"${per_ha:,.0f}/ha")
-        with col3:
-            # Area display with water exclusion for summary
-            land_area = results.get('area_ha', results.get('area_hectares', 0))
-            water_area = results.get('water_area_hectares', 0)
-            
-            if water_area > 0:
-                st.metric("Land Area Analyzed", f"{land_area:,.0f} ha")
-                st.caption(f"🌊 {water_area:,.0f} ha water excluded")
-            else:
-                st.metric("Area Analyzed", f"{land_area:,.0f} ha")
+        # Summary totals — one unified panel, no per-metric card chrome
+        with st.container(border=True, key="results_totals_panel"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Annual Value", f"${results['total_value']:,}")
+            with col2:
+                per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
+                st.metric("Value per Hectare", f"${per_ha:,.0f}/ha")
+            with col3:
+                # Area display with water exclusion for summary
+                land_area = results.get('area_ha', results.get('area_hectares', 0))
+                water_area = results.get('water_area_hectares', 0)
+
+                if water_area > 0:
+                    st.metric("Land Area Analyzed", f"{land_area:,.0f} ha")
+                    st.caption(f"🌊 {water_area:,.0f} ha water excluded")
+                else:
+                    st.metric("Area Analyzed", f"{land_area:,.0f} ha")
         
+        # Combined Predominant Country + Predominant Ecosystem Type panel
+        _country_info = st.session_state.get('predominant_country_info')
+        _country_prefix = f"**{_country_info['label']}**: {_country_info['name']} | " if _country_info else ""
+
         # Enhanced ecosystem composition display
         if 'esvd_results' in results and 'metadata' in results['esvd_results']:
             metadata = results['esvd_results']['metadata']
-            
+
             # Mixed ecosystem composition is now shown in sample points summary to avoid duplication
             if 'ecosystem_composition' in metadata:
                 pass  # Skip mixed composition display - shown in sample points summary instead
@@ -4415,14 +4457,13 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 ecosystem_display = results['ecosystem_type']
                 if ecosystem_display == "Auto-detect" and st.session_state.get('detected_ecosystem'):
                     ecosystem_display = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_display)
-                st.info(f"**🌱 Predominant Ecosystem Type**: {ecosystem_display} (100% coverage)")
-                st.caption(f"**Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+                st.info(f"{_country_prefix}**Predominant Ecosystem Type**: {ecosystem_display} (100% coverage)")
         else:
             # Handle ecosystem type display for other cases
             ecosystem_display = results['ecosystem_type']
             if ecosystem_display == "Auto-detect" and st.session_state.get('detected_ecosystem'):
                 ecosystem_display = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_display)
-            st.info(f"**Predominant Ecosystem Type**: {ecosystem_display} | **Data Source**: {results.get('data_source', 'ESVD/TEEB Database')}")
+            st.info(f"{_country_prefix}**Predominant Ecosystem Type**: {ecosystem_display}")
         
         # Check if there's an existing baseline for this area
         baseline_info = None
@@ -4552,16 +4593,18 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         has_services_data = 'services_data' in esvd_data
         
         def _render_service_columns(categories, data_source, total_value_key):
-            cols = st.columns(4)
-            for i, category in enumerate(categories):
-                cat_data = data_source.get(category, {})
-                total = cat_data.get('total', 0)
-                with cols[i]:
-                    area_denom = results.get('area_hectares', results.get('area_ha', 1)) or 1
-                    per_ha_cat = total / area_denom
-                    tv = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1))) or 1
-                    st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
-                    st.caption(f"${per_ha_cat:.0f}/ha · {(total/tv*100):.0f}% of total")
+            # Service-category totals — one unified panel, no per-metric chrome
+            with st.container(border=True, key="results_services_panel"):
+                cols = st.columns(4)
+                for i, category in enumerate(categories):
+                    cat_data = data_source.get(category, {})
+                    total = cat_data.get('total', 0)
+                    with cols[i]:
+                        area_denom = results.get('area_hectares', results.get('area_ha', 1)) or 1
+                        per_ha_cat = total / area_denom
+                        tv = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1))) or 1
+                        st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
+                        st.caption(f"${per_ha_cat:.0f}/ha · {(total/tv*100):.0f}% of total")
             with st.expander("Service-by-service breakdown"):
                 for category in categories:
                     cat_data = data_source.get(category, {})
@@ -4826,57 +4869,6 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         if st.button("📊 Switch to Summary View", type="secondary"):
             st.session_state['analysis_detail'] = 'Summary Analysis'
             st.rerun()
-    # ── PDF Download ──────────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown("### 📄 Download Report")
-    _pdf_col1, _pdf_col2 = st.columns([3, 1])
-    with _pdf_col1:
-        _pdf_area_name = st.text_input(
-            "Report title (area name)",
-            value=st.session_state.get('default_area_name', 'Analysis Area'),
-            key="pdf_area_name",
-            label_visibility="collapsed",
-            placeholder="Area name for report header",
-        )
-    with _pdf_col2:
-        _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
-                                 key="prepare_pdf_btn")
-    if _prepare_pdf:
-        with st.spinner("Building PDF report…"):
-            try:
-                from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
-                _pdf_results = st.session_state.analysis_results
-                _pdf_auth = st.session_state.get('auth_user')
-                _pdf_country = ''
-                try:
-                    _bbox = st.session_state.get('cached_bbox', {})
-                    if _bbox:
-                        _clat = (_bbox.get('min_lat', 0) + _bbox.get('max_lat', 0)) / 2
-                        _clon = (_bbox.get('min_lon', 0) + _bbox.get('max_lon', 0)) / 2
-                        _pdf_country = get_country_from_coordinates(_clat, _clon)
-                except Exception:
-                    pass
-                _pdf_bytes = _gen_pdf_fn(
-                    results=_pdf_results,
-                    auth_user=_pdf_auth,
-                    area_name=_pdf_area_name or 'Analysis Area',
-                    country=_pdf_country,
-                )
-                _ts = datetime.now().strftime('%Y%m%d_%H%M')
-                st.session_state['_pdf_bytes'] = _pdf_bytes
-                st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
-            except Exception as _pdf_err:
-                st.error(f"PDF generation failed: {_pdf_err}")
-    if st.session_state.get('_pdf_bytes'):
-        st.download_button(
-            label="⬇️ Download PDF Report",
-            data=st.session_state['_pdf_bytes'],
-            file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
-            mime="application/pdf",
-            use_container_width=True,
-            key="pdf_dl_btn",
-        )
-
     # Scenario Builder Section
     st.markdown("---")
     st.subheader("🔮 Scenario Builder")
@@ -5220,20 +5212,61 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
 
     render_scenario_builder(results)
 
+    # ── PDF Download ──────────────────────────────────────────────────────────
+    # Placed after the Scenario Builder so future report enhancements can
+    # include any scenario information the user has produced.
+    st.markdown("---")
+    st.markdown("### 📄 Download Report")
+    _pdf_col1, _pdf_col2 = st.columns([3, 1])
+    with _pdf_col1:
+        _pdf_area_name = st.text_input(
+            "Report title (area name)",
+            value=st.session_state.get('default_area_name', 'Analysis Area'),
+            key="pdf_area_name",
+            label_visibility="collapsed",
+            placeholder="Area name for report header",
+        )
+    with _pdf_col2:
+        _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
+                                 key="prepare_pdf_btn")
+    if _prepare_pdf:
+        with st.spinner("Building PDF report…"):
+            try:
+                from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
+                _pdf_results = st.session_state.analysis_results
+                _pdf_auth = st.session_state.get('auth_user')
+                _pdf_country = ''
+                try:
+                    _bbox = st.session_state.get('cached_bbox', {})
+                    if _bbox:
+                        _clat = (_bbox.get('min_lat', 0) + _bbox.get('max_lat', 0)) / 2
+                        _clon = (_bbox.get('min_lon', 0) + _bbox.get('max_lon', 0)) / 2
+                        _pdf_country = get_country_from_coordinates(_clat, _clon)
+                except Exception:
+                    pass
+                _pdf_bytes = _gen_pdf_fn(
+                    results=_pdf_results,
+                    auth_user=_pdf_auth,
+                    area_name=_pdf_area_name or 'Analysis Area',
+                    country=_pdf_country,
+                )
+                _ts = datetime.now().strftime('%Y%m%d_%H%M')
+                st.session_state['_pdf_bytes'] = _pdf_bytes
+                st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
+            except Exception as _pdf_err:
+                st.error(f"PDF generation failed: {_pdf_err}")
+    if st.session_state.get('_pdf_bytes'):
+        st.download_button(
+            label="⬇️ Download PDF Report",
+            data=st.session_state['_pdf_bytes'],
+            file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
+            mime="application/pdf",
+            use_container_width=True,
+            key="pdf_dl_btn",
+        )
+
     # ── Project Indicators (optional, gated by Settings toggle) ──────────────
     if st.session_state.get('project_indicators_enabled', False):
         render_project_indicators_section()
 
 
-# ── Brand attribution footer ────────────────────────────────────────────────
-st.markdown(
-    """<div style='text-align:center; color:#6B7280; font-size:0.78rem;
-                   padding:2.5rem 0 1rem 0; margin-top:2rem;
-                   border-top:1px solid #E5E7EB;'>
-    Built by
-    <a href='https://www.greenandgreyassociates.com' target='_blank'
-       style='color:#2E7D32; text-decoration:none; font-weight:500;'>
-    Green &amp; Grey Associates</a>
-    </div>""",
-    unsafe_allow_html=True,
-)
