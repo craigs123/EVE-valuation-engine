@@ -304,6 +304,30 @@ st.markdown("""
             padding: 0.4rem 0.9rem !important;
         }
 
+        /* Saved-area row: halve the gap between the load and delete icon
+           buttons so the load button sits closer to delete */
+        [class*="st-key-ws_tabs_wrap"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
+        }
+
+        /* Workspace load/delete icon buttons — natural width like the
+           Sign-out button (so the icon stays perfectly centred), made
+           ~50% wider via padding, and shifted so the pair sit close
+           together in the middle of their column area. */
+        [class*="st-key-ws_load_"] button,
+        [class*="st-key-ws_del_"] button {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        [class*="st-key-ws_load_"] {
+            margin-left: auto !important;
+            margin-right: 0 !important;
+        }
+        [class*="st-key-ws_del_"] {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+        }
+
         /* DataFrame/Table — neutral border */
         .stDataFrame {
             border: 1px solid #E5E7EB;
@@ -1801,7 +1825,7 @@ if st.session_state.pop('_just_registered', False):
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.16 beta</span>
+    <span class="version-text">v3.5.17 beta</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2550,8 +2574,7 @@ with st.sidebar:
                                 _sub_l, _sub_d = st.columns(2)
                                 with _sub_l:
                                     if st.button("↩", key=f"ws_load_{_area['id']}",
-                                                 help="Load this area onto the map",
-                                                 use_container_width=True):
+                                                 help="Load this area onto the map"):
                                         clear_analysis_cache()
                                         st.session_state.area_coordinates = _area['coordinates']
                                         st.session_state.selected_area = True
@@ -2563,8 +2586,7 @@ with st.sidebar:
                                         st.rerun()
                                 with _sub_d:
                                     if st.button("🗑️", key=f"ws_del_{_area['id']}",
-                                                 help="Delete this saved area",
-                                                 use_container_width=True):
+                                                 help="Delete this saved area"):
                                         from database import SavedAreaDB as _SADB3
                                         _SADB3.delete_area(_area['id'])
                                         st.rerun()

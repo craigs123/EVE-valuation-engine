@@ -4,8 +4,14 @@ Produces a professional A4 report from analysis results.
 """
 
 import io
+import os
 from datetime import datetime
 from typing import Dict, Any, Optional
+
+_LOGO_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'static', 'greengrey-logo.png',
+)
 
 
 def generate_pdf_report(
@@ -37,7 +43,7 @@ def generate_pdf_report(
     from reportlab.lib.units import cm
     from reportlab.lib import colors
     from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, Image
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, Image, PageBreak
     )
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
@@ -85,15 +91,13 @@ def generate_pdf_report(
     water_ha = results.get('water_area_hectares', 0)
     total_value = results.get('total_value', 0)
     per_ha = results.get('value_per_ha', total_value / area_ha if area_ha else 0)
-    ecosystem_type = results.get('ecosystem_type', 'Unknown')
     analysis_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
     regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', 1.0))
 
     meta_rows = [
         ['Analysis Date', analysis_date, 'Country / Region', country or '—'],
-        ['Area (land)', f'{area_ha:,.1f} ha',
-         'Water excluded', f'{water_ha:,.1f} ha' if water_ha else '—'],
-        ['Ecosystem Type', ecosystem_type, 'Regional Factor', f'{regional_factor:.2f}×'],
+        ['Water excluded', f'{water_ha:,.1f} ha' if water_ha else '—',
+         'Regional Factor', f'{regional_factor:.2f}×'],
         ['Total Annual Value', f'Int$ {total_value:,.0f}/yr',
          'Value per Hectare', f'Int$ {per_ha:,.0f}/ha/yr'],
     ]
@@ -125,11 +129,10 @@ def generate_pdf_report(
         max_lon = bbox.get('max_lon', 0)
         c_lat = (min_lat + max_lat) / 2
         c_lon = (min_lon + max_lon) / 2
-        n_vertices = len(coordinates) if coordinates else 0
         geo_rows = [
             ['Centre', f'{c_lat:.5f}, {c_lon:.5f}',
              'Bounding box (N, S)', f'{max_lat:.5f}, {min_lat:.5f}'],
-            ['Polygon vertices', f'{n_vertices}' if n_vertices else '—',
+            ['Area (land)', f'{area_ha:,.1f} ha',
              'Bounding box (E, W)', f'{max_lon:.5f}, {min_lon:.5f}'],
         ]
         geo_table = Table(geo_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
@@ -151,19 +154,7 @@ def generate_pdf_report(
         story.append(geo_table)
         story.append(Spacer(1, 0.4 * cm))
 
-    # -------------------------------------------------------- ecosystem composition
     esvd = results.get('esvd_results', {})
-    metadata = esvd.get('metadata', {})
-    composition = metadata.get('ecosystem_composition', {})
-    if composition:
-        story.append(Paragraph('Ecosystem Composition', h2))
-        comp_rows = [['Ecosystem Type', 'Coverage (%)']]
-        for eco, prop in sorted(composition.items(), key=lambda x: -x[1]):
-            comp_rows.append([eco, f'{prop * 100:.0f}%'])
-        comp_table = Table(comp_rows, colWidths=[10 * cm, 8 * cm])
-        comp_table.setStyle(_standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT))
-        story.append(comp_table)
-        story.append(Spacer(1, 0.3 * cm))
 
     # --------------------------------------------------- sample-point summary
     if summary_stats and summary_stats.get('sample_points_total'):
@@ -336,6 +327,7 @@ def generate_pdf_report(
                 first_in_cat = False
 
         if len(detail_rows) > 1:
+            story.append(PageBreak())
             story.append(Paragraph('Service-by-Service Breakdown', h2))
             detail_table = Table(detail_rows, colWidths=[2.5 * cm, 5 * cm, 3.5 * cm, 3.5 * cm, 2.5 * cm])
             ts2 = _standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT)
@@ -387,6 +379,14 @@ def generate_pdf_report(
         f'{user_display}'
     )
     story.append(Paragraph(footer_text, footer_style))
+    story.append(Spacer(1, 0.2 * cm))
+    try:
+        if os.path.exists(_LOGO_PATH):
+            logo = Image(_LOGO_PATH, width=1.5 * cm, height=1.48 * cm)
+            logo.hAlign = 'CENTER'
+            story.append(logo)
+    except Exception:
+        pass
     attribution_text = (
         'Built by '
         '<link href="https://www.greenandgreyassociates.com" color="#2E7D32">'
