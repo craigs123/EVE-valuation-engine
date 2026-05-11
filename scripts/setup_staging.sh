@@ -39,7 +39,7 @@ gcloud run deploy "$SERVICE" \
     --project "$PROJECT_ID" \
     --platform managed \
     --set-cloudsql-instances "$CLOUDSQL_INSTANCE" \
-    --allow-unauthenticated \
+    --no-allow-unauthenticated \
     --quiet
 
 STAGING_URL=$(gcloud run services describe "$SERVICE" \
