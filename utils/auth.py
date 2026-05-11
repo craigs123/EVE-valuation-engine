@@ -46,10 +46,48 @@ def _render_auth_ui():
 
     st.markdown("""
     <style>
+    /* Forest-canopy background photo with a soft white-green scrim so form
+       contents remain readable. Applied only on the login page (this UI is
+       gated by require_login and exits via st.stop on the main app). */
+    [data-testid="stAppViewContainer"] {
+        background:
+            linear-gradient(rgba(248, 250, 248, 0.82), rgba(232, 245, 233, 0.72)),
+            url('/app/static/login-bg.jpg') center center / cover no-repeat fixed;
+    }
+    [data-testid="stHeader"] {
+        background: transparent !important;
+    }
     .auth-tab-panel { padding-top: 1.4rem; }
     .stTabs [data-baseweb="tab-list"] { gap: 1rem; }
     .stTabs [data-baseweb="tab"] { padding: 0.5rem 1.2rem; }
-    .auth-hero { text-align:center; padding: 3.5rem 0 1.25rem 0; }
+    .auth-hero {
+        text-align: center;
+        padding: 2rem 2rem 1.5rem 2rem;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10);
+        max-width: 36rem;
+        margin: 1.5rem auto 1.5rem auto;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    /* Tabs + form fields + footer attribution sit inside this keyed
+       container so they get the same frosted-glass backdrop as the hero,
+       keeping inputs and labels readable over the forest photo. */
+    [class*="st-key-auth_card"] {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border-radius: 16px !important;
+        padding: 1.75rem 2rem 1.5rem 2rem !important;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    /* Drop the now-redundant separate background on the brand attribution
+       div so it blends into the card */
+    [class*="st-key-auth_card"] .auth-tab-panel {
+        background: transparent !important;
+    }
     .auth-hero .mark { font-size:2.75rem; line-height:1; margin-bottom: 0.5rem; }
     .auth-hero h1 {
         color:#1F2937 !important; font-size:1.9rem !important;
@@ -88,12 +126,13 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
     _, col, _ = st.columns([1, 2, 1])
     with col:
+      with st.container(key="auth_card"):
         tab_in, tab_reg = st.tabs(["Sign In", "Create Account"])
 
         # ---- Sign In ----
@@ -214,7 +253,7 @@ def _render_auth_ui():
                    style='display:inline-block; margin-bottom:0.4rem;'>
                     <img src='/app/static/greengrey-logo.png'
                          alt='Green & Grey Associates'
-                         style='height:40px; width:auto; opacity:0.85;' />
+                         style='height:80px; width:auto; opacity:0.85;' />
                 </a>
                 <div style='color:#6B7280; font-size:0.78rem;'>
                     Built by

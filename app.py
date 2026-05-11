@@ -1813,24 +1813,21 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.19 beta</span>
+    <span class="version-text">v3.5.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
-<div style='display:flex; flex-direction:column; align-items:center;
-             justify-content:center; gap:0.15rem; margin:-0.25rem 0 0.5rem 0;'>
-    <div style='display:flex; align-items:center; justify-content:center; gap:0.5rem;'>
+<div style='display:flex; align-items:center; justify-content:center;
+             gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
+    <a href='https://www.greenandgreyassociates.com' target='_blank'
+       style='display:inline-flex; align-items:center;'>
+        <img src='/app/static/greengrey-logo.png'
+             alt='Green & Grey Associates'
+             style='height:80px; width:auto; opacity:0.85;' />
+    </a>
+    <span style='color:#6B7280; font-size:0.75rem;'>Built by
         <a href='https://www.greenandgreyassociates.com' target='_blank'
-           style='display:inline-flex; align-items:center;'>
-            <img src='/app/static/greengrey-logo.png'
-                 alt='Green & Grey Associates'
-                 style='height:40px; width:auto; opacity:0.85;' />
-        </a>
-        <span style='color:#6B7280; font-size:0.75rem;'>Built by
-            <a href='https://www.greenandgreyassociates.com' target='_blank'
-               style='color:#2E7D32; text-decoration:none; font-weight:500;'>
-            Green &amp; Grey Associates</a>
-        </span>
-    </div>
-    <span style='color:#9CA3AF; font-size:0.7rem;'>© 2026 Green &amp; Grey Associates</span>
+           style='color:#2E7D32; text-decoration:none; font-weight:500;'>
+        Green &amp; Grey Associates</a>
+    </span>
 </div>
 """, unsafe_allow_html=True)
 

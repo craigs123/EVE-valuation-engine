@@ -382,7 +382,7 @@ def generate_pdf_report(
     story.append(Spacer(1, 0.2 * cm))
     try:
         if os.path.exists(_LOGO_PATH):
-            logo = Image(_LOGO_PATH, width=1.5 * cm, height=1.48 * cm)
+            logo = Image(_LOGO_PATH, width=3 * cm, height=2.96 * cm)
             logo.hAlign = 'CENTER'
             story.append(logo)
     except Exception:
