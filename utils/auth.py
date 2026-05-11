@@ -57,17 +57,24 @@ def _render_auth_ui():
     [data-testid="stHeader"] {
         background: transparent !important;
     }
-    .auth-tab-panel { padding-top: 1.4rem; }
+    /* Pull the page content up — Streamlit's default block-container has
+       ~6rem of top padding which pushes the hero too far down on 1080p. */
+    [data-testid="stMain"] .block-container,
+    .main .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+    .auth-tab-panel { padding-top: 0.5rem; }
     .stTabs [data-baseweb="tab-list"] { gap: 1rem; }
-    .stTabs [data-baseweb="tab"] { padding: 0.5rem 1.2rem; }
+    .stTabs [data-baseweb="tab"] { padding: 0.45rem 1.1rem; }
     .auth-hero {
         text-align: center;
-        padding: 2rem 2rem 1.5rem 2rem;
+        padding: 1.1rem 1.5rem 0.9rem 1.5rem;
         background: rgba(255, 255, 255, 0.88);
         border-radius: 16px;
         box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10);
         max-width: 36rem;
-        margin: 1.5rem auto 1.5rem auto;
+        margin: 0.4rem auto 0.6rem auto;
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
     }
@@ -78,7 +85,7 @@ def _render_auth_ui():
     [class*="st-key-auth_card"] {
         background: rgba(255, 255, 255, 0.92) !important;
         border-radius: 16px !important;
-        padding: 1.75rem 2rem 1.5rem 2rem !important;
+        padding: 0.85rem 1.5rem 0.85rem 1.5rem !important;
         box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10) !important;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
@@ -88,11 +95,18 @@ def _render_auth_ui():
     [class*="st-key-auth_card"] .auth-tab-panel {
         background: transparent !important;
     }
-    .auth-hero .mark { font-size:2.75rem; line-height:1; margin-bottom: 0.5rem; }
+    /* Tighter spacing between form widgets inside the card */
+    [class*="st-key-auth_card"] [data-testid="stVerticalBlock"] {
+        gap: 0.4rem !important;
+    }
+    [class*="st-key-auth_card"] .stTextInput {
+        margin-bottom: 0 !important;
+    }
+    .auth-hero .mark { font-size:2.1rem; line-height:1; margin-bottom: 0.15rem; }
     .auth-hero h1 {
-        color:#1F2937 !important; font-size:1.9rem !important;
+        color:#1F2937 !important; font-size:1.55rem !important;
         font-weight:700 !important; letter-spacing:-0.01em !important;
-        margin:0.5rem auto 0.75rem auto !important;
+        margin:0.15rem auto 0.3rem auto !important;
     }
     .auth-hero .tagline,
     .auth-hero .sub {
@@ -102,21 +116,21 @@ def _render_auth_ui():
         text-align:center !important;
     }
     .auth-hero .tagline {
-        color:#374151 !important; font-size:1rem !important;
+        color:#374151 !important; font-size:0.95rem !important;
         font-weight:500 !important;
-        margin-top:0 !important; margin-bottom:0.4rem !important;
+        margin-top:0 !important; margin-bottom:0.2rem !important;
     }
     .auth-hero .sub {
-        color:#6B7280 !important; font-size:0.9rem !important;
+        color:#6B7280 !important; font-size:0.85rem !important;
         margin-top:0 !important; margin-bottom:0 !important;
     }
     .auth-hero .accent {
-        width:48px; height:3px; background:#2E7D32;
-        margin:1.5rem auto 0; border-radius:2px;
+        width:42px; height:2px; background:#2E7D32;
+        margin:0.7rem auto 0; border-radius:2px;
     }
     .auth-hero .ver {
-        color:#9CA3AF !important; font-size:0.72rem !important;
-        margin:1.25rem auto 0 auto !important;
+        color:#9CA3AF !important; font-size:0.7rem !important;
+        margin:0.55rem auto 0 auto !important;
         text-align:center !important;
     }
     </style>
@@ -126,7 +140,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.21 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
