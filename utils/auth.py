@@ -81,11 +81,6 @@ def _render_auth_ui():
         margin:1.25rem auto 0 auto !important;
         text-align:center !important;
     }
-    .auth-hero .copyright {
-        color:#9CA3AF !important; font-size:0.7rem !important;
-        margin:0.25rem auto 0 auto !important;
-        text-align:center !important;
-    }
     </style>
     <div class="auth-hero">
         <div class="mark">🌱</div>
@@ -93,8 +88,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.19 beta</p>
-        <p class="copyright">© 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -211,21 +205,23 @@ def _render_auth_ui():
                     except Exception as exc:
                         st.error(f"Registration failed: {exc}")
 
-    # Brand attribution footer with G&G mark
-    st.markdown(
-        """<div style='text-align:center; padding:3rem 0 1rem 0;'>
-            <a href='https://www.greenandgreyassociates.com' target='_blank'
-               style='display:inline-block; margin-bottom:0.5rem;'>
-                <img src='/app/static/greengrey-logo.png'
-                     alt='Green & Grey Associates'
-                     style='height:64px; width:auto; opacity:0.85;' />
-            </a>
-            <div style='color:#6B7280; font-size:0.78rem;'>
-                Built by
+        # Brand attribution sits inside the column so it stays narrow and
+        # centred just below whichever tab's submit button is currently shown
+        # (Forgot password on Sign In, Create account on Create Account).
+        st.markdown(
+            """<div style='text-align:center; padding:1.25rem 0 0 0;'>
                 <a href='https://www.greenandgreyassociates.com' target='_blank'
-                   style='color:#2E7D32; text-decoration:none; font-weight:500;'>
-                Green &amp; Grey Associates</a>
-            </div>
-        </div>""",
-        unsafe_allow_html=True,
-    )
+                   style='display:inline-block; margin-bottom:0.4rem;'>
+                    <img src='/app/static/greengrey-logo.png'
+                         alt='Green & Grey Associates'
+                         style='height:40px; width:auto; opacity:0.85;' />
+                </a>
+                <div style='color:#6B7280; font-size:0.78rem;'>
+                    Built by
+                    <a href='https://www.greenandgreyassociates.com' target='_blank'
+                       style='color:#2E7D32; text-decoration:none; font-weight:500;'>
+                    Green &amp; Grey Associates</a>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
