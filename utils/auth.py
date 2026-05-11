@@ -50,8 +50,10 @@ def _render_auth_ui():
        contents remain readable. Applied only on the login page (this UI is
        gated by require_login and exits via st.stop on the main app). */
     [data-testid="stAppViewContainer"] {
+        /* Light scrim only — the hero and auth_card carry their own opaque
+           backdrops, so the photo can show through everywhere else. */
         background:
-            linear-gradient(rgba(248, 250, 248, 0.82), rgba(232, 245, 233, 0.72)),
+            linear-gradient(rgba(255, 255, 255, 0.18), rgba(232, 245, 233, 0.12)),
             url('/app/static/login-bg.jpg') center center / cover no-repeat fixed;
     }
     [data-testid="stHeader"] {
