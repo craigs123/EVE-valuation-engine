@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.22 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.23 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1911,191 +1911,159 @@ def analysis_settings_dialog():
 
     st.divider()
 
-    col_a, col_b = st.columns(2)
+    st.markdown("##### Environmental Indicators")
+    st.caption("Each indicator adds a column to the Sample Points panel. STAC indicators "
+               "are fetched during analysis; SoilGrids indicators are fetched on demand.")
 
-    with col_a:
-        st.markdown("##### Environmental Indicators")
-        st.caption("Each indicator adds a column to the Sample Points panel. STAC indicators "
-                   "are fetched during analysis; SoilGrids indicators are fetched on demand.")
+    _indicator_specs = [
+        ('fapar', 'FAPAR',
+         "Fraction of Absorbed Photosynthetically Active Radiation (0–1). "
+         "Proportion of incoming sunlight that the vegetation canopy captures — "
+         "an indicator of photosynthetic productivity. Source: OpenLandMap STAC."),
+        ('soil_c', 'Soil Carbon (STAC)',
+         "Soil organic carbon content from OpenLandMap STAC, reported in g/kg. "
+         "Higher values indicate greater carbon storage."),
+        ('phh2o', 'pH (H₂O)',
+         "Soil acidity/alkalinity measured in water suspension at 0–5cm depth from "
+         "ISRIC SoilGrids 2.0. 7 = neutral, <7 acidic, >7 alkaline."),
+        ('soc', 'Soil Organic Carbon (SOC)',
+         "Soil organic carbon at 0–5cm depth from ISRIC SoilGrids 2.0, in g/kg. "
+         "Topsoil carbon stocks indicator."),
+        ('bdod', 'Bulk Density',
+         "Mass of dry soil per unit volume at 0–5cm from ISRIC SoilGrids 2.0, in g/cm³. "
+         "Lower values indicate more pore space and organic matter."),
+        ('nitrogen', 'Total Nitrogen',
+         "Total nitrogen at 0–5cm depth from ISRIC SoilGrids 2.0, in g/kg. "
+         "Indicator of soil fertility."),
+    ]
+    _ind_state_keys = [f'show_indicator_{k}' for k, *_ in _indicator_specs]
+    _ind_widget_keys = [f'dlg_{k}' for k in _ind_state_keys]
 
-        _indicator_specs = [
-            ('fapar', 'FAPAR',
-             "Fraction of Absorbed Photosynthetically Active Radiation (0–1). "
-             "Proportion of incoming sunlight that the vegetation canopy captures — "
-             "an indicator of photosynthetic productivity. Source: OpenLandMap STAC."),
-            ('soil_c', 'Soil Carbon (STAC)',
-             "Soil organic carbon content from OpenLandMap STAC, reported in g/kg. "
-             "Higher values indicate greater carbon storage."),
-            ('phh2o', 'pH (H₂O)',
-             "Soil acidity/alkalinity measured in water suspension at 0–5cm depth from "
-             "ISRIC SoilGrids 2.0. 7 = neutral, <7 acidic, >7 alkaline."),
-            ('soc', 'Soil Organic Carbon (SOC)',
-             "Soil organic carbon at 0–5cm depth from ISRIC SoilGrids 2.0, in g/kg. "
-             "Topsoil carbon stocks indicator."),
-            ('bdod', 'Bulk Density',
-             "Mass of dry soil per unit volume at 0–5cm from ISRIC SoilGrids 2.0, in g/cm³. "
-             "Lower values indicate more pore space and organic matter."),
-            ('nitrogen', 'Total Nitrogen',
-             "Total nitrogen at 0–5cm depth from ISRIC SoilGrids 2.0, in g/kg. "
-             "Indicator of soil fertility."),
-        ]
-        _ind_state_keys = [f'show_indicator_{k}' for k, *_ in _indicator_specs]
-        _ind_widget_keys = [f'dlg_{k}' for k in _ind_state_keys]
+    def _toggle_all_indicators():
+        new_val = bool(st.session_state.get('dlg_show_all_indicators', False))
+        for sk, wk in zip(_ind_state_keys, _ind_widget_keys):
+            st.session_state[sk] = new_val
+            st.session_state[wk] = new_val
 
-        def _toggle_all_indicators():
-            new_val = bool(st.session_state.get('dlg_show_all_indicators', False))
-            for sk, wk in zip(_ind_state_keys, _ind_widget_keys):
-                st.session_state[sk] = new_val
-                st.session_state[wk] = new_val
+    def _toggle_one_indicator(state_key, widget_key):
+        new_val = bool(st.session_state.get(widget_key, False))
+        st.session_state[state_key] = new_val
+        st.session_state['dlg_show_all_indicators'] = all(
+            st.session_state.get(k, False) for k in _ind_state_keys
+        )
 
-        def _toggle_one_indicator(state_key, widget_key):
-            new_val = bool(st.session_state.get(widget_key, False))
-            st.session_state[state_key] = new_val
-            st.session_state['dlg_show_all_indicators'] = all(
-                st.session_state.get(k, False) for k in _ind_state_keys
-            )
-
-        _all_on = all(st.session_state.get(k, False) for k in _ind_state_keys)
+    _all_on = all(st.session_state.get(k, False) for k in _ind_state_keys)
+    st.checkbox(
+        "**Show all**",
+        value=_all_on,
+        key="dlg_show_all_indicators",
+        on_change=_toggle_all_indicators,
+        help="Toggle every environmental indicator on or off at once.",
+    )
+    for (short, label, help_text), state_key, widget_key in zip(
+        _indicator_specs, _ind_state_keys, _ind_widget_keys
+    ):
         st.checkbox(
-            "**Show all**",
-            value=_all_on,
-            key="dlg_show_all_indicators",
-            on_change=_toggle_all_indicators,
-            help="Toggle every environmental indicator on or off at once.",
+            label,
+            value=st.session_state.get(state_key, False),
+            key=widget_key,
+            on_change=_toggle_one_indicator,
+            args=(state_key, widget_key),
+            help=help_text,
         )
-        for (short, label, help_text), state_key, widget_key in zip(
-            _indicator_specs, _ind_state_keys, _ind_widget_keys
-        ):
-            st.checkbox(
-                label,
-                value=st.session_state.get(state_key, False),
-                key=widget_key,
-                on_change=_toggle_one_indicator,
-                args=(state_key, widget_key),
-                help=help_text,
-            )
 
-        st.divider()
+    st.divider()
 
-        st.markdown("##### Sampling Configuration")
-        _samp = st.slider(
-            "Sample Points", min_value=9, max_value=100,
-            value=st.session_state.get('max_sampling_limit', 9), step=1,
-            help="Lower = faster, higher = more accurate.",
-            key="dlg_sampling",
+    st.markdown("##### Urban Green/Blue Infrastructure")
+    if 'urban_green_blue_multiplier' not in st.session_state:
+        st.session_state.urban_green_blue_multiplier = 18.0
+    _urb = st.slider(
+        "Green/Blue Coverage (%)", min_value=0.0, max_value=100.0,
+        value=st.session_state.urban_green_blue_multiplier, step=1.0,
+        key="dlg_urban_multiplier",
+        help="WHO minimum ~10-15%; European cities 30-50%; North American 20-40%.",
+    )
+    st.session_state.urban_green_blue_multiplier = _urb
+    st.info(f"Urban multiplier: {_urb/100:.2f}× ({_urb:.0f}%)")
+
+    st.divider()
+
+    st.markdown("##### Sampling Configuration")
+    _samp = st.slider(
+        "Sample Points", min_value=9, max_value=100,
+        value=st.session_state.get('max_sampling_limit', 9), step=1,
+        help="Lower = faster, higher = more accurate.",
+        key="dlg_sampling",
+    )
+    st.session_state.max_sampling_limit = _samp
+    st.session_state.sampling_frequency = _samp
+    _sampling_guide = {
+        (0, 20): "🔹 Low Sampling — very fast",
+        (21, 40): "🔸 Moderate Sampling",
+        (41, 70): "🔸 High Sampling — good for mixed areas",
+        (71, 100): "🔴 Maximum Sampling — most accurate",
+    }
+    for (lo, hi), msg in _sampling_guide.items():
+        if lo <= _samp <= hi:
+            st.info(msg)
+            break
+    if st.session_state.get('cached_area_ha'):
+        _gs = int(np.sqrt(_samp))
+        st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+
+    st.divider()
+
+    st.markdown("##### Regional Adjustments")
+    _elast = st.slider(
+        "Income elasticity factor", min_value=0.1, max_value=1.0,
+        value=st.session_state.get('income_elasticity', 0.6), step=0.1,
+        help="0.5–0.6 recommended. Scales regional GDP differences.",
+        key="dlg_income_elasticity",
+    )
+    st.session_state['income_elasticity'] = _elast
+    st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
+
+    st.divider()
+
+    with st.expander("Ecosystem Intactness by Type", expanded=False):
+        st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
+
+        if 'use_eei_for_intactness' not in st.session_state:
+            st.session_state.use_eei_for_intactness = True
+        _eei = st.checkbox(
+            "Use EEI for Default Intactness",
+            value=st.session_state.use_eei_for_intactness,
+            key="dlg_use_eei",
+            help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
         )
-        st.session_state.max_sampling_limit = _samp
-        st.session_state.sampling_frequency = _samp
-        _sampling_guide = {
-            (0, 20): "🔹 Low Sampling — very fast",
-            (21, 40): "🔸 Moderate Sampling",
-            (41, 70): "🔸 High Sampling — good for mixed areas",
-            (71, 100): "🔴 Maximum Sampling — most accurate",
+        st.session_state.use_eei_for_intactness = _eei
+        st.caption("EEI active" if _eei else "Manual sliders below")
+
+        _eco_types = {
+            'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
+            'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
+            'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
+            'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
         }
-        for (lo, hi), msg in _sampling_guide.items():
-            if lo <= _samp <= hi:
-                st.info(msg)
-                break
-        if st.session_state.get('cached_area_ha'):
-            _gs = int(np.sqrt(_samp))
-            st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+        if 'ecosystem_intactness' not in st.session_state:
+            st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
+        for et in _eco_types:
+            if et not in st.session_state.ecosystem_intactness:
+                st.session_state.ecosystem_intactness[et] = 100
 
-        st.divider()
-
-        st.markdown("##### Regional Adjustments")
-        _elast = st.slider(
-            "Income elasticity factor", min_value=0.1, max_value=1.0,
-            value=st.session_state.get('income_elasticity', 0.6), step=0.1,
-            help="0.5–0.6 recommended. Scales regional GDP differences.",
-            key="dlg_income_elasticity",
-        )
-        st.session_state['income_elasticity'] = _elast
-        st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
-
-
-    with col_b:
-        st.markdown("##### Urban Green/Blue Infrastructure")
-        if 'urban_green_blue_multiplier' not in st.session_state:
-            st.session_state.urban_green_blue_multiplier = 18.0
-        _urb = st.slider(
-            "Green/Blue Coverage (%)", min_value=0.0, max_value=100.0,
-            value=st.session_state.urban_green_blue_multiplier, step=1.0,
-            key="dlg_urban_multiplier",
-            help="WHO minimum ~10-15%; European cities 30-50%; North American 20-40%.",
-        )
-        st.session_state.urban_green_blue_multiplier = _urb
-        st.info(f"Urban multiplier: {_urb/100:.2f}× ({_urb:.0f}%)")
-
-        st.divider()
-
-        with st.expander("Ecosystem Intactness by Type", expanded=False):
-            st.caption("100% = pristine · 50% = moderately degraded · 0% = unproductive")
-
-            if 'use_eei_for_intactness' not in st.session_state:
-                st.session_state.use_eei_for_intactness = True
-            _eei = st.checkbox(
-                "Use EEI for Default Intactness",
-                value=st.session_state.use_eei_for_intactness,
-                key="dlg_use_eei",
-                help="Ecosystem Ecological Integrity API sets intactness defaults automatically.",
+        _changed = False
+        for eco_type, icon in _eco_types.items():
+            _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
+            _val = st.slider(
+                f"{icon} {eco_type} (%)", 0, 100,
+                int(round(_cur)) if isinstance(_cur, float) else _cur,
+                step=5, key=f"dlg_intactness_{eco_type}",
             )
-            st.session_state.use_eei_for_intactness = _eei
-            st.caption("EEI active" if _eei else "Manual sliders below")
-
-            _eco_types = {
-                'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
-                'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
-                'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
-                'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
-            }
-            if 'ecosystem_intactness' not in st.session_state:
-                st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
-            for et in _eco_types:
-                if et not in st.session_state.ecosystem_intactness:
-                    st.session_state.ecosystem_intactness[et] = 100
-
-            _changed = False
-            for eco_type, icon in _eco_types.items():
-                _cur = st.session_state.ecosystem_intactness.get(eco_type, 100)
-                _val = st.slider(
-                    f"{icon} {eco_type} (%)", 0, 100,
-                    int(round(_cur)) if isinstance(_cur, float) else _cur,
-                    step=5, key=f"dlg_intactness_{eco_type}",
-                )
-                if _val != _cur:
-                    _changed = True
-                st.session_state.ecosystem_intactness[eco_type] = _val
-            if _changed:
-                reset_analysis_state()
-
-        st.divider()
-
-        st.markdown("##### Scientific Methodology")
-        st.markdown("""
-**EVE** combines satellite remote sensing with the ESVD (10,874 peer-reviewed values) to measure natural capital.
-
-**Service Categories**: Provisioning · Regulating · Cultural · Supporting
-
-**Formula**: `Final Value = ESVD_Base × Regional_Adjustment × Quality_Factor`
-
-**Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
-        """)
-
-        if st.button("View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
-            st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
-
-        if st.session_state.get('show_default_mapping', False):
-            from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_esa_description
-            import pandas as pd
-            _rows = [
-                {"ESA CCI Code": code,
-                 "ESA Description": get_esa_description(code),
-                 "ESVD Type": DEFAULT_LANDCOVER_MAPPING[code]}
-                for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
-            ]
-            st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
-                       "Customise per-code values under **OpenLandMap Settings** below.")
-            st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
+            if _val != _cur:
+                _changed = True
+            st.session_state.ecosystem_intactness[eco_type] = _val
+        if _changed:
+            reset_analysis_state()
 
     st.divider()
     with st.expander("OpenLandMap Settings (advanced — landcover → ecosystem mapping)", expanded=False):
@@ -2166,6 +2134,35 @@ def analysis_settings_dialog():
             openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
         except Exception:
             pass
+
+    st.divider()
+
+    st.markdown("##### Scientific Methodology")
+    st.markdown("""
+**EVE** combines satellite remote sensing with the ESVD (10,874 peer-reviewed values) to measure natural capital.
+
+**Service Categories**: Provisioning · Regulating · Cultural · Supporting
+
+**Formula**: `Final Value = ESVD_Base × Regional_Adjustment × Quality_Factor`
+
+**Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
+    """)
+
+    if st.button("View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
+        st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
+
+    if st.session_state.get('show_default_mapping', False):
+        from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_esa_description
+        import pandas as pd
+        _rows = [
+            {"ESA CCI Code": code,
+             "ESA Description": get_esa_description(code),
+             "ESVD Type": DEFAULT_LANDCOVER_MAPPING[code]}
+            for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
+        ]
+        st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
+                   "Customise per-code values in **OpenLandMap Settings** above.")
+        st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
     # Admin-only section: list of registered users.
     _auth_user = st.session_state.get('auth_user') or {}
