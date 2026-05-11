@@ -93,7 +93,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.18 beta</p>
+        <p class="ver">v3.5.19 beta</p>
         <p class="copyright">© 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
@@ -165,18 +165,25 @@ def _render_auth_ui():
         # ---- Create Account ----
         with tab_reg:
             st.markdown("<div class='auth-tab-panel'>", unsafe_allow_html=True)
-            reg_email = st.text_input("Email", key="reg_email", placeholder="you@example.com")
-            reg_name = st.text_input("Display name (optional)", key="reg_name",
+            reg_email = st.text_input("Email *", key="reg_email", placeholder="you@example.com")
+            reg_name = st.text_input("Display name *", key="reg_name",
                                      placeholder="Your name")
-            reg_password = st.text_input("Password", type="password", key="reg_password",
+            reg_org = st.text_input("Organisation *", key="reg_org",
+                                    placeholder="Your organisation or company")
+            reg_password = st.text_input("Password *", type="password", key="reg_password",
                                          help="At least 8 characters")
-            reg_confirm = st.text_input("Confirm password", type="password", key="reg_confirm")
+            reg_confirm = st.text_input("Confirm password *", type="password", key="reg_confirm")
+            st.caption("* All fields are required.")
             st.markdown("</div>", unsafe_allow_html=True)
 
             if st.button("Create account", type="primary", use_container_width=True, key="reg_btn"):
                 errors = []
                 if not reg_email or not _EMAIL_RE.match(reg_email.strip()):
                     errors.append("Please enter a valid email address.")
+                if not reg_name or not reg_name.strip():
+                    errors.append("Please enter a display name.")
+                if not reg_org or not reg_org.strip():
+                    errors.append("Please enter your organisation.")
                 if len(reg_password) < 8:
                     errors.append("Password must be at least 8 characters.")
                 if reg_password != reg_confirm:
@@ -190,7 +197,8 @@ def _render_auth_ui():
                         UserDB.register(
                             reg_email.strip(),
                             reg_password,
-                            reg_name.strip() or None,
+                            reg_name.strip(),
+                            reg_org.strip(),
                         )
                         # Do NOT log the user in — verification is required first.
                         st.success(

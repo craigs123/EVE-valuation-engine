@@ -1813,7 +1813,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.18 beta</span>
+    <span class="version-text">v3.5.19 beta</span>
 </div>
 <div style='display:flex; flex-direction:column; align-items:center;
              justify-content:center; gap:0.15rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2190,6 +2190,7 @@ def analysis_settings_dialog():
                             ),
                             "Email": u['email'],
                             "Display name": u['display_name'] or '—',
+                            "Organisation": u.get('organisation') or '—',
                             "Status": u.get('status', '—'),
                             "Verified": "Yes" if u['email_verified'] else "No",
                             "Admin": "Yes" if u['is_admin'] else "No",

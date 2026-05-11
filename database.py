@@ -60,6 +60,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     display_name = Column(String(255), nullable=True)
+    organisation = Column(String(255), nullable=True)
     email_verified = Column(Boolean, default=False, nullable=False)
     verification_token = Column(String(64), nullable=True)
     verification_token_expiry = Column(DateTime, nullable=True)
@@ -410,6 +411,7 @@ class UserDB:
             'id': str(user.id),
             'email': user.email,
             'display_name': user.display_name,
+            'organisation': user.organisation,
             'email_verified': bool(user.email_verified),
             'is_admin': bool(user.is_admin),
             'status': user.status or 'Pending',
@@ -426,6 +428,7 @@ class UserDB:
                     {
                         'email': u.email,
                         'display_name': u.display_name,
+                        'organisation': u.organisation,
                         'email_verified': bool(u.email_verified),
                         'is_admin': bool(u.is_admin),
                         'status': u.status or 'Pending',
@@ -438,11 +441,12 @@ class UserDB:
             return []
 
     @staticmethod
-    def register(email: str, password: str, display_name: Optional[str] = None) -> Dict:
+    def register(email: str, password: str, display_name: Optional[str] = None,
+                 organisation: Optional[str] = None) -> Dict:
         """Create a new user (status='Pending') and send the verification email.
         If the email already belongs to a soft-deleted ('Removed') row, that row
-        is reused: password and display name are overwritten and the account
-        returns to 'Pending' awaiting fresh verification.
+        is reused: password, display name and organisation are overwritten and
+        the account returns to 'Pending' awaiting fresh verification.
 
         Returns the user dict. The caller MUST NOT log the user in — the account
         cannot be used until the verification link is clicked.
@@ -462,6 +466,7 @@ class UserDB:
                         # Reactivate the soft-deleted row.
                         existing.password_hash = password_hash
                         existing.display_name = display_name
+                        existing.organisation = organisation
                         existing.email_verified = False
                         existing.verification_token = token
                         existing.verification_token_expiry = expiry
@@ -478,6 +483,7 @@ class UserDB:
                         email=email.lower(),
                         password_hash=password_hash,
                         display_name=display_name,
+                        organisation=organisation,
                         email_verified=False,
                         verification_token=token,
                         verification_token_expiry=expiry,
