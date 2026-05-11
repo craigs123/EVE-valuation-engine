@@ -69,15 +69,27 @@ for e in env:
     v = e['value']
     if name == 'DATABASE_URL':
         # Repoint at the staging database on the same instance.
-        v = v.replace('/neondb?', '/eve_staging?').replace('/neondb', '/eve_staging')
+        # Use urllib.parse to surgically replace ONLY the path (DB name) —
+        # naive str.replace('/neondb', ...) also matches '/neondb_owner' in
+        # the user portion of the URL and corrupts the username.
+        from urllib.parse import urlparse, urlunparse
+        p = urlparse(v)
+        v = urlunparse((p.scheme, p.netloc, '/eve_staging', p.params, p.query, p.fragment))
     elif name == 'APP_BASE_URL':
-        v = staging_url
+        # Point verification + password-reset emails at localhost (the
+        # gcloud run services proxy port). The staging Cloud Run URL is
+        # IAM-locked and a browser can't open it directly, so emailing the
+        # real URL leaves testers staring at a 403. Localhost works
+        # whenever the proxy is running, which is also when staging is
+        # being tested. Revisit if/when proper browser access (IAP + LB)
+        # is set up.
+        v = 'http://localhost:8080'
     seen.add(name)
     v_esc = str(v).replace(chr(39), chr(39)+chr(39))
     print(f\"{name}: '{v_esc}'\")
 # Ensure APP_BASE_URL is set even if prod didn't have one.
 if 'APP_BASE_URL' not in seen:
-    print(f\"APP_BASE_URL: '{staging_url}'\")
+    print(\"APP_BASE_URL: 'http://localhost:8080'\")
 " > "$ENV_FILE"
 
 echo "Env file contents:"
