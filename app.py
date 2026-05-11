@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.25 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.26 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2786,8 +2786,8 @@ elif use_test_area_single:
             "location": "Central Amazon rainforest, Brazil"
         },
         "🦀 Test area (Mangrove)": {
-            "coords": calculate_1000ha_coordinates(21.95, 88.85),
-            "description": "Sundarbans Mangrove Forest (21.95°N, 88.85°E) | Expected: ESA Code 170, Mangroves ecosystem",
+            "coords": calculate_1000ha_coordinates(21.9504, 88.8604),
+            "description": "Sundarbans Mangrove Forest (21.9504°N, 88.8604°E) | Expected: ESA Code 170, Mangroves ecosystem",
             "location": "Sundarbans Tiger Reserve, West Bengal, India (largest mangrove forest on Earth)"
         },
         "🏜️ Test area (Desert)": {
@@ -3010,7 +3010,7 @@ if st.session_state.get('use_test_area_zoom', False):
             "🌲 Test area (Boreal Forest)": (50.491, -84.986),     # Northern Ontario
             "🌳 Test area (Temperate Forest)": (48.79, 127.35),  # Lesser Khingan Mountains, China
             "🌴 Test area (Tropical Forest)": (-3.0, -59.64),   # Brazilian Amazon
-            "🦀 Test area (Mangrove)": (21.95, 88.85),          # Sundarbans, India
+            "🦀 Test area (Mangrove)": (21.9504, 88.8604),      # Sundarbans, India
             "🏜️ Test area (Desert)": (26.0, 5.0),             # Sahara Desert
             "🏙️ Test area (Urban)": (19.374960, -99.117966),   # Mexico City
             "🌊 Test area (Water (ocean))": (25.0, -65.0),       # Atlantic Ocean

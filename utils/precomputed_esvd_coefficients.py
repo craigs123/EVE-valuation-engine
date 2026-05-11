@@ -574,31 +574,35 @@ class PrecomputedESVDCoefficients:
                 'spiritual_value': 4.00,        # Service 21: Spiritual experience
                 'primary_production': 1556.00   # Service 22: Cognitive development
             },
-            # TODO: replace with ESVD mangrove-specific values when validated
-            # Placeholder duplicates 'coastal' values (WorldCover class 95).
+            # Mangrove-specific 2025 Int$/ha/yr values from TEEB analysis
+            # (ESVD 2.4.2 medians with literature substitutions where ESVD
+            # data is sparse). 14 of 22 services valued; total = $30,911/ha/yr.
+            # Sources: ESVD 2.4.2 medians; extreme-events from Vo et al. 2012;
+            # habitat from literature-informed estimate. NULL services kept
+            # at 0 rather than imputed.
             'mangroves': {
-                'food': 7050.00,         # Service 1: Food
-                'water': 6397.00,        # Service 2: Water
-                'raw_materials': 6172.00,       # Service 3: Raw materials
-                'genetic_resources': 14.00,      # Service 4: Genetic resources
-                'medicinal_resources': 0.00,    # Service 5: Medicinal resources
-                'ornamental_resources': 0.00,   # Service 6: Ornamental resources
-                'pollution': 496.00,     # Service 7: Air quality regulation
-                'climate': 760.00,       # Service 8: Climate regulation
-                'extreme_events': 15746.00,     # Service 9: Moderation of extreme events
-                'water_regulation': 35.00,       # Service 10: Regulation of water flows
-                'water_purification': 7145.00,  # Service 11: Waste treatment
-                'erosion': 7736.00,      # Service 12: Erosion prevention
-                'soil_formation': 6340.00,      # Service 13: Maintenance of soil fertility
-                'pollination': 0.00,            # Service 14: Pollination
-                'biological_control': 0.00,     # Service 15: Biological control
-                'nursery_services': 2262.00,    # Service 16: Maintenance of life cycles
-                'habitat': 6029.00,      # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 857.00,      # Service 18: Aesthetic information
-                'recreation': 6318.00,   # Service 19: Recreation and tourism
-                'cultural': 278.00,      # Service 20: Culture, art and design
-                'spiritual_value': 4.00,        # Service 21: Spiritual experience
-                'primary_production': 1556.00   # Service 22: Cognitive development
+                'food': 117.00,                 # Service 1:  Food                            (ESVD N=1)
+                'water': 6070.00,               # Service 2:  Water                           (ESVD N=1)
+                'raw_materials': 15.00,         # Service 3:  Raw materials                   (ESVD median N=2)
+                'genetic_resources': 4.00,      # Service 4:  Genetic resources               (ESVD N=1)
+                'medicinal_resources': 299.00,  # Service 5:  Medicinal resources             (ESVD mean=median, N=2)
+                'ornamental_resources': 0.00,   # Service 6:  Ornamental resources            (no data)
+                'pollution': 705.00,            # Service 7:  Air quality regulation          (ESVD N=1)
+                'climate': 3417.00,             # Service 8:  Climate regulation              (ESVD median N=4)
+                'extreme_events': 5384.00,      # Service 9:  Moderation of extreme events    (Vo et al. 2012)
+                'water_regulation': 0.00,       # Service 10: Water flow regulation           (no data)
+                'water_purification': 7119.00,  # Service 11: Waste treatment / water purif.  (ESVD N=1, cross-val.)
+                'erosion': 1005.00,             # Service 12: Erosion prevention              (ESVD median N=5)
+                'soil_formation': 670.00,       # Service 13: Soil formation / nutrient cyc.  (ESVD N=1)
+                'pollination': 0.00,            # Service 14: Pollination                     (n/a for mangroves)
+                'biological_control': 0.00,     # Service 15: Biological control              (no data)
+                'nursery_services': 743.00,     # Service 16: Maintenance of life cycles      (ESVD mean=median, N=2)
+                'habitat': 3190.00,             # Service 17: Habitat for species             (literature-informed)
+                'aesthetic_value': 0.00,        # Service 18: Aesthetic information           (no data)
+                'recreation': 2173.00,          # Service 19: Recreation and tourism          (ESVD N=1)
+                'cultural': 0.00,               # Service 20: Inspiration / culture           (no data)
+                'spiritual_value': 0.00,        # Service 21: Spiritual experience            (no data)
+                'primary_production': 0.00      # Service 22: (no mangrove mapping in TEEB)
             },
             'urban': {
                 'food': 1240.00,           # Service 1: Food
