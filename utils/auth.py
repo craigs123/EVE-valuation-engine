@@ -72,7 +72,7 @@ def _render_auth_ui():
     .auth-hero {
         text-align: center;
         padding: 1.1rem 1.5rem 0.9rem 1.5rem;
-        background: rgba(255, 255, 255, 0.88);
+        background: rgba(255, 255, 255, 0.75);
         border-radius: 16px;
         box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10);
         max-width: 36rem;
@@ -85,7 +85,7 @@ def _render_auth_ui():
        container so they get the same frosted-glass backdrop as the hero,
        keeping inputs and labels readable over the forest photo. */
     [class*="st-key-auth_card"] {
-        background: rgba(255, 255, 255, 0.92) !important;
+        background: rgba(255, 255, 255, 0.80) !important;
         border-radius: 16px !important;
         padding: 0.85rem 1.5rem 0.85rem 1.5rem !important;
         box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10) !important;
@@ -142,7 +142,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.23 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.24 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 

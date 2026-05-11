@@ -1480,7 +1480,7 @@ def display_data_source_status(analysis_results: Dict = None):
             )
             _data_source_check_summary = st.session_state.get('landcover_data_source', data_source)
             if (_data_source_check_summary == 'openlandmap' or _has_real_summary) and sampling_point_data:
-                st.markdown("**Summary Statistics:**")
+                st.markdown("## Summary Statistics")
 
                 # Show average EEI if available (only when EEI is enabled)
                 if st.session_state.get('use_eei_for_intactness', False):
@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.23 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.24 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4172,7 +4172,7 @@ if analyze_button and st.session_state.selected_area:
                 st.info(f"🌍 **{_primary_eco}** (predominant) · {num_types} ecosystem types detected · Simpson diversity: {simpson_diversity:.2f}")
                 
                 # Show detailed composition breakdown for analysis (optimized)
-                st.write("**📋 Detailed Composition for Valuation:**")
+                st.markdown("## Detailed Composition for Valuation")
                 total_samples = st.session_state.detected_ecosystem['successful_queries']
                 composition_lines = []
                 for eco_type, data in ecosystem_distribution.items():
@@ -4413,7 +4413,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     analysis_mode = st.session_state.get('analysis_detail', 'Summary Analysis')
     
     if analysis_mode == "Summary Analysis":
-        st.subheader("📈 Summary Results")
+        st.markdown("## Sampling Results")
         results = st.session_state.analysis_results
         
         # Show data source status in summary view
@@ -4580,10 +4580,21 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
-        st.markdown("### 🌿 Ecosystem Services Breakdown")
+        st.markdown("## Ecosystem Services Breakdown")
         
-        # Add reliability warning
-        st.warning("⚠️ Although the ecosystem service values are based on the results of more than 10,000 studies, some services remain poorly understood. Be aware that some values may be based on fewer than five studies and should therefore be considered unreliable. We recommend using primary research to check suspect values.")
+        # Add reliability warning — small font, warning-styled box
+        st.markdown(
+            '<div style="background:#FFF8E1; border-left:4px solid #FB8C00; '
+            'padding:0.5rem 0.875rem; border-radius:4px; font-size:0.8rem; '
+            'line-height:1.4; color:#594400; margin:0.5rem 0;">'
+            '⚠️ Although the ecosystem service values are based on the results of '
+            'more than 10,000 studies, some services remain poorly understood. Be '
+            'aware that some values may be based on fewer than five studies and '
+            'should therefore be considered unreliable. We recommend using primary '
+            'research to check suspect values.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         
         esvd_data = results['esvd_results']
         
@@ -4599,17 +4610,38 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         
         def _render_service_columns(categories, data_source, total_value_key):
             # Service-category totals — one unified panel, no per-metric chrome
+            totals = []
             with st.container(border=True, key="results_services_panel"):
                 cols = st.columns(4)
                 for i, category in enumerate(categories):
                     cat_data = data_source.get(category, {})
                     total = cat_data.get('total', 0)
+                    totals.append(total)
                     with cols[i]:
                         area_denom = results.get('area_hectares', results.get('area_ha', 1)) or 1
                         per_ha_cat = total / area_denom
-                        tv = results.get('total_annual_value', results.get('current_value', results.get('total_value', 1))) or 1
                         st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
-                        st.caption(f"${per_ha_cat:.0f}/ha · {(total/tv*100):.0f}% of total")
+                        st.caption(f"${per_ha_cat:.0f}/ha")
+
+            # Pie chart: % share of each service category
+            if sum(totals) > 0:
+                import plotly.graph_objects as go
+                fig = go.Figure(data=[go.Pie(
+                    labels=[c.title() for c in categories],
+                    values=totals,
+                    hole=0.4,
+                    textinfo='label+percent',
+                    textposition='outside',
+                    marker=dict(colors=['#2E7D32', '#558B2F', '#1976D2', '#7B1FA2']),
+                    sort=False,
+                )])
+                fig.update_layout(
+                    showlegend=False,
+                    margin=dict(t=20, b=20, l=20, r=20),
+                    height=320,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
             with st.expander("Service-by-service breakdown"):
                 for category in categories:
                     cat_data = data_source.get(category, {})
