@@ -128,8 +128,8 @@ def is_valid_esa_code(code: int) -> bool:
 # Single source of truth used by the app UI and OpenLandMap integration.
 DEFAULT_LANDCOVER_MAPPING = {
     # Agricultural Classes
-    10: "agricultural", 11: "agricultural", 12: "agricultural",
-    20: "agricultural", 30: "agricultural", 40: "Grassland",
+    10: "Agricultural", 11: "Agricultural", 12: "Agricultural",
+    20: "Agricultural", 30: "Agricultural", 40: "Grassland",
 
     # Forest Classes
     50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
@@ -166,7 +166,7 @@ DEFAULT_LANDCOVER_MAPPING = {
     220: "polar",
 
     # Additional NLCD/CORINE codes
-    21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",
+    21: "Agricultural", 22: "Agricultural", 23: "Agricultural", 24: "Agricultural",
     31: "Desert",
     41: "Temperate Forest", 42: "Forest", 43: "Forest",
     52: "Shrubland",
@@ -182,9 +182,9 @@ DEFAULT_LANDCOVER_MAPPING = {
     101: "Forest", 102: "Forest",
 
     # Extended cropland coverage (ESA codes 13-29)
-    13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
-    17: "agricultural", 18: "agricultural", 19: "agricultural",
-    25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
+    13: "Agricultural", 14: "Agricultural", 15: "Agricultural", 16: "Agricultural",
+    17: "Agricultural", 18: "Agricultural", 19: "Agricultural",
+    25: "Agricultural", 26: "Agricultural", 27: "Agricultural", 28: "Agricultural", 29: "Agricultural",
 
     # Extended shrubland coverage (ESA codes 111-129)
     111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",

@@ -1159,7 +1159,6 @@ def display_data_source_status(analysis_results: Dict = None):
         with col1:
             if openlandmap_status.get('authentication_success', False):
                 st.success("🌍 **OpenLandMap STAC**: Connected")
-                st.caption(f"Method: {openlandmap_status.get('method', 'OpenLandMap STAC API')}")
             else:
                 st.warning("🌍 **OpenLandMap STAC**: Connection Issues")
                 if openlandmap_status.get('error'):
@@ -1188,7 +1187,6 @@ def display_data_source_status(analysis_results: Dict = None):
             
             if data_source_active == 'openlandmap' or has_real_data:
                 st.success("**Active Source**: Real ESA Satellite Data")
-                st.caption("Using authentic ESA CCI land cover from satellite imagery")
             else:
                 st.warning("⚠️  **Active Source**: Geographic Fallback")
                 st.caption("Real ESA satellite data unavailable - using geographic estimation")
@@ -1813,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.21 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.22 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1831,7 +1829,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<h3 class="section-header">Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
+st.markdown('<h3 class="section-header" style="margin-top:0.75rem !important;">Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
 
 
 # Initialize session state
@@ -2105,7 +2103,7 @@ def analysis_settings_dialog():
         _default_map = DEFAULT_LANDCOVER_MAPPING
         _esvd_types = [
             "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-            "Grassland", "agricultural", "Urban", "Desert",
+            "Grassland", "Agricultural", "Urban", "Desert",
             "Wetland", "Coastal", "Mangroves", "Marine", "Shrubland", "polar"
         ]
         if 'custom_landcover_mapping' not in st.session_state:
@@ -4186,7 +4184,6 @@ if analyze_button and st.session_state.selected_area:
                     composition_lines.append(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
                 
                 st.markdown('\n'.join(composition_lines))
-                st.caption("💡 Mixed ecosystem valuations use area-weighted coefficients from each ecosystem type.")
                 
                 # Initialize the calculator
                 coeffs = get_precomputed_coefficients()

@@ -69,7 +69,7 @@
         [-90.0000, 41.4800],
         [-90.0000, 41.5000]
       ],
-      "ecosystem_type": "agricultural",
+      "ecosystem_type": "Agricultural",
       "expected_metrics": {
         "NDVI": 0.55,
         "forest_cover": 10,

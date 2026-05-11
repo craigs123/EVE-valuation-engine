@@ -161,8 +161,8 @@ class OpenLandMapSTAC:
         # Official descriptions available in utils/esa_landcover_codes.py
         self.landcover_to_esvd = {
             # Cropland Classes
-            10: "agricultural", 11: "agricultural", 12: "agricultural", 
-            20: "agricultural", 30: "agricultural", 40: "Grassland",
+            10: "Agricultural", 11: "Agricultural", 12: "Agricultural", 
+            20: "Agricultural", 30: "Agricultural", 40: "Grassland",
             
             # Forest Classes  
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
@@ -202,7 +202,7 @@ class OpenLandMapSTAC:
             220: "polar",           # Permanent snow and ice
             
             # Additional NLCD/CORINE codes that may be encountered
-            21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",  # Developed areas
+            21: "Agricultural", 22: "Agricultural", 23: "Agricultural", 24: "Agricultural",  # Developed areas
             31: "Desert",           # Barren Land
             41: "Temperate Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
             52: "Shrubland",        # NLCD Shrub/Scrub
@@ -218,9 +218,9 @@ class OpenLandMapSTAC:
             101: "Forest", 102: "Forest",
             
             # Extended cropland coverage (ESA codes 13-20, 25-29) - FIXED: Removed 21-24 conflict
-            13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
-            17: "agricultural", 18: "agricultural", 19: "agricultural", 20: "agricultural",
-            25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
+            13: "Agricultural", 14: "Agricultural", 15: "Agricultural", 16: "Agricultural",
+            17: "Agricultural", 18: "Agricultural", 19: "Agricultural", 20: "Agricultural",
+            25: "Agricultural", 26: "Agricultural", 27: "Agricultural", 28: "Agricultural", 29: "Agricultural",
             
             # Extended shrubland coverage (ESA codes 111-129)
             111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",
@@ -1467,8 +1467,8 @@ class OpenLandMapSTAC:
             return ecosystem_type
             
         normalized = ecosystem_type.strip().lower()
-        if normalized in ("cropland", "agricultural", "farmland", "pasture", "agriculture"):
-            return "agricultural"
+        if normalized in ("cropland", "Agricultural", "farmland", "pasture", "agriculture"):
+            return "Agricultural"
         return ecosystem_type
     
     def get_ecosystem_type(self, lat: float, lon: float) -> Dict[str, Any]:

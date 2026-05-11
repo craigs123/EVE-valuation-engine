@@ -32,8 +32,8 @@ class OpenLandMapIntegrator:
         # Handles both Level 1 and Level 2 codes from ESA CCI Level 4 data
         self.landcover_to_ecosystem = {
             # Agricultural/Cropland Classes (using 'agricultural' to match ESVD coefficients)
-            10: "agricultural", 11: "agricultural", 12: "agricultural", 
-            20: "agricultural", 30: "agricultural", 40: "Grassland",
+            10: "Agricultural", 11: "Agricultural", 12: "Agricultural", 
+            20: "Agricultural", 30: "Agricultural", 40: "Grassland",
             
             # Forest Classes  
             50: "Tropical Forest", 60: "Temperate Forest", 61: "Forest", 62: "Forest",
@@ -71,7 +71,7 @@ class OpenLandMapIntegrator:
             220: "polar",           # Permanent snow and ice
             
             # Additional NLCD/CORINE codes that may be encountered
-            21: "agricultural", 22: "agricultural", 23: "agricultural", 24: "agricultural",  # Developed areas
+            21: "Agricultural", 22: "Agricultural", 23: "Agricultural", 24: "Agricultural",  # Developed areas
             31: "Desert",           # Barren Land
             41: "Temperate Forest", 42: "Forest", 43: "Forest",  # NLCD Forest types
             52: "Shrubland",        # NLCD Shrub/Scrub
@@ -87,9 +87,9 @@ class OpenLandMapIntegrator:
             101: "Forest", 102: "Forest",
             
             # Extended cropland coverage (ESA codes 13-20, 25-29) - FIXED: Removed 21-24 conflict
-            13: "agricultural", 14: "agricultural", 15: "agricultural", 16: "agricultural",
-            17: "agricultural", 18: "agricultural", 19: "agricultural", 20: "agricultural",
-            25: "agricultural", 26: "agricultural", 27: "agricultural", 28: "agricultural", 29: "agricultural",
+            13: "Agricultural", 14: "Agricultural", 15: "Agricultural", 16: "Agricultural",
+            17: "Agricultural", 18: "Agricultural", 19: "Agricultural", 20: "Agricultural",
+            25: "Agricultural", 26: "Agricultural", 27: "Agricultural", 28: "Agricultural", 29: "Agricultural",
             
             # Extended shrubland coverage (ESA codes 111-129)
             111: "Shrubland", 112: "Shrubland", 113: "Shrubland", 114: "Shrubland",
@@ -503,7 +503,7 @@ class OpenLandMapIntegrator:
         for ag_region in agricultural_regions:
             if (ag_region["lat_min"] <= lat <= ag_region["lat_max"] and 
                 ag_region["lon_min"] <= lon <= ag_region["lon_max"]):
-                return {'landcover_class': 82, 'ecosystem_type': "agricultural", 'source': ag_region["name"]}
+                return {'landcover_class': 82, 'ecosystem_type': "Agricultural", 'source': ag_region["name"]}
         
         return None
     
@@ -795,7 +795,7 @@ class OpenLandMapIntegrator:
                     spatial_key = int((lat_offset + lon_offset) % 10)
                     
                     if spatial_key < 4:  # 40% agricultural
-                        return {'landcover_class': 80, 'ecosystem_type': "agricultural", 'source': 'Michigan Mixed Agricultural'}
+                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'Michigan Mixed Agricultural'}
                     elif spatial_key < 7:  # 30% forest
                         return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'Michigan Mixed Forest'}
                     else:  # 30% grassland
@@ -804,11 +804,11 @@ class OpenLandMapIntegrator:
                     # General mixed region pattern for other areas
                     coord_hash = int(((lat * 1000) + (lon * 1000)) % 10)
                     if coord_hash < 6:  # 60% agricultural for general region
-                        return {'landcover_class': 80, 'ecosystem_type': "agricultural", 'source': 'North American Agricultural Belt'}
+                        return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'North American Agricultural Belt'}
                     else:  # 40% forest for general region
                         return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'North American Forest'}
             elif -10 <= lon <= 40 and 40 <= lat <= 55:  # European agricultural belt
-                return {'landcover_class': 80, 'ecosystem_type': "agricultural", 'source': 'European Agricultural Belt'}
+                return {'landcover_class': 80, 'ecosystem_type': "Agricultural", 'source': 'European Agricultural Belt'}
             else:
                 return {'landcover_class': 4, 'ecosystem_type': "Forest", 'source': 'Temperate Forest'}
         
