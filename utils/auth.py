@@ -142,7 +142,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.29 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.30 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -263,7 +263,7 @@ def _render_auth_ui():
             # so it doesn't add height to the form itself.
             st.markdown(
                 "<div style='text-align:right; color:#6B7280; "
-                "font-size:0.78rem; margin-top:0.25rem;'>"
+                "font-size:0.78rem; margin-top:0;'>"
                 "* All fields are required."
                 "</div>",
                 unsafe_allow_html=True,
@@ -272,8 +272,11 @@ def _render_auth_ui():
         # Brand attribution sits inside the column so it stays narrow and
         # centred just below whichever tab's submit button is currently shown
         # (Forgot password on Sign In, Create account on Create Account).
+        # Negative top margin pulls the logo block up to halve the visible gap
+        # between the button and the logo (Streamlit inserts default spacing
+        # between consecutive st.markdown blocks).
         st.markdown(
-            """<div style='text-align:center; padding:0.4rem 0 0 0;'>
+            """<div style='text-align:center; padding:0; margin-top:-0.75rem;'>
                 <a href='https://www.greenandgreyassociates.com' target='_blank'
                    style='display:inline-block; margin-bottom:0.2rem;'>
                     <img src='/app/static/greengrey-logo.png'
