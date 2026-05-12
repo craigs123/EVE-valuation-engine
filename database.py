@@ -124,6 +124,11 @@ class SavedArea(Base):
     coordinates = Column(JSON, nullable=False)
     area_hectares = Column(Float, nullable=False)
     is_favorite = Column(Boolean, default=False)
+    # Snapshot of the user's project-indicator configuration at save time:
+    # which indicators they committed to, baseline/target scores, custom flags,
+    # baseline/target dates, project ecosystem override. JSON for forward
+    # compatibility — nullable so existing rows are unaffected.
+    project_indicators = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -904,9 +909,16 @@ class SavedAreaDB:
         coordinates: List[List[float]],
         area_hectares: float,
         description: Optional[str] = None,
-        user_session_id: Optional[str] = None
+        user_session_id: Optional[str] = None,
+        project_indicators: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
-        """Save area for future analysis"""
+        """Save area for future analysis.
+
+        ``project_indicators`` (optional) is a JSON-serialisable dict capturing
+        the user's indicator-multiplier configuration at save time, so it can
+        be restored when the area is loaded later. See
+        ``app.py::_build_indicator_state_blob`` for the canonical shape.
+        """
         try:
             with get_db() as db:
                 session_user_id = None
@@ -925,6 +937,8 @@ class SavedAreaDB:
                     description=description,
                     coordinates=convert_numpy_types(coordinates),
                     area_hectares=float(area_hectares),
+                    project_indicators=(convert_numpy_types(project_indicators)
+                                        if project_indicators else None),
                 )
 
                 db.add(saved_area)
@@ -979,6 +993,7 @@ class SavedAreaDB:
                         'coordinates': a.coordinates,
                         'area_hectares': a.area_hectares,
                         'is_favorite': a.is_favorite,
+                        'project_indicators': a.project_indicators,
                         'created_at': a.created_at,
                     }
                     for a in areas

@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.32 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2373,84 +2373,185 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         st.divider()
         st.markdown("### Record measurements")
         st.caption(
-            "For each committed indicator, pick the band that best describes "
-            "current site condition, or enter a custom percentage (0–100)."
+            "For each committed indicator, record the **Baseline** (current "
+            "site condition) on the left and the **Target** (what you expect "
+            "the project to reach) on the right. Use a predefined band or "
+            "enter a custom percentage (0–100)."
         )
+
+        # Baseline / Target dates apply to every indicator in this assessment.
+        # day-month-year picker — full date stored in session state; the
+        # year is what gets persisted to pi_analysis_responses.*_year.
+        _today = datetime.now().date()
+        _default_target = _today.replace(year=_today.year + 5)
+        _date_col_a, _date_col_b = st.columns(2)
+        with _date_col_a:
+            _baseline_date = st.date_input(
+                "Baseline date",
+                value=st.session_state.get('pending_indicator_baseline_date', _today),
+                key='pi_pre_baseline_date',
+                format='DD/MM/YYYY',
+                help="Date the baseline measurement was taken (or will be taken).",
+            )
+            st.session_state['pending_indicator_baseline_date'] = _baseline_date
+        with _date_col_b:
+            _target_date = st.date_input(
+                "Target date",
+                value=st.session_state.get('pending_indicator_target_date', _default_target),
+                key='pi_pre_target_date',
+                format='DD/MM/YYYY',
+                help="Date by which the project intends to reach the target conditions.",
+            )
+            st.session_state['pending_indicator_target_date'] = _target_date
+
+        # Colour-coded option labels using Streamlit's `:color[text]` markdown.
+        # Order matches PRE_ANALYZE_BANDS; the visual squares give an at-a-glance
+        # red→amber→green gradient.
+        # tuple: (key, display_label, score)
+        _OPTIONS = [
+            ('none',          ':gray[— not yet answered —]',               None),
+            ('severe',        ':red[🟥 Severely degraded (10%)]',          0.10),
+            ('degraded',      ':orange[🟧 Degraded (30%)]',                0.30),
+            ('recovering',    ':orange[🟨 Recovering (50%)]',              0.50),
+            ('substantially', ':green[🟩 Substantially recovered (75%)]',  0.75),
+            ('well',          ':green[🟩 Well recovered (90%)]',           0.90),
+            ('reference',     ':green[🟩 Reference condition (100%)]',     1.00),
+            ('custom',        ':gray[Custom]',                              None),
+        ]
+        _OPT_LABELS = [lbl for _, lbl, _ in _OPTIONS]
+        _OPT_KEYS = [k for k, _, _ in _OPTIONS]
+
+        def _idx_for(score, is_custom):
+            """Return the radio index that represents a stored (score, is_custom)."""
+            if is_custom:
+                return _OPT_KEYS.index('custom')
+            if score is None:
+                return 0
+            for i, (_k, _lbl, s) in enumerate(_OPTIONS):
+                if s is not None and abs(s - score) < 1e-6:
+                    return i
+            return 0
+
+        def _state_from_choice(choice_label: str, custom_val: int):
+            """Given a chosen label + the value of its custom number input,
+            return (score|None, is_custom)."""
+            idx = _OPT_LABELS.index(choice_label)
+            key = _OPT_KEYS[idx]
+            if key == 'custom':
+                return (float(custom_val) / 100.0, True)
+            if key == 'none':
+                return (None, False)
+            return (_OPTIONS[idx][2], False)
+
+        def _label_for_score(score):
+            """Human-readable name for a score 0.0–1.0 (e.g. 0.75 → 'Substantially recovered')."""
+            for k, lbl, s in _OPTIONS:
+                if s is not None and abs(s - score) < 1e-6:
+                    # Strip the Streamlit color markdown + emoji prefix for the caption
+                    clean = lbl
+                    for prefix in (':red[', ':orange[', ':green[', ':gray['):
+                        if clean.startswith(prefix):
+                            clean = clean[len(prefix):-1]
+                            break
+                    for em in ('🟥 ', '🟧 ', '🟨 ', '🟩 '):
+                        if clean.startswith(em):
+                            clean = clean[len(em):]
+                            break
+                    # Drop the trailing percentage parenthetical
+                    if ' (' in clean:
+                        clean = clean.split(' (', 1)[0]
+                    return clean
+            return 'Custom'
+
         for ind in committed:
             slug = ind['slug']
             code = ind.get('code') or '?'
             name = ind.get('name') or slug
             entry = pending[slug]
+            # Ensure target keys exist
+            entry.setdefault('target_score', None)
+            entry.setdefault('target_is_custom', False)
+
             is_mandatory = bool(ind.get('is_mandatory'))
             with st.expander(
                 f"{code}: {name}" + ("  (Required)" if is_mandatory else ""),
-                expanded=(entry.get('score') is None),
+                expanded=(entry.get('score') is None and entry.get('target_score') is None),
             ):
-                current_score = entry.get('score')
-                radio_labels = (
-                    ['— not yet answered —']
-                    + [f"{label} ({pct}%)" for label, _, pct in PRE_ANALYZE_BANDS]
-                    + ['Custom']
-                )
-                CUSTOM_IDX = len(radio_labels) - 1
+                _base_col, _tgt_col = st.columns(2)
 
-                # Determine current selection index
-                cur_idx = 0
-                if entry.get('is_custom'):
-                    cur_idx = CUSTOM_IDX
-                elif current_score is not None:
-                    for i, (_, score, _pct) in enumerate(PRE_ANALYZE_BANDS):
-                        if abs(score - current_score) < 1e-6:
-                            cur_idx = i + 1
-                            break
-
-                # Layout: radio on the left, custom number input on the right
-                _radio_col, _custom_col = st.columns([3, 2])
-                with _radio_col:
-                    choice = st.radio(
-                        "Response",
-                        radio_labels,
-                        index=cur_idx,
-                        key=f"pi_pre_band_{slug}",
-                        horizontal=False,
+                with _base_col:
+                    st.markdown("**Baseline**")
+                    _base_idx = _idx_for(entry.get('score'), entry.get('is_custom', False))
+                    _base_choice = st.radio(
+                        "Baseline response",
+                        _OPT_LABELS,
+                        index=_base_idx,
+                        key=f"pi_pre_base_{slug}",
                         label_visibility='collapsed',
                     )
-                with _custom_col:
-                    _is_custom_now = (choice == 'Custom')
-                    _default_custom = (
+                    _base_is_custom = (_base_choice == _OPT_LABELS[-1])
+                    _base_default = (
                         int(round(entry['score'] * 100))
                         if (entry.get('is_custom') and entry.get('score') is not None)
                         else 50
                     )
-                    custom_val = st.number_input(
-                        "Custom value (%)",
+                    _base_custom_val = st.number_input(
+                        "Custom baseline (%)",
                         min_value=0, max_value=100, step=1,
-                        value=_default_custom,
-                        key=f"pi_pre_custom_input_{slug}",
-                        disabled=not _is_custom_now,
+                        value=_base_default,
+                        key=f"pi_pre_basecustom_{slug}",
+                        disabled=not _base_is_custom,
                         help="Enter 0-100. Active only when 'Custom' is selected.",
                     )
 
-                # Reconcile state from the widget values
-                if choice == 'Custom':
-                    entry['score'] = float(custom_val) / 100.0
-                    entry['is_custom'] = True
-                elif choice != radio_labels[0]:
-                    band_idx = radio_labels.index(choice) - 1
-                    _label, _score, _pct = PRE_ANALYZE_BANDS[band_idx]
-                    entry['score'] = _score
-                    entry['is_custom'] = False
-                else:
-                    # 'Not yet answered' — clear stored score
-                    entry['score'] = None
-                    entry['is_custom'] = False
-
-                if entry.get('score') is not None:
-                    pct_now = int(round(entry['score'] * 100))
-                    label_now = "Custom" if entry.get('is_custom') else next(
-                        (lbl for lbl, _, p in PRE_ANALYZE_BANDS if p == pct_now), "Custom"
+                with _tgt_col:
+                    st.markdown("**Target**")
+                    _tgt_idx = _idx_for(entry.get('target_score'), entry.get('target_is_custom', False))
+                    _tgt_choice = st.radio(
+                        "Target response",
+                        _OPT_LABELS,
+                        index=_tgt_idx,
+                        key=f"pi_pre_tgt_{slug}",
+                        label_visibility='collapsed',
                     )
-                    st.caption(f"**Current:** {pct_now}% — {label_now}")
+                    _tgt_is_custom = (_tgt_choice == _OPT_LABELS[-1])
+                    _tgt_default = (
+                        int(round(entry['target_score'] * 100))
+                        if (entry.get('target_is_custom') and entry.get('target_score') is not None)
+                        else 90
+                    )
+                    _tgt_custom_val = st.number_input(
+                        "Custom target (%)",
+                        min_value=0, max_value=100, step=1,
+                        value=_tgt_default,
+                        key=f"pi_pre_tgtcustom_{slug}",
+                        disabled=not _tgt_is_custom,
+                        help="Enter 0-100. Active only when 'Custom' is selected.",
+                    )
+
+                # Reconcile state from widgets
+                entry['score'], entry['is_custom'] = _state_from_choice(_base_choice, _base_custom_val)
+                entry['target_score'], entry['target_is_custom'] = _state_from_choice(_tgt_choice, _tgt_custom_val)
+
+                # Caption with current Baseline / Target values
+                _base_score = entry.get('score')
+                _tgt_score = entry.get('target_score')
+                if _base_score is not None or _tgt_score is not None:
+                    if _base_score is None:
+                        _base_str = '—'
+                    else:
+                        _base_pct = int(round(_base_score * 100))
+                        _base_label = ('Custom' if entry.get('is_custom')
+                                       else _label_for_score(_base_score))
+                        _base_str = f"{_base_pct}% ({_base_label})"
+                    if _tgt_score is None:
+                        _tgt_str = '—'
+                    else:
+                        _tgt_pct = int(round(_tgt_score * 100))
+                        _tgt_label = ('Custom' if entry.get('target_is_custom')
+                                      else _label_for_score(_tgt_score))
+                        _tgt_str = f"{_tgt_pct}% ({_tgt_label})"
+                    st.caption(f"**Baseline:** {_base_str} · **Target:** {_tgt_str}")
 
     # Coverage summary
     try:
@@ -2483,6 +2584,89 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         pass
 
     st.markdown("---")
+
+
+def _build_indicator_state_blob() -> dict | None:
+    """Capture the user's current indicator-multiplier configuration as a
+    JSON-serialisable dict, suitable for persisting to
+    ``saved_areas.project_indicators``. Returns ``None`` if the feature is
+    off or no responses/commitments are recorded.
+
+    The shape is intentionally future-proof — adding fields here won't break
+    existing rows because the column is JSON."""
+    pending = st.session_state.get('pending_indicator_responses') or {}
+    use_flag = bool(st.session_state.get('use_indicator_multipliers'))
+    project_eco = st.session_state.get('project_ecosystem_override')
+    baseline_date = st.session_state.get('pending_indicator_baseline_date')
+    target_date = st.session_state.get('pending_indicator_target_date')
+    if not use_flag and not pending:
+        return None
+    responses_out = {}
+    for slug, entry in (pending or {}).items():
+        if not entry:
+            continue
+        responses_out[slug] = {
+            'is_committed': bool(entry.get('is_committed')),
+            'score': entry.get('score'),
+            'is_custom': bool(entry.get('is_custom')),
+            'target_score': entry.get('target_score'),
+            'target_is_custom': bool(entry.get('target_is_custom')),
+        }
+    return {
+        'use_indicator_multipliers': use_flag,
+        'project_ecosystem_override': project_eco,
+        'baseline_date': baseline_date.isoformat() if baseline_date else None,
+        'target_date': target_date.isoformat() if target_date else None,
+        'responses': responses_out,
+    }
+
+
+def _restore_indicator_state_blob(blob: dict | None) -> None:
+    """Restore session state from a previously-persisted indicator blob.
+    Clears the relevant session keys first so an area without a blob comes
+    up with a clean indicator panel."""
+    # Always clear before restoring so loading an area that doesn't have a
+    # blob (or has a partial one) doesn't inherit state from a previous area.
+    for k in (
+        'pending_indicator_responses',
+        'pending_indicator_baseline_date',
+        'pending_indicator_target_date',
+        'pending_computed_multipliers',
+        'pending_computed_multipliers_ecotype',
+        'project_ecosystem_override',
+    ):
+        if k in st.session_state:
+            del st.session_state[k]
+    if not blob:
+        # Leave use_indicator_multipliers alone — it's a Settings toggle the
+        # user controls, not an area property.
+        return
+    if blob.get('use_indicator_multipliers'):
+        st.session_state['use_indicator_multipliers'] = True
+    if blob.get('project_ecosystem_override'):
+        st.session_state['project_ecosystem_override'] = blob['project_ecosystem_override']
+        # Also propagate to ecosystem_override so the calc routes correctly
+        if blob['project_ecosystem_override'] != 'Auto-detect':
+            st.session_state['ecosystem_override'] = blob['project_ecosystem_override']
+    try:
+        from datetime import date as _date
+        if blob.get('baseline_date'):
+            st.session_state['pending_indicator_baseline_date'] = _date.fromisoformat(blob['baseline_date'])
+        if blob.get('target_date'):
+            st.session_state['pending_indicator_target_date'] = _date.fromisoformat(blob['target_date'])
+    except Exception:
+        pass
+    if blob.get('responses'):
+        st.session_state['pending_indicator_responses'] = {
+            slug: {
+                'is_committed': bool(r.get('is_committed')),
+                'score': r.get('score'),
+                'is_custom': bool(r.get('is_custom')),
+                'target_score': r.get('target_score'),
+                'target_is_custom': bool(r.get('target_is_custom')),
+            }
+            for slug, r in (blob['responses'] or {}).items()
+        }
 
 
 def _build_indicator_multiplier_dict(ecosystem_type: str):
@@ -2961,6 +3145,7 @@ with st.sidebar:
                                     name=_save_name.strip(),
                                     coordinates=_coords,
                                     area_hectares=_ha,
+                                    project_indicators=_build_indicator_state_blob(),
                                 )
                                 if _sid:
                                     st.success(f"Saved: {_save_name.strip()}")
@@ -3140,6 +3325,11 @@ if use_load_saved_area:
                 st.session_state.cached_area_ha = area_ha
                 st.session_state.cached_bbox = calculate_bbox_optimized(selected_area_data['coordinates'])
                 st.session_state.area_coords_cache = selected_area_data['coordinates']
+
+                # Restore the saved project-indicator configuration (if any)
+                # so the user's commitments + baseline/target responses + dates
+                # come back when they reload the area.
+                _restore_indicator_state_blob(selected_area_data.get('project_indicators'))
 
                 st.session_state['_active_area_signature'] = _current_area_signature
 
