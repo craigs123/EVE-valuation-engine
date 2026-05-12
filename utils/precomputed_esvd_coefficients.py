@@ -903,23 +903,37 @@ class PrecomputedESVDCoefficients:
         # Round to 2 decimal places as displayed to user
         return round(bounded_factor, 2)
     
-    def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float, 
+    def calculate_ecosystem_values(self, ecosystem_type: str, area_hectares: float,
                                  coordinates: tuple | None = None, urban_green_blue_multiplier: float = 1.0,
-                                 ecosystem_intactness_multiplier: float = 1.0, regional_factor_override: float | None = None) -> dict:
+                                 ecosystem_intactness_multiplier: float | dict = 1.0, regional_factor_override: float | None = None) -> dict:
         """
         Calculate ecosystem service values using pre-computed coefficients with forest type detection
-        
+
         Args:
             ecosystem_type: Type of ecosystem
-            area_hectares: Area in hectares  
+            area_hectares: Area in hectares
             coordinates: Optional coordinates for regional adjustment and forest type detection
             urban_green_blue_multiplier: Multiplier for urban green/blue infrastructure (default 1.0)
-            ecosystem_intactness_multiplier: Ecosystem-specific intactness/biodiversity multiplier (default 1.0)
+            ecosystem_intactness_multiplier: Ecosystem-specific intactness/biodiversity multiplier.
+                Accepts either:
+                * a float (0.0–1.0) — applied uniformly to every sub-service (legacy BBI mode), OR
+                * a dict[str, float] — per-sub-service multipliers keyed by the
+                  calc-keyspace service name (e.g. {'food': 0.85, 'climate': 0.62, ...}).
+                  Missing keys default to 1.0. Use this mode when indicator-driven
+                  multipliers have been computed for an assessment.
+                Defaults to 1.0 (no adjustment).
             regional_factor_override: Override regional factor (use Brazil factor instead of coordinate-based)
-            
+
         Returns:
             Dictionary with calculated values by service category
         """
+        # Normalise the multiplier argument once so the inner loop is cheap
+        if isinstance(ecosystem_intactness_multiplier, dict):
+            _intactness_dict: dict | None = ecosystem_intactness_multiplier
+            _intactness_scalar: float = 1.0
+        else:
+            _intactness_dict = None
+            _intactness_scalar = float(ecosystem_intactness_multiplier)
         # Use override regional factor if provided, otherwise calculate from coordinates
         # Marine ecosystems should not get regional adjustments (international waters)
         if ecosystem_type.lower() == 'marine':
@@ -958,9 +972,15 @@ class PrecomputedESVDCoefficients:
                 # Apply urban green/blue infrastructure multiplier for Urban ecosystems (at service level)
                 if detected_ecosystem_type.lower() == 'urban':
                     value *= urban_green_blue_multiplier
-                
-                # Apply ecosystem-specific intactness/biodiversity multiplier (at service level)
-                value *= ecosystem_intactness_multiplier
+
+                # Apply ecosystem-specific intactness/biodiversity multiplier (at service level).
+                # Dict mode: per-sub-service multiplier (indicator-driven); scalar mode: uniform BBI.
+                # Dict keys MUST match the inner ``esvd_service`` (calc-keyspace), e.g. 'pollution',
+                # 'climate', 'habitat' — NOT the outer TEEB-style category-key names.
+                if _intactness_dict is not None:
+                    value *= _intactness_dict.get(esvd_service, 1.0)
+                else:
+                    value *= _intactness_scalar
                 
                 category_services[service] = value
                 category_total += value

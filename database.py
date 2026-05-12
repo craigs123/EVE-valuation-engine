@@ -102,6 +102,7 @@ class EcosystemAnalysis(Base):
     sustainability_responses = Column(JSON, nullable=True)  # Store sustainability assessment responses
     sampling_points = Column(Integer, nullable=False, default=10)
     data_source = Column(String(255), nullable=False, default='ESVD')
+    use_indicator_multipliers = Column(Boolean, nullable=False, default=False, server_default='false')
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -319,6 +320,10 @@ class AnalysisResponse(Base):
     baseline_band_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicator_bands.id'), nullable=True)
     baseline_score = Column(Float, nullable=True)
     baseline_year = Column(Integer, nullable=True)
+    # Custom user-entered percentage stored as 0.0–1.0. NULL means the user
+    # picked a predefined band (baseline_band_id/baseline_score path).
+    # Calculations read coalesce(custom_score, baseline_score).
+    custom_score = Column(Float, nullable=True)
     target_band_id = Column(UUID(as_uuid=True), ForeignKey('pi_indicator_bands.id'), nullable=True)
     target_score = Column(Float, nullable=True)
     target_year = Column(Integer, nullable=True)
@@ -332,6 +337,32 @@ class AnalysisResponse(Base):
         Index('ix_pi_analysis_responses_analysis_id', 'analysis_id'),
         Index('ix_pi_analysis_responses_unique',
               'analysis_id', 'indicator_id', 'applies_to_ecosystem', unique=True),
+    )
+
+
+class ComputedSubServiceMultiplier(Base):
+    """Materialised per-sub-service multiplier output of the indicator
+    multiplier engine. Regenerated whenever indicator responses change for
+    an assessment; never edited by users."""
+    __tablename__ = "computed_sub_service_multipliers"
+
+    computation_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    analysis_id = Column(UUID(as_uuid=True),
+                         ForeignKey('ecosystem_analyses.id', ondelete='CASCADE'),
+                         nullable=False)
+    teeb_sub_service_key = Column(String(64), nullable=False)
+    indicator_multiplier = Column(Float, nullable=True)        # weighted avg 0-1, NULL if fallback
+    contributing_indicators = Column(JSON, nullable=False)     # list[str] indicator slugs
+    contributing_response_pcts = Column(JSON, nullable=False)  # list[int] 0-100
+    contributing_weights = Column(JSON, nullable=False)        # list[float]
+    hd_multiplier = Column(Float, nullable=False, default=1.0, server_default='1.0')
+    final_multiplier = Column(Float, nullable=False)           # what gets applied
+    fallback_to_bbi = Column(Boolean, nullable=False)
+    bbi_value_used = Column(Float, nullable=True)
+    computed_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('ix_computed_msm_analysis', 'analysis_id'),
     )
 
 
@@ -1289,8 +1320,12 @@ class ProjectIndicatorDB:
     @staticmethod
     def save_commitments(analysis_id: str, project_type_slug: str,
                          committed_indicator_slugs: List[str]) -> bool:
-        """Upsert is_committed flag per indicator. Indicators not in the list are
-        marked is_committed=False but rows are kept so measurement data persists."""
+        """Upsert is_committed flag per indicator. Append-only: once an
+        indicator's row has is_committed=True it cannot be flipped back to
+        False — committing to monitor an indicator is a durable promise.
+        Indicators not in the list and not yet committed get a row with
+        is_committed=False so measurement scaffolding exists. Mandatory
+        indicators (e.g. HD) are always committed."""
         try:
             with get_db() as db:
                 pt = db.query(ProjectType).filter(ProjectType.slug == project_type_slug).first()
@@ -1304,21 +1339,24 @@ class ProjectIndicatorDB:
                 )
                 committed_set = set(committed_indicator_slugs or [])
                 for _, ind in joins:
-                    desired = (ind.slug in committed_set) or bool(ind.is_mandatory)
+                    desired_now = (ind.slug in committed_set) or bool(ind.is_mandatory)
                     existing = db.query(AnalysisResponse).filter(
                         AnalysisResponse.analysis_id == analysis_id,
                         AnalysisResponse.indicator_id == ind.id,
                         AnalysisResponse.applies_to_ecosystem.is_(None),
                     ).first()
                     if existing:
-                        existing.is_committed = desired
+                        # Append-only: do not flip True → False. Allow False → True.
+                        if existing.is_committed and not desired_now:
+                            continue
+                        existing.is_committed = desired_now
                         existing.project_type_id = pt.id
                     else:
                         db.add(AnalysisResponse(
                             analysis_id=analysis_id,
                             project_type_id=pt.id,
                             indicator_id=ind.id,
-                            is_committed=desired,
+                            is_committed=desired_now,
                         ))
                 db.commit()
                 return True
@@ -1332,8 +1370,15 @@ class ProjectIndicatorDB:
                       target_band_id: Optional[str], target_year: Optional[int],
                       applies_to_ecosystem: Optional[str],
                       followup_responses: Optional[Dict[str, Any]],
-                      notes: Optional[str]) -> Optional[str]:
-        """Upsert a measurement row for (analysis, indicator, applies_to_ecosystem)."""
+                      notes: Optional[str],
+                      custom_score: Optional[float] = None) -> Optional[str]:
+        """Upsert a measurement row for (analysis, indicator, applies_to_ecosystem).
+
+        Either a band (via ``baseline_band_id``) OR a custom percentage (via
+        ``custom_score``, range 0.0–1.0) is stored — never both. If
+        ``custom_score`` is provided, ``baseline_band_id`` and ``baseline_score``
+        are cleared. Calc code reads ``coalesce(custom_score, baseline_score)``.
+        """
         try:
             with get_db() as db:
                 pt = db.query(ProjectType).filter(ProjectType.slug == project_type_slug).first()
@@ -1341,11 +1386,16 @@ class ProjectIndicatorDB:
                 if not pt or not ind:
                     return None
 
-                baseline_score = None
-                if baseline_band_id:
-                    b = db.query(IndicatorBand).filter(IndicatorBand.id == baseline_band_id).first()
-                    if b:
-                        baseline_score = float(b.score)
+                # Mutually exclusive: custom_score wins, band fields cleared
+                if custom_score is not None:
+                    baseline_band_id = None
+                    baseline_score = None
+                else:
+                    baseline_score = None
+                    if baseline_band_id:
+                        b = db.query(IndicatorBand).filter(IndicatorBand.id == baseline_band_id).first()
+                        if b:
+                            baseline_score = float(b.score)
                 target_score = None
                 if target_band_id:
                     b = db.query(IndicatorBand).filter(IndicatorBand.id == target_band_id).first()
@@ -1366,6 +1416,7 @@ class ProjectIndicatorDB:
                     existing.target_band_id = target_band_id
                     existing.target_score = target_score
                     existing.target_year = target_year
+                    existing.custom_score = custom_score
                     existing.followup_responses = followup_responses
                     existing.notes = notes
                     db.commit()
@@ -1381,6 +1432,7 @@ class ProjectIndicatorDB:
                     target_band_id=target_band_id,
                     target_score=target_score,
                     target_year=target_year,
+                    custom_score=custom_score,
                     applies_to_ecosystem=applies_to_ecosystem,
                     followup_responses=followup_responses,
                     notes=notes,
@@ -1392,6 +1444,37 @@ class ProjectIndicatorDB:
         except Exception as e:
             logger.error(f"save_response failed: {e}")
             return None
+
+    @staticmethod
+    def get_assessment_flag(analysis_id: str) -> bool:
+        """Return EcosystemAnalysis.use_indicator_multipliers for the given
+        analysis. False if the analysis doesn't exist."""
+        try:
+            with get_db() as db:
+                row = db.query(EcosystemAnalysis).filter(
+                    EcosystemAnalysis.id == analysis_id
+                ).first()
+                return bool(row.use_indicator_multipliers) if row else False
+        except Exception as e:
+            logger.error(f"get_assessment_flag failed: {e}")
+            return False
+
+    @staticmethod
+    def set_assessment_flag(analysis_id: str, enabled: bool) -> bool:
+        """Toggle EcosystemAnalysis.use_indicator_multipliers."""
+        try:
+            with get_db() as db:
+                row = db.query(EcosystemAnalysis).filter(
+                    EcosystemAnalysis.id == analysis_id
+                ).first()
+                if not row:
+                    return False
+                row.use_indicator_multipliers = bool(enabled)
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"set_assessment_flag failed: {e}")
+            return False
 
     @staticmethod
     def get_responses(analysis_id: str) -> List[Dict]:
@@ -1412,12 +1495,20 @@ class ProjectIndicatorDB:
                         'indicator_code': ind.code,
                         'project_type_id': str(r.project_type_id) if r.project_type_id else None,
                         'is_committed': bool(r.is_committed),
+                        'is_mandatory': bool(ind.is_mandatory),
                         'baseline_band_id': str(r.baseline_band_id) if r.baseline_band_id else None,
                         'baseline_score': float(r.baseline_score) if r.baseline_score is not None else None,
                         'baseline_year': r.baseline_year,
                         'target_band_id': str(r.target_band_id) if r.target_band_id else None,
                         'target_score': float(r.target_score) if r.target_score is not None else None,
                         'target_year': r.target_year,
+                        'custom_score': float(r.custom_score) if r.custom_score is not None else None,
+                        # Convenience: effective response score (0.0–1.0), preferring custom
+                        'effective_score': (
+                            float(r.custom_score) if r.custom_score is not None
+                            else (float(r.baseline_score) if r.baseline_score is not None else None)
+                        ),
+                        'service_weights': ind.service_weights or {},
                         'applies_to_ecosystem': r.applies_to_ecosystem,
                         'followup_responses': r.followup_responses,
                         'notes': r.notes,
@@ -1426,6 +1517,74 @@ class ProjectIndicatorDB:
         except Exception as e:
             logger.error(f"get_responses failed: {e}")
             return []
+
+
+class ComputedSubServiceMultiplierDB:
+    """DAO for the materialised computed_sub_service_multipliers table.
+    Rows are produced by utils.indicator_multipliers.compute_sub_service_multipliers
+    and read by the results-page sub-service breakdown panel and the calc
+    orchestrator (to build the {calc_key: final_multiplier} dict)."""
+
+    @staticmethod
+    def get_for_analysis(analysis_id: str) -> List[Dict]:
+        """Return all computed rows for an analysis, keyed by sub-service."""
+        try:
+            with get_db() as db:
+                rows = (
+                    db.query(ComputedSubServiceMultiplier)
+                    .filter(ComputedSubServiceMultiplier.analysis_id == analysis_id)
+                    .all()
+                )
+                return [
+                    {
+                        'computation_id': str(r.computation_id),
+                        'analysis_id': str(r.analysis_id),
+                        'teeb_sub_service_key': r.teeb_sub_service_key,
+                        'indicator_multiplier': r.indicator_multiplier,
+                        'contributing_indicators': r.contributing_indicators or [],
+                        'contributing_response_pcts': r.contributing_response_pcts or [],
+                        'contributing_weights': r.contributing_weights or [],
+                        'hd_multiplier': r.hd_multiplier,
+                        'final_multiplier': r.final_multiplier,
+                        'fallback_to_bbi': bool(r.fallback_to_bbi),
+                        'bbi_value_used': r.bbi_value_used,
+                        'computed_at': r.computed_at.isoformat() if r.computed_at else None,
+                    }
+                    for r in rows
+                ]
+        except Exception as e:
+            logger.error(f"ComputedSubServiceMultiplierDB.get_for_analysis failed: {e}")
+            return []
+
+    @staticmethod
+    def replace_for_analysis(analysis_id: str, rows: List[Dict]) -> bool:
+        """Delete existing rows for this analysis and bulk-insert the new ones
+        in a single transaction. Each row dict must contain the same keys as
+        get_for_analysis (excluding computation_id and computed_at, which are
+        assigned here)."""
+        try:
+            with get_db() as db:
+                db.query(ComputedSubServiceMultiplier).filter(
+                    ComputedSubServiceMultiplier.analysis_id == analysis_id
+                ).delete(synchronize_session=False)
+                for r in rows:
+                    db.add(ComputedSubServiceMultiplier(
+                        analysis_id=analysis_id,
+                        teeb_sub_service_key=r['teeb_sub_service_key'],
+                        indicator_multiplier=r.get('indicator_multiplier'),
+                        contributing_indicators=r.get('contributing_indicators') or [],
+                        contributing_response_pcts=r.get('contributing_response_pcts') or [],
+                        contributing_weights=r.get('contributing_weights') or [],
+                        hd_multiplier=r.get('hd_multiplier', 1.0),
+                        final_multiplier=r['final_multiplier'],
+                        fallback_to_bbi=bool(r.get('fallback_to_bbi', False)),
+                        bbi_value_used=r.get('bbi_value_used'),
+                    ))
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"ComputedSubServiceMultiplierDB.replace_for_analysis failed: {e}")
+            return False
 
 
 # Initialize user session

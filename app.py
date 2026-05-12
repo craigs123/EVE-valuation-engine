@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.26 &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.27 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1882,7 +1882,7 @@ def analysis_settings_dialog():
         return [
             "Auto-detect", "Tropical Forest", "Temperate Forest", "Boreal Forest",
             "polar", "Grassland", "Wetland", "Water (ocean)", "Rivers and Lakes",
-            "Coastal", "Marine", "Agricultural", "Urban", "Desert"
+            "Coastal", "Mangroves", "Marine", "Agricultural", "Urban", "Desert"
         ]
 
     with st.container(height=600):
@@ -1901,14 +1901,18 @@ def analysis_settings_dialog():
 
         st.markdown("##### Project Indicators (optional)")
         _pi_enabled = st.checkbox(
-            "Enable project-specific indicator questions",
+            "Use project-specific indicators",
             value=st.session_state.get('project_indicators_enabled', False),
             key='dlg_project_indicators_enabled',
-            help=("Adds a project-typed questionnaire (e.g. Mangrove Restoration) to "
-                  "the results section. Captures field measurements with baseline + "
-                  "target values. Calc-neutral in v1. Off by default."),
+            help=("Replace the intactness (BBI) multiplier with answers to "
+                  "ecosystem-specific indicator questions for the sub-services "
+                  "they cover. BBI applies as a fallback for sub-services not "
+                  "covered by any indicator. v1 scope: Mangrove projects. Off "
+                  "by default."),
         )
         st.session_state.project_indicators_enabled = _pi_enabled
+        # Keep a clearer alias in session for the calc orchestrator.
+        st.session_state.use_indicator_multipliers = _pi_enabled
 
         st.divider()
 
@@ -2204,6 +2208,348 @@ def analysis_settings_dialog():
 
     if st.button("Close", use_container_width=True, key="dlg_close"):
         st.rerun()
+
+
+# ── Pre-Analyze project indicators panel ─────────────────────────────────────
+# Standardised band library — score (0.0-1.0) mapped to label + display pct
+PRE_ANALYZE_BANDS = [
+    ('Severely degraded',       0.10, 10),
+    ('Degraded',                0.30, 30),
+    ('Recovering',              0.50, 50),
+    ('Substantially recovered', 0.75, 75),
+    ('Well recovered',          0.90, 90),
+    ('Reference condition',     1.00, 100),
+]
+
+# v1 scope: only Mangrove Restoration project type is wired up
+PRE_ANALYZE_PROJECT_TYPE_SLUG = 'mangrove_restoration'
+
+
+def render_pre_analyze_indicator_panel():
+    """Render the indicator selection + response panel BEFORE the Analyze
+    button. Responses live in ``st.session_state.pending_indicator_responses``
+    keyed by indicator slug — the Analyze handler persists them once an
+    EcosystemAnalysis row exists, then runs ``compute_sub_service_multipliers``
+    and passes the result dict into ``calculate_ecosystem_values``.
+
+    No DB writes from this panel — entirely session-state driven so the user
+    can fiddle freely without creating draft rows.
+
+    Gated by ``st.session_state.use_indicator_multipliers``. v1 scope:
+    Mangrove Restoration project type only.
+    """
+    if not st.session_state.get('use_indicator_multipliers', False):
+        return
+    if not st.session_state.get('selected_area'):
+        return
+
+    try:
+        from database import ProjectIndicatorDB
+        pt = ProjectIndicatorDB.get_project_type_with_indicators(PRE_ANALYZE_PROJECT_TYPE_SLUG)
+    except Exception as _e:
+        st.warning(f"Project indicators framework unavailable: {_e}")
+        return
+    if not pt or not pt.get('indicators'):
+        st.info("No indicators seeded for the Mangrove project type.")
+        return
+
+    st.markdown("## Project Indicators (Mangrove)")
+    st.caption(
+        "Answer indicator questions below. Each indicator drives the multiplier "
+        "for the sub-services it covers. Sub-services not covered by any selected "
+        "indicator fall back to the BBI value. **HD (Human Disturbance)** is "
+        "required — its response is applied as a cross-cutting multiplier to all "
+        "indicator-driven sub-services."
+    )
+
+    # Initialize pending-responses state
+    pending = st.session_state.setdefault('pending_indicator_responses', {})
+
+    # Render order: non-HD first, HD last
+    indicators = pt['indicators']
+    non_hd = [i for i in indicators if not i.get('is_mandatory')]
+    hd = [i for i in indicators if i.get('is_mandatory')]
+    ordered = non_hd + hd
+
+    for ind in ordered:
+        slug = ind['slug']
+        code = ind.get('code') or '?'
+        name = ind.get('name') or slug
+        question = ind.get('baseline_question') or ''
+        is_mandatory = bool(ind.get('is_mandatory'))
+
+        # Default state per indicator: HD always committed
+        entry = pending.setdefault(slug, {
+            'is_committed': is_mandatory,
+            'score': None,
+            'is_custom': False,
+        })
+
+        # Card styling — amber for HD
+        if is_mandatory:
+            border = '#FB8C00'; bg = '#FFF8E1'; tag = "  <span style='color:#FB8C00; font-weight:600;'>Required</span>"
+        else:
+            border = '#90CAF9'; bg = '#F5F7FA'; tag = ""
+
+        st.markdown(
+            f"<div style='border-left:4px solid {border}; background:{bg}; "
+            f"padding:0.4rem 0.75rem; margin:0.5rem 0 0.25rem 0; border-radius:4px;'>"
+            f"<strong>{code}: {name}</strong>{tag}"
+            f"<br><span style='font-size:0.85rem; color:#444;'>{question}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        # Commitment
+        if is_mandatory:
+            entry['is_committed'] = True
+        else:
+            entry['is_committed'] = st.checkbox(
+                f"Commit to measuring {code}",
+                value=entry['is_committed'],
+                key=f"pi_pre_commit_{slug}",
+                help="Once committed, this indicator cannot be removed later "
+                     "(per project monitoring commitments).",
+            )
+
+        if entry['is_committed']:
+            # Band radio (one row of 6 + 'Not yet answered')
+            current_score = entry.get('score')
+            radio_labels = ['— not yet answered —'] + [
+                f"{label} ({pct}%)" for label, _, pct in PRE_ANALYZE_BANDS
+            ]
+            # Pick current index: 0 if unanswered or custom, else the band that matches
+            cur_idx = 0
+            if current_score is not None and not entry.get('is_custom'):
+                for i, (_, score, _pct) in enumerate(PRE_ANALYZE_BANDS):
+                    if abs(score - current_score) < 1e-6:
+                        cur_idx = i + 1
+                        break
+            choice = st.radio(
+                "Response",
+                radio_labels,
+                index=cur_idx,
+                key=f"pi_pre_band_{slug}",
+                horizontal=False,
+                label_visibility='collapsed',
+            )
+            if choice != radio_labels[0]:
+                # User picked a band
+                band_idx = radio_labels.index(choice) - 1
+                _label, _score, _pct = PRE_ANALYZE_BANDS[band_idx]
+                if entry.get('score') != _score or entry.get('is_custom'):
+                    entry['score'] = _score
+                    entry['is_custom'] = False
+            # Custom value
+            with st.expander("Custom value (0-100%)", expanded=bool(entry.get('is_custom'))):
+                default_pct = 50
+                if entry.get('is_custom') and entry.get('score') is not None:
+                    default_pct = int(round(entry['score'] * 100))
+                custom_val = st.number_input(
+                    "Percentage",
+                    min_value=0, max_value=100, step=1,
+                    value=default_pct,
+                    key=f"pi_pre_custom_input_{slug}",
+                    label_visibility='collapsed',
+                )
+                if st.button("Apply custom value", key=f"pi_pre_custom_apply_{slug}"):
+                    entry['score'] = float(custom_val) / 100.0
+                    entry['is_custom'] = True
+                    st.rerun()
+            # Show current answer
+            if entry.get('score') is not None:
+                pct_now = int(round(entry['score'] * 100))
+                label_now = "Custom" if entry.get('is_custom') else next(
+                    (lbl for lbl, _, p in PRE_ANALYZE_BANDS if p == pct_now), "Custom"
+                )
+                st.caption(f"**Current:** {pct_now}% — {label_now}")
+
+    # Coverage summary
+    try:
+        from utils.teeb_slug_map import TEEB_TO_CALC_KEY, HD_RELATIONSHIP, WEIGHT_LOOKUP
+        from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+        all_keys = list(
+            PrecomputedESVDCoefficients().get_ecosystem_coefficients('Mangroves').keys()
+        )
+        covered = set()
+        for ind in non_hd:
+            slug = ind['slug']
+            entry = pending.get(slug) or {}
+            if not entry.get('is_committed') or entry.get('score') is None:
+                continue
+            sw = ind.get('service_weights') or {}
+            for t, rel in sw.items():
+                if rel == HD_RELATIONSHIP or rel not in WEIGHT_LOOKUP:
+                    continue
+                calc_key = TEEB_TO_CALC_KEY.get(t)
+                if calc_key:
+                    covered.add(calc_key)
+        n_total = len(all_keys)
+        n_covered = sum(1 for k in all_keys if k in covered)
+        n_fallback = n_total - n_covered
+        st.info(
+            f"**Coverage:** {n_covered} of {n_total} sub-services covered by "
+            f"indicators · BBI fallback applies to {n_fallback}"
+        )
+    except Exception:
+        pass
+
+    st.markdown("---")
+
+
+def _build_indicator_multiplier_dict(ecosystem_type: str):
+    """Compute {calc_key: final_multiplier} from pending session-state
+    indicator responses, for use by the calc engine. Returns ``None`` if
+    the feature is disabled, the ecosystem isn't covered by a wired project
+    type (v1: only Mangroves), or no project-indicator framework is seeded.
+
+    Side-effect: stashes the per-sub-service rows in
+    ``st.session_state.pending_computed_multipliers`` so the post-Analyze
+    persistence step can write them to ``computed_sub_service_multipliers``.
+    """
+    if not st.session_state.get('use_indicator_multipliers'):
+        return None
+    # v1 scope: only Mangrove ecosystem is wired to the Mangrove project type.
+    if ecosystem_type.lower() not in ('mangroves', 'mangrove'):
+        return None
+    try:
+        from database import ProjectIndicatorDB
+        from utils.indicator_multipliers import _compute_pure
+        from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+    except ImportError:
+        return None
+
+    pt = ProjectIndicatorDB.get_project_type_with_indicators(PRE_ANALYZE_PROJECT_TYPE_SLUG)
+    if not pt or not pt.get('indicators'):
+        return None
+
+    pending = st.session_state.get('pending_indicator_responses') or {}
+    hd_slug = None
+    responses = []
+    for ind in pt['indicators']:
+        slug = ind['slug']
+        is_mand = bool(ind.get('is_mandatory'))
+        if is_mand:
+            hd_slug = slug
+        entry = pending.get(slug) or {}
+        responses.append({
+            'indicator_slug': slug,
+            'is_committed': bool(entry.get('is_committed') or is_mand),
+            'is_mandatory': is_mand,
+            'effective_score': entry.get('score'),
+            'service_weights': ind.get('service_weights') or {},
+        })
+
+    coeffs = PrecomputedESVDCoefficients()
+    eco_dict = coeffs.get_ecosystem_coefficients(ecosystem_type) or {}
+    if not eco_dict:
+        return None
+    sub_keys = list(eco_dict.keys())
+
+    ei = st.session_state.get('ecosystem_intactness', {})
+    bbi = _get_ecosystem_intactness_multiplier(ecosystem_type, ei)
+
+    rows = _compute_pure(
+        sub_service_keys=sub_keys,
+        indicator_responses=responses,
+        hd_indicator_slug=hd_slug,
+        bbi=bbi,
+    )
+    # Stash for post-Analyze persistence (Task 15 second half)
+    st.session_state['pending_computed_multipliers'] = rows
+    st.session_state['pending_computed_multipliers_ecotype'] = ecosystem_type
+    return {r['teeb_sub_service_key']: r['final_multiplier'] for r in rows}
+
+
+def _persist_pre_analyze_indicators(analysis_id: str) -> None:
+    """After save_analysis() succeeds and we have an analysis_id, persist
+    the pre-Analyze indicator state to the DB:
+      1. Flip use_indicator_multipliers=True on the assessment row.
+      2. Save commitments + per-indicator responses to pi_analysis_responses.
+      3. Write the pre-computed multiplier rows to
+         computed_sub_service_multipliers (so the breakdown panel and any
+         later recompute can reuse them).
+    Silent on errors — this is a best-effort write that must never break
+    a successful analysis."""
+    try:
+        from database import (
+            ProjectIndicatorDB,
+            ComputedSubServiceMultiplierDB,
+        )
+    except ImportError:
+        return
+    pending = st.session_state.get('pending_indicator_responses') or {}
+    if not st.session_state.get('use_indicator_multipliers') or not pending:
+        return
+
+    try:
+        ProjectIndicatorDB.set_assessment_flag(analysis_id, True)
+        # Commitments
+        committed_slugs = [s for s, e in pending.items()
+                           if bool((e or {}).get('is_committed'))]
+        ProjectIndicatorDB.save_commitments(
+            analysis_id,
+            PRE_ANALYZE_PROJECT_TYPE_SLUG,
+            committed_slugs,
+        )
+        # Per-indicator responses
+        for slug, entry in pending.items():
+            entry = entry or {}
+            if not entry.get('is_committed'):
+                continue
+            score = entry.get('score')
+            if score is None:
+                continue
+            is_custom = bool(entry.get('is_custom'))
+            if is_custom:
+                ProjectIndicatorDB.save_response(
+                    analysis_id=analysis_id,
+                    project_type_slug=PRE_ANALYZE_PROJECT_TYPE_SLUG,
+                    indicator_slug=slug,
+                    baseline_band_id=None,
+                    baseline_year=None,
+                    target_band_id=None,
+                    target_year=None,
+                    applies_to_ecosystem=None,
+                    followup_responses=None,
+                    notes=None,
+                    custom_score=float(score),
+                )
+            else:
+                # Match a band by score
+                from database import ProjectType, IndicatorBand, Indicator, get_db
+                band_id = None
+                try:
+                    with get_db() as db:
+                        ind_row = db.query(Indicator).filter(Indicator.slug == slug).first()
+                        if ind_row is not None:
+                            band = (db.query(IndicatorBand)
+                                    .filter(IndicatorBand.indicator_id == ind_row.id)
+                                    .order_by(IndicatorBand.sort_order).all())
+                            for b in band:
+                                if abs(float(b.score) - float(score)) < 1e-6:
+                                    band_id = str(b.id)
+                                    break
+                except Exception:
+                    band_id = None
+                ProjectIndicatorDB.save_response(
+                    analysis_id=analysis_id,
+                    project_type_slug=PRE_ANALYZE_PROJECT_TYPE_SLUG,
+                    indicator_slug=slug,
+                    baseline_band_id=band_id,
+                    baseline_year=None,
+                    target_band_id=None,
+                    target_year=None,
+                    applies_to_ecosystem=None,
+                    followup_responses=None,
+                    notes=None,
+                )
+        # Computed multiplier rows
+        rows = st.session_state.get('pending_computed_multipliers')
+        if rows:
+            ComputedSubServiceMultiplierDB.replace_for_analysis(analysis_id, rows)
+    except Exception as _e:
+        logger.warning(f"Pre-analyze indicator persistence failed (non-fatal): {_e}")
 
 
 # ── Project Indicators section (optional, gated by Settings toggle) ──────────
@@ -3351,6 +3697,9 @@ with col3_map:
         </div>
         """, unsafe_allow_html=True)
 
+# ── Pre-Analyze indicator panel (gated by Settings toggle) ───────────────────
+render_pre_analyze_indicator_panel()
+
 # Legacy results section — disabled; display handled by the calculation_ready block below
 if False and st.session_state.get('analysis_results'):
     st.markdown('<h2 class="section-header">Step 3: Results</h2>', unsafe_allow_html=True)
@@ -4147,11 +4496,12 @@ if analyze_button and st.session_state.selected_area:
                 override_mapping = {
                     "Agricultural": "agricultural",
                     "Temperate Forest": "temperate_forest",
-                    "Tropical Forest": "tropical_forest", 
+                    "Tropical Forest": "tropical_forest",
                     "Boreal Forest": "boreal_forest",
                     "Grassland": "grassland",
                     "Wetland": "wetland",
                     "Coastal": "coastal",
+                    "Mangroves": "mangroves",
                     "Marine": "marine",
                     "Desert": "desert",
                     "Urban": "urban",
@@ -4213,16 +4563,21 @@ if analyze_button and st.session_state.selected_area:
                     else:
                         urban_multiplier = 1.0  # Default for non-urban ecosystems
                     
-                    # Get ecosystem-specific intactness multiplier
+                    # Intactness multiplier: indicator-driven dict (when pre-Analyze
+                    # responses exist for this ecosystem) or uniform BBI scalar.
                     ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                    intactness_multiplier = _get_ecosystem_intactness_multiplier(eco_type, ecosystem_intactness)
-                    
+                    _ind_dict = _build_indicator_multiplier_dict(eco_type)
+                    if _ind_dict is not None:
+                        intactness_arg = _ind_dict
+                    else:
+                        intactness_arg = _get_ecosystem_intactness_multiplier(eco_type, ecosystem_intactness)
+
                     eco_result = coeffs.calculate_ecosystem_values(
                         ecosystem_type=eco_type,
                         area_hectares=eco_area,
                         coordinates=(center_lat, center_lon),
                         urban_green_blue_multiplier=urban_multiplier,
-                        ecosystem_intactness_multiplier=intactness_multiplier
+                        ecosystem_intactness_multiplier=intactness_arg
                     )
                     
                     # Both urban green/blue and ecosystem intactness multipliers now applied at service level in ESVD calculation
@@ -4295,16 +4650,21 @@ if analyze_button and st.session_state.selected_area:
                 else:
                     urban_multiplier = 1.0  # Default for non-urban ecosystems
                 
-                # Get ecosystem-specific intactness multiplier
+                # Intactness multiplier: indicator-driven dict (when pre-Analyze
+                # responses exist for this ecosystem) or uniform BBI scalar.
                 ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                intactness_multiplier = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
-                
+                _ind_dict = _build_indicator_multiplier_dict(ecosystem_type)
+                if _ind_dict is not None:
+                    intactness_arg = _ind_dict
+                else:
+                    intactness_arg = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
+
                 esvd_results = coeffs.calculate_ecosystem_values(
                     ecosystem_type=ecosystem_type,
                     area_hectares=area_ha,
                     coordinates=(center_lat, center_lon),
                     urban_green_blue_multiplier=urban_multiplier,
-                    ecosystem_intactness_multiplier=intactness_multiplier
+                    ecosystem_intactness_multiplier=intactness_arg
                 )
                 
                 
@@ -4385,6 +4745,9 @@ if analyze_button and st.session_state.selected_area:
                         )
                         if _saved_id:
                             st.session_state['last_saved_analysis_id'] = _saved_id
+                            # Persist indicator commitments + responses + computed
+                            # multipliers for this assessment (no-op if feature off).
+                            _persist_pre_analyze_indicators(_saved_id)
                 except Exception as _save_err:
                     logger.warning(f"Auto-save analysis failed: {_save_err}")
 
@@ -4649,6 +5012,65 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     height=400,
                 )
                 st.plotly_chart(fig, use_container_width=True)
+
+            # ── Sub-service breakdown panel (indicator-multiplier mode) ──
+            _msm_rows = st.session_state.get('pending_computed_multipliers')
+            if _msm_rows and st.session_state.get('use_indicator_multipliers'):
+                with st.expander("Sub-service value breakdown (indicator-driven)", expanded=True):
+                    import pandas as pd
+                    # Coefficient lookup for this ecosystem
+                    try:
+                        from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+                        _eco_for_breakdown = st.session_state.get('pending_computed_multipliers_ecotype') or 'Mangroves'
+                        _coeffs_for_breakdown = PrecomputedESVDCoefficients().get_ecosystem_coefficients(_eco_for_breakdown) or {}
+                    except Exception:
+                        _coeffs_for_breakdown = {}
+                    _area_for_breakdown = (
+                        st.session_state.get('cached_area_ha')
+                        or st.session_state.get('analysis_results', {}).get('area_hectares')
+                        or 1.0
+                    )
+                    _regional_for_breakdown = (
+                        st.session_state.get('analysis_results', {})
+                        .get('metadata', {}).get('regional_adjustment', 1.0)
+                    )
+                    _table_rows = []
+                    _hd_mult_seen = None
+                    _n_covered = 0
+                    _n_fallback = 0
+                    for r in _msm_rows:
+                        s = r['teeb_sub_service_key']
+                        coeff = float(_coeffs_for_breakdown.get(s, 0.0))
+                        mult = float(r['final_multiplier'])
+                        contribution = coeff * mult * float(_area_for_breakdown) * float(_regional_for_breakdown)
+                        is_fallback = bool(r.get('fallback_to_bbi'))
+                        source = 'BBI' if is_fallback else 'indicator'
+                        if is_fallback:
+                            _n_fallback += 1
+                        else:
+                            _n_covered += 1
+                            if _hd_mult_seen is None:
+                                _hd_mult_seen = r.get('hd_multiplier')
+                        _table_rows.append({
+                            'Sub-service': s.replace('_', ' ').title(),
+                            'Coefficient ($/ha/yr)': f"{coeff:,.0f}",
+                            'Multiplier': f"{mult:.3f}",
+                            'Source': source,
+                            'Contribution ($/yr)': f"{contribution:,.0f}",
+                        })
+                    if _table_rows:
+                        st.dataframe(
+                            pd.DataFrame(_table_rows),
+                            hide_index=True,
+                            use_container_width=True,
+                        )
+                        _hd_pct = int(round((_hd_mult_seen or 1.0) * 100))
+                        st.caption(
+                            f"**HD multiplier applied:** {(_hd_mult_seen or 1.0):.2f} "
+                            f"(Human Disturbance response: {_hd_pct}%) · "
+                            f"**Sub-services covered by indicators:** {_n_covered} of {_n_covered + _n_fallback} · "
+                            f"**BBI fallback:** {_n_fallback}"
+                        )
 
             with st.expander("Service-by-service breakdown"):
                 for category in categories:
@@ -4953,6 +5375,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             'Grassland': 'grassland',
             'Agricultural': 'agricultural',
             'Coastal': 'coastal',
+            'Mangroves': 'mangroves',
             'Shrubland': 'shrubland',
             'Desert': 'desert',
             'Urban': 'urban',

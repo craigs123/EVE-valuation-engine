@@ -25,6 +25,7 @@ TEST_CASES = [
     ("Marine (Ocean)",               "Marine",          1000,      1.0,  1.0, 1.0,  71_987_000),
     ("Rivers and Lakes (Victoria)",  "Rivers and Lakes",1000,      0.44, 1.0, 1.0,  98_805_960),
     ("Coastal (Italy)",              "Coastal",         1000,      2.1,  1.0, 1.0,  157_909_500),
+    ("Mangrove (Sundarbans, India)", "Mangroves",       1000,      0.51, 1.0, 1.0,  15_764_610),
 ]
 
 def run_mixed_test():

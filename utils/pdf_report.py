@@ -363,6 +363,14 @@ def generate_pdf_report(
         'Past reports may differ from current values if data sources have been updated.</i>',
         caption,
     ))
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(Paragraph(
+        "Brander, L.M. de Groot, R, Guisado Goñi, V., van 't Hoff, V., Schägner, P., "
+        "Solomonides, S., McVittie, A., Eppink, F., Sposato, M., Do, L., Ghermandi, A., "
+        "and Sinclair, M. (2025). <i>Ecosystem Services Valuation Database (ESVD)</i>. "
+        "Foundation for Sustainable Development and Brander Environmental Economics.",
+        caption,
+    ))
     story.append(Spacer(1, 0.5 * cm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=GREY, spaceAfter=4))
 
