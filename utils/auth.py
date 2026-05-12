@@ -142,7 +142,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.27 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.28 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -222,7 +222,6 @@ def _render_auth_ui():
             reg_password = st.text_input("Password *", type="password", key="reg_password",
                                          help="At least 8 characters")
             reg_confirm = st.text_input("Confirm password *", type="password", key="reg_confirm")
-            st.caption("* All fields are required.")
             st.markdown("</div>", unsafe_allow_html=True)
 
             if st.button("Create account", type="primary", use_container_width=True, key="reg_btn"):
@@ -260,13 +259,23 @@ def _render_auth_ui():
                     except Exception as exc:
                         st.error(f"Registration failed: {exc}")
 
+            # Helper note for the form — placed below the button, right-justified,
+            # so it doesn't add height to the form itself.
+            st.markdown(
+                "<div style='text-align:right; color:#6B7280; "
+                "font-size:0.78rem; margin-top:0.25rem;'>"
+                "* All fields are required."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
         # Brand attribution sits inside the column so it stays narrow and
         # centred just below whichever tab's submit button is currently shown
         # (Forgot password on Sign In, Create account on Create Account).
         st.markdown(
-            """<div style='text-align:center; padding:1.25rem 0 0 0;'>
+            """<div style='text-align:center; padding:0.4rem 0 0 0;'>
                 <a href='https://www.greenandgreyassociates.com' target='_blank'
-                   style='display:inline-block; margin-bottom:0.4rem;'>
+                   style='display:inline-block; margin-bottom:0.2rem;'>
                     <img src='/app/static/greengrey-logo.png'
                          alt='Green & Grey Associates'
                          style='height:80px; width:auto; opacity:0.85;' />

@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.27 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.28 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1958,24 +1958,30 @@ def analysis_settings_dialog():
             )
 
         _all_on = all(st.session_state.get(k, False) for k in _ind_state_keys)
-        st.checkbox(
-            "**Show all**",
-            value=_all_on,
-            key="dlg_show_all_indicators",
-            on_change=_toggle_all_indicators,
-            help="Toggle every environmental indicator on or off at once.",
-        )
-        for (short, label, help_text), state_key, widget_key in zip(
-            _indicator_specs, _ind_state_keys, _ind_widget_keys
-        ):
+        _ei_col1, _ei_col2, _ei_col3 = st.columns(3)
+        with _ei_col1:
             st.checkbox(
-                label,
-                value=st.session_state.get(state_key, False),
-                key=widget_key,
-                on_change=_toggle_one_indicator,
-                args=(state_key, widget_key),
-                help=help_text,
+                "**Show all**",
+                value=_all_on,
+                key="dlg_show_all_indicators",
+                on_change=_toggle_all_indicators,
+                help="Toggle every environmental indicator on or off at once.",
             )
+        # Six indicators split across the right two columns (three each)
+        _ei_specs_zipped = list(zip(_indicator_specs, _ind_state_keys, _ind_widget_keys))
+        _half = (len(_ei_specs_zipped) + 1) // 2  # ceil-divide so col2 gets the extra if odd
+        for _col, _group in ((_ei_col2, _ei_specs_zipped[:_half]),
+                             (_ei_col3, _ei_specs_zipped[_half:])):
+            with _col:
+                for (short, label, help_text), state_key, widget_key in _group:
+                    st.checkbox(
+                        label,
+                        value=st.session_state.get(state_key, False),
+                        key=widget_key,
+                        on_change=_toggle_one_indicator,
+                        args=(state_key, widget_key),
+                        help=help_text,
+                    )
 
         st.divider()
 
