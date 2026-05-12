@@ -142,7 +142,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.30 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.31 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -178,6 +178,7 @@ def _render_auth_ui():
                 with st.form("login_form"):
                     email = st.text_input("Email", key="login_email", placeholder="you@example.com")
                     password = st.text_input("Password", type="password", key="login_password")
+                    st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
                     submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
 
                 if submitted:

@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.30 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.31 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2273,11 +2273,9 @@ def render_pre_analyze_indicator_panel():
 
     st.markdown("## Project Indicators (Mangrove)")
     st.caption(
-        "Answer indicator questions below. Each indicator drives the multiplier "
-        "for the sub-services it covers. Sub-services not covered by any selected "
-        "indicator fall back to the BBI value. **HD (Human Disturbance)** is "
-        "required — its response is applied as a cross-cutting multiplier to all "
-        "indicator-driven sub-services."
+        "Commit to measuring and monitoring progress on as many indicators as "
+        "possible to improve the accuracy of the ecosystem valuation. Select "
+        "the checkbox next to those indicators that you can commit to measuring."
     )
 
     # Initialize pending-responses state
@@ -2289,98 +2287,145 @@ def render_pre_analyze_indicator_panel():
     hd = [i for i in indicators if i.get('is_mandatory')]
     ordered = non_hd + hd
 
+    # Initialise pending entries for every indicator (HD pre-committed)
+    for ind in ordered:
+        slug = ind['slug']
+        pending.setdefault(slug, {
+            'is_committed': bool(ind.get('is_mandatory')),
+            'score': None,
+            'is_custom': False,
+        })
+
+    # ── Selection table: Indicator | Commit to tracking ────────────────
+    _hdr_l, _hdr_r = st.columns([7, 2])
+    with _hdr_l:
+        st.markdown("**Indicator**")
+    with _hdr_r:
+        st.markdown("**Commit to tracking**")
+    st.divider()
+
     for ind in ordered:
         slug = ind['slug']
         code = ind.get('code') or '?'
         name = ind.get('name') or slug
         question = ind.get('baseline_question') or ''
         is_mandatory = bool(ind.get('is_mandatory'))
+        entry = pending[slug]
 
-        # Default state per indicator: HD always committed
-        entry = pending.setdefault(slug, {
-            'is_committed': is_mandatory,
-            'score': None,
-            'is_custom': False,
-        })
-
-        # Card styling — amber for HD
-        if is_mandatory:
-            border = '#FB8C00'; bg = '#FFF8E1'; tag = "  <span style='color:#FB8C00; font-weight:600;'>Required</span>"
-        else:
-            border = '#90CAF9'; bg = '#F5F7FA'; tag = ""
-
-        st.markdown(
-            f"<div style='border-left:4px solid {border}; background:{bg}; "
-            f"padding:0.4rem 0.75rem; margin:0.5rem 0 0.25rem 0; border-radius:4px;'>"
-            f"<strong>{code}: {name}</strong>{tag}"
-            f"<br><span style='font-size:0.85rem; color:#444;'>{question}</span>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-        # Commitment
-        if is_mandatory:
-            entry['is_committed'] = True
-        else:
-            entry['is_committed'] = st.checkbox(
-                f"Commit to measuring {code}",
-                value=entry['is_committed'],
-                key=f"pi_pre_commit_{slug}",
-                help="Once committed, this indicator cannot be removed later "
-                     "(per project monitoring commitments).",
+        _row_l, _row_r = st.columns([7, 2])
+        with _row_l:
+            _is_recommended = bool(ind.get('is_recommended'))
+            _badges = ""
+            if is_mandatory:
+                _badges += " <span style='color:#FB8C00; font-weight:600; font-size:0.85rem;'>Required</span>"
+            elif _is_recommended:
+                _badges += " <span style='color:#2E7D32; font-weight:600; font-size:0.85rem;'>Recommended</span>"
+            st.markdown(
+                f"**{code}: {name}**{_badges}",
+                unsafe_allow_html=True,
             )
-
-        if entry['is_committed']:
-            # Band radio (one row of 6 + 'Not yet answered')
-            current_score = entry.get('score')
-            radio_labels = ['— not yet answered —'] + [
-                f"{label} ({pct}%)" for label, _, pct in PRE_ANALYZE_BANDS
-            ]
-            # Pick current index: 0 if unanswered or custom, else the band that matches
-            cur_idx = 0
-            if current_score is not None and not entry.get('is_custom'):
-                for i, (_, score, _pct) in enumerate(PRE_ANALYZE_BANDS):
-                    if abs(score - current_score) < 1e-6:
-                        cur_idx = i + 1
-                        break
-            choice = st.radio(
-                "Response",
-                radio_labels,
-                index=cur_idx,
-                key=f"pi_pre_band_{slug}",
-                horizontal=False,
-                label_visibility='collapsed',
-            )
-            if choice != radio_labels[0]:
-                # User picked a band
-                band_idx = radio_labels.index(choice) - 1
-                _label, _score, _pct = PRE_ANALYZE_BANDS[band_idx]
-                if entry.get('score') != _score or entry.get('is_custom'):
-                    entry['score'] = _score
-                    entry['is_custom'] = False
-            # Custom value
-            with st.expander("Custom value (0-100%)", expanded=bool(entry.get('is_custom'))):
-                default_pct = 50
-                if entry.get('is_custom') and entry.get('score') is not None:
-                    default_pct = int(round(entry['score'] * 100))
-                custom_val = st.number_input(
-                    "Percentage",
-                    min_value=0, max_value=100, step=1,
-                    value=default_pct,
-                    key=f"pi_pre_custom_input_{slug}",
-                    label_visibility='collapsed',
+            st.caption(question)
+        with _row_r:
+            if is_mandatory:
+                entry['is_committed'] = True
+                st.markdown(
+                    "<div style='padding-top:0.4rem; color:#FB8C00; font-weight:600;'>✓</div>",
+                    unsafe_allow_html=True,
                 )
-                if st.button("Apply custom value", key=f"pi_pre_custom_apply_{slug}"):
+            else:
+                entry['is_committed'] = st.checkbox(
+                    f"Commit to measuring {code}",
+                    value=entry['is_committed'],
+                    key=f"pi_pre_commit_{slug}",
+                    label_visibility='collapsed',
+                    help="Once committed, this indicator cannot be removed later "
+                         "(per project monitoring commitments).",
+                )
+
+    # ── Response panel for committed indicators ────────────────────────
+    committed = [ind for ind in ordered if pending[ind['slug']]['is_committed']]
+    if committed:
+        st.divider()
+        st.markdown("### Record measurements")
+        st.caption(
+            "For each committed indicator, pick the band that best describes "
+            "current site condition, or enter a custom percentage (0–100)."
+        )
+        for ind in committed:
+            slug = ind['slug']
+            code = ind.get('code') or '?'
+            name = ind.get('name') or slug
+            entry = pending[slug]
+            is_mandatory = bool(ind.get('is_mandatory'))
+            with st.expander(
+                f"{code}: {name}" + ("  (Required)" if is_mandatory else ""),
+                expanded=(entry.get('score') is None),
+            ):
+                current_score = entry.get('score')
+                radio_labels = (
+                    ['— not yet answered —']
+                    + [f"{label} ({pct}%)" for label, _, pct in PRE_ANALYZE_BANDS]
+                    + ['Custom']
+                )
+                CUSTOM_IDX = len(radio_labels) - 1
+
+                # Determine current selection index
+                cur_idx = 0
+                if entry.get('is_custom'):
+                    cur_idx = CUSTOM_IDX
+                elif current_score is not None:
+                    for i, (_, score, _pct) in enumerate(PRE_ANALYZE_BANDS):
+                        if abs(score - current_score) < 1e-6:
+                            cur_idx = i + 1
+                            break
+
+                # Layout: radio on the left, custom number input on the right
+                _radio_col, _custom_col = st.columns([3, 2])
+                with _radio_col:
+                    choice = st.radio(
+                        "Response",
+                        radio_labels,
+                        index=cur_idx,
+                        key=f"pi_pre_band_{slug}",
+                        horizontal=False,
+                        label_visibility='collapsed',
+                    )
+                with _custom_col:
+                    _is_custom_now = (choice == 'Custom')
+                    _default_custom = (
+                        int(round(entry['score'] * 100))
+                        if (entry.get('is_custom') and entry.get('score') is not None)
+                        else 50
+                    )
+                    custom_val = st.number_input(
+                        "Custom value (%)",
+                        min_value=0, max_value=100, step=1,
+                        value=_default_custom,
+                        key=f"pi_pre_custom_input_{slug}",
+                        disabled=not _is_custom_now,
+                        help="Enter 0-100. Active only when 'Custom' is selected.",
+                    )
+
+                # Reconcile state from the widget values
+                if choice == 'Custom':
                     entry['score'] = float(custom_val) / 100.0
                     entry['is_custom'] = True
-                    st.rerun()
-            # Show current answer
-            if entry.get('score') is not None:
-                pct_now = int(round(entry['score'] * 100))
-                label_now = "Custom" if entry.get('is_custom') else next(
-                    (lbl for lbl, _, p in PRE_ANALYZE_BANDS if p == pct_now), "Custom"
-                )
-                st.caption(f"**Current:** {pct_now}% — {label_now}")
+                elif choice != radio_labels[0]:
+                    band_idx = radio_labels.index(choice) - 1
+                    _label, _score, _pct = PRE_ANALYZE_BANDS[band_idx]
+                    entry['score'] = _score
+                    entry['is_custom'] = False
+                else:
+                    # 'Not yet answered' — clear stored score
+                    entry['score'] = None
+                    entry['is_custom'] = False
+
+                if entry.get('score') is not None:
+                    pct_now = int(round(entry['score'] * 100))
+                    label_now = "Custom" if entry.get('is_custom') else next(
+                        (lbl for lbl, _, p in PRE_ANALYZE_BANDS if p == pct_now), "Custom"
+                    )
+                    st.caption(f"**Current:** {pct_now}% — {label_now}")
 
     # Coverage summary
     try:
