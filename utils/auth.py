@@ -142,7 +142,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.5.31 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.5.32 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -187,6 +187,13 @@ def _render_auth_ui():
                     else:
                         user, err = UserDB.login(email.strip(), password)
                         if user:
+                            # Wipe any stale session state (map selection,
+                            # analysis results, settings overrides, indicator
+                            # responses, etc.) so the user starts fresh on
+                            # every sign-in. The post-rerun render of the
+                            # main app re-initialises its defaults.
+                            for _k in list(st.session_state.keys()):
+                                del st.session_state[_k]
                             st.session_state['auth_user'] = user
                             st.rerun()
                         elif err == 'pending_verification':

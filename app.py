@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.31 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.32 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2276,6 +2276,31 @@ def render_pre_analyze_indicator_panel():
         "Commit to measuring and monitoring progress on as many indicators as "
         "possible to improve the accuracy of the ecosystem valuation. Select "
         "the checkbox next to those indicators that you can commit to measuring."
+    )
+
+    # Make the 'Commit to tracking' checkboxes more visible — the default
+    # Streamlit checkbox renders with a faint grey outline that's easy to miss.
+    # Bump the border to a 2px green stroke on the unchecked box and bold-green
+    # fill when checked. Scoped to the pi_pre_commit_* widget keys so other
+    # checkboxes elsewhere are untouched.
+    st.markdown(
+        """
+<style>
+div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > span:first-child {
+    border: 2px solid #2E7D32 !important;
+    background-color: #FFFFFF !important;
+    width: 22px !important;
+    height: 22px !important;
+}
+div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > span:first-child[aria-checked='true'],
+div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] input:checked + div,
+div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:first-child[data-checked='true'] {
+    background-color: #2E7D32 !important;
+    border-color: #2E7D32 !important;
+}
+</style>
+""",
+        unsafe_allow_html=True,
     )
 
     # Initialize pending-responses state
@@ -3736,7 +3761,18 @@ with col3_map:
 
         if 'analysis_detail' not in st.session_state:
             st.session_state.analysis_detail = 'Summary Analysis'
-        if st.button('Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
+        # When project-specific indicators are on AND a project ecosystem has
+        # been chosen, the Calculate button is rendered below the indicator
+        # panel instead — see the block after render_pre_analyze_indicator_panel().
+        _button_lives_below = (
+            st.session_state.get('use_indicator_multipliers', False)
+            and st.session_state.get('project_ecosystem_override', 'Auto-detect') != 'Auto-detect'
+        )
+        if _button_lives_below:
+            st.caption("Answer indicator questions below, then click "
+                       "**Calculate Ecosystem Value**.")
+            analyze_button = st.session_state.get('analysis_in_progress', False)
+        elif st.button('Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
             analyze_button = True
             st.session_state.analysis_in_progress = True
             for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
@@ -3792,6 +3828,36 @@ if (
         st.session_state.ecosystem_override = _choice
 
 render_pre_analyze_indicator_panel()
+
+# When project-specific indicators are on, the Calculate button lives here —
+# below the dropdown and indicator questions — so users finalise their
+# responses before running the calculation. Re-running is supported: change
+# any answer and click again, and the analysis re-runs with the new responses.
+if (
+    st.session_state.get('use_indicator_multipliers', False)
+    and st.session_state.get('selected_area')
+    and st.session_state.get('project_ecosystem_override', 'Auto-detect') != 'Auto-detect'
+):
+    _calc_btn_label = (
+        'Re-calculate with updated indicators'
+        if st.session_state.get('calculation_ready')
+        else 'Calculate Ecosystem Value'
+    )
+    if st.button(_calc_btn_label, type='primary', use_container_width=True,
+                 key='calc_below_indicator_panel',
+                 help='Run (or re-run) the analysis using the current indicator responses'):
+        st.session_state.analysis_in_progress = True
+        for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
+            if _stale in st.session_state:
+                del st.session_state[_stale]
+        if 'sampling_point_data' in st.session_state:
+            for point_data in st.session_state.sampling_point_data.values():
+                if 'user_classified' in point_data:
+                    del point_data['user_classified']
+                if point_data.get('landcover_class') == 210:
+                    if 'ecosystem_type' in point_data:
+                        del point_data['ecosystem_type']
+        st.rerun()
 
 # Legacy results section — disabled; display handled by the calculation_ready block below
 if False and st.session_state.get('analysis_results'):
@@ -5127,6 +5193,28 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         st.session_state.get('analysis_results', {})
                         .get('metadata', {}).get('regional_adjustment', 1.0)
                     )
+                    # Build slug → display-code lookup (M1, M2, …) for header labels
+                    try:
+                        from database import ProjectIndicatorDB
+                        _pt_for_breakdown = ProjectIndicatorDB.get_project_type_with_indicators(
+                            'mangrove_restoration'
+                        )
+                        _slug_to_code = {
+                            i['slug']: (i.get('code') or i['slug'])
+                            for i in (_pt_for_breakdown['indicators'] if _pt_for_breakdown else [])
+                        }
+                    except Exception:
+                        _slug_to_code = {}
+
+                    # Collect every indicator that contributes to at least one sub-service
+                    _all_contrib_slugs = set()
+                    for r in _msm_rows:
+                        for slug in (r.get('contributing_indicators') or []):
+                            _all_contrib_slugs.add(slug)
+                    _contrib_slugs_sorted = sorted(
+                        _all_contrib_slugs, key=lambda s: _slug_to_code.get(s, 'Z')
+                    )
+
                     _table_rows = []
                     _hd_mult_seen = None
                     _n_covered = 0
@@ -5137,20 +5225,44 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         mult = float(r['final_multiplier'])
                         contribution = coeff * mult * float(_area_for_breakdown) * float(_regional_for_breakdown)
                         is_fallback = bool(r.get('fallback_to_bbi'))
-                        source = 'BBI' if is_fallback else 'indicator'
                         if is_fallback:
                             _n_fallback += 1
                         else:
                             _n_covered += 1
                             if _hd_mult_seen is None:
                                 _hd_mult_seen = r.get('hd_multiplier')
-                        _table_rows.append({
+
+                        contrib_inds = r.get('contributing_indicators') or []
+                        contrib_pcts = r.get('contributing_response_pcts') or []
+                        contrib_weights = r.get('contributing_weights') or []
+                        _by_slug = {
+                            slug: (pct, w)
+                            for slug, pct, w in zip(contrib_inds, contrib_pcts, contrib_weights)
+                        }
+
+                        row_dict = {
                             'Sub-service': s.replace('_', ' ').title(),
                             'Coefficient ($/ha/yr)': f"{coeff:,.0f}",
-                            'Multiplier': f"{mult:.3f}",
-                            'Source': source,
-                            'Contribution ($/yr)': f"{contribution:,.0f}",
-                        })
+                        }
+                        # Per-indicator columns: '<pct>% × <weight>' or blank
+                        for slug in _contrib_slugs_sorted:
+                            code = _slug_to_code.get(slug, slug)
+                            if slug in _by_slug:
+                                pct, w = _by_slug[slug]
+                                row_dict[code] = f"{int(pct)}% × {float(w):.1f}"
+                            else:
+                                row_dict[code] = ''
+                        # Aggregated multipliers — explicit calc chain
+                        if r.get('indicator_multiplier') is not None:
+                            row_dict['Indicator avg'] = f"{r['indicator_multiplier']:.3f}"
+                        else:
+                            row_dict['Indicator avg'] = '— (BBI)'
+                        row_dict['HD ×'] = f"{r.get('hd_multiplier', 1.0):.3f}"
+                        row_dict['Regional ×'] = f"{float(_regional_for_breakdown):.2f}"
+                        row_dict['Final ×'] = f"{mult:.3f}"
+                        row_dict['Source'] = 'BBI' if is_fallback else 'indicator'
+                        row_dict['Contribution ($/yr)'] = f"{contribution:,.0f}"
+                        _table_rows.append(row_dict)
                     if _table_rows:
                         st.dataframe(
                             pd.DataFrame(_table_rows),
