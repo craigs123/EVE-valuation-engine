@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.5.28 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.5.29 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2158,6 +2158,13 @@ def analysis_settings_dialog():
 
     **Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
         """)
+        st.caption(
+            "Brander, L.M. de Groot, R, Guisado Goñi, V., van 't Hoff, V., "
+            "Schägner, P., Solomonides, S., McVittie, A., Eppink, F., Sposato, M., "
+            "Do, L., Ghermandi, A., and Sinclair, M. (2025). *Ecosystem Services "
+            "Valuation Database (ESVD)*. Foundation for Sustainable Development "
+            "and Brander Environmental Economics."
+        )
 
         if st.button("View ESA CCI → ESVD default mapping", key="dlg_show_mapping_btn"):
             st.session_state.show_default_mapping = not st.session_state.get('show_default_mapping', False)
@@ -2247,6 +2254,11 @@ def render_pre_analyze_indicator_panel():
     if not st.session_state.get('use_indicator_multipliers', False):
         return
     if not st.session_state.get('selected_area'):
+        return
+    # Gated by the main-screen ecosystem selector — only render when the user
+    # has picked a specific project-ecosystem (e.g. Mangroves), not 'Auto-detect'.
+    _project_eco = st.session_state.get('project_ecosystem_override', 'Auto-detect')
+    if _project_eco == 'Auto-detect':
         return
 
     try:
@@ -3703,7 +3715,37 @@ with col3_map:
         </div>
         """, unsafe_allow_html=True)
 
-# ── Pre-Analyze indicator panel (gated by Settings toggle) ───────────────────
+# ── Project-specific indicators: ecosystem selector + indicator panel ──────
+# When "Use project-specific indicators" is on AND the user has selected an
+# area, show a dropdown of ecosystems that have project-indicator support
+# (currently just Mangroves). The indicator question panel only appears once
+# the user picks a specific ecosystem — "Auto-detect" hides it.
+if (
+    st.session_state.get('use_indicator_multipliers', False)
+    and st.session_state.get('selected_area')
+):
+    # Ecosystems with a wired project-type in pi_project_types. Grows as
+    # more project types are seeded.
+    PROJECT_ECOSYSTEM_OPTIONS = ['Auto-detect', 'Mangroves']
+    if 'project_ecosystem_override' not in st.session_state:
+        st.session_state.project_ecosystem_override = 'Auto-detect'
+    _cur = st.session_state.project_ecosystem_override
+    _idx = PROJECT_ECOSYSTEM_OPTIONS.index(_cur) if _cur in PROJECT_ECOSYSTEM_OPTIONS else 0
+    _choice = st.selectbox(
+        "Select project ecosystem type (will override ecosystem autodetect)",
+        options=PROJECT_ECOSYSTEM_OPTIONS,
+        index=_idx,
+        key='project_ecosystem_selector',
+        help=("Filtered to ecosystems with project-specific indicator support. "
+              "Picking a specific ecosystem also overrides ecosystem auto-detection "
+              "for the analysis."),
+    )
+    st.session_state.project_ecosystem_override = _choice
+    # Drive the calc engine's existing ecosystem_override when a specific
+    # ecosystem is picked, so the analysis runs against the right coefficients.
+    if _choice != 'Auto-detect':
+        st.session_state.ecosystem_override = _choice
+
 render_pre_analyze_indicator_panel()
 
 # Legacy results section — disabled; display handled by the calculation_ready block below
