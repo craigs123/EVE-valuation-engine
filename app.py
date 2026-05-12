@@ -1811,7 +1811,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2473,9 +2473,15 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
             entry.setdefault('target_is_custom', False)
 
             is_mandatory = bool(ind.get('is_mandatory'))
+            # `expanded=True` constant: Streamlit only applies it on first
+            # render. After that the user controls open/closed via the chevron
+            # and their choice is preserved across reruns. (Passing a dynamic
+            # expression here causes Streamlit to force-close the expander
+            # as soon as the user answers — they want their responses to
+            # stay visible until they manually collapse.)
             with st.expander(
                 f"{code}: {name}" + ("  (Required)" if is_mandatory else ""),
-                expanded=(entry.get('score') is None and entry.get('target_score') is None),
+                expanded=True,
             ):
                 _base_col, _tgt_col = st.columns(2)
 
@@ -2638,11 +2644,15 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
         if k in st.session_state:
             del st.session_state[k]
     if not blob:
-        # Leave use_indicator_multipliers alone — it's a Settings toggle the
-        # user controls, not an area property.
+        # Legacy area (saved before this feature) — leave the user's current
+        # Settings toggle alone.
         return
-    if blob.get('use_indicator_multipliers'):
-        st.session_state['use_indicator_multipliers'] = True
+    # Propagate the Settings flag explicitly (both aliases) so the toggle
+    # state restores with the area. Areas saved with the feature enabled
+    # turn it back on; areas saved with it disabled turn it back off.
+    _saved_flag = bool(blob.get('use_indicator_multipliers'))
+    st.session_state['use_indicator_multipliers'] = _saved_flag
+    st.session_state['project_indicators_enabled'] = _saved_flag
     if blob.get('project_ecosystem_override'):
         st.session_state['project_ecosystem_override'] = blob['project_ecosystem_override']
         # Also propagate to ecosystem_override so the calc routes correctly
@@ -3951,13 +3961,11 @@ with col3_map:
 
         if 'analysis_detail' not in st.session_state:
             st.session_state.analysis_detail = 'Summary Analysis'
-        # When project-specific indicators are on AND a project ecosystem has
-        # been chosen, the Calculate button is rendered below the indicator
-        # panel instead — see the block after render_pre_analyze_indicator_panel().
-        _button_lives_below = (
-            st.session_state.get('use_indicator_multipliers', False)
-            and st.session_state.get('project_ecosystem_override', 'Auto-detect') != 'Auto-detect'
-        )
+        # When project-specific indicators are on, the Calculate button is
+        # rendered below the ecosystem-type dropdown (and indicator panel,
+        # when one is shown). See the block after
+        # render_pre_analyze_indicator_panel().
+        _button_lives_below = st.session_state.get('use_indicator_multipliers', False)
         if _button_lives_below:
             st.caption("Answer indicator questions below, then click "
                        "**Calculate Ecosystem Value**.")
@@ -4026,7 +4034,6 @@ render_pre_analyze_indicator_panel()
 if (
     st.session_state.get('use_indicator_multipliers', False)
     and st.session_state.get('selected_area')
-    and st.session_state.get('project_ecosystem_override', 'Auto-detect') != 'Auto-detect'
 ):
     _calc_btn_label = (
         'Re-calculate with updated indicators'
@@ -4037,16 +4044,27 @@ if (
                  key='calc_below_indicator_panel',
                  help='Run (or re-run) the analysis using the current indicator responses'):
         st.session_state.analysis_in_progress = True
-        for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
-            if _stale in st.session_state:
-                del st.session_state[_stale]
-        if 'sampling_point_data' in st.session_state:
-            for point_data in st.session_state.sampling_point_data.values():
-                if 'user_classified' in point_data:
-                    del point_data['user_classified']
-                if point_data.get('landcover_class') == 210:
-                    if 'ecosystem_type' in point_data:
-                        del point_data['ecosystem_type']
+        if st.session_state.get('calculation_ready'):
+            # Re-calculation path — only indicator responses / BBI / dates have
+            # changed. Keep cached sampling data, regional factor, country and
+            # ecosystem detection; setting skip_ecosystem_detection routes the
+            # analysis flow through the existing sample-point shortcut so the
+            # 'Real ESA Satellite Data' source survives the re-run instead of
+            # falling back to geographic estimation.
+            st.session_state['skip_ecosystem_detection'] = True
+        else:
+            # First-calc path — clear water-classification flags so the
+            # detection pipeline starts clean.
+            for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
+                if _stale in st.session_state:
+                    del st.session_state[_stale]
+            if 'sampling_point_data' in st.session_state:
+                for point_data in st.session_state.sampling_point_data.values():
+                    if 'user_classified' in point_data:
+                        del point_data['user_classified']
+                    if point_data.get('landcover_class') == 210:
+                        if 'ecosystem_type' in point_data:
+                            del point_data['ecosystem_type']
         st.rerun()
 
 # Legacy results section — disabled; display handled by the calculation_ready block below
@@ -5405,6 +5423,25 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         _all_contrib_slugs, key=lambda s: _slug_to_code.get(s, 'Z')
                     )
 
+                    # Capture the BBI value once. fallback rows record it
+                    # directly; indicator-driven rows have it as None — fall
+                    # back to whatever the session-state intactness multiplier
+                    # currently resolves to for this ecosystem.
+                    _bbi_for_display = next(
+                        (r['bbi_value_used'] for r in _msm_rows
+                         if r.get('bbi_value_used') is not None),
+                        None,
+                    )
+                    if _bbi_for_display is None:
+                        try:
+                            from utils.analysis_helpers import _get_ecosystem_intactness_multiplier
+                            _ei = st.session_state.get('ecosystem_intactness', {})
+                            _bbi_for_display = _get_ecosystem_intactness_multiplier(
+                                _eco_for_breakdown, _ei
+                            )
+                        except Exception:
+                            _bbi_for_display = 1.0
+
                     _table_rows = []
                     _hd_mult_seen = None
                     _n_covered = 0
@@ -5433,6 +5470,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         row_dict = {
                             'Sub-service': s.replace('_', ' ').title(),
                             'Coefficient ($/ha/yr)': f"{coeff:,.0f}",
+                            'Area (ha)': f"{float(_area_for_breakdown):,.1f}",
                         }
                         # Per-indicator columns: '<pct>% × <weight>' or blank
                         for slug in _contrib_slugs_sorted:
@@ -5448,6 +5486,10 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         else:
                             row_dict['Indicator avg'] = '— (BBI)'
                         row_dict['HD ×'] = f"{r.get('hd_multiplier', 1.0):.3f}"
+                        # BBI: shown for transparency on every row. Highlighted
+                        # (asterisk) when this is the value actually applied.
+                        _bbi_cell = f"{float(_bbi_for_display):.3f}"
+                        row_dict['BBI'] = (f"{_bbi_cell} *" if is_fallback else _bbi_cell)
                         row_dict['Regional ×'] = f"{float(_regional_for_breakdown):.2f}"
                         row_dict['Final ×'] = f"{mult:.3f}"
                         row_dict['Source'] = 'BBI' if is_fallback else 'indicator'
@@ -5463,6 +5505,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         st.caption(
                             f"**HD multiplier applied:** {(_hd_mult_seen or 1.0):.2f} "
                             f"(Human Disturbance response: {_hd_pct}%) · "
+                            f"**BBI:** {float(_bbi_for_display):.3f} (applied to rows marked *) · "
                             f"**Sub-services covered by indicators:** {_n_covered} of {_n_covered + _n_fallback} · "
                             f"**BBI fallback:** {_n_fallback}"
                         )
