@@ -1861,7 +1861,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.24 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.25 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2470,47 +2470,71 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
             st.session_state['pending_indicator_target_date'] = _target_date
 
         # Colour-coded option labels using Streamlit's `:color[text]` markdown.
-        # Order matches PRE_ANALYZE_BANDS; the visual squares give an at-a-glance
-        # red→amber→green gradient.
+        # The visual squares give an at-a-glance red→amber→green gradient
+        # tied to band position. Labels come from the indicator's own seed
+        # `bands` array so each indicator can have tailored wording
+        # (e.g. M2 'Sparse recruitment' instead of generic 'Degraded').
         # tuple: (key, display_label, score)
-        _OPTIONS = [
-            ('none',          ':gray[— not yet answered —]',               None),
-            ('severe',        ':red[🟥 Severely degraded (10%)]',          0.10),
-            ('degraded',      ':orange[🟧 Degraded (30%)]',                0.30),
-            ('recovering',    ':orange[🟨 Recovering (50%)]',              0.50),
-            ('substantially', ':green[🟩 Substantially recovered (75%)]',  0.75),
-            ('well',          ':green[🟩 Well recovered (90%)]',           0.90),
-            ('reference',     ':green[🟩 Reference condition (100%)]',     1.00),
-            ('custom',        ':gray[Custom]',                              None),
+        _BAND_COLOR_PREFIX = [
+            ':red[🟥 ',
+            ':orange[🟧 ',
+            ':orange[🟨 ',
+            ':green[🟩 ',
+            ':green[🟩 ',
+            ':green[🟩 ',
         ]
-        _OPT_LABELS = [lbl for _, lbl, _ in _OPTIONS]
-        _OPT_KEYS = [k for k, _, _ in _OPTIONS]
 
-        def _idx_for(score, is_custom):
+        def _build_options_for(indicator):
+            """Build the radio _OPTIONS list for a single indicator.
+
+            Labels come from ``indicator['bands']`` (per-indicator seed
+            data) so M3-M7+HD show their tailored wording. Score values
+            and the colour ramp stay project-wide constants.
+            """
+            bands = indicator.get('bands') or []
+            opts = [('none', ':gray[— not yet answered —]', None)]
+            for i, band in enumerate(bands):
+                score = float(band['score'])
+                pct = int(round(score * 100))
+                prefix = _BAND_COLOR_PREFIX[i] if i < len(_BAND_COLOR_PREFIX) else ':gray['
+                label_text = band.get('label') or f'Band {i + 1}'
+                opts.append((
+                    f'band_{i}',
+                    f"{prefix}{label_text} ({pct}%)]",
+                    score,
+                ))
+            opts.append(('custom', ':gray[Custom]', None))
+            return opts
+
+        def _idx_for(score, is_custom, options):
             """Return the radio index that represents a stored (score, is_custom)."""
+            keys = [k for k, _, _ in options]
             if is_custom:
-                return _OPT_KEYS.index('custom')
+                return keys.index('custom')
             if score is None:
                 return 0
-            for i, (_k, _lbl, s) in enumerate(_OPTIONS):
+            for i, (_k, _lbl, s) in enumerate(options):
                 if s is not None and abs(s - score) < 1e-6:
                     return i
             return 0
 
-        def _state_from_choice(choice_label: str, custom_val: int):
+        def _state_from_choice(choice_label: str, custom_val: int, options):
             """Given a chosen label + the value of its custom number input,
             return (score|None, is_custom)."""
-            idx = _OPT_LABELS.index(choice_label)
-            key = _OPT_KEYS[idx]
+            labels = [lbl for _, lbl, _ in options]
+            keys = [k for k, _, _ in options]
+            idx = labels.index(choice_label)
+            key = keys[idx]
             if key == 'custom':
                 return (float(custom_val) / 100.0, True)
             if key == 'none':
                 return (None, False)
-            return (_OPTIONS[idx][2], False)
+            return (options[idx][2], False)
 
-        def _label_for_score(score):
-            """Human-readable name for a score 0.0–1.0 (e.g. 0.75 → 'Substantially recovered')."""
-            for k, lbl, s in _OPTIONS:
+        def _label_for_score(score, options):
+            """Human-readable name for a score from the indicator's own
+            options (e.g. M2 0.75 → 'Good recruitment')."""
+            for k, lbl, s in options:
                 if s is not None and abs(s - score) < 1e-6:
                     # Strip the Streamlit color markdown + emoji prefix for the caption
                     clean = lbl
@@ -2537,6 +2561,11 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
             entry.setdefault('target_score', None)
             entry.setdefault('target_is_custom', False)
 
+            # Per-indicator radio options (labels come from this indicator's
+            # own seed bands; score values and colour ramp stay constant).
+            _options = _build_options_for(ind)
+            _opt_labels = [lbl for _, lbl, _ in _options]
+
             is_mandatory = bool(ind.get('is_mandatory'))
             # `expanded=True` constant: Streamlit only applies it on first
             # render. After that the user controls open/closed via the chevron
@@ -2552,15 +2581,15 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
 
                 with _base_col:
                     st.markdown("**Baseline**")
-                    _base_idx = _idx_for(entry.get('score'), entry.get('is_custom', False))
+                    _base_idx = _idx_for(entry.get('score'), entry.get('is_custom', False), _options)
                     _base_choice = st.radio(
                         "Baseline response",
-                        _OPT_LABELS,
+                        _opt_labels,
                         index=_base_idx,
                         key=f"pi_pre_base_{slug}",
                         label_visibility='collapsed',
                     )
-                    _base_is_custom = (_base_choice == _OPT_LABELS[-1])
+                    _base_is_custom = (_base_choice == _opt_labels[-1])
                     _base_default = (
                         int(round(entry['score'] * 100))
                         if (entry.get('is_custom') and entry.get('score') is not None)
@@ -2577,15 +2606,15 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
 
                 with _tgt_col:
                     st.markdown("**Target**")
-                    _tgt_idx = _idx_for(entry.get('target_score'), entry.get('target_is_custom', False))
+                    _tgt_idx = _idx_for(entry.get('target_score'), entry.get('target_is_custom', False), _options)
                     _tgt_choice = st.radio(
                         "Target response",
-                        _OPT_LABELS,
+                        _opt_labels,
                         index=_tgt_idx,
                         key=f"pi_pre_tgt_{slug}",
                         label_visibility='collapsed',
                     )
-                    _tgt_is_custom = (_tgt_choice == _OPT_LABELS[-1])
+                    _tgt_is_custom = (_tgt_choice == _opt_labels[-1])
                     _tgt_default = (
                         int(round(entry['target_score'] * 100))
                         if (entry.get('target_is_custom') and entry.get('target_score') is not None)
@@ -2601,8 +2630,8 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                     )
 
                 # Reconcile state from widgets
-                entry['score'], entry['is_custom'] = _state_from_choice(_base_choice, _base_custom_val)
-                entry['target_score'], entry['target_is_custom'] = _state_from_choice(_tgt_choice, _tgt_custom_val)
+                entry['score'], entry['is_custom'] = _state_from_choice(_base_choice, _base_custom_val, _options)
+                entry['target_score'], entry['target_is_custom'] = _state_from_choice(_tgt_choice, _tgt_custom_val, _options)
 
                 # Caption with current Baseline / Target values
                 _base_score = entry.get('score')
@@ -2613,14 +2642,14 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                     else:
                         _base_pct = int(round(_base_score * 100))
                         _base_label = ('Custom' if entry.get('is_custom')
-                                       else _label_for_score(_base_score))
+                                       else _label_for_score(_base_score, _options))
                         _base_str = f"{_base_pct}% ({_base_label})"
                     if _tgt_score is None:
                         _tgt_str = '—'
                     else:
                         _tgt_pct = int(round(_tgt_score * 100))
                         _tgt_label = ('Custom' if entry.get('target_is_custom')
-                                      else _label_for_score(_tgt_score))
+                                      else _label_for_score(_tgt_score, _options))
                         _tgt_str = f"{_tgt_pct}% ({_tgt_label})"
                     st.caption(f"**Baseline:** {_base_str} · **Target:** {_tgt_str}")
 
