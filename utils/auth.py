@@ -2,7 +2,14 @@
 Authentication utilities for EVE — password hashing, session state helpers, login/register UI.
 """
 
+import base64
+import hashlib
+import hmac
+import json
+import os
 import re
+import time
+
 import streamlit as st
 
 
@@ -22,23 +29,208 @@ def get_current_user():
 
 
 def logout():
-    """Clear auth keys from session state."""
+    """Clear auth keys from session state and remove the persistence cookie."""
+    _delete_auth_cookie()
     for key in ('auth_user',):
         if key in st.session_state:
             del st.session_state[key]
 
 
 def require_login():
-    """Render login/register UI and call st.stop() if no authenticated user."""
+    """Render login/register UI and call st.stop() if no authenticated user.
+
+    Tries cookie hydration first so users coming back from a Streamlit
+    session reset (cold-start, websocket reconnect) stay signed in.
+    """
+    hydrate_from_cookie()
     if st.session_state.get('auth_user'):
         return
     _render_auth_ui()
     st.stop()
 
 
+def hydrate_from_cookie() -> None:
+    """If ``session_state['auth_user']`` is missing but a valid signed
+    cookie exists, fetch the user from the DB and repopulate session
+    state. Silent no-op when there's no cookie, the cookie is invalid,
+    or persistence is disabled (missing SESSION_SECRET).
+    """
+    if st.session_state.get('auth_user'):
+        return
+    if not _session_secret():
+        return
+    token = _read_auth_cookie()
+    if not token:
+        return
+    uid = _verify_token(token)
+    if not uid:
+        # Expired or tampered — drop it.
+        _delete_auth_cookie()
+        return
+    try:
+        from database import UserDB
+        user = UserDB.get_by_id(uid)
+    except Exception:
+        user = None
+    if user:
+        st.session_state['auth_user'] = user
+    else:
+        # User no longer exists — clear the stale cookie.
+        _delete_auth_cookie()
+
+
 # --- private helpers ---
 
 _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+
+
+# --- cookie-based auth persistence ---
+#
+# Streamlit session state is in-memory and volatile (resets on websocket
+# reconnect / Cloud Run cold-start / server reload). Without persistence
+# the user is "logged out" every time the session resets. We mint a
+# signed token at login, store it in a browser cookie, and re-hydrate
+# session_state['auth_user'] on any render where it's missing.
+#
+# Token format: <base64url(json_body)>.<base64url(hmac_sha256(body))>
+# json_body = {"uid": "<user_id>", "exp": <unix_seconds>}
+#
+# Step 1 of the plan adds only the crypto primitives (sign/mint/verify).
+# CookieManager wiring + hydrate_from_cookie + login/logout integration
+# arrive in subsequent steps. See AUTH_PERSISTENCE_PLAN.md.
+
+_COOKIE_NAME = "eve_auth"
+_COOKIE_TTL_SECONDS = 30 * 24 * 3600  # 30 days
+
+
+def _session_secret() -> str:
+    """Read SESSION_SECRET at call time so test/dev env changes are picked up."""
+    return os.getenv("SESSION_SECRET", "")
+
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def _b64url_decode(s: str) -> bytes:
+    # Re-pad to a multiple of 4 before decoding.
+    padding = "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s + padding)
+
+
+def _sign(payload: bytes) -> str:
+    """HMAC-SHA256 sign payload with SESSION_SECRET. Returns urlsafe-b64 sig."""
+    secret = _session_secret()
+    if not secret:
+        # No secret configured — refuse to sign. Callers (_mint_token,
+        # _verify_token) treat this as "persistence disabled" and fall back
+        # to session-only auth.
+        return ""
+    sig = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).digest()
+    return _b64url_encode(sig)
+
+
+def _mint_token(user_id: str) -> str | None:
+    """Mint a signed cookie token for the given user_id. Returns None if
+    SESSION_SECRET isn't configured."""
+    if not _session_secret():
+        return None
+    body = {"uid": user_id, "exp": int(time.time()) + _COOKIE_TTL_SECONDS}
+    body_b64 = _b64url_encode(json.dumps(body, separators=(",", ":")).encode("utf-8"))
+    sig = _sign(body_b64.encode("utf-8"))
+    if not sig:
+        return None
+    return f"{body_b64}.{sig}"
+
+
+def _verify_token(token: str) -> str | None:
+    """Return user_id if the token is well-formed, the signature is valid,
+    and the expiry is in the future. Otherwise None. Never raises."""
+    if not token or not _session_secret():
+        return None
+    try:
+        body_b64, sig = token.split(".", 1)
+    except ValueError:
+        return None
+    expected_sig = _sign(body_b64.encode("utf-8"))
+    if not expected_sig or not hmac.compare_digest(sig, expected_sig):
+        return None
+    try:
+        body = json.loads(_b64url_decode(body_b64).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    uid = body.get("uid")
+    exp = body.get("exp", 0)
+    if not isinstance(uid, str) or not isinstance(exp, (int, float)):
+        return None
+    if exp < time.time():
+        return None
+    return uid
+
+
+# --- cookie I/O via extra-streamlit-components ---
+
+
+@st.cache_resource(show_spinner=False)
+def _cookie_manager():
+    """Return a singleton CookieManager. Cached so the same instance is
+    reused across reruns (each instance has its own widget key)."""
+    import extra_streamlit_components as stx
+    return stx.CookieManager(key="eve_cookie_manager")
+
+
+def _read_auth_cookie() -> str | None:
+    """Return the persisted auth-cookie value, or None if absent / not
+    yet available (the underlying JS round-trip can take one render
+    before cookies are visible to Python)."""
+    try:
+        cm = _cookie_manager()
+        # Calling .get_all() at least once primes the manager; .get()
+        # then returns the value if present.
+        cm.get_all()
+        return cm.get(_COOKIE_NAME)
+    except Exception:
+        return None
+
+
+def _write_auth_cookie(token: str) -> None:
+    """Set the auth cookie with the configured TTL. Silently no-ops if
+    the cookie manager isn't available."""
+    try:
+        from datetime import datetime, timedelta, timezone
+        cm = _cookie_manager()
+        cm.set(
+            _COOKIE_NAME,
+            token,
+            expires_at=datetime.now(timezone.utc) + timedelta(seconds=_COOKIE_TTL_SECONDS),
+            key=f"_cookie_set_{int(time.time())}",
+        )
+    except Exception:
+        pass
+
+
+def _delete_auth_cookie() -> None:
+    """Remove the auth cookie. Silently no-ops if it doesn't exist or
+    the cookie manager isn't available."""
+    try:
+        cm = _cookie_manager()
+        if cm.get(_COOKIE_NAME) is not None:
+            cm.delete(_COOKIE_NAME, key=f"_cookie_del_{int(time.time())}")
+    except Exception:
+        pass
+
+
+def _persist_auth_cookie(user: dict) -> None:
+    """Mint a signed token for ``user`` and store it in the auth cookie.
+    No-op if persistence is disabled (missing SESSION_SECRET) or the
+    user dict has no id."""
+    uid = (user or {}).get("id")
+    if not uid:
+        return
+    token = _mint_token(uid)
+    if not token:
+        return
+    _write_auth_cookie(token)
 
 
 def _render_auth_ui():
@@ -195,6 +387,10 @@ def _render_auth_ui():
                             for _k in list(st.session_state.keys()):
                                 del st.session_state[_k]
                             st.session_state['auth_user'] = user
+                            # Persist a signed cookie so a Streamlit session
+                            # reset (cold-start, reconnect) doesn't kick the
+                            # user back to the login screen.
+                            _persist_auth_cookie(user)
                             st.rerun()
                         elif err == 'pending_verification':
                             st.error(
