@@ -2,7 +2,14 @@
 Authentication utilities for EVE — password hashing, session state helpers, login/register UI.
 """
 
+import base64
+import hashlib
+import hmac
+import json
+import os
 import re
+import time
+
 import streamlit as st
 
 
@@ -39,6 +46,90 @@ def require_login():
 # --- private helpers ---
 
 _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+
+
+# --- cookie-based auth persistence ---
+#
+# Streamlit session state is in-memory and volatile (resets on websocket
+# reconnect / Cloud Run cold-start / server reload). Without persistence
+# the user is "logged out" every time the session resets. We mint a
+# signed token at login, store it in a browser cookie, and re-hydrate
+# session_state['auth_user'] on any render where it's missing.
+#
+# Token format: <base64url(json_body)>.<base64url(hmac_sha256(body))>
+# json_body = {"uid": "<user_id>", "exp": <unix_seconds>}
+#
+# Step 1 of the plan adds only the crypto primitives (sign/mint/verify).
+# CookieManager wiring + hydrate_from_cookie + login/logout integration
+# arrive in subsequent steps. See AUTH_PERSISTENCE_PLAN.md.
+
+_COOKIE_NAME = "eve_auth"
+_COOKIE_TTL_SECONDS = 30 * 24 * 3600  # 30 days
+
+
+def _session_secret() -> str:
+    """Read SESSION_SECRET at call time so test/dev env changes are picked up."""
+    return os.getenv("SESSION_SECRET", "")
+
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def _b64url_decode(s: str) -> bytes:
+    # Re-pad to a multiple of 4 before decoding.
+    padding = "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s + padding)
+
+
+def _sign(payload: bytes) -> str:
+    """HMAC-SHA256 sign payload with SESSION_SECRET. Returns urlsafe-b64 sig."""
+    secret = _session_secret()
+    if not secret:
+        # No secret configured — refuse to sign. Callers (_mint_token,
+        # _verify_token) treat this as "persistence disabled" and fall back
+        # to session-only auth.
+        return ""
+    sig = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).digest()
+    return _b64url_encode(sig)
+
+
+def _mint_token(user_id: str) -> str | None:
+    """Mint a signed cookie token for the given user_id. Returns None if
+    SESSION_SECRET isn't configured."""
+    if not _session_secret():
+        return None
+    body = {"uid": user_id, "exp": int(time.time()) + _COOKIE_TTL_SECONDS}
+    body_b64 = _b64url_encode(json.dumps(body, separators=(",", ":")).encode("utf-8"))
+    sig = _sign(body_b64.encode("utf-8"))
+    if not sig:
+        return None
+    return f"{body_b64}.{sig}"
+
+
+def _verify_token(token: str) -> str | None:
+    """Return user_id if the token is well-formed, the signature is valid,
+    and the expiry is in the future. Otherwise None. Never raises."""
+    if not token or not _session_secret():
+        return None
+    try:
+        body_b64, sig = token.split(".", 1)
+    except ValueError:
+        return None
+    expected_sig = _sign(body_b64.encode("utf-8"))
+    if not expected_sig or not hmac.compare_digest(sig, expected_sig):
+        return None
+    try:
+        body = json.loads(_b64url_decode(body_b64).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    uid = body.get("uid")
+    exp = body.get("exp", 0)
+    if not isinstance(uid, str) or not isinstance(exp, (int, float)):
+        return None
+    if exp < time.time():
+        return None
+    return uid
 
 
 def _render_auth_ui():
