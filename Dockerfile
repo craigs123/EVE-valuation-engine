@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y \
 COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
+RUN python -c "import streamlit, pathlib, re; \
+p = pathlib.Path(streamlit.__file__).parent / 'static' / 'index.html'; \
+p.write_text(re.sub(r'<title>.*?</title>', '<title>EVE</title>', p.read_text()))"
+
 COPY . .
 
 ENV PORT=8080

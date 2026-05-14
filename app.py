@@ -389,36 +389,56 @@ st.markdown("""
             border-radius: 10px;
         }
 
-        /* Step section headers — green accent stripe on neutral surface, generous top margin for breathing room */
+        /* Step section headers — green accent stripe on neutral surface; tight margins keep
+           the area-selection controls visible on smaller screens. */
         .section-header {
             font-size: 1.05rem !important;
             font-weight: 700 !important;
             color: #1F2937 !important;
-            padding: 0.5rem 0.75rem !important;
-            margin: 1.5rem 0 0.75rem 0 !important;
+            padding: 0.4rem 0.75rem !important;
+            margin: 0.4rem 0 0.1rem 0 !important;
             border-left: 4px solid #2E7D32 !important;
             background: #F7F8FA !important;
             border-radius: 0 4px 4px 0 !important;
             line-height: 1.3 !important;
             display: block !important;
         }
+        /* Crunch the gap immediately after a section-header so the next
+           widget (e.g. the test-area selectbox) sits flush against it.
+           Target the outer element-container (Streamlit's vertical-block
+           gap operates at that level, not on the inner stMarkdown). */
+        [data-testid="stElementContainer"]:has(.section-header) {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        [data-testid="stElementContainer"]:has(.section-header) + [data-testid="stElementContainer"] {
+            margin-top: -0.75rem !important;
+            padding-top: 0 !important;
+        }
 
         /* Main content padding — modest, not aggressive */
         .main .block-container {
-            padding-top: 1rem !important;
+            padding-top: 0.5rem !important;
             padding-bottom: 1.5rem !important;
             max-width: 100%;
         }
 
         .block-container {
-            padding-top: 1rem !important;
+            padding-top: 0.5rem !important;
             padding-bottom: 1.5rem !important;
         }
 
-        /* Vertical block spacing — moderate gap between stacked elements */
+        /* Vertical block spacing — tight gap between stacked elements so the
+           map sits as high on the page as possible. */
         [data-testid="stVerticalBlock"] > div {
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.075rem;
             padding: 0;
+        }
+        /* The folium map iframe sits in a streamlit-folium wrapper; pull it
+           up flush against the search/layer row above it. */
+        iframe[title="streamlit_folium.st_folium"],
+        [data-testid="stCustomComponentV1"] {
+            margin-top: 0 !important;
         }
 
         /* Body copy line-height (markdown paragraphs) — comfortable reading */
@@ -568,7 +588,7 @@ st.markdown("""
         /* Clean text-only header - Professional Dashboard Style */
         .header-container {
             width: 100%;
-            padding: 1rem 0 0.5rem 0;
+            padding: 0.5rem 0 0.5rem 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -947,11 +967,18 @@ def get_landcover_code_description(code: int) -> str:
 
 def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = None) -> str:
     """Get the ESVD ecosystem type that a landcover code maps to, with forest subtyping and water body user classifications"""
+    # User-forced ecosystem override wins: when the main-page dropdown is set
+    # to anything other than 'Auto-detect', every sample point's ESVD
+    # ecosystem is reported as the override value regardless of its CCI code.
+    _override = st.session_state.get('ecosystem_override', 'Auto-detect')
+    if _override and _override != 'Auto-detect':
+        return _override
+
     # Import the single source of truth mapping from STAC API
     from utils.openlandmap_stac_api import get_cached_openlandmap_stac
     stac_instance = get_cached_openlandmap_stac()
     landcover_mapping = stac_instance.landcover_to_esvd
-    
+
     base_ecosystem = landcover_mapping.get(code, "Unknown")
     
     # For water bodies (ESA code 210), check for user classifications first
@@ -1260,8 +1287,17 @@ def display_data_source_status(analysis_results: Dict = None):
                                 except Exception as e:
                                     regional_factor = "Error"
                         
-                        # Add indicator for user-classified water bodies
-                        if landcover_code == 210 and point_data.get('user_classified', False):
+                        # Add indicator for user-classified water bodies, but
+                        # only when the ecosystem isn't being force-overridden
+                        # (otherwise every cell would read "<override> (User
+                        # classified)" which misrepresents the override).
+                        _override_active = (
+                            st.session_state.get('ecosystem_override', 'Auto-detect')
+                            not in (None, '', 'Auto-detect')
+                        )
+                        if (landcover_code == 210
+                                and point_data.get('user_classified', False)
+                                and not _override_active):
                             esvd_ecosystem += " (User classified)"
                         
                         # Get EEI value for this point from session state
@@ -1811,7 +1847,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.12 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1829,7 +1865,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<h3 class="section-header" style="margin-top:0.75rem !important;">Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
+st.markdown('<h3 class="section-header" style="margin:0.5rem 0 0.25rem 0 !important;">Draw the area you want to analyse on the map or choose a test area from the dropdown below</h3>', unsafe_allow_html=True)
 
 
 # Initialize session state
@@ -1877,45 +1913,7 @@ analyze_button = False
 # ── Analysis Settings dialog ───────────────────────────────────────────────
 @st.dialog("Analysis Settings", width="large")
 def analysis_settings_dialog():
-    @st.cache_data
-    def get_ecosystem_options():
-        return [
-            "Auto-detect", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-            "polar", "Grassland", "Wetland", "Water (ocean)", "Rivers and Lakes",
-            "Coastal", "Mangroves", "Marine", "Agricultural", "Urban", "Desert"
-        ]
-
     with st.container(height=600):
-        st.markdown("##### Ecosystem Detection")
-        _eco = st.selectbox(
-            "Ecosystem Type",
-            options=get_ecosystem_options(),
-            index=get_ecosystem_options().index(st.session_state.get('ecosystem_override', 'Auto-detect'))
-                if st.session_state.get('ecosystem_override', 'Auto-detect') in get_ecosystem_options() else 0,
-            help="Auto-detection uses geographic analysis for ecosystem classification",
-            key="dlg_ecosystem_override",
-        )
-        st.session_state.ecosystem_override = _eco
-
-        st.divider()
-
-        st.markdown("##### Project Indicators (optional)")
-        _pi_enabled = st.checkbox(
-            "Use project-specific indicators",
-            value=st.session_state.get('project_indicators_enabled', False),
-            key='dlg_project_indicators_enabled',
-            help=("Replace the intactness (BBI) multiplier with answers to "
-                  "ecosystem-specific indicator questions for the sub-services "
-                  "they cover. BBI applies as a fallback for sub-services not "
-                  "covered by any indicator. v1 scope: Mangrove projects. Off "
-                  "by default."),
-        )
-        st.session_state.project_indicators_enabled = _pi_enabled
-        # Keep a clearer alias in session for the calc orchestrator.
-        st.session_state.use_indicator_multipliers = _pi_enabled
-
-        st.divider()
-
         st.markdown("##### Environmental Indicators")
         st.caption("Each indicator adds a column to the Sample Points panel. STAC indicators "
                    "are fetched during analysis; SoilGrids indicators are fetched on demand.")
@@ -2236,6 +2234,23 @@ PRE_ANALYZE_BANDS = [
 
 # v1 scope: only Mangrove Restoration project type is wired up
 PRE_ANALYZE_PROJECT_TYPE_SLUG = 'mangrove_restoration'
+
+# Full list of ecosystem types the user can force via the main-page selector.
+# Shared by the project-ecosystem dropdown and any other consumer that needs the
+# canonical display names.
+ECOSYSTEM_DISPLAY_OPTIONS = [
+    "Auto-detect", "Tropical Forest", "Temperate Forest", "Boreal Forest",
+    "polar", "Grassland", "Wetland", "Water (ocean)", "Rivers and Lakes",
+    "Coastal", "Mangroves", "Marine", "Agricultural", "Urban", "Desert",
+]
+
+# Display names of ecosystems with project-specific indicators seeded in
+# utils/project_indicators_seed.py. Grow as new project types are wired up.
+ECOSYSTEMS_WITH_PROJECT_INDICATORS = {'Mangroves'}
+
+
+def _ecosystem_has_project_indicators(display_name: str) -> bool:
+    return display_name in ECOSYSTEMS_WITH_PROJECT_INDICATORS
 
 
 def render_pre_analyze_indicator_panel():
@@ -3198,6 +3213,10 @@ with st.sidebar:
                                         st.session_state.use_test_area_zoom = True
                                         st.session_state.current_area_id = _area['id']
                                         st.session_state.default_area_name = _area['name']
+                                        # Reset the main test-area dropdown so the test-area
+                                        # branch doesn't re-run on the next click (e.g.
+                                        # Calculate) and clobber the loaded coordinates.
+                                        st.session_state.main_area_type_selector = "None - Draw your own area"
                                         st.rerun()
                                 with _sub_d:
                                     if st.button("🗑️", key=f"ws_del_{_area['id']}",
@@ -3270,6 +3289,7 @@ selected_test_area = st.selectbox(
     "Select Area Type",
     test_area_options,
     index=0,
+    key="main_area_type_selector",
     label_visibility="hidden",
     help="Select a predefined test area, load a previously saved area, or choose 'None' to draw your own area on the map",
     on_change=reset_analysis_state
@@ -3617,7 +3637,12 @@ else:
 # Add search and layer selector
 col_search, col_layer = st.columns([2, 1])
 with col_search:
-    location_search = st.text_input("🔍 Search for locations:", placeholder="e.g., Costa Rica, Amazon Rainforest, Great Barrier Reef", key="location_search_main")
+    location_search = st.text_input(
+        "Search for locations",
+        placeholder="Try searching for locations e.g. Amazon rain forest",
+        key="location_search_main",
+        label_visibility="collapsed",
+    )
 with col_layer:
     map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
 
@@ -3831,7 +3856,7 @@ else:
 
 # Ultra-optimized map display with performance settings - two-thirds width
 from streamlit_folium import st_folium
-col1_map, col2_map, col3_map = st.columns([0.3, 2, 1.1])
+col1_map, col2_map, col3_map = st.columns([0.2, 2, 1.1])
 with col2_map:
     # Loading message that shows until map iframe loads
     st.markdown("""
@@ -3961,30 +3986,9 @@ with col3_map:
 
         if 'analysis_detail' not in st.session_state:
             st.session_state.analysis_detail = 'Summary Analysis'
-        # When project-specific indicators are on, the Calculate button is
-        # rendered below the ecosystem-type dropdown (and indicator panel,
-        # when one is shown). See the block after
-        # render_pre_analyze_indicator_panel().
-        _button_lives_below = st.session_state.get('use_indicator_multipliers', False)
-        if _button_lives_below:
-            st.caption("Answer indicator questions below, then click "
-                       "**Calculate Ecosystem Value**.")
-            analyze_button = st.session_state.get('analysis_in_progress', False)
-        elif st.button('Calculate Ecosystem Value', type='primary', use_container_width=True, help='Run ecosystem analysis with current settings'):
-            analyze_button = True
-            st.session_state.analysis_in_progress = True
-            for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
-                if _stale in st.session_state:
-                    del st.session_state[_stale]
-            if 'sampling_point_data' in st.session_state:
-                for point_data in st.session_state.sampling_point_data.values():
-                    if 'user_classified' in point_data:
-                        del point_data['user_classified']
-                    if point_data.get('landcover_class') == 210:
-                        if 'ecosystem_type' in point_data:
-                            del point_data['ecosystem_type']
-        else:
-            analyze_button = st.session_state.get('analysis_in_progress', False)
+        # The Calculate button always lives below the ecosystem-type
+        # dropdown — see the block after render_pre_analyze_indicator_panel().
+        analyze_button = st.session_state.get('analysis_in_progress', False)
     else:
         st.markdown("""
         <div style='font-size:0.95rem; font-weight:600; color:#1B5E20;
@@ -3994,67 +3998,101 @@ with col3_map:
         </div>
         """, unsafe_allow_html=True)
 
-# ── Project-specific indicators: ecosystem selector + indicator panel ──────
-# When "Use project-specific indicators" is on AND the user has selected an
-# area, show a dropdown of ecosystems that have project-indicator support
-# (currently just Mangroves). The indicator question panel only appears once
-# the user picks a specific ecosystem — "Auto-detect" hides it.
-if (
-    st.session_state.get('use_indicator_multipliers', False)
-    and st.session_state.get('selected_area')
-):
-    # Ecosystems with a wired project-type in pi_project_types. Grows as
-    # more project types are seeded.
-    PROJECT_ECOSYSTEM_OPTIONS = ['Auto-detect', 'Mangroves']
+# ── Project ecosystem selector + project-indicators checkbox ───────────────
+# Both widgets live together on the main page once an area is selected. The
+# dropdown forces a single ecosystem type for the whole area (overriding
+# satellite autodetect) when set to anything other than 'Auto-detect'. The
+# checkbox is only enabled when the chosen ecosystem has seeded project
+# indicators (currently Mangroves only); switching away auto-unchecks it.
+if st.session_state.get('selected_area'):
     if 'project_ecosystem_override' not in st.session_state:
         st.session_state.project_ecosystem_override = 'Auto-detect'
-    _cur = st.session_state.project_ecosystem_override
-    _idx = PROJECT_ECOSYSTEM_OPTIONS.index(_cur) if _cur in PROJECT_ECOSYSTEM_OPTIONS else 0
-    _choice = st.selectbox(
-        "Select project ecosystem type (will override ecosystem autodetect)",
-        options=PROJECT_ECOSYSTEM_OPTIONS,
-        index=_idx,
-        key='project_ecosystem_selector',
-        help=("Filtered to ecosystems with project-specific indicator support. "
-              "Picking a specific ecosystem also overrides ecosystem auto-detection "
-              "for the analysis."),
+
+    st.markdown(
+        "<div style='font-size:0.78rem; line-height:1.35; color:#374151; "
+        "margin:0.25rem 0 0.35rem 0;'>"
+        "Satellite data is used to determine the ecosystem type in your "
+        "selected area. You can override this by manually selecting an "
+        "ecosystem type below — only the ecosystem classification is forced; "
+        "satellite, EEI, country, economic and environmental-indicator data "
+        "are still captured and used. Where ecosystem-specific indicators are "
+        "available and required, enable them with the checkbox."
+        "</div>",
+        unsafe_allow_html=True,
     )
-    st.session_state.project_ecosystem_override = _choice
-    # Drive the calc engine's existing ecosystem_override when a specific
-    # ecosystem is picked, so the analysis runs against the right coefficients.
-    if _choice != 'Auto-detect':
+
+    col_eco, col_pi = st.columns([3, 1])
+    with col_eco:
+        _cur = st.session_state.project_ecosystem_override
+        _idx = (
+            ECOSYSTEM_DISPLAY_OPTIONS.index(_cur)
+            if _cur in ECOSYSTEM_DISPLAY_OPTIONS else 0
+        )
+        _choice = st.selectbox(
+            "Ecosystem type",
+            options=ECOSYSTEM_DISPLAY_OPTIONS,
+            index=_idx,
+            key='project_ecosystem_selector',
+            label_visibility='collapsed',
+        )
+        st.session_state.project_ecosystem_override = _choice
         st.session_state.ecosystem_override = _choice
+
+    with col_pi:
+        _has_indicators = _ecosystem_has_project_indicators(_choice)
+        if not _has_indicators:
+            # Force-clear before the widget renders. Writing to the widget's
+            # own key resets its stored state; just setting the aliases is
+            # not enough because Streamlit reads the widget's value from its
+            # own key on rerender.
+            st.session_state.project_indicators_main = False
+            st.session_state.project_indicators_enabled = False
+            st.session_state.use_indicator_multipliers = False
+        _pi = st.checkbox(
+            "Use project-specific indicators",
+            key='project_indicators_main',
+            disabled=not _has_indicators,
+            help=("Replace the intactness (BBI) multiplier with answers to "
+                  "ecosystem-specific indicator questions. Available for "
+                  "ecosystems with seeded indicator sets (currently Mangroves)."),
+        )
+        if _has_indicators:
+            st.session_state.project_indicators_enabled = _pi
+            st.session_state.use_indicator_multipliers = _pi
 
 render_pre_analyze_indicator_panel()
 
-# When project-specific indicators are on, the Calculate button lives here —
-# below the dropdown and indicator questions — so users finalise their
-# responses before running the calculation. Re-running is supported: change
-# any answer and click again, and the analysis re-runs with the new responses.
-if (
-    st.session_state.get('use_indicator_multipliers', False)
-    and st.session_state.get('selected_area')
-):
-    _calc_btn_label = (
-        'Re-calculate with updated indicators'
-        if st.session_state.get('calculation_ready')
-        else 'Calculate Ecosystem Value'
-    )
+# Calculate button: always rendered below the ecosystem-type dropdown (and
+# indicator panel, when one is shown). For the indicator path, this gives
+# users space to finalise their answers before clicking. Re-running is
+# supported: change any input and click again to re-run.
+if st.session_state.get('selected_area'):
+    _indicators_on = st.session_state.get('use_indicator_multipliers', False)
+    _ready = st.session_state.get('calculation_ready')
+    if _indicators_on and _ready:
+        _calc_btn_label = 'Re-calculate with updated indicators'
+        _calc_btn_help = 'Re-run the analysis using the current indicator responses'
+    elif _ready:
+        _calc_btn_label = 'Re-calculate Ecosystem Value'
+        _calc_btn_help = 'Re-run the analysis with current settings'
+    else:
+        _calc_btn_label = 'Calculate Ecosystem Value'
+        _calc_btn_help = 'Run ecosystem analysis with current settings'
+
     if st.button(_calc_btn_label, type='primary', use_container_width=True,
-                 key='calc_below_indicator_panel',
-                 help='Run (or re-run) the analysis using the current indicator responses'):
+                 key='calc_below_dropdown', help=_calc_btn_help):
         st.session_state.analysis_in_progress = True
-        if st.session_state.get('calculation_ready'):
-            # Re-calculation path — only indicator responses / BBI / dates have
-            # changed. Keep cached sampling data, regional factor, country and
-            # ecosystem detection; setting skip_ecosystem_detection routes the
-            # analysis flow through the existing sample-point shortcut so the
-            # 'Real ESA Satellite Data' source survives the re-run instead of
-            # falling back to geographic estimation.
+        if _indicators_on and _ready:
+            # Indicator re-calc path — keep cached sampling data, regional
+            # factor, country and ecosystem detection; setting
+            # skip_ecosystem_detection routes the flow through the
+            # sample-point shortcut so the 'Real ESA Satellite Data' source
+            # survives the re-run instead of falling back to geographic
+            # estimation.
             st.session_state['skip_ecosystem_detection'] = True
         else:
-            # First-calc path — clear water-classification flags so the
-            # detection pipeline starts clean.
+            # First-calc (or non-indicator re-calc) — clear stale water-
+            # classification flags so the detection pipeline starts clean.
             for _stale in ('pending_water_classification', 'water_bodies_classified', 'skip_ecosystem_detection'):
                 if _stale in st.session_state:
                     del st.session_state[_stale]
@@ -4066,6 +4104,32 @@ if (
                         if 'ecosystem_type' in point_data:
                             del point_data['ecosystem_type']
         st.rerun()
+
+# Auto-scroll the Calculate button into view the first render after an area
+# is selected, so users don't have to manually scroll to find it. Fires only
+# on the False→True transition of selected_area, using a tracking flag in
+# session_state so subsequent reruns (e.g. dropdown / checkbox tweaks)
+# don't re-scroll and yank the user's view around.
+_curr_area_selected = bool(st.session_state.get('selected_area'))
+_prev_area_selected = bool(st.session_state.get('_prev_area_selected_for_scroll', False))
+if _curr_area_selected and not _prev_area_selected:
+    import streamlit.components.v1 as _components
+    _components.html(
+        """
+        <script>
+        setTimeout(() => {
+            const doc = window.parent.document;
+            const btn = doc.querySelector('[class*="st-key-calc_below_dropdown"]')
+                || doc.querySelector('button[kind="primary"]');
+            if (btn) {
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+            }
+        }, 150);
+        </script>
+        """,
+        height=0,
+    )
+st.session_state['_prev_area_selected_for_scroll'] = _curr_area_selected
 
 # Legacy results section — disabled; display handled by the calculation_ready block below
 if False and st.session_state.get('analysis_results'):
