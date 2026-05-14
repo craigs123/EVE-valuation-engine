@@ -434,11 +434,24 @@ st.markdown("""
             margin-bottom: 0.075rem;
             padding: 0;
         }
+        /* Crunch horizontal-block (st.columns) row margins so the map row
+           sits flush against the search row above. */
+        [data-testid="stHorizontalBlock"] {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            gap: 0.25rem !important;
+        }
         /* The folium map iframe sits in a streamlit-folium wrapper; pull it
            up flush against the search/layer row above it. */
         iframe[title="streamlit_folium.st_folium"],
         [data-testid="stCustomComponentV1"] {
             margin-top: 0 !important;
+        }
+        /* Element container around the map columns — kill any residual
+           top padding/margin so the map slides up. */
+        [data-testid="stElementContainer"]:has([data-testid="stHorizontalBlock"]) {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
         }
 
         /* Body copy line-height (markdown paragraphs) — comfortable reading */
@@ -1847,7 +1860,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.12 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.13 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -3644,7 +3657,13 @@ with col_search:
         label_visibility="collapsed",
     )
 with col_layer:
-    map_layer = st.radio("🗺️ Map Style:", ["Satellite", "Light Map"], horizontal=True, key="main_map_layer_selector")
+    map_layer = st.radio(
+        "Map Style",
+        ["Satellite", "Light Map"],
+        horizontal=True,
+        key="main_map_layer_selector",
+        label_visibility="collapsed",
+    )
 
 # Performance-optimized sampling display
 current_limit = st.session_state.get('max_sampling_limit', 9)
