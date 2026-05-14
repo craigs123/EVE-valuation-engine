@@ -29,18 +29,54 @@ def get_current_user():
 
 
 def logout():
-    """Clear auth keys from session state."""
+    """Clear auth keys from session state and remove the persistence cookie."""
+    _delete_auth_cookie()
     for key in ('auth_user',):
         if key in st.session_state:
             del st.session_state[key]
 
 
 def require_login():
-    """Render login/register UI and call st.stop() if no authenticated user."""
+    """Render login/register UI and call st.stop() if no authenticated user.
+
+    Tries cookie hydration first so users coming back from a Streamlit
+    session reset (cold-start, websocket reconnect) stay signed in.
+    """
+    hydrate_from_cookie()
     if st.session_state.get('auth_user'):
         return
     _render_auth_ui()
     st.stop()
+
+
+def hydrate_from_cookie() -> None:
+    """If ``session_state['auth_user']`` is missing but a valid signed
+    cookie exists, fetch the user from the DB and repopulate session
+    state. Silent no-op when there's no cookie, the cookie is invalid,
+    or persistence is disabled (missing SESSION_SECRET).
+    """
+    if st.session_state.get('auth_user'):
+        return
+    if not _session_secret():
+        return
+    token = _read_auth_cookie()
+    if not token:
+        return
+    uid = _verify_token(token)
+    if not uid:
+        # Expired or tampered — drop it.
+        _delete_auth_cookie()
+        return
+    try:
+        from database import UserDB
+        user = UserDB.get_by_id(uid)
+    except Exception:
+        user = None
+    if user:
+        st.session_state['auth_user'] = user
+    else:
+        # User no longer exists — clear the stale cookie.
+        _delete_auth_cookie()
 
 
 # --- private helpers ---
@@ -130,6 +166,71 @@ def _verify_token(token: str) -> str | None:
     if exp < time.time():
         return None
     return uid
+
+
+# --- cookie I/O via extra-streamlit-components ---
+
+
+@st.cache_resource(show_spinner=False)
+def _cookie_manager():
+    """Return a singleton CookieManager. Cached so the same instance is
+    reused across reruns (each instance has its own widget key)."""
+    import extra_streamlit_components as stx
+    return stx.CookieManager(key="eve_cookie_manager")
+
+
+def _read_auth_cookie() -> str | None:
+    """Return the persisted auth-cookie value, or None if absent / not
+    yet available (the underlying JS round-trip can take one render
+    before cookies are visible to Python)."""
+    try:
+        cm = _cookie_manager()
+        # Calling .get_all() at least once primes the manager; .get()
+        # then returns the value if present.
+        cm.get_all()
+        return cm.get(_COOKIE_NAME)
+    except Exception:
+        return None
+
+
+def _write_auth_cookie(token: str) -> None:
+    """Set the auth cookie with the configured TTL. Silently no-ops if
+    the cookie manager isn't available."""
+    try:
+        from datetime import datetime, timedelta, timezone
+        cm = _cookie_manager()
+        cm.set(
+            _COOKIE_NAME,
+            token,
+            expires_at=datetime.now(timezone.utc) + timedelta(seconds=_COOKIE_TTL_SECONDS),
+            key=f"_cookie_set_{int(time.time())}",
+        )
+    except Exception:
+        pass
+
+
+def _delete_auth_cookie() -> None:
+    """Remove the auth cookie. Silently no-ops if it doesn't exist or
+    the cookie manager isn't available."""
+    try:
+        cm = _cookie_manager()
+        if cm.get(_COOKIE_NAME) is not None:
+            cm.delete(_COOKIE_NAME, key=f"_cookie_del_{int(time.time())}")
+    except Exception:
+        pass
+
+
+def _persist_auth_cookie(user: dict) -> None:
+    """Mint a signed token for ``user`` and store it in the auth cookie.
+    No-op if persistence is disabled (missing SESSION_SECRET) or the
+    user dict has no id."""
+    uid = (user or {}).get("id")
+    if not uid:
+        return
+    token = _mint_token(uid)
+    if not token:
+        return
+    _write_auth_cookie(token)
 
 
 def _render_auth_ui():
@@ -286,6 +387,10 @@ def _render_auth_ui():
                             for _k in list(st.session_state.keys()):
                                 del st.session_state[_k]
                             st.session_state['auth_user'] = user
+                            # Persist a signed cookie so a Streamlit session
+                            # reset (cold-start, reconnect) doesn't kick the
+                            # user back to the login screen.
+                            _persist_auth_cookie(user)
                             st.rerun()
                         elif err == 'pending_verification':
                             st.error(
