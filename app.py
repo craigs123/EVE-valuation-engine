@@ -1861,7 +1861,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.23 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.24 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2744,15 +2744,23 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
         }
 
 
-def _build_indicator_multiplier_dict(ecosystem_type: str):
+def _build_indicator_multiplier_dict(ecosystem_type: str, score_field: str = 'score'):
     """Compute {calc_key: final_multiplier} from pending session-state
     indicator responses, for use by the calc engine. Returns ``None`` if
     the feature is disabled, the ecosystem isn't covered by a wired project
     type (v1: only Mangroves), or no project-indicator framework is seeded.
 
-    Side-effect: stashes the per-sub-service rows in
-    ``st.session_state.pending_computed_multipliers`` so the post-Analyze
-    persistence step can write them to ``computed_sub_service_multipliers``.
+    ``score_field`` controls which response field becomes ``effective_score``
+    when feeding rows into the multiplier engine:
+      * ``'score'`` (default): baseline indicator responses.
+      * ``'target_score'``: target-condition responses. Used to compute a
+        parallel "target" valuation alongside baseline.
+
+    Side-effect: stashes the per-sub-service rows in session state for the
+    post-Analyze persistence step. Baseline rows go to
+    ``pending_computed_multipliers``; target rows go to
+    ``pending_computed_multipliers_target`` so the two never clobber each
+    other.
     """
     if not st.session_state.get('use_indicator_multipliers'):
         return None
@@ -2783,7 +2791,7 @@ def _build_indicator_multiplier_dict(ecosystem_type: str):
             'indicator_slug': slug,
             'is_committed': bool(entry.get('is_committed') or is_mand),
             'is_mandatory': is_mand,
-            'effective_score': entry.get('score'),
+            'effective_score': entry.get(score_field),
             'service_weights': ind.get('service_weights') or {},
         })
 
@@ -2809,10 +2817,40 @@ def _build_indicator_multiplier_dict(ecosystem_type: str):
         hd_indicator_slug=hd_slug,
         bbi=bbi,
     )
-    # Stash for post-Analyze persistence (Task 15 second half)
-    st.session_state['pending_computed_multipliers'] = rows
+    # Stash for post-Analyze persistence + breakdown-panel rendering.
+    # Target rows go to a parallel key to avoid clobbering baseline.
+    _stash_key = (
+        'pending_computed_multipliers_target'
+        if score_field == 'target_score' else
+        'pending_computed_multipliers'
+    )
+    st.session_state[_stash_key] = rows
     st.session_state['pending_computed_multipliers_ecotype'] = ecosystem_type
     return {r['teeb_sub_service_key']: r['final_multiplier'] for r in rows}
+
+
+def _all_committed_have_target_scores() -> bool:
+    """Return True iff every committed indicator in
+    ``pending_indicator_responses`` has a non-null ``target_score``.
+
+    Gate for rendering target-condition valuations. Baseline responses can
+    be missing (those fall back to EEI/slider); target rendering blocks
+    until every committed indicator is answered on the target side.
+    """
+    if not st.session_state.get('use_indicator_multipliers'):
+        return False
+    pending = st.session_state.get('pending_indicator_responses') or {}
+    if not pending:
+        return False
+    found_committed = False
+    for entry in pending.values():
+        entry = entry or {}
+        if not entry.get('is_committed'):
+            continue
+        found_committed = True
+        if entry.get('target_score') is None:
+            return False
+    return found_committed
 
 
 def _persist_pre_analyze_indicators(analysis_id: str) -> None:
@@ -5167,10 +5205,26 @@ if analyze_button and st.session_state.selected_area:
                     urban_green_blue_multiplier=urban_multiplier,
                     ecosystem_intactness_multiplier=intactness_arg
                 )
-                
-                
+
+                # Parallel target valuation — only when every committed
+                # indicator has a target_score. Reuses every input except the
+                # multiplier dict, which is rebuilt from target_score values.
+                esvd_results_target = None
+                if _all_committed_have_target_scores():
+                    _target_dict = _build_indicator_multiplier_dict(
+                        ecosystem_type, score_field='target_score'
+                    )
+                    if _target_dict is not None:
+                        esvd_results_target = coeffs.calculate_ecosystem_values(
+                            ecosystem_type=ecosystem_type,
+                            area_hectares=area_ha,
+                            coordinates=(center_lat, center_lon),
+                            urban_green_blue_multiplier=urban_multiplier,
+                            ecosystem_intactness_multiplier=_target_dict,
+                        )
+
                 # Both urban green/blue and ecosystem intactness multipliers now applied at service level in ESVD calculation
-                
+
                 # Apply ESA land cover code specific multiplier if available
                 if st.session_state.get('detected_ecosystem') and 'landcover_class' in st.session_state.detected_ecosystem:
                     landcover_code = st.session_state.detected_ecosystem['landcover_class']
@@ -5178,7 +5232,14 @@ if analyze_button and st.session_state.selected_area:
                     esvd_results['total_value'] = esvd_results['total_value'] * esa_multiplier
                     esvd_results['current_value'] = esvd_results['current_value'] * esa_multiplier
                     esvd_results['total_annual_value'] = esvd_results['total_annual_value'] * esa_multiplier
-            
+                    # Apply the same ESA multiplier to the target run for
+                    # consistency — otherwise baseline/target wouldn't be
+                    # comparable on the same downstream display.
+                    if esvd_results_target is not None:
+                        esvd_results_target['total_value'] = esvd_results_target['total_value'] * esa_multiplier
+                        esvd_results_target['current_value'] = esvd_results_target['current_value'] * esa_multiplier
+                        esvd_results_target['total_annual_value'] = esvd_results_target['total_annual_value'] * esa_multiplier
+
             # Determine the actual ecosystem type for display
             display_ecosystem_type = ecosystem_type
             if st.session_state.ecosystem_override == "Auto-detect" and st.session_state.get('detected_ecosystem'):
@@ -5217,7 +5278,26 @@ if analyze_button and st.session_state.selected_area:
                 'quality_factor': st.session_state.get('quality_factor', 1.0),  # Default to 100% intactness
                 'intactness_percentage': st.session_state.get('intactness_percentage', 100)
             }
-            
+            # Indicator-driven target valuation, if all committed indicators
+            # have a target_score. Display code below reads these keys and
+            # renders the parallel target metrics + bar chart + breakdown.
+            try:
+                if esvd_results_target is not None:
+                    analysis_results['esvd_results_target'] = esvd_results_target
+                    analysis_results['total_value_target'] = int(
+                        esvd_results_target.get('total_annual_value',
+                                                esvd_results_target.get('current_value', 0))
+                    )
+                    analysis_results['value_per_ha_target'] = (
+                        esvd_results_target.get('total_annual_value',
+                                                esvd_results_target.get('current_value', 0))
+                        / area_ha if area_ha else 0
+                    )
+            except NameError:
+                # esvd_results_target wasn't created on this branch
+                # (e.g. multi-ecosystem path) — that's fine, skip.
+                pass
+
             # Add forest classification if detected or manually selected
             if forest_classification:
                 analysis_results['forest_classification'] = forest_classification
@@ -5302,11 +5382,17 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         # Summary totals — one unified panel, no per-metric card chrome
         with st.container(border=True, key="results_totals_panel"):
             col1, col2, col3 = st.columns(3)
+            _total_target = results.get('total_value_target')
+            _per_ha_target = results.get('value_per_ha_target')
             with col1:
                 st.metric("Total Annual Value", f"${results['total_value']:,}")
+                if _total_target is not None:
+                    st.caption(f"${_total_target:,} (target)")
             with col2:
                 per_ha = results.get('value_per_ha', results['total_value']/results['area_ha'])
                 st.metric("Value per Hectare", f"${per_ha:,.0f}/ha")
+                if _per_ha_target is not None:
+                    st.caption(f"${_per_ha_target:,.0f}/ha (target)")
             with col3:
                 # Area display with water exclusion for summary
                 land_area = results.get('area_ha', results.get('area_hectares', 0))
@@ -5399,11 +5485,17 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         st.toast("Loading detailed valuation results...", icon="⏳")
         
         col_metrics = st.columns(3)
+        _total_target_d = results.get('total_value_target')
+        _per_ha_target_d = results.get('value_per_ha_target')
         with col_metrics[0]:
             st.metric("Total Ecosystem Value", f"${results['total_value']:,}/year")
+            if _total_target_d is not None:
+                st.caption(f"${_total_target_d:,}/year (target)")
         with col_metrics[1]:
             per_ha_detailed = results.get('value_per_ha', results['total_value']/results['area_ha'])
             st.metric("Value per Hectare", f"${per_ha_detailed:,.0f}/ha")
+            if _per_ha_target_d is not None:
+                st.caption(f"${_per_ha_target_d:,.0f}/ha (target)")
         with col_metrics[2]:
             if 'ecosystem_composition' in results.get('metadata', {}):
                 composition = results['metadata']['ecosystem_composition']
@@ -5481,6 +5573,15 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         has_services_data = 'services_data' in esvd_data
         
         def _render_service_columns(categories, data_source, total_value_key):
+            # Target esvd_results (only present when every committed indicator
+            # has a target_score). Build a parallel per-category totals dict
+            # so each column can show a "(target)" caption.
+            _target_esvd = results.get('esvd_results_target')
+            _target_totals = {}
+            if _target_esvd:
+                for c in categories:
+                    _target_totals[c] = _target_esvd.get(c, {}).get('total', 0)
+
             # Service-category totals — one unified panel, no per-metric chrome
             totals = []
             with st.container(border=True, key="results_services_panel"):
@@ -5494,11 +5595,16 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         per_ha_cat = total / area_denom
                         st.metric(f"{category.title()} Services", f"${total:,.0f}/year")
                         st.caption(f"${per_ha_cat:.0f}/ha")
+                        if _target_esvd:
+                            _t = _target_totals.get(category, 0)
+                            _t_per_ha = _t / area_denom
+                            st.caption(f"${_t_per_ha:.0f}/ha (target)")
 
-            # Pie chart: % share of each service category
+            # Pie chart: % share of each service category. When target results
+            # exist, render a bar chart of Baseline vs Target alongside.
             if sum(totals) > 0:
                 import plotly.graph_objects as go
-                fig = go.Figure(data=[go.Pie(
+                _pie_fig = go.Figure(data=[go.Pie(
                     labels=[c.title() for c in categories],
                     values=totals,
                     hole=0.4,
@@ -5507,15 +5613,43 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     marker=dict(colors=['#2E7D32', '#558B2F', '#1976D2', '#7B1FA2']),
                     sort=False,
                 )])
-                fig.update_layout(
+                _pie_fig.update_layout(
                     showlegend=False,
                     margin=dict(t=60, b=60, l=80, r=80),
                     height=400,
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                if _target_esvd:
+                    _baseline_total = sum(totals)
+                    _target_total_v = sum(_target_totals.values())
+                    _bar_fig = go.Figure(data=[go.Bar(
+                        x=['Baseline', 'Target'],
+                        y=[_baseline_total, _target_total_v],
+                        text=[f"${_baseline_total:,.0f}", f"${_target_total_v:,.0f}"],
+                        textposition='outside',
+                        marker=dict(color=['#6B7280', '#2E7D32']),
+                    )])
+                    _bar_fig.update_layout(
+                        showlegend=False,
+                        margin=dict(t=60, b=60, l=40, r=40),
+                        height=400,
+                        yaxis=dict(title='Total annual value ($)'),
+                    )
+                    _pie_col, _bar_col = st.columns([1, 1])
+                    with _pie_col:
+                        st.plotly_chart(_pie_fig, use_container_width=True)
+                    with _bar_col:
+                        st.plotly_chart(_bar_fig, use_container_width=True)
+                else:
+                    st.plotly_chart(_pie_fig, use_container_width=True)
 
             # ── Sub-service breakdown panel (indicator-multiplier mode) ──
             _msm_rows = st.session_state.get('pending_computed_multipliers')
+            _msm_rows_target = st.session_state.get('pending_computed_multipliers_target')
+            # Only show the target column block when the target-condition
+            # multiplier rows exist (i.e. all committed indicators answered
+            # on the target side) AND a target valuation was actually
+            # computed for this analysis.
+            _show_target = bool(_msm_rows_target and results.get('esvd_results_target'))
             if _msm_rows and st.session_state.get('use_indicator_multipliers'):
                 with st.expander("Sub-service value breakdown (indicator-driven)", expanded=True):
                     import pandas as pd
@@ -5576,8 +5710,16 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         except Exception:
                             _bbi_for_display = 1.0
 
+                    # Target-row lookup by sub-service key. Only used when
+                    # _show_target — kept empty otherwise so the append-only
+                    # target columns stay out of the table.
+                    _target_by_key = {}
+                    if _show_target:
+                        _target_by_key = {tr['teeb_sub_service_key']: tr for tr in _msm_rows_target}
+
                     _table_rows = []
                     _hd_mult_seen = None
+                    _hd_mult_seen_target = None
                     _n_covered = 0
                     _n_fallback = 0
                     for r in _msm_rows:
@@ -5601,12 +5743,30 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             for slug, pct, w in zip(contrib_inds, contrib_pcts, contrib_weights)
                         }
 
+                        # Same lookup for the matching target row (if any).
+                        _tr = _target_by_key.get(s) if _show_target else None
+                        _t_by_slug = {}
+                        if _tr is not None:
+                            _t_inds = _tr.get('contributing_indicators') or []
+                            _t_pcts = _tr.get('contributing_response_pcts') or []
+                            _t_weights = _tr.get('contributing_weights') or []
+                            _t_by_slug = {
+                                slug: (pct, w)
+                                for slug, pct, w in zip(_t_inds, _t_pcts, _t_weights)
+                            }
+                            if (not _tr.get('fallback_to_bbi')
+                                    and _hd_mult_seen_target is None):
+                                _hd_mult_seen_target = _tr.get('hd_multiplier')
+
                         row_dict = {
                             'Sub-service': s.replace('_', ' ').title(),
                             'Coefficient ($/ha/yr)': f"{coeff:,.0f}",
                             'Area (ha)': f"{float(_area_for_breakdown):,.1f}",
                         }
-                        # Per-indicator columns: '<pct>% × <weight>' or blank
+                        # Per-indicator columns: '<pct>% × <weight>' or blank.
+                        # When target is shown, each indicator gets a paired
+                        # '<code> (target)' column immediately after its
+                        # baseline column.
                         for slug in _contrib_slugs_sorted:
                             code = _slug_to_code.get(slug, slug)
                             if slug in _by_slug:
@@ -5614,20 +5774,52 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                 row_dict[code] = f"{int(pct)}% × {float(w):.1f}"
                             else:
                                 row_dict[code] = ''
+                            if _show_target:
+                                if slug in _t_by_slug:
+                                    t_pct, t_w = _t_by_slug[slug]
+                                    row_dict[f"{code} (target)"] = f"{int(t_pct)}% × {float(t_w):.1f}"
+                                else:
+                                    row_dict[f"{code} (target)"] = ''
                         # Aggregated multipliers — explicit calc chain
                         if r.get('indicator_multiplier') is not None:
                             row_dict['Indicator avg'] = f"{r['indicator_multiplier']:.3f}"
                         else:
                             row_dict['Indicator avg'] = '— (BBI)'
+                        if _show_target:
+                            if _tr is not None and _tr.get('indicator_multiplier') is not None:
+                                row_dict['Indicator avg (target)'] = f"{_tr['indicator_multiplier']:.3f}"
+                            else:
+                                row_dict['Indicator avg (target)'] = '— (BBI)'
                         row_dict['HD ×'] = f"{r.get('hd_multiplier', 1.0):.3f}"
+                        if _show_target:
+                            row_dict['HD × (target)'] = (
+                                f"{_tr.get('hd_multiplier', 1.0):.3f}"
+                                if _tr is not None else ''
+                            )
                         # BBI: shown for transparency on every row. Highlighted
                         # (asterisk) when this is the value actually applied.
+                        # BBI is identical for baseline + target (same area-
+                        # level intactness source), so we don't duplicate it.
                         _bbi_cell = f"{float(_bbi_for_display):.3f}"
                         row_dict['BBI'] = (f"{_bbi_cell} *" if is_fallback else _bbi_cell)
                         row_dict['Regional ×'] = f"{float(_regional_for_breakdown):.2f}"
                         row_dict['Final ×'] = f"{mult:.3f}"
+                        if _show_target:
+                            row_dict['Final × (target)'] = (
+                                f"{float(_tr['final_multiplier']):.3f}"
+                                if _tr is not None else ''
+                            )
                         row_dict['Source'] = 'BBI' if is_fallback else 'indicator'
                         row_dict['Contribution ($/yr)'] = f"{contribution:,.0f}"
+                        if _show_target and _tr is not None:
+                            _t_contribution = (
+                                coeff * float(_tr['final_multiplier'])
+                                * float(_area_for_breakdown)
+                                * float(_regional_for_breakdown)
+                            )
+                            row_dict['Contribution ($/yr) (target)'] = f"{_t_contribution:,.0f}"
+                        elif _show_target:
+                            row_dict['Contribution ($/yr) (target)'] = ''
                         _table_rows.append(row_dict)
                     if _table_rows:
                         st.dataframe(
@@ -5636,13 +5828,21 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             use_container_width=True,
                         )
                         _hd_pct = int(round((_hd_mult_seen or 1.0) * 100))
-                        st.caption(
+                        _caption = (
                             f"**HD multiplier applied:** {(_hd_mult_seen or 1.0):.2f} "
                             f"(Human Disturbance response: {_hd_pct}%) · "
                             f"**BBI:** {float(_bbi_for_display):.3f} (applied to rows marked *) · "
                             f"**Sub-services covered by indicators:** {_n_covered} of {_n_covered + _n_fallback} · "
-                            f"**BBI fallback:** {_n_fallback}"
+                            f"Fallback intactness values (EEI or user-set) apply to {_n_fallback}"
                         )
+                        if _show_target:
+                            _hd_pct_t = int(round((_hd_mult_seen_target or 1.0) * 100))
+                            _caption += (
+                                f" · **HD multiplier applied (target):** "
+                                f"{(_hd_mult_seen_target or 1.0):.2f} "
+                                f"(target HD response: {_hd_pct_t}%)"
+                            )
+                        st.caption(_caption)
 
             with st.expander("Service-by-service breakdown"):
                 for category in categories:
