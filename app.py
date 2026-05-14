@@ -1860,7 +1860,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.13 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.14 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1909,6 +1909,12 @@ def reset_analysis_state():
                 st.session_state[key] = None
             else:
                 del st.session_state[key]
+    # Clear the location-search box so the user's stale query doesn't sit
+    # on screen after they pick a test area. Safe to set directly here:
+    # callbacks run before the next render, so the widget hasn't been
+    # instantiated yet in the new run.
+    if 'location_search_main' in st.session_state:
+        st.session_state.location_search_main = ""
 
 # Initialize local fallbacks to prevent LSP "unbound" diagnostics
 ecosystem_override = st.session_state.get('ecosystem_override', 'Auto-detect')
@@ -3647,6 +3653,13 @@ else:
 
 # Map section
 
+# Clear the search box if the drawing handler flagged a new on-map area
+# last rerun. Must happen BEFORE the search widget renders below — once a
+# Streamlit widget is instantiated in a given run, its session_state key
+# can't be modified inline.
+if st.session_state.pop('_clear_location_search', False):
+    st.session_state.location_search_main = ""
+
 # Add search and layer selector
 col_search, col_layer = st.columns([2, 1])
 with col_search:
@@ -3946,7 +3959,11 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                 # Clear caches to force recalculation
                 'cached_bbox': None,
                 'cached_area_ha': None,
-                'cached_ecosystem_results': None
+                'cached_ecosystem_results': None,
+                # Flag the next render to clear the search box (we can't
+                # modify the widget's session_state key inline here because
+                # the widget already rendered earlier in this run).
+                '_clear_location_search': True,
             })
             # Clear scenario state for new area
             for key in ['scenario_results', 'scenario_distribution', 'scenario_eco_intactness', 
