@@ -171,10 +171,18 @@ def _verify_token(token: str) -> str | None:
 # --- cookie I/O via extra-streamlit-components ---
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False, experimental_allow_widgets=True)
 def _cookie_manager():
-    """Return a singleton CookieManager. Cached so the same instance is
-    reused across reruns (each instance has its own widget key)."""
+    """Return a singleton CookieManager. Cached across reruns so the
+    cookie-manager widget is only instantiated once per session.
+
+    The ``experimental_allow_widgets=True`` flag silences Streamlit's
+    CachedWidgetWarning — it's required because CookieManager itself
+    renders a Streamlit component, and the manager needs to be cached
+    rather than recreated each render (recreating it would issue a
+    duplicate-key widget call in the same script run when the cookie
+    is both read in hydrate_from_cookie and written on login).
+    """
     import extra_streamlit_components as stx
     return stx.CookieManager(key="eve_cookie_manager")
 
@@ -334,7 +342,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.6.17 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.6.18 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
