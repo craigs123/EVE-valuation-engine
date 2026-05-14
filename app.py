@@ -1861,7 +1861,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.21 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.22 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2793,7 +2793,14 @@ def _build_indicator_multiplier_dict(ecosystem_type: str):
         return None
     sub_keys = list(eco_dict.keys())
 
-    ei = st.session_state.get('ecosystem_intactness', {})
+    # BBI fallback for sub-services NOT covered by any selected indicator.
+    # Source the intactness dict through _effective_intactness_dict() so that:
+    #   - When EEI is on  -> BBI = the EEI-derived value for this ecosystem
+    #   - When EEI is off -> BBI = the manual slider value
+    # Reading raw ecosystem_intactness here would always give the slider
+    # value (default 100%) even with EEI active, since EEI no longer
+    # mirrors itself into the slider state.
+    ei = _effective_intactness_dict()
     bbi = _get_ecosystem_intactness_multiplier(ecosystem_type, ei)
 
     rows = _compute_pure(
@@ -4614,7 +4621,13 @@ if analyze_button and st.session_state.selected_area:
                 # Keep flags until analysis is complete
                 # Don't clear the flags here - they need to persist until after valuation
                 
-            elif (st.session_state.ecosystem_override == "Auto-detect" or water_bodies_mode) and not st.session_state.get('skip_ecosystem_detection', False):
+            elif not st.session_state.get('skip_ecosystem_detection', False):
+                # Run sampling + per-point classification + EEI fetch on every
+                # analysis (unless explicitly skipped). When the user has forced
+                # an ecosystem-type override, the override is applied downstream
+                # via override_mapping (calc) and get_esvd_ecosystem_from_landcover_code
+                # (display); sampling is still needed so EEI has per-point values
+                # to average and the sample-points table has rows to render.
                 try:
                     from utils.openlandmap_integration import detect_ecosystem_type
 
