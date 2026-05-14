@@ -1861,7 +1861,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.22 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.23 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2649,7 +2649,7 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         n_fallback = n_total - n_covered
         st.info(
             f"**Coverage:** {n_covered} of {n_total} sub-services covered by "
-            f"indicators · BBI fallback applies to {n_fallback}"
+            f"indicators · Fallback intactness values (EEI or user-set) apply to {n_fallback}"
         )
     except Exception:
         pass
