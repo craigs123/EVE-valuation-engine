@@ -1860,7 +1860,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2071,7 +2071,8 @@ def analysis_settings_dialog():
                 'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
                 'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
                 'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
-                'Marine': '🌊', 'Rivers And Lakes': '🏞️', 'Urban': '🏙️',
+                'Mangroves': '🦀', 'Marine': '🌊', 'Rivers And Lakes': '🏞️',
+                'Urban': '🏙️',
             }
             if 'ecosystem_intactness' not in st.session_state:
                 st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
