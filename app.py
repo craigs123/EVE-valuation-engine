@@ -1860,7 +1860,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.14 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.15 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4085,12 +4085,13 @@ if st.session_state.get('selected_area'):
             st.session_state.project_indicators_enabled = False
             st.session_state.use_indicator_multipliers = False
         _pi = st.checkbox(
-            "Use project-specific indicators",
+            "Use project-specific indicators (alpha)",
             key='project_indicators_main',
             disabled=not _has_indicators,
             help=("Replace the intactness (BBI) multiplier with answers to "
                   "ecosystem-specific indicator questions. Available for "
-                  "ecosystems with seeded indicator sets (currently Mangroves)."),
+                  "ecosystems with seeded indicator sets (currently Mangroves). "
+                  "This feature is currently in alpha testing. Feedback welcome."),
         )
         if _has_indicators:
             st.session_state.project_indicators_enabled = _pi
