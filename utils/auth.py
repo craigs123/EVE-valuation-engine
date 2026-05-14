@@ -171,20 +171,28 @@ def _verify_token(token: str) -> str | None:
 # --- cookie I/O via extra-streamlit-components ---
 
 
-@st.cache_resource(show_spinner=False, experimental_allow_widgets=True)
 def _cookie_manager():
-    """Return a singleton CookieManager. Cached across reruns so the
-    cookie-manager widget is only instantiated once per session.
+    """Return a per-session CookieManager singleton stored in session_state.
 
-    The ``experimental_allow_widgets=True`` flag silences Streamlit's
-    CachedWidgetWarning — it's required because CookieManager itself
-    renders a Streamlit component, and the manager needs to be cached
-    rather than recreated each render (recreating it would issue a
-    duplicate-key widget call in the same script run when the cookie
-    is both read in hydrate_from_cookie and written on login).
+    Why not ``@st.cache_resource``? CookieManager renders a Streamlit
+    component during ``__init__``. Caching it via ``@st.cache_resource``
+    trips ``CachedWidgetWarning`` on older Streamlit, and the escape-
+    hatch flag (``experimental_allow_widgets``) was removed in newer
+    Streamlit, breaking with ``TypeError``. Session-state caching sits
+    outside Streamlit's cache machinery so neither problem applies.
+
+    Why a singleton at all (vs. instantiating each call)? A single
+    render can call _cookie_manager() more than once — e.g. the login
+    submit render reads via hydrate_from_cookie then writes via
+    _persist_auth_cookie. Re-constructing CookieManager would issue a
+    duplicate widget-key call.
     """
-    import extra_streamlit_components as stx
-    return stx.CookieManager(key="eve_cookie_manager")
+    mgr = st.session_state.get('_eve_cookie_mgr')
+    if mgr is None:
+        import extra_streamlit_components as stx
+        mgr = stx.CookieManager(key="eve_cookie_manager")
+        st.session_state['_eve_cookie_mgr'] = mgr
+    return mgr
 
 
 def _read_auth_cookie() -> str | None:
@@ -342,7 +350,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.6.18 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.6.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
