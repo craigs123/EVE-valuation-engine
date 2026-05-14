@@ -528,9 +528,10 @@ if 'urban_green_blue_multiplier' not in st.session_state:
 if 'ecosystem_intactness' not in st.session_state:
     st.session_state.ecosystem_intactness = {
         'Agricultural': 100, 'Temperate Forest': 100, 'Boreal Forest': 100,
-        'Tropical Forest': 100, 'Grassland': 100, 'Shrubland': 100,
-        'Desert': 100, 'Wetland': 100, 'Coastal': 100,
-        'Marine': 100, 'Rivers And Lakes': 100, 'Urban': 100,
+        'Tropical Forest': 100, 'Polar': 100, 'Grassland': 100,
+        'Shrubland': 100, 'Desert': 100, 'Wetland': 100,
+        'Coastal': 100, 'Mangroves': 100, 'Marine': 100,
+        'Rivers and Lakes': 100, 'Urban': 100,
     }
 
 # Enhanced CSS for better UX and modern design
@@ -1860,7 +1861,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.21 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2069,10 +2070,10 @@ def analysis_settings_dialog():
 
             _eco_types = {
                 'Agricultural': '🌾', 'Temperate Forest': '🌳', 'Boreal Forest': '🌲',
-                'Tropical Forest': '🌴', 'Grassland': '🌱', 'Shrubland': '🌵',
-                'Desert': '🏜️', 'Wetland': '🌿', 'Coastal': '🏖️',
-                'Mangroves': '🦀', 'Marine': '🌊', 'Rivers And Lakes': '🏞️',
-                'Urban': '🏙️',
+                'Tropical Forest': '🌴', 'Polar': '🧊', 'Grassland': '🌱',
+                'Shrubland': '🌵', 'Desert': '🏜️', 'Wetland': '🌿',
+                'Coastal': '🏖️', 'Mangroves': '🦀', 'Marine': '🌊',
+                'Rivers and Lakes': '🏞️', 'Urban': '🏙️',
             }
             if 'ecosystem_intactness' not in st.session_state:
                 st.session_state.ecosystem_intactness = {k: 100 for k in _eco_types}
@@ -2260,8 +2261,9 @@ PRE_ANALYZE_PROJECT_TYPE_SLUG = 'mangrove_restoration'
 # canonical display names.
 ECOSYSTEM_DISPLAY_OPTIONS = [
     "Auto-detect", "Tropical Forest", "Temperate Forest", "Boreal Forest",
-    "polar", "Grassland", "Wetland", "Water (ocean)", "Rivers and Lakes",
-    "Coastal", "Mangroves", "Marine", "Agricultural", "Urban", "Desert",
+    "Polar", "Grassland", "Shrubland", "Wetland", "Water (ocean)",
+    "Rivers and Lakes", "Coastal", "Mangroves", "Marine", "Agricultural",
+    "Urban", "Desert",
 ]
 
 # Display names of ecosystems with project-specific indicators seeded in
@@ -2271,6 +2273,34 @@ ECOSYSTEMS_WITH_PROJECT_INDICATORS = {'Mangroves'}
 
 def _ecosystem_has_project_indicators(display_name: str) -> bool:
     return display_name in ECOSYSTEMS_WITH_PROJECT_INDICATORS
+
+
+def _effective_intactness_dict() -> Dict:
+    """Return the per-ecosystem intactness dict the calc engine should use.
+
+    - EEI on  → derive from ecosystem_eei (per-area EEI fetch, 0–1 scale
+      converted to 0–100 %). Manual sliders are NOT consulted.
+    - EEI off → use ecosystem_intactness (the user's manual slider state,
+      0–100 %).
+
+    Critically, EEI no longer overwrites ``ecosystem_intactness`` — those
+    sliders are the user's manual settings and must only change when
+    the user moves a slider.
+    """
+    if st.session_state.get('use_eei_for_intactness'):
+        _eei_dict = st.session_state.get('ecosystem_eei', {}) or {}
+        out: Dict[str, float] = {}
+        for k, v in _eei_dict.items():
+            if v is None:
+                continue
+            pct = round(v * 100, 3)
+            out[k] = pct
+            # Mirror under title-case so the analysis_helpers lookup
+            # (which does case-normalisation as a fallback) finds it
+            # whether ecosystem_eei is keyed by snake_case or display name.
+            out[k.replace('_', ' ').title()] = pct
+        return out
+    return st.session_state.get('ecosystem_intactness', {}) or {}
 
 
 def render_pre_analyze_indicator_panel():
@@ -4772,18 +4802,11 @@ if analyze_button and st.session_state.selected_area:
                                     # Calculate EEI per ecosystem for intactness defaults
                                     ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
                                     st.session_state.ecosystem_eei = ecosystem_eei
-                                    
-                                    # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
-                                    if ecosystem_eei:
-                                        for eco_type, eei_value in ecosystem_eei.items():
-                                            if eei_value is not None:
-                                                # Normalize to title case for consistent lookup in scenario builder
-                                                normalized_type = eco_type.replace('_', ' ').title()
-                                                # Store with 3 decimal places precision
-                                                intactness_pct = round(eei_value * 100, 3)
-                                                st.session_state.ecosystem_intactness[normalized_type] = intactness_pct
-                                                # Also set with original key for backwards compatibility
-                                                st.session_state.ecosystem_intactness[eco_type] = intactness_pct
+                                    # NB: don't mirror EEI into ecosystem_intactness — those
+                                    # sliders are the user's MANUAL settings and must only
+                                    # change when the user moves a slider. The calc engine
+                                    # reads from _effective_intactness_dict() which picks
+                                    # ecosystem_eei when EEI is on.
                                 except Exception as e:
                                     st.session_state.point_eei_values = {}
                                     st.session_state.average_eei = None
@@ -4848,18 +4871,11 @@ if analyze_button and st.session_state.selected_area:
                                 # Calculate EEI per ecosystem for intactness defaults
                                 ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
                                 st.session_state.ecosystem_eei = ecosystem_eei
-                                
-                                # Set intactness defaults based on EEI (convert 0-1 to 0-100%)
-                                if ecosystem_eei:
-                                    for eco_type, eei_value in ecosystem_eei.items():
-                                        if eei_value is not None:
-                                            # Normalize to title case for consistent lookup in scenario builder
-                                            normalized_type = eco_type.replace('_', ' ').title()
-                                            # Store with 3 decimal places precision
-                                            intactness_pct = round(eei_value * 100, 3)
-                                            st.session_state.ecosystem_intactness[normalized_type] = intactness_pct
-                                            # Also set with original key for backwards compatibility
-                                            st.session_state.ecosystem_intactness[eco_type] = intactness_pct
+                                # NB: don't mirror EEI into ecosystem_intactness — those
+                                # sliders are the user's MANUAL settings and must only
+                                # change when the user moves a slider. The calc engine
+                                # reads from _effective_intactness_dict() which picks
+                                # ecosystem_eei when EEI is on.
                             except Exception as e:
                                 st.session_state.point_eei_values = {}
                                 st.session_state.average_eei = None
@@ -4967,14 +4983,17 @@ if analyze_button and st.session_state.selected_area:
                     "Temperate Forest": "temperate_forest",
                     "Tropical Forest": "tropical_forest",
                     "Boreal Forest": "boreal_forest",
+                    "Polar": "polar",
                     "Grassland": "grassland",
+                    "Shrubland": "shrubland",
                     "Wetland": "wetland",
+                    "Water (ocean)": "marine",
+                    "Rivers and Lakes": "rivers_and_lakes",
                     "Coastal": "coastal",
                     "Mangroves": "mangroves",
                     "Marine": "marine",
                     "Desert": "desert",
                     "Urban": "urban",
-                    "polar": "polar"
                 }
                 ecosystem_type = override_mapping.get(st.session_state.ecosystem_override, "agricultural")
                 
@@ -5034,7 +5053,7 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Intactness multiplier: indicator-driven dict (when pre-Analyze
                     # responses exist for this ecosystem) or uniform BBI scalar.
-                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                    ecosystem_intactness = _effective_intactness_dict()
                     _ind_dict = _build_indicator_multiplier_dict(eco_type)
                     if _ind_dict is not None:
                         intactness_arg = _ind_dict
@@ -5121,7 +5140,7 @@ if analyze_button and st.session_state.selected_area:
                 
                 # Intactness multiplier: indicator-driven dict (when pre-Analyze
                 # responses exist for this ecosystem) or uniform BBI scalar.
-                ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
+                ecosystem_intactness = _effective_intactness_dict()
                 _ind_dict = _build_indicator_multiplier_dict(ecosystem_type)
                 if _ind_dict is not None:
                     intactness_arg = _ind_dict
@@ -5537,7 +5556,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     if _bbi_for_display is None:
                         try:
                             from utils.analysis_helpers import _get_ecosystem_intactness_multiplier
-                            _ei = st.session_state.get('ecosystem_intactness', {})
+                            _ei = _effective_intactness_dict()
                             _bbi_for_display = _get_ecosystem_intactness_multiplier(
                                 _eco_for_breakdown, _ei
                             )
@@ -5920,7 +5939,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             'Desert': 'desert',
             'Urban': 'urban',
             'Marine': 'marine',
-            'Rivers And Lakes': 'rivers_and_lakes'
+            'Rivers and Lakes': 'rivers_and_lakes'
         }
         
         # Get original intactness from session state
