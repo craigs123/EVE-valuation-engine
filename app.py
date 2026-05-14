@@ -412,7 +412,7 @@ st.markdown("""
             padding-bottom: 0 !important;
         }
         [data-testid="stElementContainer"]:has(.section-header) + [data-testid="stElementContainer"] {
-            margin-top: -0.75rem !important;
+            margin-top: -1rem !important;
             padding-top: 0 !important;
         }
 
@@ -1860,7 +1860,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.6.15 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.6.16 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
