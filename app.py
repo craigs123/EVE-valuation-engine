@@ -4414,6 +4414,11 @@ def _render_project_eco_controls():
             index=_idx,
             key='project_ecosystem_selector',
             label_visibility='collapsed',
+            # Display-only label; the stored value stays "Auto-detect" so
+            # downstream `== 'Auto-detect'` checks are unaffected.
+            format_func=lambda _o: (
+                "Auto-detect (recommended)" if _o == "Auto-detect" else _o
+            ),
         )
         st.session_state.project_ecosystem_override = _choice
         st.session_state.ecosystem_override = _choice
