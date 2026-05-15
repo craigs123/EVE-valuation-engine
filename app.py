@@ -2515,23 +2515,36 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
             ':green[🟩 ',
         ]
 
-        def _build_options_for(indicator):
+        def _build_options_for(indicator, recommended_pct=None):
             """Build the radio _OPTIONS list for a single indicator.
 
             Labels come from ``indicator['bands']`` (per-indicator seed
             data) so M3-M7+HD show their tailored wording. Score values
             and the colour ramp stay project-wide constants.
+
+            When ``recommended_pct`` is given (the EEI-sourced intactness
+            % for this ecosystem), the band whose percentage is closest
+            to it is flagged with '(recommended)' — a baseline-only hint.
             """
             bands = indicator.get('bands') or []
             opts = [('none', ':gray[— not yet answered —]', None)]
+            _rec_i = None
+            if recommended_pct is not None and bands:
+                _rec_i = min(
+                    range(len(bands)),
+                    key=lambda j: abs(
+                        round(float(bands[j]['score']) * 100) - recommended_pct
+                    ),
+                )
             for i, band in enumerate(bands):
                 score = float(band['score'])
                 pct = int(round(score * 100))
                 prefix = _BAND_COLOR_PREFIX[i] if i < len(_BAND_COLOR_PREFIX) else ':gray['
                 label_text = band.get('label') or f'Band {i + 1}'
+                _rec = ' (recommended)' if i == _rec_i else ''
                 opts.append((
                     f'band_{i}',
-                    f"{prefix}{label_text} ({pct}%)]",
+                    f"{prefix}{label_text} ({pct}%){_rec}]",
                     score,
                 ))
             opts.append(('custom', ':gray[Custom]', None))
@@ -2583,6 +2596,20 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                     return clean
             return 'Custom'
 
+        # EEI-sourced intactness % for this ecosystem (Mangroves). Used to
+        # flag the baseline band closest to it with '(recommended)'. Only
+        # available once an analysis has run — EEI is fetched during
+        # sampling — so this is None on the first pre-Analyze render and
+        # when EEI is disabled in Settings.
+        _eei_recommended_pct = None
+        if st.session_state.get('use_eei_for_intactness'):
+            _eff_intact = _effective_intactness_dict()
+            _eei_recommended_pct = (
+                _eff_intact.get(_project_eco)
+                or _eff_intact.get(_project_eco.replace(' ', '_').lower())
+                or _eff_intact.get(_project_eco.lower())
+            )
+
         for ind in committed:
             slug = ind['slug']
             code = ind.get('code') or '?'
@@ -2594,8 +2621,12 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
 
             # Per-indicator radio options (labels come from this indicator's
             # own seed bands; score values and colour ramp stay constant).
+            # Target uses the plain options; baseline gets a separate list
+            # that flags the EEI-closest band with '(recommended)'.
             _options = _build_options_for(ind)
             _opt_labels = [lbl for _, lbl, _ in _options]
+            _base_options = _build_options_for(ind, recommended_pct=_eei_recommended_pct)
+            _base_opt_labels = [lbl for _, lbl, _ in _base_options]
 
             is_mandatory = bool(ind.get('is_mandatory'))
             # `expanded=True` constant: Streamlit only applies it on first
@@ -2612,15 +2643,21 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
 
                 with _base_col:
                     st.markdown("**Baseline**")
-                    _base_idx = _idx_for(entry.get('score'), entry.get('is_custom', False), _options)
+                    _bkey = f"pi_pre_base_{slug}"
+                    if _bkey in st.session_state and st.session_state[_bkey] not in _base_opt_labels:
+                        # The EEI '(recommended)' marker shifted the label
+                        # set; drop the stale stored label so the radio
+                        # re-seats from the preserved score via index=.
+                        del st.session_state[_bkey]
+                    _base_idx = _idx_for(entry.get('score'), entry.get('is_custom', False), _base_options)
                     _base_choice = st.radio(
                         "Baseline response",
-                        _opt_labels,
+                        _base_opt_labels,
                         index=_base_idx,
-                        key=f"pi_pre_base_{slug}",
+                        key=_bkey,
                         label_visibility='collapsed',
                     )
-                    _base_is_custom = (_base_choice == _opt_labels[-1])
+                    _base_is_custom = (_base_choice == _base_opt_labels[-1])
                     _base_default = (
                         int(round(entry['score'] * 100))
                         if (entry.get('is_custom') and entry.get('score') is not None)
@@ -2661,7 +2698,7 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                     )
 
                 # Reconcile state from widgets
-                entry['score'], entry['is_custom'] = _state_from_choice(_base_choice, _base_custom_val, _options)
+                entry['score'], entry['is_custom'] = _state_from_choice(_base_choice, _base_custom_val, _base_options)
                 entry['target_score'], entry['target_is_custom'] = _state_from_choice(_tgt_choice, _tgt_custom_val, _options)
 
                 # Caption with current Baseline / Target values
@@ -4159,8 +4196,12 @@ else:
 from streamlit_folium import st_folium
 col1_map, col2_map, col3_map = st.columns([0.2, 2, 1.1])
 with col2_map:
-    # Loading message that shows until map iframe loads
-    st.markdown("""
+    # Loading overlay — shown only on the first map render of the session.
+    # Re-injecting it on every rerun made the map appear to "refresh" (a
+    # green 'loading…' box flashing over it) on unrelated interactions
+    # such as changing the ecosystem dropdown.
+    if not st.session_state.get('_map_first_render_done'):
+        st.markdown("""
     <style>
     .map-loading-overlay {
         position: relative;
@@ -4189,7 +4230,8 @@ with col2_map:
         <span class="map-loading-text">🌱 Please wait, loading map...</span>
     </div>
     """, unsafe_allow_html=True)
-    
+        st.session_state['_map_first_render_done'] = True
+
     map_data = st_folium(
         m,
         width="100%",  # Responsive width for all device sizes
@@ -4309,7 +4351,14 @@ with col3_map:
 # satellite autodetect) when set to anything other than 'Auto-detect'. The
 # checkbox is only enabled when the chosen ecosystem has seeded project
 # indicators (currently Mangroves only); switching away auto-unchecks it.
-if st.session_state.get('selected_area'):
+@st.fragment
+def _render_project_eco_controls():
+    """Ecosystem selector + project-indicators checkbox + pre-Analyze
+    panel, isolated in an st.fragment so changing the dropdown or checkbox
+    reruns only this block — the map rendered above is left untouched
+    instead of visibly 'refreshing'."""
+    if not st.session_state.get('selected_area'):
+        return
     if 'project_ecosystem_override' not in st.session_state:
         st.session_state.project_ecosystem_override = 'Auto-detect'
 
@@ -4366,7 +4415,10 @@ if st.session_state.get('selected_area'):
             st.session_state.project_indicators_enabled = _pi
             st.session_state.use_indicator_multipliers = _pi
 
-render_pre_analyze_indicator_panel()
+    render_pre_analyze_indicator_panel()
+
+
+_render_project_eco_controls()
 
 # Calculate button: always rendered below the ecosystem-type dropdown (and
 # indicator panel, when one is shown). For the indicator path, this gives
@@ -6747,8 +6799,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             key="pdf_dl_btn",
         )
 
-    # ── Project Indicators (optional, gated by Settings toggle) ──────────────
-    if st.session_state.get('project_indicators_enabled', False):
-        render_project_indicators_section()
+    # The legacy bottom-of-page Project Indicators section was removed —
+    # superseded by the pre-Analyze project-indicator panel. The
+    # render_project_indicators_section() function is now unreferenced.
 
 
