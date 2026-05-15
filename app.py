@@ -2350,17 +2350,17 @@ def render_pre_analyze_indicator_panel():
 
     # Make the 'Commit to tracking' checkboxes more visible — the default
     # Streamlit checkbox renders with a faint grey outline that's easy to miss.
-    # Bump the border to a 2px green stroke on the unchecked box and bold-green
-    # fill when checked. Scoped to the pi_pre_commit_* widget keys so other
-    # checkboxes elsewhere are untouched.
+    # Enlarge the box to 28px with a 3px green stroke so the unchecked state
+    # is clearly visible, plus a bold-green fill when checked. Scoped to the
+    # pi_pre_commit_* widget keys so other checkboxes elsewhere are untouched.
     st.markdown(
         """
 <style>
 div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > span:first-child {
-    border: 2px solid #2E7D32 !important;
+    border: 3px solid #2E7D32 !important;
     background-color: #FFFFFF !important;
-    width: 22px !important;
-    height: 22px !important;
+    width: 28px !important;
+    height: 28px !important;
 }
 div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > span:first-child[aria-checked='true'],
 div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] input:checked + div,
@@ -2479,7 +2479,7 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         # to skip EROI. The EROI horizon is the project duration derived
         # from the two dates above.
         _cost = st.number_input(
-            "Estimated cost to achieve target condition (Int$)",
+            "Estimate financial cost to achieve target level ecosystem restoration (Int$)",
             min_value=0.0, step=1000.0,
             value=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
             key='pi_pre_project_cost',
@@ -2776,13 +2776,16 @@ def _compute_eroi(results: dict, cost: float,
     analysis.
 
     Returns None when EROI does not apply: no target valuation, no cost
-    entered, or the target valuation is not above the baseline. Otherwise
-    returns the components plus the three metrics; 'eroi_ratio' is None when
-    the project duration is unavailable.
+    entered, or the target valuation is not above the baseline.
+
+    'total_gain' (target valuation − baseline valuation) is the Total
+    Project Ecosystem Services Gain — the gain over the life of the
+    project. The average annual gain is that total spread over the project
+    duration; 'annual_return_pct' and 'payback_years' are None when the
+    duration (the gap between the baseline and target dates) is unavailable.
 
     The three ratio metrics are scale-invariant — identical whether derived
-    from totals or per-hectare figures, since the area cancels — so they are
-    reported once."""
+    from totals or per-hectare figures, since the area cancels."""
     if not results:
         return None
     baseline_total = results.get('total_value')
@@ -2791,32 +2794,35 @@ def _compute_eroi(results: dict, cost: float,
         return None
     if not cost or cost <= 0:
         return None
-    annual_gain_total = target_total - baseline_total
-    if annual_gain_total <= 0:
+    total_gain = target_total - baseline_total
+    if total_gain <= 0:
         return None
 
     area_ha = results.get('area_ha') or results.get('area_hectares') or 0
     baseline_per_ha = results.get('value_per_ha')
     target_per_ha = results.get('value_per_ha_target')
     if baseline_per_ha is not None and target_per_ha is not None:
-        annual_gain_per_ha = target_per_ha - baseline_per_ha
+        total_gain_per_ha = target_per_ha - baseline_per_ha
     elif area_ha:
-        annual_gain_per_ha = annual_gain_total / area_ha
+        total_gain_per_ha = total_gain / area_ha
     else:
-        annual_gain_per_ha = None
+        total_gain_per_ha = None
     cost_per_ha = (cost / area_ha) if area_ha else None
 
-    eroi_ratio = ((annual_gain_total * duration_years) / cost
-                  if duration_years else None)
+    # Average annual gain = total project gain spread over the duration.
+    annual_gain_avg = (total_gain / duration_years) if duration_years else None
     return {
-        'annual_gain_total': annual_gain_total,
-        'annual_gain_per_ha': annual_gain_per_ha,
+        'total_gain': total_gain,
+        'total_gain_per_ha': total_gain_per_ha,
+        'annual_gain_avg': annual_gain_avg,
         'cost': cost,
         'cost_per_ha': cost_per_ha,
         'duration_years': duration_years,
-        'eroi_ratio': eroi_ratio,
-        'annual_return_pct': annual_gain_total / cost * 100,
-        'payback_years': cost / annual_gain_total,
+        'eroi_ratio': total_gain / cost,
+        'annual_return_pct': (annual_gain_avg / cost * 100
+                              if annual_gain_avg is not None else None),
+        'payback_years': (cost / annual_gain_avg
+                          if annual_gain_avg else None),
     }
 
 
@@ -2845,13 +2851,16 @@ def render_eroi_panel(results: dict) -> None:
                     "return on the investment.")
             return
 
-        # Components — shown on both a total and a per-hectare basis.
+        # Basic results — total project gain and cost, total + per-hectare.
         c1, c2 = st.columns(2)
         with c1:
-            st.metric("Annual value gain",
-                      f"${eroi['annual_gain_total']:,.0f}/yr")
-            if eroi['annual_gain_per_ha'] is not None:
-                st.caption(f"${eroi['annual_gain_per_ha']:,.0f}/ha/yr")
+            st.metric("Total Project Ecosystem Services Gain",
+                      f"${eroi['total_gain']:,.0f}")
+            if eroi['total_gain_per_ha'] is not None:
+                st.caption(f"${eroi['total_gain_per_ha']:,.0f}/ha")
+            if eroi['annual_gain_avg'] is not None:
+                st.caption(f"avg ${eroi['annual_gain_avg']:,.0f}/yr over "
+                           f"{eroi['duration_years']:.1f} yr")
         with c2:
             st.metric("Cost to achieve target", f"${eroi['cost']:,.0f}")
             if eroi['cost_per_ha'] is not None:
@@ -2860,24 +2869,41 @@ def render_eroi_panel(results: dict) -> None:
         # The three EROI metrics (scale-invariant — same total or per-ha).
         m1, m2, m3 = st.columns(3)
         with m1:
-            if eroi['eroi_ratio'] is not None:
-                st.metric("EROI", f"{eroi['eroi_ratio']:.2f}×")
-                st.caption(f"over project duration "
-                           f"({eroi['duration_years']:.1f} yr)")
-            else:
-                st.metric("EROI", "—")
-                st.caption("needs a baseline and target date")
+            st.metric("EROI", f"{eroi['eroi_ratio']:.2f}×")
+            st.caption("total gain ÷ cost")
         with m2:
-            st.metric("Annual return", f"{eroi['annual_return_pct']:.1f}% / yr")
+            if eroi['annual_return_pct'] is not None:
+                st.metric("Annual return", f"{eroi['annual_return_pct']:.1f}% / yr")
+            else:
+                st.metric("Annual return", "—")
+                st.caption("needs a baseline and target date")
         with m3:
-            st.metric("Payback period", f"{eroi['payback_years']:.1f} years")
+            if eroi['payback_years'] is not None:
+                st.metric("Payback period", f"{eroi['payback_years']:.1f} years")
+                _payback_cap = "after the project target date"
+                if target_date is not None:
+                    from datetime import timedelta as _timedelta
+                    try:
+                        _payback_end = target_date + _timedelta(
+                            days=eroi['payback_years'] * 365.25
+                        )
+                        _payback_cap = (f"after target date "
+                                        f"(≈ {_payback_end.year})")
+                    except Exception:
+                        pass
+                st.caption(_payback_cap)
+            else:
+                st.metric("Payback period", "—")
+                st.caption("needs a baseline and target date")
 
         st.caption(
-            "EROI = (annual value gain × project duration) ÷ cost. The annual "
-            "gain is the steady-state target uplift; applying it across the "
-            "full duration assumes the target condition holds throughout and "
-            "does not model the ramp-up from baseline. The three ratios are "
-            "identical on a total or per-hectare basis."
+            "Total Project Ecosystem Services Gain = target valuation − "
+            "baseline valuation. EROI = total gain ÷ cost. Annual return = "
+            "average annual gain ÷ cost. Payback = the number of years after "
+            "the project target date for the average annual gain to repay "
+            "the cost. (Average annual gain = total gain ÷ project duration, "
+            "the gap between the baseline and target dates.) The three ratios "
+            "are identical on a total or per-hectare basis."
         )
 
 
