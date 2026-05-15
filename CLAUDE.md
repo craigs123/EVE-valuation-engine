@@ -37,7 +37,7 @@ Two Cloud Run environments live in GCP project `eve-solutions-482317`, region `u
 | DB instance | `eve-db` (Cloud SQL) | same instance |
 | DB database | `neondb` | `eve_staging` |
 | Git branch | `main` | `staging` |
-| Version | `vX.Y.Z` | `vX.Y.Z-rcN` (release candidates) |
+| Version | `vX.Y.Z beta` | `vX.Y.Z beta` (incremented per iteration) |
 
 **Workflow:**
 
@@ -50,10 +50,10 @@ feature-branch → PR → staging → (test on staging URL) → PR → main
 
 1. Work on a feature branch.
 2. Open PR into `staging`, merge.
-3. From `staging` branch: bump version to next `rcN`, push, run `bash scripts/deploy_staging.sh`.
+3. From `staging` branch: bump the version to the next `vX.Y.Z beta`, push, run `bash scripts/deploy_staging.sh`.
 4. Test on the staging URL (need to be authenticated — see "Accessing staging" below).
 5. When green: open PR `staging` → `main`. Merge.
-6. From `main`: bump version to clean `vX.Y.Z`, push, run prod deploy:
+6. From `main`: bump the version to the release `vX.Y.Z beta` — set the clean X.Y.Z release number, but **keep the `beta` suffix** (the app is still beta-stage) — push, run prod deploy:
    ```
    gcloud run deploy eve-valuation-engine --source . --region us-central1 --platform managed --quiet
    ```
