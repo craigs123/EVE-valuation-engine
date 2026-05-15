@@ -6436,8 +6436,10 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             'Rivers and Lakes': 'rivers_and_lakes'
         }
         
-        # Get original intactness from session state
-        original_intactness_values = st.session_state.get('ecosystem_intactness', {})
+        # Original intactness — EEI-derived values when EEI is active,
+        # else the user's manual slider values (not the raw 100% defaults
+        # in ecosystem_intactness, which EEI deliberately does not write to).
+        original_intactness_values = _effective_intactness_dict()
         
         # Initialize scenario state if not exists
         if 'scenario_distribution' not in st.session_state:
@@ -6463,8 +6465,9 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         
         col_scenario_left, col_scenario_right = st.columns([1, 1])
         
-        # Get original intactness values from session state
-        original_intactness = st.session_state.get('ecosystem_intactness', {})
+        # Original intactness for display — EEI values when EEI is active,
+        # else the user's manual sliders (not the raw 100% defaults).
+        original_intactness = _effective_intactness_dict()
         
         with col_scenario_left:
             st.markdown("**Original Analysis**")
