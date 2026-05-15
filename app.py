@@ -534,6 +534,11 @@ if 'ecosystem_intactness' not in st.session_state:
         'Rivers and Lakes': 100, 'Urban': 100,
     }
 
+# Estimated project cost (Int$) for the current project-indicator run.
+# Drives the EROI metrics; 0 means no cost has been entered yet.
+if 'pending_indicator_project_cost' not in st.session_state:
+    st.session_state.pending_indicator_project_cost = 0.0
+
 # Enhanced CSS for better UX and modern design
 st.markdown("""
     <style>
@@ -2469,6 +2474,32 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
             )
             st.session_state['pending_indicator_target_date'] = _target_date
 
+        # Estimated project cost — drives the EROI (Ecological Return on
+        # Investment) metrics shown with the results. Optional; leave at 0
+        # to skip EROI. The EROI horizon is the project duration derived
+        # from the two dates above.
+        _cost = st.number_input(
+            "Estimated cost to achieve target condition (Int$)",
+            min_value=0.0, step=1000.0,
+            value=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
+            key='pi_pre_project_cost',
+            help="Total estimated project cost to move the site from baseline "
+                 "to target condition. Used to compute EROI. Leave at 0 to "
+                 "skip EROI.",
+        )
+        st.session_state['pending_indicator_project_cost'] = _cost
+        _dur_preview = _project_duration_years(_baseline_date, _target_date)
+        if _dur_preview:
+            st.caption(
+                f"Project duration: {_dur_preview:.1f} years (from the dates "
+                f"above) — used as the EROI horizon."
+            )
+        else:
+            st.caption(
+                "Set a baseline and target date above so EROI has a "
+                "project-duration horizon."
+            )
+
         # Colour-coded option labels using Streamlit's `:color[text]` markdown.
         # The visual squares give an at-a-glance red→amber→green gradient
         # tied to band position. Labels come from the indicator's own seed
@@ -2686,6 +2717,133 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
     st.markdown("---")
 
 
+def _project_duration_years(baseline_date, target_date) -> float | None:
+    """Project duration in years, derived from the baseline and target dates
+    collected in the pre-Analyze panel. Returns None when either date is
+    missing or the span is not positive — callers treat that as 'no EROI
+    horizon available'."""
+    if not baseline_date or not target_date:
+        return None
+    try:
+        days = (target_date - baseline_date).days
+    except Exception:
+        return None
+    if days <= 0:
+        return None
+    return days / 365.25
+
+
+def _compute_eroi(results: dict, cost: float,
+                  duration_years: float | None) -> dict | None:
+    """Compute Ecological Return on Investment metrics for a completed
+    analysis.
+
+    Returns None when EROI does not apply: no target valuation, no cost
+    entered, or the target valuation is not above the baseline. Otherwise
+    returns the components plus the three metrics; 'eroi_ratio' is None when
+    the project duration is unavailable.
+
+    The three ratio metrics are scale-invariant — identical whether derived
+    from totals or per-hectare figures, since the area cancels — so they are
+    reported once."""
+    if not results:
+        return None
+    baseline_total = results.get('total_value')
+    target_total = results.get('total_value_target')
+    if baseline_total is None or target_total is None:
+        return None
+    if not cost or cost <= 0:
+        return None
+    annual_gain_total = target_total - baseline_total
+    if annual_gain_total <= 0:
+        return None
+
+    area_ha = results.get('area_ha') or results.get('area_hectares') or 0
+    baseline_per_ha = results.get('value_per_ha')
+    target_per_ha = results.get('value_per_ha_target')
+    if baseline_per_ha is not None and target_per_ha is not None:
+        annual_gain_per_ha = target_per_ha - baseline_per_ha
+    elif area_ha:
+        annual_gain_per_ha = annual_gain_total / area_ha
+    else:
+        annual_gain_per_ha = None
+    cost_per_ha = (cost / area_ha) if area_ha else None
+
+    eroi_ratio = ((annual_gain_total * duration_years) / cost
+                  if duration_years else None)
+    return {
+        'annual_gain_total': annual_gain_total,
+        'annual_gain_per_ha': annual_gain_per_ha,
+        'cost': cost,
+        'cost_per_ha': cost_per_ha,
+        'duration_years': duration_years,
+        'eroi_ratio': eroi_ratio,
+        'annual_return_pct': annual_gain_total / cost * 100,
+        'payback_years': cost / annual_gain_total,
+    }
+
+
+def render_eroi_panel(results: dict) -> None:
+    """Render the Ecological Return on Investment panel beneath the results
+    totals. Shows nothing for non-project runs (no target valuation); nudges
+    the user when a project cost is still needed."""
+    if not results or results.get('total_value_target') is None:
+        return  # Not a project run with a target valuation.
+
+    cost = float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0)
+    baseline_date = st.session_state.get('pending_indicator_baseline_date')
+    target_date = st.session_state.get('pending_indicator_target_date')
+    duration_years = _project_duration_years(baseline_date, target_date)
+
+    with st.container(border=True, key="results_eroi_panel"):
+        st.markdown("### Ecological Return on Investment (EROI)")
+        if cost <= 0:
+            st.info("Enter an estimated project cost in the project-indicator "
+                    "panel to see EROI.")
+            return
+        eroi = _compute_eroi(results, cost, duration_years)
+        if eroi is None:
+            st.info("EROI is not applicable here — the target valuation does "
+                    "not exceed the baseline, so there is no value gain to "
+                    "return on the investment.")
+            return
+
+        # Components — shown on both a total and a per-hectare basis.
+        c1, c2 = st.columns(2)
+        with c1:
+            st.metric("Annual value gain",
+                      f"${eroi['annual_gain_total']:,.0f}/yr")
+            if eroi['annual_gain_per_ha'] is not None:
+                st.caption(f"${eroi['annual_gain_per_ha']:,.0f}/ha/yr")
+        with c2:
+            st.metric("Cost to achieve target", f"${eroi['cost']:,.0f}")
+            if eroi['cost_per_ha'] is not None:
+                st.caption(f"${eroi['cost_per_ha']:,.0f}/ha")
+
+        # The three EROI metrics (scale-invariant — same total or per-ha).
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            if eroi['eroi_ratio'] is not None:
+                st.metric("EROI", f"{eroi['eroi_ratio']:.2f}×")
+                st.caption(f"over project duration "
+                           f"({eroi['duration_years']:.1f} yr)")
+            else:
+                st.metric("EROI", "—")
+                st.caption("needs a baseline and target date")
+        with m2:
+            st.metric("Annual return", f"{eroi['annual_return_pct']:.1f}% / yr")
+        with m3:
+            st.metric("Payback period", f"{eroi['payback_years']:.1f} years")
+
+        st.caption(
+            "EROI = (annual value gain × project duration) ÷ cost. The annual "
+            "gain is the steady-state target uplift; applying it across the "
+            "full duration assumes the target condition holds throughout and "
+            "does not model the ramp-up from baseline. The three ratios are "
+            "identical on a total or per-hectare basis."
+        )
+
+
 def _build_indicator_state_blob() -> dict | None:
     """Capture the user's current indicator-multiplier configuration as a
     JSON-serialisable dict, suitable for persisting to
@@ -2717,6 +2875,8 @@ def _build_indicator_state_blob() -> dict | None:
         'project_ecosystem_override': project_eco,
         'baseline_date': baseline_date.isoformat() if baseline_date else None,
         'target_date': target_date.isoformat() if target_date else None,
+        'project_investment_cost': st.session_state.get(
+            'pending_indicator_project_cost', 0.0),
         'responses': responses_out,
     }
 
@@ -2731,6 +2891,7 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
         'pending_indicator_responses',
         'pending_indicator_baseline_date',
         'pending_indicator_target_date',
+        'pending_indicator_project_cost',
         'pending_computed_multipliers',
         'pending_computed_multipliers_ecotype',
         'project_ecosystem_override',
@@ -2760,6 +2921,9 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
             st.session_state['pending_indicator_target_date'] = _date.fromisoformat(blob['target_date'])
     except Exception:
         pass
+    st.session_state['pending_indicator_project_cost'] = (
+        blob.get('project_investment_cost', 0.0) or 0.0
+    )
     if blob.get('responses'):
         st.session_state['pending_indicator_responses'] = {
             slug: {
@@ -5571,6 +5735,11 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             - Zero accuracy loss compared to dynamic ESVD database queries
             """)
     
+    # Ecological Return on Investment — shown for project runs that produced
+    # a target valuation. Placed in the shared region so it renders after the
+    # totals in both Summary and Detailed modes.
+    render_eroi_panel(results)
+
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
         st.markdown("## Ecosystem Services Breakdown")

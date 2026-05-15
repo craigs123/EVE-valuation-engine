@@ -38,6 +38,9 @@ The multi-ecosystem calculation pathway primarily uses two active routes within 
 2.  **Single Ecosystem Path**: When diversity is low or a single ecosystem is detected, `coeffs.calculate_ecosystem_values()` is called directly with the full area.
 Inactive or bypassed calculation functions in `utils/ecosystem_services.py` are not used by the main calculation flow.
 
+### Ecological Return on Investment (EROI)
+For project-indicator runs that produce a target valuation, EVE relates the ecosystem-service value gain to the project's estimated cost. The user enters a single figure — the estimated cost to achieve the target condition — in the pre-Analyze project-indicator panel. The annual value gain is the target valuation minus the baseline valuation, and the project duration (the EROI horizon) is derived from the baseline and target dates already collected in that panel. Three metrics are reported together: **EROI** as a benefit–cost ratio, `(annual value gain × project duration) ÷ cost`, labelled as being over the project duration; **annual return rate**, `annual value gain ÷ cost`; and **payback period**, `cost ÷ annual value gain`. The three ratios are scale-invariant, so they are identical whether computed from total or per-hectare figures; only the value gain and cost are shown on both bases. EROI applies the full steady-state target uplift across every year of the duration — it assumes the target condition holds throughout and does not model the gradual ramp-up from baseline. The entered cost is persisted inside the existing `saved_areas.project_indicators` JSON blob (no schema change).
+
 ## External Dependencies
 
 ### Core Libraries
