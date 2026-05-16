@@ -539,6 +539,14 @@ if 'ecosystem_intactness' not in st.session_state:
 if 'pending_indicator_project_cost' not in st.session_state:
     st.session_state.pending_indicator_project_cost = 0.0
 
+# Project-area percentages for project-specific indicators. The selected map
+# area is not assumed to be 100% project area; these scale the baseline and
+# target valuations to the real project size. 100 = whole selected area.
+if 'pending_indicator_baseline_area_pct' not in st.session_state:
+    st.session_state.pending_indicator_baseline_area_pct = 100
+if 'pending_indicator_target_area_pct' not in st.session_state:
+    st.session_state.pending_indicator_target_area_pct = 100
+
 # Enhanced CSS for better UX and modern design
 st.markdown("""
     <style>
@@ -1866,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.2 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2455,6 +2463,10 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         _today = datetime.now().date()
         _default_target = _today.replace(year=_today.year + 5)
         _date_col_a, _date_col_b = st.columns(2)
+        # The selected map area is not assumed to be 100% project area: the
+        # Baseline/Target area % below scale the valuation to the real project
+        # size (e.g. 100 ha of project within a 1000 ha selection).
+        _sel_area_ha = float(st.session_state.get('cached_area_ha') or 0.0)
         with _date_col_a:
             _baseline_date = st.date_input(
                 "Baseline date",
@@ -2464,6 +2476,20 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                 help="Date the baseline measurement was taken (or will be taken).",
             )
             st.session_state['pending_indicator_baseline_date'] = _baseline_date
+            _baseline_area_pct = st.number_input(
+                "Baseline area (%)",
+                min_value=0, max_value=100, step=1,
+                value=int(st.session_state.get('pending_indicator_baseline_area_pct', 100)),
+                key='pi_pre_baseline_area_pct',
+                help="Percentage of the selected map area that is the actual "
+                     "project area at baseline. The baseline valuation covers "
+                     "only this share of the selection.",
+            )
+            st.session_state['pending_indicator_baseline_area_pct'] = _baseline_area_pct
+            st.caption(
+                f"Project area: {_sel_area_ha * _baseline_area_pct / 100.0:,.1f} ha "
+                f"of {_sel_area_ha:,.1f} ha selected"
+            )
         with _date_col_b:
             _target_date = st.date_input(
                 "Target date",
@@ -2473,6 +2499,20 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                 help="Date by which the project intends to reach the target conditions.",
             )
             st.session_state['pending_indicator_target_date'] = _target_date
+            _target_area_pct = st.number_input(
+                "Target area (%)",
+                min_value=0, max_value=100, step=1,
+                value=int(st.session_state.get('pending_indicator_target_area_pct', 100)),
+                key='pi_pre_target_area_pct',
+                help="Percentage of the selected map area that is the actual "
+                     "project area at the target. The target valuation covers "
+                     "only this share of the selection.",
+            )
+            st.session_state['pending_indicator_target_area_pct'] = _target_area_pct
+            st.caption(
+                f"Project area: {_sel_area_ha * _target_area_pct / 100.0:,.1f} ha "
+                f"of {_sel_area_ha:,.1f} ha selected"
+            )
 
         # Estimated project cost — drives the EROI (Ecological Return on
         # Investment) metrics shown with the results. Optional; leave at 0
@@ -2940,6 +2980,10 @@ def _build_indicator_state_blob() -> dict | None:
         'target_date': target_date.isoformat() if target_date else None,
         'project_investment_cost': st.session_state.get(
             'pending_indicator_project_cost', 0.0),
+        'baseline_area_pct': st.session_state.get(
+            'pending_indicator_baseline_area_pct', 100),
+        'target_area_pct': st.session_state.get(
+            'pending_indicator_target_area_pct', 100),
         'responses': responses_out,
     }
 
@@ -2955,6 +2999,8 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
         'pending_indicator_baseline_date',
         'pending_indicator_target_date',
         'pending_indicator_project_cost',
+        'pending_indicator_baseline_area_pct',
+        'pending_indicator_target_area_pct',
         'pending_computed_multipliers',
         'pending_computed_multipliers_ecotype',
         'project_ecosystem_override',
@@ -2986,6 +3032,12 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
         pass
     st.session_state['pending_indicator_project_cost'] = (
         blob.get('project_investment_cost', 0.0) or 0.0
+    )
+    st.session_state['pending_indicator_baseline_area_pct'] = int(
+        blob.get('baseline_area_pct', 100) or 100
+    )
+    st.session_state['pending_indicator_target_area_pct'] = int(
+        blob.get('target_area_pct', 100) or 100
     )
     if blob.get('responses'):
         st.session_state['pending_indicator_responses'] = {
@@ -5324,8 +5376,14 @@ if analyze_button and st.session_state.selected_area:
                 }
                 ecosystem_type = override_mapping.get(st.session_state.ecosystem_override, "agricultural")
                 
+            # Project-area scaling defaults. The single-ecosystem branch below
+            # overrides these when project-specific indicators are in use; the
+            # mixed-ecosystem path always values the full selected area.
+            _baseline_pct = _target_pct = 100
+            _baseline_area_ha = _target_area_ha = area_ha
+
             if has_mixed_ecosystems:
-                
+
                 # Use mixed ecosystem calculation with proper weighting
                 ecosystem_distribution = st.session_state.detected_ecosystem['ecosystem_distribution']
                 num_types = len(ecosystem_distribution)
@@ -5474,9 +5532,21 @@ if analyze_button and st.session_state.selected_area:
                 else:
                     intactness_arg = _get_ecosystem_intactness_multiplier(ecosystem_type, ecosystem_intactness)
 
+                # Project-area scaling: with project-specific indicators in
+                # use, the selected map area is not assumed to be 100% project
+                # area. Scale the valuation area by the baseline/target
+                # percentages. Feature off (_ind_dict is None) → both 100%.
+                if _ind_dict is not None:
+                    _baseline_pct = int(st.session_state.get('pending_indicator_baseline_area_pct', 100) or 100)
+                    _target_pct = int(st.session_state.get('pending_indicator_target_area_pct', 100) or 100)
+                else:
+                    _baseline_pct = _target_pct = 100
+                _baseline_area_ha = area_ha * _baseline_pct / 100.0
+                _target_area_ha = area_ha * _target_pct / 100.0
+
                 esvd_results = coeffs.calculate_ecosystem_values(
                     ecosystem_type=ecosystem_type,
-                    area_hectares=area_ha,
+                    area_hectares=_baseline_area_ha,
                     coordinates=(center_lat, center_lon),
                     urban_green_blue_multiplier=urban_multiplier,
                     ecosystem_intactness_multiplier=intactness_arg
@@ -5493,7 +5563,7 @@ if analyze_button and st.session_state.selected_area:
                     if _target_dict is not None:
                         esvd_results_target = coeffs.calculate_ecosystem_values(
                             ecosystem_type=ecosystem_type,
-                            area_hectares=area_ha,
+                            area_hectares=_target_area_ha,
                             coordinates=(center_lat, center_lon),
                             urban_green_blue_multiplier=urban_multiplier,
                             ecosystem_intactness_multiplier=_target_dict,
@@ -5545,10 +5615,17 @@ if analyze_button and st.session_state.selected_area:
             # Store comprehensive analysis results
             analysis_results = {
                 'total_value': int(esvd_results.get('total_annual_value', esvd_results.get('current_value', 0))),
-                'area_ha': area_ha,
+                'area_ha': _baseline_area_ha,
+                'selected_area_ha': area_ha,
+                'area_ha_target': _target_area_ha,
+                'baseline_area_pct': _baseline_pct,
+                'target_area_pct': _target_pct,
                 'ecosystem_type': final_ecosystem_type,
                 'esvd_results': esvd_results,
-                'value_per_ha': esvd_results.get('total_annual_value', esvd_results.get('current_value', 0)) / area_ha,
+                'value_per_ha': (
+                    esvd_results.get('total_annual_value', esvd_results.get('current_value', 0))
+                    / _baseline_area_ha if _baseline_area_ha else 0
+                ),
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('regional_adjustment_factor', esvd_results.get('metadata', {}).get('regional_adjustment', 1.0)),
                 'quality_factor': st.session_state.get('quality_factor', 1.0),  # Default to 100% intactness
@@ -5567,7 +5644,7 @@ if analyze_button and st.session_state.selected_area:
                     analysis_results['value_per_ha_target'] = (
                         esvd_results_target.get('total_annual_value',
                                                 esvd_results_target.get('current_value', 0))
-                        / area_ha if area_ha else 0
+                        / _target_area_ha if _target_area_ha else 0
                     )
             except NameError:
                 # esvd_results_target wasn't created on this branch
@@ -5592,7 +5669,7 @@ if analyze_button and st.session_state.selected_area:
                     if _db_mods:
                         _saved_id = _db_mods['EcosystemAnalysisDB'].save_analysis(
                             coordinates=st.session_state.area_coordinates,
-                            area_hectares=area_ha,
+                            area_hectares=analysis_results['area_ha'],
                             ecosystem_type=final_ecosystem_type,
                             total_value=analysis_results['total_value'],
                             value_per_hectare=analysis_results['value_per_ha'],
@@ -5679,6 +5756,18 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     st.caption(f"🌊 {water_area:,.0f} ha water excluded")
                 else:
                     st.metric("Area Analyzed", f"{land_area:,.0f} ha")
+
+                # When project-specific indicators scale the valuation to a
+                # subset of the selected area, show what was selected vs the
+                # baseline/target project-area percentages applied.
+                _baseline_area_pct = results.get('baseline_area_pct', 100)
+                _target_area_pct = results.get('target_area_pct', 100)
+                if _baseline_area_pct != 100 or _target_area_pct != 100:
+                    _selected_area_ha = results.get('selected_area_ha', land_area)
+                    st.caption(
+                        f"{_selected_area_ha:,.0f} ha selected · baseline "
+                        f"{_baseline_area_pct}% / target {_target_area_pct}%"
+                    )
         
         # Combined Predominant Country + Predominant Ecosystem Type panel
         _country_info = st.session_state.get('predominant_country_info')
