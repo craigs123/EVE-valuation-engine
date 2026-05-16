@@ -34,6 +34,11 @@ def logout():
     for key in ('auth_user',):
         if key in st.session_state:
             del st.session_state[key]
+    # Cookie deletion via the CookieManager is asynchronous: the next render
+    # still sees the stale cookie and hydrate_from_cookie() would log the user
+    # straight back in. This flag suppresses hydration until an explicit sign-in
+    # (a successful login wipes all session state, clearing the flag).
+    st.session_state['_auth_signed_out'] = True
 
 
 def require_login():
@@ -56,6 +61,9 @@ def hydrate_from_cookie() -> None:
     or persistence is disabled (missing SESSION_SECRET).
     """
     if st.session_state.get('auth_user'):
+        return
+    if st.session_state.get('_auth_signed_out'):
+        # User signed out this session — ignore any not-yet-deleted cookie.
         return
     if not _session_secret():
         return
@@ -350,7 +358,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.8.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.8.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -386,6 +394,12 @@ def _render_auth_ui():
                 with st.form("login_form"):
                     email = st.text_input("Email", key="login_email", placeholder="you@example.com")
                     password = st.text_input("Password", type="password", key="login_password")
+                    remember = st.checkbox(
+                        "Remember me on this device", value=False, key="login_remember",
+                        help="Stay signed in for 30 days on this browser. Leave "
+                             "unchecked on shared or public computers — otherwise "
+                             "you'll need to sign in again each visit.",
+                    )
                     st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
                     submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
 
@@ -403,10 +417,13 @@ def _render_auth_ui():
                             for _k in list(st.session_state.keys()):
                                 del st.session_state[_k]
                             st.session_state['auth_user'] = user
-                            # Persist a signed cookie so a Streamlit session
-                            # reset (cold-start, reconnect) doesn't kick the
-                            # user back to the login screen.
-                            _persist_auth_cookie(user)
+                            # Persist a signed cookie ONLY when the user opted
+                            # in via "Remember me". Without it, a browser
+                            # refresh / new session requires signing in again
+                            # (this also means an involuntary Streamlit
+                            # reconnect ends the session — the opt-in trade-off).
+                            if remember:
+                                _persist_auth_cookie(user)
                             st.rerun()
                         elif err == 'pending_verification':
                             st.error(
