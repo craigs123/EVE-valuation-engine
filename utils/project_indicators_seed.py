@@ -82,8 +82,8 @@ _M1 = {
         'regulation, climate regulation, extreme event moderation, erosion '
         'prevention, raw materials, habitat for species, aesthetic information.',
     'baseline_question':
-        'Looking straight up from inside your restoration site, what percentage '
-        'of the sky is blocked by mangrove leaves and branches?',
+        "Estimate how complete and healthy your restoration site's canopy "
+        "looks compared to a reference mangrove (Full instructions below).",
     'why_matters':
         'Canopy cover is the single most important structural indicator of '
         'mangrove restoration progress. It directly controls light availability, '

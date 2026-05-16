@@ -348,11 +348,8 @@ INDICATOR_INSTRUCTIONS = {
     },
     ('Mangroves', 'M1'): {
         'scoring_intro': (
-            "You are estimating how complete and healthy your restoration "
-            "site's canopy looks compared to a reference mangrove — either a "
-            "nearby intact, healthy mangrove stand of the same species that "
-            "represents what your site is working towards or another reference "
-            "site (see Full instructions)."
+            "Estimate how complete and healthy your restoration site's canopy "
+            "looks compared to a reference mangrove (Full instructions below)."
         ),
         'response_help': _M1_RESPONSE_HELP,
         'full_instructions': _M1_FULL_INSTRUCTIONS,

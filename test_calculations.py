@@ -3,6 +3,7 @@ EVE calculation regression tests.
 Run before major deployments (minor or major version bumps).
 Uses expected totals derived from 'EVE test data.xlsx' Test cases tab.
 """
+import math
 import sys
 sys.path.insert(0, '.')
 
@@ -112,6 +113,56 @@ def run_mangrove_indicator_reference_test():
         _MANGROVE_BASELINE,
     )
 
+def run_mangrove_partial_hd_test():
+    """Mangroves with every ecological indicator at reference (100%) but HD
+    at 50% (Moderate disturbance).
+
+    HD is a cross-cutting pressure variable, applied as a sqrt multiplier on
+    every sub-service — indicator-covered and BBI-fallback alike. With all
+    other inputs at 1.0, each sub-service final_multiplier collapses to
+    sqrt(0.50), so the total must equal the baseline x sqrt(0.50) — a
+    ~29.3% reduction, matching the documented HD-50 effect.
+
+    Locks down the full chain at a partial HD score: response ->
+    _compute_pure -> calculate_ecosystem_values. A linear (non-sqrt) HD
+    would give baseline x 0.50, and an HD that skipped BBI-fallback
+    sub-services would give a smaller reduction — both fail this test.
+    """
+    from utils.indicator_multipliers import _compute_pure
+    from utils.project_indicators_seed import DEFAULT_INDICATORS
+
+    responses = [
+        {
+            "indicator_slug": ind["slug"],
+            "is_committed": True,
+            "effective_score": 0.50 if ind["code"] == "HD" else 1.0,
+            "service_weights": ind["service_weights"],
+        }
+        for ind in DEFAULT_INDICATORS
+    ]
+    mangrove_keys = list(calc.get_ecosystem_coefficients("mangroves").keys())
+    rows = _compute_pure(
+        sub_service_keys=mangrove_keys,
+        indicator_responses=responses,
+        hd_indicator_slug="human_disturbance_pressure",
+        bbi=1.0,  # fallback for any sub-service with no indicator coverage
+    )
+    multiplier_dict = {r["teeb_sub_service_key"]: r["final_multiplier"] for r in rows}
+
+    result = calc.calculate_ecosystem_values(
+        ecosystem_type="Mangroves",
+        area_hectares=1000,
+        regional_factor_override=0.51,
+        ecosystem_intactness_multiplier=multiplier_dict,
+        urban_green_blue_multiplier=1.0,
+    )
+    return (
+        "Mangrove + indicators (HD 50%, rest 100% reference)",
+        result["total_value"],
+        _MANGROVE_BASELINE * math.sqrt(0.50),
+    )
+
+
 def run_tests():
     passed = 0
     failed = 0
@@ -133,7 +184,9 @@ def run_tests():
         else:
             failed += 1
 
-    for runner in (run_mixed_test, run_mangrove_flat_dict_test, run_mangrove_indicator_reference_test):
+    for runner in (run_mixed_test, run_mangrove_flat_dict_test,
+                   run_mangrove_indicator_reference_test,
+                   run_mangrove_partial_hd_test):
         label, actual, expected = runner()
         delta = abs(actual - expected) / expected if expected else 0
         status = "PASS" if delta <= TOLERANCE else "FAIL"

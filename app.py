@@ -1874,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.8 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2524,6 +2524,16 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
     background-color: #2E7D32 !important;
     border-color: #2E7D32 !important;
 }
+/* Smaller 'Full instructions' button text (pi_pre_fullinstr_* — ecological
+   indicators and HD). */
+div[class*='st-key-pi_pre_fullinstr_'] button p {
+    font-size: 0.78rem !important;
+}
+/* Smaller Baseline / Target response-category labels on the indicator
+   radios (pi_pre_base_*, pi_pre_tgt_*, pi_pre_hd_base_*, pi_pre_hd_tgt_*). */
+div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownContainer'] p {
+    font-size: 0.82rem !important;
+}
 </style>
 """,
         unsafe_allow_html=True,
@@ -2844,6 +2854,12 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                 # unique to this ecosystem / indicator pair. Shown only for
                 # indicators that have authored instructions.
                 _instr = get_indicator_instructions(_project_eco, code)
+                # Indicators without an authored scoring_intro (M2-M7) repeat
+                # their selection-table description (baseline_question) here
+                # so the user sees what the indicator measures without
+                # scrolling back up to the commitment table.
+                if not (_instr and _instr.get('scoring_intro')) and ind.get('baseline_question'):
+                    st.caption(ind['baseline_question'])
                 if _instr:
                     if _instr.get('scoring_intro'):
                         st.caption(_instr['scoring_intro'])
@@ -5785,17 +5801,6 @@ if analyze_button and st.session_state.selected_area:
                 
                 _primary_eco = st.session_state.detected_ecosystem.get('primary_ecosystem', ecosystem_type)
                 st.info(f"🌍 **{_primary_eco}** (predominant) · {num_types} ecosystem types detected · Simpson diversity: {simpson_diversity:.2f}")
-                
-                # Show detailed composition breakdown for analysis (optimized)
-                st.markdown("## Detailed Composition for Valuation")
-                total_samples = st.session_state.detected_ecosystem['successful_queries']
-                composition_lines = []
-                for eco_type, data in ecosystem_distribution.items():
-                    proportion = data['count'] / total_samples * 100
-                    area_proportion = area_ha * (proportion / 100)
-                    composition_lines.append(f"   • **{eco_type}**: {proportion:.1f}% → {area_proportion:.1f} ha ({data['count']} sample points)")
-                
-                st.markdown('\n'.join(composition_lines))
                 
                 # Initialize the calculator
                 coeffs = get_precomputed_coefficients()
