@@ -1874,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2345,6 +2345,77 @@ def _effective_intactness_dict() -> Dict:
     return st.session_state.get('ecosystem_intactness', {}) or {}
 
 
+def _project_centroid() -> tuple[float, float] | None:
+    """Return (lat, lon) for the centre of the selected area, or None.
+    ``area_coordinates`` holds [lon, lat] polygon vertices."""
+    coords = st.session_state.get('area_coordinates') or []
+    pts = [c for c in coords if isinstance(c, (list, tuple)) and len(c) >= 2]
+    if not pts:
+        return None
+    lon = sum(float(c[0]) for c in pts) / len(pts)
+    lat = sum(float(c[1]) for c in pts) / len(pts)
+    return (lat, lon)
+
+
+def _global_mangrove_watch_url(lat: float | None, lon: float | None) -> str:
+    """Build a Global Mangrove Watch map URL centred on the given
+    coordinates. GMW encodes the viewport as Base64 JSON in the ``map``
+    query parameter; falls back to the plain map when coordinates are
+    unavailable."""
+    base = "https://www.globalmangrovewatch.org/"
+    if lat is None or lon is None:
+        return base
+    import base64 as _b64
+    import json as _json
+    payload = {
+        "basemap": "light",
+        "viewport": {
+            "latitude": round(float(lat), 5),
+            "longitude": round(float(lon), 5),
+            "zoom": 12, "bearing": 0, "pitch": 0,
+        },
+    }
+    token = _b64.urlsafe_b64encode(
+        _json.dumps(payload, separators=(',', ':')).encode()
+    ).decode()
+    return f"{base}?map={token}"
+
+
+@st.dialog("Full instructions", width="large")
+def _show_full_instructions_dialog(ecosystem: str, code: str, name: str):
+    """Modal page of detailed scoring instructions for one indicator,
+    unique to the (ecosystem, indicator) pair."""
+    from utils.indicator_instructions import get_indicator_instructions
+    st.markdown(f"### {code}: {name}")
+    data = get_indicator_instructions(ecosystem, code)
+    blocks = (data or {}).get('full_instructions') or []
+    if not blocks:
+        st.info("Full instructions for this indicator are not available yet.")
+        return
+    _centroid = _project_centroid()
+    _country = ''
+    _ci = st.session_state.get('predominant_country_info') or {}
+    if isinstance(_ci, dict):
+        _country = _ci.get('name') or ''
+    for i, block in enumerate(blocks):
+        _bt = block.get('type')
+        if _bt == 'md':
+            st.markdown(block.get('content', ''))
+        elif _bt == 'caption':
+            st.caption(block.get('content', ''))
+        elif _bt == 'link':
+            _url = block.get('url')
+            if block.get('url_kind') == 'gmw':
+                _url = _global_mangrove_watch_url(
+                    *(_centroid if _centroid else (None, None)))
+            st.link_button(block.get('label', 'Open link'), _url)
+        elif _bt == 'soon':
+            _label = block.get('label', '').replace(
+                '[Country/Region]', _country or 'your region')
+            st.button(_label, disabled=True, key=f"pi_soon_{code}_{i}")
+            st.caption(f"🔒 {block.get('note', 'Coming soon.')}")
+
+
 def render_pre_analyze_indicator_panel():
     """Render the indicator selection + response panel BEFORE the Analyze
     button. Responses live in ``st.session_state.pending_indicator_responses``
@@ -2380,9 +2451,13 @@ def render_pre_analyze_indicator_panel():
 
     st.markdown("## Project Indicators (Mangrove)")
     st.caption(
-        "Commit to measuring and monitoring progress on as many indicators as "
-        "possible to improve the accuracy of the ecosystem valuation. Select "
-        "the checkbox next to those indicators that you can commit to measuring."
+        "EVE works by comparing your project site to a pristine 'reference' "
+        "site which has healthy, fully functioning ecosystem services. Ideally "
+        "this site would be near to your project site to facilitate "
+        "comparisons. You can commit to measuring one or more indicators on "
+        "your project site (see below). Check the box next to those that you "
+        "are committed to monitoring and reporting over the duration of the "
+        "project."
     )
 
     # Make the 'Commit to tracking' checkboxes more visible — the default
@@ -2412,6 +2487,7 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
 
     # Initialize pending-responses state
     pending = st.session_state.setdefault('pending_indicator_responses', {})
+    from utils.indicator_instructions import get_indicator_instructions
 
     # Render order: non-HD first, HD last
     indicators = pt['indicators']
@@ -2687,6 +2763,7 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
             # Ensure target keys exist
             entry.setdefault('target_score', None)
             entry.setdefault('target_is_custom', False)
+            entry.setdefault('note', '')
 
             # Per-indicator radio options (labels come from this indicator's
             # own seed bands; score values and colour ramp stay constant).
@@ -2708,6 +2785,20 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                 f"{code}: {name}" + ("  (Required)" if is_mandatory else ""),
                 expanded=True,
             ):
+                # Per-indicator scoring instruction + Full instructions dialog,
+                # unique to this ecosystem / indicator pair. Shown only for
+                # indicators that have authored instructions.
+                _instr = get_indicator_instructions(_project_eco, code)
+                if _instr:
+                    if _instr.get('scoring_intro'):
+                        st.info(_instr['scoring_intro'])
+                    if _instr.get('full_instructions') and st.button(
+                        "📖 Full instructions",
+                        key=f"pi_pre_fullinstr_{slug}",
+                        help="Open detailed scoring instructions for this indicator.",
+                    ):
+                        _show_full_instructions_dialog(_project_eco, code, name)
+
                 _base_col, _tgt_col = st.columns(2)
 
                 with _base_col:
@@ -2789,6 +2880,19 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                                       else _label_for_score(_tgt_score, _options))
                         _tgt_str = f"{_tgt_pct}% ({_tgt_label})"
                     st.caption(f"**Baseline:** {_base_str} · **Target:** {_tgt_str}")
+
+                # Free-text field note for this indicator. Persisted with the
+                # response (saved area blob + pi_analysis_responses on Analyze).
+                _note_val = st.text_area(
+                    "Field notes",
+                    value=entry.get('note', '') or '',
+                    key=f"pi_pre_note_{slug}",
+                    placeholder="Optional — record what you observed, which "
+                                "reference you used, and anything unusual that "
+                                "affected your assessment.",
+                    help="Saved with this indicator's response.",
+                )
+                entry['note'] = _note_val
 
     # Coverage summary
     try:
@@ -3004,6 +3108,7 @@ def _build_indicator_state_blob() -> dict | None:
             'is_custom': bool(entry.get('is_custom')),
             'target_score': entry.get('target_score'),
             'target_is_custom': bool(entry.get('target_is_custom')),
+            'note': entry.get('note', '') or '',
         }
     return {
         'use_indicator_multipliers': use_flag,
@@ -3079,6 +3184,7 @@ def _restore_indicator_state_blob(blob: dict | None) -> None:
                 'is_custom': bool(r.get('is_custom')),
                 'target_score': r.get('target_score'),
                 'target_is_custom': bool(r.get('target_is_custom')),
+                'note': r.get('note', '') or '',
             }
             for slug, r in (blob['responses'] or {}).items()
         }
@@ -3244,7 +3350,7 @@ def _persist_pre_analyze_indicators(analysis_id: str) -> None:
                     target_year=None,
                     applies_to_ecosystem=None,
                     followup_responses=None,
-                    notes=None,
+                    notes=(entry.get('note') or '').strip() or None,
                     custom_score=float(score),
                 )
             else:
@@ -3274,7 +3380,7 @@ def _persist_pre_analyze_indicators(analysis_id: str) -> None:
                     target_year=None,
                     applies_to_ecosystem=None,
                     followup_responses=None,
-                    notes=None,
+                    notes=(entry.get('note') or '').strip() or None,
                 )
         # Computed multiplier rows
         rows = st.session_state.get('pending_computed_multipliers')
