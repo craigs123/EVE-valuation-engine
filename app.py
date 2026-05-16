@@ -1874,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.2 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2286,6 +2286,35 @@ ECOSYSTEMS_WITH_PROJECT_INDICATORS = {'Mangroves'}
 
 def _ecosystem_has_project_indicators(display_name: str) -> bool:
     return display_name in ECOSYSTEMS_WITH_PROJECT_INDICATORS
+
+
+# External background-reading links shown in the project-indicator panel's
+# "Resources" section, keyed by ecosystem display name. Each entry is
+# (title, url, source). Add a new key to surface resources for another
+# ecosystem type.
+PROJECT_INDICATOR_RESOURCES = {
+    'Mangroves': [
+        {
+            'title': 'Best Practice Guidelines for Mangrove Restoration',
+            'url': 'https://tnc.app.box.com/s/f68fhv5ju0yxd5gl2q5cu0a433va6496',
+            'source': 'The Nature Conservancy',
+        },
+    ],
+}
+
+
+def _render_project_indicator_resources(ecosystem_display_name: str) -> None:
+    """Render the per-ecosystem 'Resources' section for the project-indicator
+    panel — external links to background reading. No-op when the ecosystem has
+    no curated resources."""
+    resources = PROJECT_INDICATOR_RESOURCES.get(ecosystem_display_name)
+    if not resources:
+        return
+    st.markdown("## Resources")
+    st.markdown("### Recommended reading")
+    for r in resources:
+        _source = f" — {r['source']}" if r.get('source') else ""
+        st.markdown(f"- [{r['title']}]({r['url']}){_source}")
 
 
 def _effective_intactness_dict() -> Dict:
@@ -2790,6 +2819,9 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         )
     except Exception:
         pass
+
+    # Per-ecosystem background reading — links unique to the project ecosystem.
+    _render_project_indicator_resources(_project_eco)
 
     st.markdown("---")
 
