@@ -1874,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.7 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.8 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2266,7 +2266,9 @@ PRE_ANALYZE_BANDS = [
     ('Reference condition',     1.00, 100),
 ]
 
-# v1 scope: only Mangrove Restoration project type is wired up
+# The pre-Analyze indicator panel resolves its project type dynamically
+# from the selected ecosystem via _resolve_project_type_slug(). This
+# constant is the fallback for the one project type currently seeded.
 PRE_ANALYZE_PROJECT_TYPE_SLUG = 'mangrove_restoration'
 
 # Full list of ecosystem types the user can force via the main-page selector.
@@ -2279,13 +2281,44 @@ ECOSYSTEM_DISPLAY_OPTIONS = [
     "Urban", "Desert",
 ]
 
-# Display names of ecosystems with project-specific indicators seeded in
-# utils/project_indicators_seed.py. Grow as new project types are wired up.
-ECOSYSTEMS_WITH_PROJECT_INDICATORS = {'Mangroves'}
+# Ecosystem -> project-type mapping. Sourced from the DB (pi_project_types)
+# so it grows automatically as new project types are seeded — no hardcoded
+# ecosystem list to maintain. A project type appears here only once it has
+# at least one ecological (non-HD) indicator (see
+# ProjectIndicatorDB.ecosystem_project_type_map).
+@st.cache_data(ttl=600, show_spinner=False)
+def _ecosystem_project_type_map() -> Dict[str, str]:
+    """{ecosystem display name: project-type slug}. Cached — the taxonomy
+    only changes on deploy/seed. Returns {} if the DB or the pi_* tables
+    (e.g. before migration 0011) are unavailable, which simply leaves the
+    project-indicators checkbox disabled everywhere."""
+    try:
+        from database import ProjectIndicatorDB
+        return ProjectIndicatorDB.ecosystem_project_type_map()
+    except Exception:
+        return {}
+
+
+def _resolve_project_type_slug(ecosystem_display_name) -> Optional[str]:
+    """Return the project-type slug serving an EVE ecosystem display name,
+    or None when no project type with ecological indicators is wired up.
+    Tolerant of case and singular/plural ('Mangrove' vs 'Mangroves')."""
+    if not ecosystem_display_name or ecosystem_display_name == 'Auto-detect':
+        return None
+    m = _ecosystem_project_type_map()
+    if ecosystem_display_name in m:
+        return m[ecosystem_display_name]
+    _norm = str(ecosystem_display_name).strip().lower().rstrip('s')
+    for k, v in m.items():
+        if k.strip().lower().rstrip('s') == _norm:
+            return v
+    return None
 
 
 def _ecosystem_has_project_indicators(display_name: str) -> bool:
-    return display_name in ECOSYSTEMS_WITH_PROJECT_INDICATORS
+    """True when the selected ecosystem has a wired-up project type with
+    ecological indicators — the gate for the project-indicators checkbox."""
+    return _resolve_project_type_slug(display_name) is not None
 
 
 # External background-reading links shown in the project-indicator panel's
@@ -2443,17 +2476,24 @@ def render_pre_analyze_indicator_panel():
     if _project_eco == 'Auto-detect':
         return
 
+    # Resolve the project type serving this ecosystem (data-driven; only
+    # ecosystems with seeded ecological indicators resolve to a slug).
+    _pt_slug = _resolve_project_type_slug(_project_eco)
+    if not _pt_slug:
+        return
+    st.session_state['pending_project_type_slug'] = _pt_slug
+
     try:
         from database import ProjectIndicatorDB
-        pt = ProjectIndicatorDB.get_project_type_with_indicators(PRE_ANALYZE_PROJECT_TYPE_SLUG)
+        pt = ProjectIndicatorDB.get_project_type_with_indicators(_pt_slug)
     except Exception as _e:
         st.warning(f"Project indicators framework unavailable: {_e}")
         return
     if not pt or not pt.get('indicators'):
-        st.info("No indicators seeded for the Mangrove project type.")
+        st.info("No indicators seeded for this project type.")
         return
 
-    st.markdown("## Project Indicators (Mangrove)")
+    st.markdown(f"## Project Indicators ({pt.get('name') or _project_eco})")
     st.caption(
         "EVE works by comparing your project site to a pristine 'reference' "
         "site which has healthy, fully functioning ecosystem services. Ideally "
@@ -2522,7 +2562,12 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         slug = ind['slug']
         code = ind.get('code') or '?'
         name = ind.get('name') or slug
-        question = ind.get('baseline_question') or ''
+        # HD shows its card_description one-liner; ecological indicators show
+        # their baseline question.
+        question = (
+            (ind.get('card_description') if code == 'HD' else None)
+            or ind.get('baseline_question') or ''
+        )
         is_mandatory = bool(ind.get('is_mandatory'))
         entry = pending[slug]
 
@@ -2764,6 +2809,10 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         for ind in committed:
             slug = ind['slug']
             code = ind.get('code') or '?'
+            # HD is a universal cross-cutting indicator — rendered in its own
+            # distinct, amber-styled block after the ecological indicators.
+            if code == 'HD':
+                continue
             name = ind.get('name') or slug
             entry = pending[slug]
             # Ensure target keys exist
@@ -2912,12 +2961,165 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                 )
                 entry['note'] = _note_val
 
+        # ── Human Disturbance Pressure — universal cross-cutting indicator ──
+        # Rendered distinctly (amber) and last: HD is not an ecosystem-service
+        # proxy but a pressure variable applied as a final sqrt(HD) multiplier
+        # across every service valuation.
+        _hd_ind = next((i for i in committed if i.get('code') == 'HD'), None)
+        if _hd_ind:
+            _hd_slug = _hd_ind['slug']
+            _hd_entry = pending[_hd_slug]
+            _hd_entry.setdefault('target_score', None)
+            _hd_entry.setdefault('note', '')
+            _hd_entry.setdefault('followups', {})
+            # HD has no custom-percentage path — qualitative bands only.
+            _hd_entry['is_custom'] = False
+            _hd_entry['target_is_custom'] = False
+
+            st.markdown(
+                "<div style='background:#FFF8E1; border:1px solid #FFB300; "
+                "border-left:6px solid #FB8C00; border-radius:6px; "
+                "padding:0.6rem 0.9rem; margin-top:0.6rem;'>"
+                "<div style='color:#E65100; font-weight:700; font-size:0.78rem; "
+                "letter-spacing:0.05em;'>⚠ REQUIRED FOR ALL PROJECTS</div>"
+                "<div style='font-weight:700; font-size:1.05rem; "
+                "margin-top:0.15rem;'>Human Disturbance Pressure</div>"
+                "<div style='color:#6D4C41; font-size:0.85rem;'>"
+                "Required — applies to all service valuations</div></div>",
+                unsafe_allow_html=True,
+            )
+
+            with st.container(border=True):
+                _hd_instr = get_indicator_instructions(_project_eco, 'HD')
+                if _hd_instr:
+                    if _hd_instr.get('scoring_intro'):
+                        st.caption(_hd_instr['scoring_intro'])
+                    if _hd_instr.get('full_instructions') and st.button(
+                        "📖 Full instructions",
+                        key=f"pi_pre_fullinstr_{_hd_slug}",
+                        help="How to assess Human Disturbance Pressure.",
+                    ):
+                        _show_full_instructions_dialog(
+                            _project_eco, 'HD',
+                            _hd_ind.get('name') or 'Human Disturbance Pressure',
+                        )
+
+                # Six qualitative bands rendered as radio options with the
+                # full description visible underneath each (st.radio captions).
+                _hd_bands = _hd_ind.get('bands') or []
+                _hd_opts = [('none', '— not yet answered —', None)]
+                _hd_caps = ['']
+                for _i, _b in enumerate(_hd_bands):
+                    _s = float(_b['score'])
+                    _hd_opts.append((
+                        f'band_{_i}',
+                        f"{_b.get('label') or f'Band {_i + 1}'} "
+                        f"({int(round(_s * 100))}%)",
+                        _s,
+                    ))
+                    _hd_caps.append(_b.get('criteria') or '')
+                _hd_labels = [l for _, l, _ in _hd_opts]
+
+                def _hd_idx(score):
+                    if score is None:
+                        return 0
+                    for _i, (_k, _l, _sc) in enumerate(_hd_opts):
+                        if _sc is not None and abs(_sc - score) < 1e-6:
+                            return _i
+                    return 0
+
+                def _hd_score_for(label):
+                    return _hd_opts[_hd_labels.index(label)][2]
+
+                _hd_b_col, _hd_t_col = st.columns(2)
+                with _hd_b_col:
+                    _hd_b_choice = st.radio(
+                        "**Baseline** — disturbance now",
+                        _hd_labels,
+                        index=_hd_idx(_hd_entry.get('score')),
+                        captions=_hd_caps,
+                        key=f"pi_pre_hd_base_{_hd_slug}",
+                    )
+                with _hd_t_col:
+                    _hd_t_choice = st.radio(
+                        "**Target** — expected disturbance at project end",
+                        _hd_labels,
+                        index=_hd_idx(_hd_entry.get('target_score')),
+                        captions=_hd_caps,
+                        key=f"pi_pre_hd_tgt_{_hd_slug}",
+                    )
+                _hd_entry['score'] = _hd_score_for(_hd_b_choice)
+                _hd_entry['target_score'] = _hd_score_for(_hd_t_choice)
+
+                # Real-time HD risk-multiplier readout (sqrt of the baseline
+                # score — matches the calculation engine).
+                _hd_bs = _hd_entry.get('score')
+                if _hd_bs is not None:
+                    _hd_m = math.sqrt(max(0.0, _hd_bs))
+                    _hd_red = int(round((1.0 - _hd_m) * 100))
+                    st.markdown(
+                        "<div style='background:#FFF8E1; border-radius:6px; "
+                        "padding:0.4rem 0.75rem; margin-top:0.3rem; "
+                        f"font-size:0.9rem;'><b>HD risk multiplier:</b> "
+                        f"{_hd_m:.2f}&nbsp; ·&nbsp; all service valuations "
+                        f"reduced by <b>{_hd_red}%</b></div>",
+                        unsafe_allow_html=True,
+                    )
+
+                # Follow-up questions — surfaced when baseline disturbance is
+                # Moderate or worse (score <= trigger_max_score, typically 0.5).
+                from utils.project_indicators_seed import followup_option_labels
+                _hd_fu = _hd_entry['followups']
+                _hd_fu_shown = False
+                for _f in (_hd_ind.get('followups') or []):
+                    _trig = _f.get('trigger_max_score')
+                    if _trig is not None and (_hd_bs is None or _hd_bs > _trig):
+                        continue
+                    _hd_fu_shown = True
+                    _f_labels = ["— Select —"] + followup_option_labels(
+                        _f.get('options'), _project_eco,
+                    )
+                    _prev = _hd_fu.get(_f['slug'])
+                    _f_idx = _f_labels.index(_prev) if _prev in _f_labels else 0
+                    _f_choice = st.selectbox(
+                        _f.get('question_text') or _f['slug'],
+                        _f_labels, index=_f_idx,
+                        key=f"pi_pre_hd_fu_{_hd_slug}_{_f['slug']}",
+                    )
+                    _hd_fu[_f['slug']] = (
+                        None if _f_choice == "— Select —" else _f_choice
+                    )
+                if _hd_fu_shown:
+                    st.caption(
+                        "Investors and verifiers will see these responses. A "
+                        "credible mitigation plan — even if not yet "
+                        "implemented — significantly improves confidence in "
+                        "the project's long-term viability."
+                    )
+                else:
+                    # Score rose above the trigger — drop stale follow-ups.
+                    _hd_fu.clear()
+
+                _hd_entry['note'] = st.text_area(
+                    "Describe what you observed (recommended)",
+                    value=_hd_entry.get('note', '') or '',
+                    key=f"pi_pre_hd_note_{_hd_slug}",
+                    placeholder="e.g. Active charcoal production observed 200m "
+                                "north of site boundary. Community patrol "
+                                "established monthly but no formal protection. "
+                                "Adjacent fish pond shows signs of recent "
+                                "expansion.",
+                    help="Appears verbatim under 'Site security observations' "
+                         "in the annual monitoring report.",
+                )
+
     # Coverage summary
     try:
         from utils.teeb_slug_map import TEEB_TO_CALC_KEY, HD_RELATIONSHIP, WEIGHT_LOOKUP
         from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
         all_keys = list(
-            PrecomputedESVDCoefficients().get_ecosystem_coefficients('Mangroves').keys()
+            (PrecomputedESVDCoefficients().get_ecosystem_coefficients(_project_eco)
+             or {}).keys()
         )
         covered = set()
         for ind in non_hd:
@@ -2935,9 +3137,16 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
         n_total = len(all_keys)
         n_covered = sum(1 for k in all_keys if k in covered)
         n_fallback = n_total - n_covered
+        _n_eco = sum(
+            1 for ind in non_hd
+            if (pending.get(ind['slug']) or {}).get('is_committed')
+            and (pending.get(ind['slug']) or {}).get('score') is not None
+        )
         st.info(
-            f"**Coverage:** {n_covered} of {n_total} sub-services covered by "
-            f"indicators · Fallback intactness values (EEI or user-set) apply to {n_fallback}"
+            f"**Coverage:** {_n_eco} ecological indicator(s) recorded + "
+            f"Human Disturbance (required) — covering {n_covered} of "
+            f"{n_total} sub-services · Fallback intactness values (EEI or "
+            f"user-set) apply to {n_fallback}"
         )
     except Exception:
         pass
@@ -3228,27 +3437,33 @@ def _build_indicator_multiplier_dict(ecosystem_type: str, score_field: str = 'sc
     """
     if not st.session_state.get('use_indicator_multipliers'):
         return None
-    # v1 scope: only Mangrove ecosystem is wired to the Mangrove project type.
-    if ecosystem_type.lower() not in ('mangroves', 'mangrove'):
+    # Resolve the project type from the ecosystem (data-driven). Ecosystems
+    # with no wired-up project type return None → uniform-BBI fallback.
+    _pt_slug = _resolve_project_type_slug(ecosystem_type)
+    if not _pt_slug:
         return None
     try:
         from database import ProjectIndicatorDB
         from utils.indicator_multipliers import _compute_pure
+        from utils.teeb_slug_map import HD_INDICATOR_SLUG
         from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
     except ImportError:
         return None
 
-    pt = ProjectIndicatorDB.get_project_type_with_indicators(PRE_ANALYZE_PROJECT_TYPE_SLUG)
+    pt = ProjectIndicatorDB.get_project_type_with_indicators(_pt_slug)
     if not pt or not pt.get('indicators'):
         return None
 
     pending = st.session_state.get('pending_indicator_responses') or {}
-    hd_slug = None
+    # Identify the HD cross-cutting indicator by its canonical slug; fall
+    # back to the is_mandatory flag for any legacy data lacking the slug.
+    _slugs = {ind['slug'] for ind in pt['indicators']}
+    hd_slug = HD_INDICATOR_SLUG if HD_INDICATOR_SLUG in _slugs else None
     responses = []
     for ind in pt['indicators']:
         slug = ind['slug']
         is_mand = bool(ind.get('is_mandatory'))
-        if is_mand:
+        if hd_slug is None and is_mand:
             hd_slug = slug
         entry = pending.get(slug) or {}
         responses.append({
@@ -3338,6 +3553,16 @@ def _persist_pre_analyze_indicators(analysis_id: str) -> None:
     if not st.session_state.get('use_indicator_multipliers') or not pending:
         return
 
+    # Project type the responses belong to — stashed by the panel, with a
+    # fallback resolve from the selected ecosystem.
+    _pt_slug = (
+        st.session_state.get('pending_project_type_slug')
+        or _resolve_project_type_slug(
+            st.session_state.get('project_ecosystem_override'))
+    )
+    if not _pt_slug:
+        return
+
     try:
         ProjectIndicatorDB.set_assessment_flag(analysis_id, True)
         # Commitments
@@ -3345,7 +3570,7 @@ def _persist_pre_analyze_indicators(analysis_id: str) -> None:
                            if bool((e or {}).get('is_committed'))]
         ProjectIndicatorDB.save_commitments(
             analysis_id,
-            PRE_ANALYZE_PROJECT_TYPE_SLUG,
+            _pt_slug,
             committed_slugs,
         )
         # Per-indicator responses
@@ -3360,14 +3585,14 @@ def _persist_pre_analyze_indicators(analysis_id: str) -> None:
             if is_custom:
                 ProjectIndicatorDB.save_response(
                     analysis_id=analysis_id,
-                    project_type_slug=PRE_ANALYZE_PROJECT_TYPE_SLUG,
+                    project_type_slug=_pt_slug,
                     indicator_slug=slug,
                     baseline_band_id=None,
                     baseline_year=None,
                     target_band_id=None,
                     target_year=None,
                     applies_to_ecosystem=None,
-                    followup_responses=None,
+                    followup_responses=(entry.get('followups') or None),
                     notes=(entry.get('note') or '').strip() or None,
                     custom_score=float(score),
                 )
@@ -3390,14 +3615,14 @@ def _persist_pre_analyze_indicators(analysis_id: str) -> None:
                     band_id = None
                 ProjectIndicatorDB.save_response(
                     analysis_id=analysis_id,
-                    project_type_slug=PRE_ANALYZE_PROJECT_TYPE_SLUG,
+                    project_type_slug=_pt_slug,
                     indicator_slug=slug,
                     baseline_band_id=band_id,
                     baseline_year=None,
                     target_band_id=None,
                     target_year=None,
                     applies_to_ecosystem=None,
-                    followup_responses=None,
+                    followup_responses=(entry.get('followups') or None),
                     notes=(entry.get('note') or '').strip() or None,
                 )
         # Computed multiplier rows
@@ -3638,7 +3863,10 @@ def render_project_indicators_section():
                 trigger = f.get('trigger_max_score')
                 if trigger is None or (chosen_baseline_score is not None and chosen_baseline_score <= trigger):
                     if f['input_kind'] == 'select':
-                        opts_with_blank = ["— Select —"] + (f.get('options') or [])
+                        from utils.project_indicators_seed import followup_option_labels
+                        opts_with_blank = ["— Select —"] + followup_option_labels(
+                            f.get('options'), (snapshot or {}).get('ecosystem_type')
+                        )
                         prev = followup_responses.get(f['slug'])
                         idx = opts_with_blank.index(prev) if prev in opts_with_blank else 0
                         choice = st.selectbox(
@@ -6198,8 +6426,14 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     # Build slug → display-code lookup (M1, M2, …) for header labels
                     try:
                         from database import ProjectIndicatorDB
+                        _bd_slug = (
+                            st.session_state.get('pending_project_type_slug')
+                            or _resolve_project_type_slug(
+                                st.session_state.get('pending_computed_multipliers_ecotype'))
+                            or PRE_ANALYZE_PROJECT_TYPE_SLUG
+                        )
                         _pt_for_breakdown = ProjectIndicatorDB.get_project_type_with_indicators(
-                            'mangrove_restoration'
+                            _bd_slug
                         )
                         _slug_to_code = {
                             i['slug']: (i.get('code') or i['slug'])
@@ -6353,7 +6587,9 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             hide_index=True,
                             use_container_width=True,
                         )
-                        _hd_pct = int(round((_hd_mult_seen or 1.0) * 100))
+                        # hd_multiplier is sqrt(response_pct/100); invert by
+                        # squaring to recover the HD response percentage.
+                        _hd_pct = int(round((_hd_mult_seen or 1.0) ** 2 * 100))
                         _caption = (
                             f"**HD multiplier applied:** {(_hd_mult_seen or 1.0):.2f} "
                             f"(Human Disturbance response: {_hd_pct}%) · "
@@ -6362,7 +6598,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             f"Fallback intactness values (EEI or user-set) apply to {_n_fallback}"
                         )
                         if _show_target:
-                            _hd_pct_t = int(round((_hd_mult_seen_target or 1.0) * 100))
+                            _hd_pct_t = int(round((_hd_mult_seen_target or 1.0) ** 2 * 100))
                             _caption += (
                                 f" · **HD multiplier applied (target):** "
                                 f"{(_hd_mult_seen_target or 1.0):.2f} "

@@ -43,6 +43,11 @@ DEFAULT_PROJECT_TYPES = [
         'slug': 'mangrove_restoration',
         'name': 'Mangrove Restoration',
         'icon': '🌿',
+        # EVE ecosystem display name this project type serves. Drives the
+        # ecosystem -> project-type mapping that gates the project-specific
+        # indicators checkbox. A new project type only needs this set (plus
+        # at least one ecological indicator) to become selectable.
+        'ecosystem_type': 'Mangroves',
         'description': (
             'Field-measurable indicator set for mangrove restoration projects. '
             'Eight indicators (seven ecological + one mandatory cross-cutting '
@@ -52,6 +57,13 @@ DEFAULT_PROJECT_TYPES = [
         'sort_order': 1,
     },
 ]
+
+
+# Slugs of universal cross-cutting indicators. These are NOT listed per-type
+# in DEFAULT_PROJECT_TYPE_INDICATORS — seed_project_indicators() attaches them
+# to every project type automatically, so any project type added later
+# inherits them for free. Currently just HD (Human Disturbance Pressure).
+UNIVERSAL_INDICATOR_SLUGS = ['human_disturbance_pressure']
 
 
 # ── Mangrove indicators ──────────────────────────────────────────────────────
@@ -581,6 +593,36 @@ _HD_MULTIPLIER_SERVICES = {
     slug: 'multiplier' for slug in CANONICAL_TEEB_SLUGS
 }
 
+# HD disturbance-source dropdown options. Each option is ecosystem-scoped:
+# 'ecosystems' lists the EVE ecosystem display names it applies to, or '*'
+# for universal. The renderer (see followup_option_labels) filters by the
+# project's ecosystem. Universal + Mangrove options are live today; the
+# Seagrass / Freshwater Wetland / Peatland entries are scaffold — they
+# activate automatically when those project types are seeded.
+_HD_DISTURBANCE_SOURCE_OPTIONS = [
+    {'label': 'Agricultural encroachment or conversion',          'ecosystems': ['*']},
+    {'label': 'Illegal or unsustainable logging / wood cutting',  'ecosystems': ['*']},
+    {'label': 'Livestock grazing or trampling',                   'ecosystems': ['*']},
+    {'label': 'Burning (uncontrolled fire)',                      'ecosystems': ['*']},
+    {'label': 'Industrial or infrastructure development',         'ecosystems': ['*']},
+    {'label': 'Waste dumping or pollution',                       'ecosystems': ['*']},
+    {'label': 'Hunting or poaching',                              'ecosystems': ['*']},
+    {'label': 'Tourism or recreational pressure',                 'ecosystems': ['*']},
+    # Mangrove + Seagrass
+    {'label': 'Aquaculture expansion',                            'ecosystems': ['Mangroves', 'Seagrass']},
+    {'label': 'Coastal reclamation or land-filling',              'ecosystems': ['Mangroves', 'Seagrass']},
+    {'label': 'Destructive fishing (blast fishing, trawling, poison)', 'ecosystems': ['Mangroves', 'Seagrass']},
+    {'label': 'Boat traffic or anchoring damage',                 'ecosystems': ['Mangroves', 'Seagrass']},
+    # Freshwater Wetland
+    {'label': 'Drainage or water abstraction',                    'ecosystems': ['Freshwater Wetland']},
+    {'label': 'Dam construction or water diversion',              'ecosystems': ['Freshwater Wetland']},
+    # Peatland
+    {'label': 'Drainage ditching',                                'ecosystems': ['Peatland']},
+    {'label': 'Peat extraction',                                  'ecosystems': ['Peatland']},
+    {'label': 'Other (describe in notes)',                        'ecosystems': ['*']},
+]
+
+
 _HD = {
     'slug': 'human_disturbance_pressure', 'code': 'HD',
     'name': 'Human Disturbance Pressure',
@@ -588,6 +630,11 @@ _HD = {
     'applicable_ecosystems': None,
     'mapping_kind': 'band_lookup', 'mapping_params': {'multiplier_exponent': 0.5},
     'weight': 1.0,
+    'card_description':
+        'Assesses the intensity of human activity at and around your '
+        'restoration site. Applied as a risk modifier across all ecosystem '
+        'service valuations — a site under active threat is worth less to '
+        'investors than an identical site that is secure.',
     'commitment_question':
         'This indicator is required for all projects and cannot be deselected.',
     'prospectus_scope_statement':
@@ -597,20 +644,30 @@ _HD = {
         'before value is realised.',
     'baseline_question':
         'What is the dominant human pressure currently affecting your '
-        'restoration site? Select the single best description. If multiple '
-        'pressures exist, select the most damaging one.',
+        'restoration site and its immediate surroundings? If multiple '
+        'pressures are present, select the one causing the most damage.',
     'why_matters':
         'Human disturbance is the most important context factor for '
-        'interpreting all other scores. A site with excellent canopy cover '
-        'under active clearing threat has a very different long-term value '
-        'from the same site in a protected area. This indicator acts as a '
-        'cross-cutting multiplier on all service values — the higher the '
-        'pressure, the greater the risk that current ecological condition '
-        'will deteriorate before value is realised.\n\n'
-        'Applied as: adjusted_intactness = composite_intactness × '
-        '(human_disturbance_score ^ 0.5). The square root moderates the '
-        'effect so that even a heavily disturbed site is not zeroed out — it '
-        'reflects elevated risk rather than total loss of value.',
+        'interpreting all other scores on your project. A site with excellent '
+        'canopy cover under active logging threat has a fundamentally '
+        'different outlook from the same structural score under full '
+        'community protection — because one is recovering and the other is '
+        'not.\n\n'
+        'Research on mangrove and other coastal ecosystems has shown that '
+        'human disturbance simultaneously degrades all ecosystem services: '
+        'disturbed mangroves show 80% reductions in microbial decomposition '
+        'rates, significant carbon stock loss, and 20% biodiversity loss '
+        'compared to undisturbed sites (Danovaro et al. 2018, Scientific '
+        'Reports). No single ecological indicator captures this cross-cutting '
+        'effect.\n\n'
+        'In EVE\'s calculation, your HD score is applied as a risk multiplier '
+        'on top of all other service valuations. A score of 50 (moderate '
+        'disturbance) reduces all service values by approximately 29%. A '
+        'score of 10 (severe active disturbance) reduces all service values '
+        'by approximately 68%.\n\n'
+        'This multiplier reflects investment risk as much as ecological '
+        'reality — investors and verifiers need to know whether the natural '
+        'capital your project is generating is secure.',
     'field_method':
         'Observe the site and its immediate surroundings. Walk the boundary. '
         'Talk to community members. Select the option below that best '
@@ -623,52 +680,95 @@ _HD = {
     'service_weights': _HD_MULTIPLIER_SERVICES,
     'bands': [
         {'score': 0.1,  'label': 'Severe and active',
-         'criteria': 'Site is actively being cleared, burned, drained, or '
-                     'otherwise damaged. Restoration is under immediate threat.',
+         'criteria': 'The site is being actively damaged right now — '
+                     'clearing, burning, draining, overfishing, or illegal '
+                     'logging is occurring. Restoration is under immediate '
+                     'and serious threat. This level of disturbance will '
+                     'prevent recovery regardless of other conditions at the '
+                     'site.',
          'meaning': None, 'sort_order': 1},
         {'score': 0.3,  'label': 'Significant',
-         'criteria': 'Frequent disturbance — regular grazing, unauthorised '
-                     'cutting, fire, fishing pressure, or waste dumping '
-                     'occurring weekly or monthly.',
+         'criteria': 'Frequent damaging activity is occurring — weekly or '
+                     'monthly unauthorised cutting, intensive fishing, '
+                     'regular burning, livestock overgrazing, or waste '
+                     'dumping. The site is degrading faster than it is '
+                     'recovering. Significant management intervention is '
+                     'needed.',
          'meaning': None, 'sort_order': 2},
         {'score': 0.5,  'label': 'Moderate',
-         'criteria': 'Occasional disturbance — some illegal or unsustainable '
-                     'use, or neighbouring land use creating pressure, but '
-                     'site is not in immediate danger.',
+         'criteria': 'Some illegal or unsustainable use is occurring '
+                     'occasionally, or neighbouring land use is creating '
+                     'persistent pressure on the site — but the site is not '
+                     'in immediate danger and is capable of net recovery '
+                     'with current management. This is the situation for '
+                     'many community restoration projects.',
          'meaning': None, 'sort_order': 3},
         {'score': 0.75, 'label': 'Low',
-         'criteria': 'Site is generally respected. Minor casual disturbance '
-                     '(occasional foot traffic, small-scale collection) but no '
-                     'significant damage.',
+         'criteria': 'The site is broadly respected and protected. Minor '
+                     'casual disturbance occurs — occasional foot traffic, '
+                     'small-scale sustainable collection, light fishing — '
+                     'but nothing that significantly limits recovery. '
+                     'Community awareness of the project is good.',
          'meaning': None, 'sort_order': 4},
         {'score': 0.9,  'label': 'Minimal',
-         'criteria': 'Very little disturbance. Site has some community '
-                     'protection or awareness.',
+         'criteria': 'The site has active community or institutional '
+                     'protection. Disturbance events are rare and quickly '
+                     'addressed. The restoration is operating in a '
+                     'supportive environment.',
          'meaning': None, 'sort_order': 5},
         {'score': 1.0,  'label': 'None',
-         'criteria': 'No human disturbance observed. Site is actively '
-                     'protected, remote, or has strong community stewardship '
-                     'in place.',
+         'criteria': 'No human disturbance is observed or reported. The site '
+                     'is remote, legally protected, or has such strong '
+                     'community stewardship that disturbance does not occur. '
+                     'Full natural recovery potential is available.',
          'meaning': None, 'sort_order': 6},
     ],
     'followups': [
         {'slug': 'disturbance_source',
          'question_text': 'What is the main source of this disturbance?',
          'input_kind': 'select',
-         'options': ['Livestock grazing', 'Agricultural encroachment',
-                     'Unsustainable harvesting', 'Fire',
-                     'Industrial or development pressure', 'Aquaculture',
-                     'Other'],
+         'options': _HD_DISTURBANCE_SOURCE_OPTIONS,
          'trigger_max_score': 0.5,
          'sort_order': 1},
         {'slug': 'mitigation_plan',
-         'question_text': 'Is there a plan in place to address this pressure?',
+         'question_text': 'Is there a plan to reduce this pressure?',
          'input_kind': 'select',
-         'options': ['Yes', 'No', 'Working on it'],
+         'options': [
+             {'label': 'Yes — there is a plan',                'ecosystems': ['*']},
+             {'label': 'Not yet — but we are working on it',   'ecosystems': ['*']},
+             {'label': 'No',                                   'ecosystems': ['*']},
+         ],
          'trigger_max_score': 0.5,
          'sort_order': 2},
     ],
 }
+
+
+def followup_option_labels(options, ecosystem_display_name=None):
+    """Normalise a followup's stored ``options`` to a flat list of label
+    strings, filtered to those applicable to ``ecosystem_display_name``.
+
+    Supports two option schemas so both old and new seed data render:
+      * legacy — a flat list of strings (all treated as universal)
+      * scoped — a list of ``{'label': str, 'ecosystems': [<name>|'*']}``
+
+    Passing ``ecosystem_display_name=None`` returns every option unfiltered.
+    """
+    out = []
+    for opt in (options or []):
+        if isinstance(opt, str):
+            out.append(opt)
+            continue
+        if not isinstance(opt, dict):
+            continue
+        label = opt.get('label')
+        if not label:
+            continue
+        scopes = opt.get('ecosystems') or ['*']
+        if ('*' in scopes or ecosystem_display_name is None
+                or ecosystem_display_name in scopes):
+            out.append(label)
+    return out
 
 
 DEFAULT_INDICATORS = [_M1, _M2, _M3, _M4, _M5, _M6, _M7, _HD]
@@ -689,8 +789,8 @@ DEFAULT_PROJECT_TYPE_INDICATORS = [
      'sort_order': 6, 'is_recommended': False},
     {'project_type': 'mangrove_restoration', 'indicator': 'mangrove_invasive_pressure',
      'sort_order': 7, 'is_recommended': False},
-    {'project_type': 'mangrove_restoration', 'indicator': 'human_disturbance_pressure',
-     'sort_order': 8, 'is_recommended': True},
+    # HD is intentionally absent here — it is attached to every project type
+    # automatically by seed_project_indicators() (see UNIVERSAL_INDICATOR_SLUGS).
 ]
 
 
@@ -712,6 +812,7 @@ def seed_project_indicators(session) -> bool:
         row = ProjectType(
             slug=pt['slug'], name=pt['name'],
             description=pt.get('description'), icon=pt.get('icon'),
+            ecosystem_type=pt.get('ecosystem_type'),
             is_active=True, sort_order=pt.get('sort_order', 0),
         )
         session.add(row)
@@ -725,6 +826,7 @@ def seed_project_indicators(session) -> bool:
             commitment_question=ind['commitment_question'],
             prospectus_scope_statement=ind['prospectus_scope_statement'],
             baseline_question=ind['baseline_question'],
+            card_description=ind.get('card_description'),
             why_matters=ind.get('why_matters'),
             field_method=ind.get('field_method'),
             remote_sensing_alternative=ind.get('remote_sensing_alternative'),
@@ -771,6 +873,24 @@ def seed_project_indicators(session) -> bool:
             is_recommended=join.get('is_recommended', False),
             weight_override=join.get('weight_override'),
         ))
+
+    # Attach universal cross-cutting indicators (HD) to every project type.
+    # sort_order 999 keeps them last; is_recommended so they read as part of
+    # the default set. Any future project type inherits these automatically.
+    _explicit = {
+        (j['project_type'], j['indicator']) for j in DEFAULT_PROJECT_TYPE_INDICATORS
+    }
+    for pt_slug, pt_row in project_type_rows.items():
+        for uni_slug in UNIVERSAL_INDICATOR_SLUGS:
+            ind_row = indicator_rows.get(uni_slug)
+            if not ind_row or (pt_slug, uni_slug) in _explicit:
+                continue
+            session.add(ProjectTypeIndicator(
+                project_type_id=pt_row.id,
+                indicator_id=ind_row.id,
+                sort_order=999,
+                is_recommended=True,
+            ))
 
     session.commit()
     return True

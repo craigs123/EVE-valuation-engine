@@ -19,14 +19,28 @@ inputs and returns rows without any DB I/O.
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 from utils.teeb_slug_map import (
     TEEB_TO_CALC_KEY,
     WEIGHT_LOOKUP,
     HD_RELATIONSHIP,
+    HD_INDICATOR_SLUG,
     INDICATOR_FLOOR,
 )
+
+
+def _hd_multiplier_from_score(effective_score: float) -> float:
+    """Convert an HD response score (0-1) into the cross-cutting multiplier.
+
+    HD is applied as ``sqrt(score)`` — a graduated dose-response curve. The
+    square root moderates the penalty so moderate disturbance reduces, but
+    does not eliminate, realised value (HD score 0.50 → 0.71 multiplier,
+    ~29% reduction; HD 0.10 → 0.32, ~68%). Matches the HD indicator seed's
+    ``mapping_params={'multiplier_exponent': 0.5}``.
+    """
+    return math.sqrt(max(0.0, float(effective_score)))
 
 
 def _pure_indicator_average(
@@ -84,12 +98,14 @@ def _compute_pure(
     A list of dicts ready to insert into computed_sub_service_multipliers
     (one row per sub-service key).
     """
-    # 1. HD multiplier (linear: pct / 100)
+    # 1. HD multiplier — cross-cutting, applied as sqrt(score) (see
+    #    _hd_multiplier_from_score). Defaults to 1.0 (no penalty) when HD
+    #    has no recorded response — an unanswered HD is never assumed worst.
     hd_multiplier = 1.0
     if hd_indicator_slug is not None:
         for r in indicator_responses:
             if r['indicator_slug'] == hd_indicator_slug and r.get('effective_score') is not None:
-                hd_multiplier = float(r['effective_score'])
+                hd_multiplier = _hd_multiplier_from_score(r['effective_score'])
                 break
 
     # 2. Index committed non-HD indicators with a response
@@ -134,7 +150,14 @@ def _compute_pure(
         ind_mult, slugs, pcts, weights = _pure_indicator_average(eligible)
 
         if ind_mult is None:
-            # No indicator coverage → BBI fallback (HD NOT layered on top)
+            # No indicator coverage → BBI fallback, with HD layered on top.
+            # HD is a cross-cutting pressure variable: it modifies the
+            # realised value of every sub-service simultaneously, whether
+            # that value is indicator-derived or the BBI fallback. The
+            # floor still applies so an extreme HD × low-BBI combination
+            # cannot drive a service to zero.
+            raw_final = bbi * hd_multiplier
+            final = max(raw_final, INDICATOR_FLOOR)
             row = {
                 'teeb_sub_service_key': s,
                 'indicator_multiplier': None,
@@ -142,7 +165,7 @@ def _compute_pure(
                 'contributing_response_pcts': [],
                 'contributing_weights': [],
                 'hd_multiplier': hd_multiplier,
-                'final_multiplier': bbi,
+                'final_multiplier': final,
                 'fallback_to_bbi': True,
                 'bbi_value_used': bbi,
             }
@@ -226,13 +249,16 @@ def compute_sub_service_multipliers(
     # 4. Indicator responses for this analysis
     responses = ProjectIndicatorDB.get_responses(analysis_id)
 
-    # 5. Identify HD indicator (the one with is_mandatory=True among this
-    #    project's indicators). We use the response shape — get_responses
-    #    surfaces is_mandatory.
-    hd_slug = next(
-        (r['indicator_slug'] for r in responses if r.get('is_mandatory')),
-        None,
-    )
+    # 5. Identify the HD cross-cutting indicator by its canonical slug
+    #    (HD is universal — same slug for every project type). Fall back
+    #    to the is_mandatory flag for any legacy data lacking the slug.
+    if any(r['indicator_slug'] == HD_INDICATOR_SLUG for r in responses):
+        hd_slug = HD_INDICATOR_SLUG
+    else:
+        hd_slug = next(
+            (r['indicator_slug'] for r in responses if r.get('is_mandatory')),
+            None,
+        )
 
     # 6. BBI fallback
     if bbi_override is not None:

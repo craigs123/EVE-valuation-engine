@@ -207,7 +207,145 @@ _M1_RESPONSE_HELP = [
 ]
 
 
+# ── Human Disturbance Pressure (HD) — universal cross-cutting indicator ──────
+# Keyed under the '*' ecosystem so it surfaces for every project type (the
+# getters fall back from (ecosystem, code) to ('*', code)).
+_HD_FULL_INSTRUCTIONS = [
+    {
+        'type': 'md',
+        'content': (
+            "### How to assess Human Disturbance Pressure\n\n"
+            "This assessment captures the biggest single risk to your "
+            "project's natural capital value — the threat that human activity "
+            "poses to everything your team is working to restore.\n\n"
+            "You are not measuring what the ecosystem is currently like (that "
+            "is what the ecological indicators measure). You are measuring "
+            "what is being done to it, and what risk that poses to its "
+            "future.\n\n"
+            "Be honest. An inflated HD score (claiming no disturbance when "
+            "significant disturbance exists) will not improve your eROI — it "
+            "will undermine your credibility with investors and verifiers who "
+            "visit or audit the site. A realistic HD score with a credible "
+            "mitigation plan is far more valuable than an unrealistically "
+            "high score with no supporting evidence."
+        ),
+    },
+    {
+        'type': 'md',
+        'content': (
+            "### What to assess\n\n"
+            "Walk the full boundary of your restoration site and the land or "
+            "water immediately surrounding it. Observe and note:\n\n"
+            "**1. Evidence of current activity**\n"
+            "- Fresh cut stumps, recently cleared areas, new drainage "
+            "channels, fishing gear, livestock, or construction equipment\n"
+            "- Signs of burning — ash, charred vegetation, smoke\n"
+            "- Waste, nets, or debris accumulating in or around the site\n\n"
+            "**2. Proximity of pressures**\n"
+            "- How close is the nearest intensive land use — aquaculture "
+            "pond, agricultural field, road, urban area, industrial "
+            "facility?\n"
+            "- Is the site buffered by protection (water, remote terrain, "
+            "community-managed buffer) or accessible and adjacent to human "
+            "activity?\n\n"
+            "**3. Frequency of disturbance**\n"
+            "- Ask community members or site staff: how often does damaging "
+            "activity occur? Daily? Weekly? Rarely?\n"
+            "- Are there security measures in place — signs, community "
+            "patrols, legal protection?\n\n"
+            "**4. Trend**\n"
+            "- Is pressure increasing, stable, or decreasing compared to "
+            "previous years?\n"
+            "- Note the trend in your field notes even though the score "
+            "captures current state only."
+        ),
+    },
+    {
+        'type': 'md',
+        'content': (
+            "### Talk to people\n\n"
+            "The most reliable evidence for this indicator is often local "
+            "knowledge. Ask community members, local rangers, or "
+            "neighbours:\n\n"
+            "- *\"Has anyone been cutting trees or fishing here recently?\"*\n"
+            "- *\"Are there any problems with people damaging the site?\"*\n"
+            "- *\"Who is responsible for protecting this area?\"*\n\n"
+            "### How to choose your score\n\n"
+            "Select the single option that best describes the dominant "
+            "current situation. If multiple pressures exist, choose the level "
+            "that reflects the most damaging one.\n\n"
+            "It is common for restoration projects to score 50 (Moderate) at "
+            "baseline — partial protection with ongoing pressure is the "
+            "reality for many community-led projects in the Global South. "
+            "This is not a failure: it is honest reporting that creates the "
+            "foundation for demonstrating improvement over time.\n\n"
+            "### Recording your score\n\n"
+            "Select your score, then complete the follow-up questions if "
+            "prompted (scores of 50 or below require you to identify the main "
+            "disturbance source).\n\n"
+            "Add a field note describing what you observed — particularly any "
+            "specific incidents, the names of any pressure sources, and any "
+            "protective measures already in place. This note will appear in "
+            "your annual monitoring report and prospectus."
+        ),
+    },
+    {
+        'type': 'md',
+        'content': (
+            "### What this score means for your valuation\n\n"
+            "Your HD score is applied as a risk multiplier across all "
+            "ecosystem service values in your prospectus:\n\n"
+            "| Score | Level | Effect on all service values |\n"
+            "|---|---|---|\n"
+            "| 100 | None | No reduction |\n"
+            "| 90 | Minimal | ~5% reduction |\n"
+            "| 75 | Low | ~13% reduction |\n"
+            "| 50 | Moderate | ~29% reduction |\n"
+            "| 30 | Significant | ~45% reduction |\n"
+            "| 10 | Severe | ~68% reduction |\n\n"
+            "This reduction is applied on top of your ecological indicator "
+            "scores — it does not replace them. A site with excellent canopy "
+            "cover (M1 = 90) but significant disturbance (HD = 30) will have "
+            "its climate regulation and habitat service values reduced by "
+            "45%, reflecting the genuine risk that this ecological progress "
+            "may not be sustained.\n\n"
+            "As your project demonstrates improved security over successive "
+            "annual monitoring visits, your HD score can improve — and this "
+            "improvement will be directly visible in your updated eROI and "
+            "annual investor report."
+        ),
+    },
+    {
+        'type': 'caption',
+        'content': (
+            "Methodology note: The HD indicator is grounded in the "
+            "Pressure-State-Response (PSR) framework (OECD 1993), widely "
+            "applied in ecosystem condition assessment. Human disturbance is "
+            "treated as a cross-cutting modifier rather than a "
+            "service-specific indicator because empirical research shows it "
+            "simultaneously degrades all ecosystem service categories — "
+            "disturbed mangroves show 80% reductions in microbial "
+            "decomposition and significant losses in carbon stocks, "
+            "biodiversity, and trophic resources (Danovaro et al. 2018, "
+            "Scientific Reports 8:13298). The sqrt(HD_score/100) multiplier "
+            "produces a graduated dose-response curve consistent with "
+            "ecological resilience theory."
+        ),
+    },
+]
+
+
 INDICATOR_INSTRUCTIONS = {
+    ('*', 'HD'): {
+        'scoring_intro': (
+            "You are scoring the intensity of human activity threatening "
+            "your site — not its ecological condition. Walk the site "
+            "boundary, look for evidence of damage, and talk to the local "
+            "community. Be honest: a realistic score with a mitigation plan "
+            "is worth more than an inflated one (see Full instructions)."
+        ),
+        'full_instructions': _HD_FULL_INSTRUCTIONS,
+    },
     ('Mangroves', 'M1'): {
         'scoring_intro': (
             "You are estimating how complete and healthy your restoration "
@@ -223,16 +361,25 @@ INDICATOR_INSTRUCTIONS = {
 
 
 def get_indicator_instructions(ecosystem_display_name: str, code: str):
-    """Return the instructions dict for an (ecosystem, indicator code) pair,
-    or None when no instructions have been authored for it."""
-    return INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
+    """Return the instructions dict for an (ecosystem, indicator code) pair.
+
+    Falls back to the universal ``('*', code)`` key so cross-cutting
+    indicators (e.g. HD) need authoring only once and surface for every
+    ecosystem. Returns None when nothing has been authored."""
+    return (
+        INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
+        or INDICATOR_INSTRUCTIONS.get(('*', code))
+    )
 
 
 def get_response_help_markdown(ecosystem_display_name: str, code: str):
     """Return a markdown tooltip describing every response category for an
     indicator — used as the Baseline/Target radio help icon. Returns None
     when no per-response descriptions have been authored."""
-    data = INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
+    data = (
+        INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
+        or INDICATOR_INSTRUCTIONS.get(('*', code))
+    )
     rows = (data or {}).get('response_help')
     if not rows:
         return None
