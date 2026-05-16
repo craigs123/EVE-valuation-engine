@@ -1874,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.6 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.7 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2491,7 +2491,9 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
 
     # Initialize pending-responses state
     pending = st.session_state.setdefault('pending_indicator_responses', {})
-    from utils.indicator_instructions import get_indicator_instructions
+    from utils.indicator_instructions import (
+        get_indicator_instructions, get_response_help_markdown,
+    )
 
     # Render order: non-HD first, HD last
     indicators = pt['indicators']
@@ -2803,10 +2805,17 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                     ):
                         _show_full_instructions_dialog(_project_eco, code, name)
 
+                # Response-category descriptions (from the indicator's Full
+                # instructions "How to score" table) surfaced as the (i)
+                # help icon on both the Baseline and Target radios. The
+                # categories are identical for baseline and target, so the
+                # same tooltip is reused for each. None when no per-response
+                # descriptions have been authored for this indicator.
+                _resp_help = get_response_help_markdown(_project_eco, code)
+
                 _base_col, _tgt_col = st.columns(2)
 
                 with _base_col:
-                    st.markdown("**Baseline**")
                     _bkey = f"pi_pre_base_{slug}"
                     if _bkey in st.session_state and st.session_state[_bkey] not in _base_opt_labels:
                         # The EEI '(recommended)' marker shifted the label
@@ -2814,12 +2823,15 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                         # re-seats from the preserved score via index=.
                         del st.session_state[_bkey]
                     _base_idx = _idx_for(entry.get('score'), entry.get('is_custom', False), _base_options)
+                    # Visible "Baseline" label carries the (i) help icon
+                    # describing every response category.
                     _base_choice = st.radio(
-                        "Baseline response",
+                        "**Baseline**",
                         _base_opt_labels,
                         index=_base_idx,
                         key=_bkey,
-                        label_visibility='collapsed',
+                        label_visibility='visible',
+                        help=_resp_help,
                     )
                     _base_is_custom = (_base_choice == _base_opt_labels[-1])
                     _base_default = (
@@ -2837,14 +2849,16 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                     )
 
                 with _tgt_col:
-                    st.markdown("**Target**")
                     _tgt_idx = _idx_for(entry.get('target_score'), entry.get('target_is_custom', False), _options)
+                    # Visible "Target" label carries the same (i) help icon
+                    # — response categories are identical to the Baseline.
                     _tgt_choice = st.radio(
-                        "Target response",
+                        "**Target**",
                         _opt_labels,
                         index=_tgt_idx,
                         key=f"pi_pre_tgt_{slug}",
-                        label_visibility='collapsed',
+                        label_visibility='visible',
+                        help=_resp_help,
                     )
                     _tgt_is_custom = (_tgt_choice == _opt_labels[-1])
                     _tgt_default = (

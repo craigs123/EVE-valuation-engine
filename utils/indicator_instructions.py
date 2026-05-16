@@ -175,6 +175,38 @@ _M1_FULL_INSTRUCTIONS = [
 ]
 
 
+# Per-response-category descriptions, mirroring the M1 'How to score' table.
+# (percentage, label, description) — surfaced as the Baseline/Target radio
+# help-icon tooltip. Keep in sync with the table in _M1_FULL_INSTRUCTIONS.
+_M1_RESPONSE_HELP = [
+    (10, 'Bare or absent',
+     "No canopy at all, or only a handful of isolated seedlings. Bare "
+     "mudflat, bare soil, or open water where trees should be. Looks "
+     "nothing like the reference."),
+    (30, 'Very early stage',
+     "Scattered young trees visible but widely spaced. You can see sky "
+     "almost everywhere you look. The reference has continuous canopy; this "
+     "site has almost none."),
+    (50, 'Partial recovery',
+     "A patchwork of canopy developing — some areas are shaded, many gaps "
+     "remain. Perhaps one third to one half of what you see in the "
+     "reference. Your reference has continuous greenery overhead; this site "
+     "has islands of it."),
+    (75, 'Good recovery',
+     "The canopy is closing. Most of the site is shaded when you stand "
+     "inside it. Gaps are present but not dominant. Looks noticeably similar "
+     "to the reference, though less dense, lower, or with more gaps."),
+    (90, 'Near reference',
+     "Looks almost like your reference. The canopy is nearly continuous, "
+     "well-shaded, and structurally similar. Small differences remain — "
+     "perhaps slightly lower height, slightly more light penetration, or a "
+     "few persistent gaps."),
+    (100, 'Equivalent to reference',
+     "Indistinguishable from your reference mangrove when standing inside "
+     "it. Canopy is closed, well-shaded, structurally complete."),
+]
+
+
 INDICATOR_INSTRUCTIONS = {
     ('Mangroves', 'M1'): {
         'scoring_intro': (
@@ -184,6 +216,7 @@ INDICATOR_INSTRUCTIONS = {
             "represents what your site is working towards or another reference "
             "site (see Full instructions)."
         ),
+        'response_help': _M1_RESPONSE_HELP,
         'full_instructions': _M1_FULL_INSTRUCTIONS,
     },
 }
@@ -193,3 +226,19 @@ def get_indicator_instructions(ecosystem_display_name: str, code: str):
     """Return the instructions dict for an (ecosystem, indicator code) pair,
     or None when no instructions have been authored for it."""
     return INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
+
+
+def get_response_help_markdown(ecosystem_display_name: str, code: str):
+    """Return a markdown tooltip describing every response category for an
+    indicator — used as the Baseline/Target radio help icon. Returns None
+    when no per-response descriptions have been authored."""
+    data = INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
+    rows = (data or {}).get('response_help')
+    if not rows:
+        return None
+    parts = [
+        "**Response categories** — how your site compares to your reference:"
+    ]
+    for pct, label, desc in rows:
+        parts.append(f"**{label} ({pct}%)** — {desc}")
+    return "\n\n".join(parts)
