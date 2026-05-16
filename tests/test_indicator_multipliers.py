@@ -104,9 +104,10 @@ def test_4_primary_plus_secondary():
     assert abs(r['final_multiplier'] - expected) < TOL
 
 
-# ── Scenario 5: HD cross-cutting multiplier ──────────────────────────────────
+# ── Scenario 5: HD cross-cutting multiplier (sqrt) ───────────────────────────
 def test_5_hd_cross_cutting():
-    """M1 = 75 on habitat, HD = 50 → final = 0.75 × 0.50 = 0.375."""
+    """M1 = 75 on habitat, HD = 50 → hd_mult = sqrt(0.50) = 0.7071,
+    final = 0.75 × 0.7071 = 0.5303."""
     rows = _compute_pure(
         sub_service_keys=['habitat'],
         indicator_responses=[
@@ -118,13 +119,14 @@ def test_5_hd_cross_cutting():
     )
     r = _find(rows, 'habitat')
     assert abs(r['indicator_multiplier'] - 0.75) < TOL
-    assert abs(r['hd_multiplier'] - 0.50) < TOL
-    assert abs(r['final_multiplier'] - 0.375) < TOL
+    assert abs(r['hd_multiplier'] - math.sqrt(0.50)) < TOL
+    assert abs(r['final_multiplier'] - 0.75 * math.sqrt(0.50)) < TOL
 
 
 # ── Scenario 6: floor enforcement ────────────────────────────────────────────
 def test_6_floor_applied_when_under_5pct():
-    """M1 = 10 on habitat, HD = 10 → raw 0.01, floor → 0.05."""
+    """M1 = 10 on habitat, HD = 10 → raw 0.10 × sqrt(0.10) ≈ 0.0316,
+    below the 0.05 floor → 0.05."""
     rows = _compute_pure(
         sub_service_keys=['habitat'],
         indicator_responses=[
@@ -135,15 +137,17 @@ def test_6_floor_applied_when_under_5pct():
         bbi=0.5,
     )
     r = _find(rows, 'habitat')
-    raw = 0.10 * 0.10
+    raw = 0.10 * math.sqrt(0.10)
+    assert raw < INDICATOR_FLOOR
     assert abs(r['final_multiplier'] - max(raw, INDICATOR_FLOOR)) < TOL
     assert abs(r['final_multiplier'] - 0.05) < TOL
 
 
 # ── Scenario 7: fallback to BBI when no indicator covers a sub-service ──────
-def test_7_fallback_to_bbi_no_hd_layered():
+def test_7_fallback_to_bbi_with_hd_layered():
     """No selected indicator maps to medicinal_resources → BBI fallback.
-    HD is NOT applied on top of BBI."""
+    HD IS applied on top of BBI as a cross-cutting modifier:
+    final = BBI × sqrt(HD) = 0.8 × sqrt(0.30) ≈ 0.4382."""
     rows = _compute_pure(
         sub_service_keys=['medicinal_resources'],
         indicator_responses=[
@@ -156,9 +160,9 @@ def test_7_fallback_to_bbi_no_hd_layered():
     r = _find(rows, 'medicinal_resources')
     assert r['fallback_to_bbi'] is True
     assert r['indicator_multiplier'] is None
-    assert abs(r['final_multiplier'] - 0.8) < TOL  # raw BBI, NOT 0.8 × 0.30
+    assert abs(r['final_multiplier'] - 0.8 * math.sqrt(0.30)) < TOL
     assert abs(r['bbi_value_used'] - 0.8) < TOL
-    assert abs(r['hd_multiplier'] - 0.30) < TOL  # stored but not applied
+    assert abs(r['hd_multiplier'] - math.sqrt(0.30)) < TOL
 
 
 # ── Scenario 8: unanswered indicator excluded from average ──────────────────
@@ -218,9 +222,10 @@ def test_10_custom_score_uses_effective_score():
     assert r['contributing_response_pcts'] == [68]
 
 
-# ── Scenario 11: HD not applied on top of BBI ───────────────────────────────
-def test_11_hd_not_applied_to_bbi_fallback():
-    """Even with a strong HD penalty, BBI-fallback sub-services use BBI as-is."""
+# ── Scenario 11: HD applied on top of BBI fallback ──────────────────────────
+def test_11_hd_applied_to_bbi_fallback():
+    """HD is a cross-cutting modifier: BBI-fallback sub-services are
+    reduced by HD too. final = BBI × sqrt(HD) = 0.7 × sqrt(0.30) ≈ 0.3834."""
     rows = _compute_pure(
         sub_service_keys=['medicinal_resources'],
         indicator_responses=[
@@ -232,14 +237,14 @@ def test_11_hd_not_applied_to_bbi_fallback():
     )
     r = _find(rows, 'medicinal_resources')
     assert r['fallback_to_bbi'] is True
-    assert abs(r['final_multiplier'] - 0.7) < TOL  # NOT 0.7 × 0.30 = 0.21
-    assert abs(r['hd_multiplier'] - 0.30) < TOL
+    assert abs(r['final_multiplier'] - 0.7 * math.sqrt(0.30)) < TOL
+    assert abs(r['hd_multiplier'] - math.sqrt(0.30)) < TOL
 
 
 # ── Scenario 13: full assessment — multiple indicators, mixed ───────────────
 def test_13_full_assessment_habitat_aggregation():
     """M1 = 75, M4 = 60, M6 = 80 all PRIMARY on habitat; HD = 70.
-    Expected: (75 + 60 + 80) / 3 / 100 = 0.7167, × 0.70 = 0.5017."""
+    ind = (0.75 + 0.60 + 0.80) / 3 = 0.7167; final = ind × sqrt(0.70)."""
     rows = _compute_pure(
         sub_service_keys=['habitat'],
         indicator_responses=[
@@ -254,7 +259,7 @@ def test_13_full_assessment_habitat_aggregation():
     r = _find(rows, 'habitat')
     ind = (0.75 + 0.60 + 0.80) / 3
     assert abs(r['indicator_multiplier'] - ind) < TOL
-    assert abs(r['final_multiplier'] - ind * 0.70) < TOL
+    assert abs(r['final_multiplier'] - ind * math.sqrt(0.70)) < TOL
 
 
 # ── Extra: strongest-weight rule when one indicator maps to >1 TEEB slug ────
@@ -301,6 +306,31 @@ def test_uncommitted_indicator_excluded():
     assert abs(r['final_multiplier'] - 0.60) < TOL
 
 
+# ── Extra: HD sqrt dose-response curve ───────────────────────────────────────
+def test_hd_sqrt_curve_matches_documented_reductions():
+    """HD is applied as sqrt(score). Verify the multiplier and the implied
+    reduction for each HD band against the documented effects:
+        HD 100 → 1.00 (0%)    HD 30 → 0.548 (~45%)
+        HD 90  → 0.949 (~5%)  HD 10 → 0.316 (~68%)
+        HD 75  → 0.866 (~13%)
+        HD 50  → 0.707 (~29%)
+    """
+    expected = {1.00: 0.0, 0.90: 5, 0.75: 13, 0.50: 29, 0.30: 45, 0.10: 68}
+    for hd_score, pct_reduction in expected.items():
+        rows = _compute_pure(
+            sub_service_keys=['habitat'],
+            indicator_responses=[
+                _resp('m1', 1.00, {'habitat_for_species': 'primary'}),
+                _resp(HD_SLUG, hd_score, {}, mandatory=True),
+            ],
+            hd_indicator_slug=HD_SLUG,
+            bbi=0.5,
+        )
+        r = _find(rows, 'habitat')
+        assert abs(r['hd_multiplier'] - math.sqrt(hd_score)) < TOL
+        assert round((1 - math.sqrt(hd_score)) * 100) == pct_reduction
+
+
 # ── Convenience entry point: run as a script ────────────────────────────────
 if __name__ == '__main__':
     tests = [
@@ -309,12 +339,13 @@ if __name__ == '__main__':
         test_4_primary_plus_secondary,
         test_5_hd_cross_cutting,
         test_6_floor_applied_when_under_5pct,
-        test_7_fallback_to_bbi_no_hd_layered,
+        test_7_fallback_to_bbi_with_hd_layered,
         test_8_unanswered_indicator_excluded,
         test_9_no_hd_response_defaults_to_one,
         test_10_custom_score_uses_effective_score,
-        test_11_hd_not_applied_to_bbi_fallback,
+        test_11_hd_applied_to_bbi_fallback,
         test_13_full_assessment_habitat_aggregation,
+        test_hd_sqrt_curve_matches_documented_reductions,
         test_strongest_weight_when_indicator_double_maps_to_calc_key,
         test_uncommitted_indicator_excluded,
     ]

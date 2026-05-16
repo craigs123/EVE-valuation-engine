@@ -234,6 +234,10 @@ class ProjectType(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     icon = Column(String(16), nullable=True)
+    # EVE ecosystem display name this project type serves (e.g. 'Mangroves').
+    # Drives the ecosystem -> project-type mapping that gates the
+    # 'Use project-specific indicators' checkbox. NULL = not yet wired up.
+    ecosystem_type = Column(String(64), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -250,6 +254,9 @@ class Indicator(Base):
     commitment_question = Column(Text, nullable=False)
     prospectus_scope_statement = Column(Text, nullable=False)
     baseline_question = Column(Text, nullable=False)
+    # Short one-line description shown in the indicator-selection panel card
+    # (distinct from the longer why_matters / field_method copy).
+    card_description = Column(Text, nullable=True)
     why_matters = Column(Text, nullable=True)
     field_method = Column(Text, nullable=True)
     remote_sensing_alternative = Column(Text, nullable=True)
@@ -1227,12 +1234,49 @@ class ProjectIndicatorDB:
                 return [
                     {'id': str(r.id), 'slug': r.slug, 'name': r.name,
                      'icon': r.icon, 'description': r.description,
+                     'ecosystem_type': r.ecosystem_type,
                      'sort_order': r.sort_order}
                     for r in rows
                 ]
         except Exception as e:
             logger.error(f"get_active_project_types failed: {e}")
             return []
+
+    @staticmethod
+    def ecosystem_project_type_map() -> Dict[str, str]:
+        """Return ``{ecosystem_type: project_type_slug}`` for every active
+        project type that (a) declares an ``ecosystem_type`` and (b) has at
+        least one active non-mandatory (ecological) indicator.
+
+        Project types carrying only the mandatory HD cross-cutting indicator
+        are excluded — they have no ecosystem-specific content yet, so the
+        'Use project-specific indicators' checkbox stays disabled for them.
+        This is the single source of truth for the ecosystem -> project-type
+        mapping; adding a new wired-up project type makes it appear here with
+        no app-code change."""
+        try:
+            with get_db() as db:
+                out: Dict[str, str] = {}
+                pts = db.query(ProjectType).filter(
+                    ProjectType.is_active == True,
+                    ProjectType.ecosystem_type.isnot(None),
+                ).all()
+                for pt in pts:
+                    eco_count = (
+                        db.query(ProjectTypeIndicator)
+                        .join(Indicator,
+                              ProjectTypeIndicator.indicator_id == Indicator.id)
+                        .filter(ProjectTypeIndicator.project_type_id == pt.id,
+                                Indicator.is_active == True,
+                                Indicator.is_mandatory == False)
+                        .count()
+                    )
+                    if eco_count > 0:
+                        out[pt.ecosystem_type] = pt.slug
+                return out
+        except Exception as e:
+            logger.error(f"ecosystem_project_type_map failed: {e}")
+            return {}
 
     @staticmethod
     def get_project_type_with_indicators(slug: str) -> Optional[Dict]:
@@ -1272,6 +1316,7 @@ class ProjectIndicatorDB:
                         'commitment_question': ind.commitment_question,
                         'prospectus_scope_statement': ind.prospectus_scope_statement,
                         'baseline_question': ind.baseline_question,
+                        'card_description': ind.card_description,
                         'why_matters': ind.why_matters,
                         'field_method': ind.field_method,
                         'remote_sensing_alternative': ind.remote_sensing_alternative,
@@ -1306,6 +1351,7 @@ class ProjectIndicatorDB:
                     'name': pt.name,
                     'icon': pt.icon,
                     'description': pt.description,
+                    'ecosystem_type': pt.ecosystem_type,
                     'indicators': indicators,
                 }
         except Exception as e:

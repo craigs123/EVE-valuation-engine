@@ -71,6 +71,13 @@ WEIGHT_LOOKUP: dict[str, float] = {
 HD_RELATIONSHIP: str = 'multiplier'
 
 
+# Canonical slug of the Human Disturbance Pressure indicator. HD is a
+# universal cross-cutting indicator — the same slug is used for every
+# project type / ecosystem — so the engine identifies it explicitly by
+# this slug rather than by the generic ``is_mandatory`` flag.
+HD_INDICATOR_SLUG: str = 'human_disturbance_pressure'
+
+
 # Floor applied to indicator-derived final multipliers before they are
 # applied to a coefficient. Prevents extreme HD × very-low-indicator
 # combinations from driving a sub-service value to zero (which would imply
