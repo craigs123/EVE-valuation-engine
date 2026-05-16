@@ -1874,7 +1874,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.6 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2384,36 +2384,40 @@ def _global_mangrove_watch_url(lat: float | None, lon: float | None) -> str:
 @st.dialog("Full instructions", width="large")
 def _show_full_instructions_dialog(ecosystem: str, code: str, name: str):
     """Modal page of detailed scoring instructions for one indicator,
-    unique to the (ecosystem, indicator) pair."""
+    unique to the (ecosystem, indicator) pair. Content scrolls within a
+    fixed-height container; an explicit Close button sits below it."""
     from utils.indicator_instructions import get_indicator_instructions
-    st.markdown(f"### {code}: {name}")
     data = get_indicator_instructions(ecosystem, code)
     blocks = (data or {}).get('full_instructions') or []
-    if not blocks:
-        st.info("Full instructions for this indicator are not available yet.")
-        return
-    _centroid = _project_centroid()
-    _country = ''
-    _ci = st.session_state.get('predominant_country_info') or {}
-    if isinstance(_ci, dict):
-        _country = _ci.get('name') or ''
-    for i, block in enumerate(blocks):
-        _bt = block.get('type')
-        if _bt == 'md':
-            st.markdown(block.get('content', ''))
-        elif _bt == 'caption':
-            st.caption(block.get('content', ''))
-        elif _bt == 'link':
-            _url = block.get('url')
-            if block.get('url_kind') == 'gmw':
-                _url = _global_mangrove_watch_url(
-                    *(_centroid if _centroid else (None, None)))
-            st.link_button(block.get('label', 'Open link'), _url)
-        elif _bt == 'soon':
-            _label = block.get('label', '').replace(
-                '[Country/Region]', _country or 'your region')
-            st.button(_label, disabled=True, key=f"pi_soon_{code}_{i}")
-            st.caption(f"🔒 {block.get('note', 'Coming soon.')}")
+    with st.container(height=600):
+        st.markdown(f"### {code}: {name}")
+        if not blocks:
+            st.info("Full instructions for this indicator are not available yet.")
+        else:
+            _centroid = _project_centroid()
+            _country = ''
+            _ci = st.session_state.get('predominant_country_info') or {}
+            if isinstance(_ci, dict):
+                _country = _ci.get('name') or ''
+            for i, block in enumerate(blocks):
+                _bt = block.get('type')
+                if _bt == 'md':
+                    st.markdown(block.get('content', ''))
+                elif _bt == 'caption':
+                    st.caption(block.get('content', ''))
+                elif _bt == 'link':
+                    _url = block.get('url')
+                    if block.get('url_kind') == 'gmw':
+                        _url = _global_mangrove_watch_url(
+                            *(_centroid if _centroid else (None, None)))
+                    st.link_button(block.get('label', 'Open link'), _url)
+                elif _bt == 'soon':
+                    _label = block.get('label', '').replace(
+                        '[Country/Region]', _country or 'your region')
+                    st.button(_label, disabled=True, key=f"pi_soon_{code}_{i}")
+                    st.caption(f"🔒 {block.get('note', 'Coming soon.')}")
+    if st.button("Close", use_container_width=True, key=f"pi_fullinstr_close_{code}"):
+        st.rerun()
 
 
 def render_pre_analyze_indicator_panel():
@@ -2791,7 +2795,7 @@ div[class*='st-key-pi_pre_commit_'] [data-baseweb='checkbox'] > label > div:firs
                 _instr = get_indicator_instructions(_project_eco, code)
                 if _instr:
                     if _instr.get('scoring_intro'):
-                        st.info(_instr['scoring_intro'])
+                        st.caption(_instr['scoring_intro'])
                     if _instr.get('full_instructions') and st.button(
                         "📖 Full instructions",
                         key=f"pi_pre_fullinstr_{slug}",

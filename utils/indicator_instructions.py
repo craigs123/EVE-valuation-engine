@@ -67,6 +67,7 @@ _M1_FULL_INSTRUCTIONS = [
             "your restoration site and compare.\n\n"
             "*If no intact mangrove exists within reasonable distance: use "
             "Option 2 or 3.*\n\n"
+            "**[➜ Jump to How to score instructions](#how-to-score)**\n\n"
             "#### Option 2 — Use reference photographs\n\n"
             "**Best for:** When a local reference site visit is not "
             "practical.\n\n"
@@ -110,6 +111,7 @@ _M1_FULL_INSTRUCTIONS = [
     {
         'type': 'md',
         'content': (
+            "**[➜ Jump to How to score instructions](#how-to-score)**\n\n"
             "#### Option 3 — Use your knowledge of local mangrove\n\n"
             "**Best for:** Experienced team members who know what healthy "
             "mangrove looks like in their area.\n\n"
@@ -177,9 +179,10 @@ INDICATOR_INSTRUCTIONS = {
     ('Mangroves', 'M1'): {
         'scoring_intro': (
             "You are estimating how complete and healthy your restoration "
-            "site's canopy looks compared to a reference mangrove — a nearby "
-            "intact, healthy mangrove stand of the same species that "
-            "represents what your site is working towards."
+            "site's canopy looks compared to a reference mangrove — either a "
+            "nearby intact, healthy mangrove stand of the same species that "
+            "represents what your site is working towards or another reference "
+            "site (see Full instructions)."
         ),
         'full_instructions': _M1_FULL_INSTRUCTIONS,
     },
