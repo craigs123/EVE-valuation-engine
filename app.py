@@ -955,6 +955,7 @@ def clear_analysis_cache():
         'landcover_data_source',
         # EEI / intactness
         'point_eei_values', 'average_eei', 'ecosystem_eei',
+        'eei_status', 'ecosystem_eei_demo',
         # Water body tracking
         'all_water_bodies_classified', 'water_bodies_already_processed',
         # Progress flags
@@ -1549,6 +1550,25 @@ def display_data_source_status(analysis_results: Dict = None):
                 if st.session_state.get('use_eei_for_intactness', False):
                     average_eei = st.session_state.get('average_eei')
                     ecosystem_eei = st.session_state.get('ecosystem_eei', {})
+                    eei_status = st.session_state.get('eei_status') or {}
+
+                    if eei_status.get('any_demo'):
+                        _demo_ecos = st.session_state.get('ecosystem_eei_demo') or {}
+                        _msg = (
+                            f"⚠️ The EEI service returned demo (fabricated) data for "
+                            f"{eei_status.get('demo', 0)} of {eei_status.get('total', 0)} "
+                            f"sample points (Earth Engine unavailable). Those points were "
+                            f"excluded — the EEI figures below reflect real Earth Engine "
+                            f"data only."
+                        )
+                        if _demo_ecos:
+                            _pct = list(_demo_ecos.values())[0]
+                            _names = ", ".join(sorted(_demo_ecos))
+                            _msg += (
+                                f" No real EEI data was available for: {_names} — "
+                                f"these default to {_pct:.0f}% intactness."
+                            )
+                        st.warning(_msg)
 
                     if average_eei is not None:
                         eei_percent = int(average_eei * 100)
@@ -1874,7 +1894,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2374,6 +2394,14 @@ def _effective_intactness_dict() -> Dict:
             # (which does case-normalisation as a fallback) finds it
             # whether ecosystem_eei is keyed by snake_case or display name.
             out[k.replace('_', ' ').title()] = pct
+        # Ecosystems whose EEI came back entirely as demo (fabricated) data
+        # have no trustworthy value. Apply a conservative fallback intactness
+        # rather than letting the calc fall through to the optimistic 100%
+        # default. Real EEI values above always take precedence.
+        for eco, demo_pct in (st.session_state.get('ecosystem_eei_demo') or {}).items():
+            for key in (eco, eco.replace('_', ' ').title()):
+                if key not in out:
+                    out[key] = demo_pct
         return out
     return st.session_state.get('ecosystem_intactness', {}) or {}
 
@@ -5573,14 +5601,29 @@ if analyze_button and st.session_state.selected_area:
                             # Call EEI API to get ecosystem integrity values (only if enabled)
                             if st.session_state.get('use_eei_for_intactness', False):
                                 try:
-                                    from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
-                                    point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
+                                    from utils.eei_api import (
+                                        extract_eei_for_sample_points,
+                                        get_eei_per_ecosystem,
+                                        get_demo_affected_ecosystems,
+                                        DEMO_FALLBACK_INTACTNESS_PCT,
+                                    )
+                                    point_eei_values, average_eei, eei_status = extract_eei_for_sample_points(sampling_point_data)
                                     st.session_state.point_eei_values = point_eei_values
                                     st.session_state.average_eei = average_eei
-                                    
+                                    st.session_state.eei_status = eei_status
+
                                     # Calculate EEI per ecosystem for intactness defaults
                                     ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
                                     st.session_state.ecosystem_eei = ecosystem_eei
+                                    # Ecosystems whose EEI came back entirely as demo
+                                    # (fabricated) data get a conservative fallback
+                                    # intactness instead of the optimistic 100% default.
+                                    _demo_ecos = get_demo_affected_ecosystems(
+                                        sampling_point_data, point_eei_values,
+                                        eei_status.get('demo_point_ids', []))
+                                    st.session_state.ecosystem_eei_demo = {
+                                        e: DEMO_FALLBACK_INTACTNESS_PCT for e in _demo_ecos
+                                    }
                                     # NB: don't mirror EEI into ecosystem_intactness — those
                                     # sliders are the user's MANUAL settings and must only
                                     # change when the user moves a slider. The calc engine
@@ -5590,11 +5633,15 @@ if analyze_button and st.session_state.selected_area:
                                     st.session_state.point_eei_values = {}
                                     st.session_state.average_eei = None
                                     st.session_state.ecosystem_eei = {}
+                                    st.session_state.eei_status = None
+                                    st.session_state.ecosystem_eei_demo = {}
                             else:
                                 # EEI disabled - clear any stored values
                                 st.session_state.point_eei_values = {}
                                 st.session_state.average_eei = None
                                 st.session_state.ecosystem_eei = {}
+                                st.session_state.eei_status = None
+                                st.session_state.ecosystem_eei_demo = {}
                             
                             st.success(f"All {len(water_body_points)} water bodies classified as {selected_ecosystem}. Analysis continues below.")
                             
@@ -5642,14 +5689,29 @@ if analyze_button and st.session_state.selected_area:
                         # Call EEI API to get ecosystem integrity values (only if enabled)
                         if st.session_state.get('use_eei_for_intactness', False):
                             try:
-                                from utils.eei_api import extract_eei_for_sample_points, get_eei_per_ecosystem
-                                point_eei_values, average_eei = extract_eei_for_sample_points(sampling_point_data)
+                                from utils.eei_api import (
+                                    extract_eei_for_sample_points,
+                                    get_eei_per_ecosystem,
+                                    get_demo_affected_ecosystems,
+                                    DEMO_FALLBACK_INTACTNESS_PCT,
+                                )
+                                point_eei_values, average_eei, eei_status = extract_eei_for_sample_points(sampling_point_data)
                                 st.session_state.point_eei_values = point_eei_values
                                 st.session_state.average_eei = average_eei
-                                
+                                st.session_state.eei_status = eei_status
+
                                 # Calculate EEI per ecosystem for intactness defaults
                                 ecosystem_eei = get_eei_per_ecosystem(sampling_point_data, point_eei_values)
                                 st.session_state.ecosystem_eei = ecosystem_eei
+                                # Ecosystems whose EEI came back entirely as demo
+                                # (fabricated) data get a conservative fallback
+                                # intactness instead of the optimistic 100% default.
+                                _demo_ecos = get_demo_affected_ecosystems(
+                                    sampling_point_data, point_eei_values,
+                                    eei_status.get('demo_point_ids', []))
+                                st.session_state.ecosystem_eei_demo = {
+                                    e: DEMO_FALLBACK_INTACTNESS_PCT for e in _demo_ecos
+                                }
                                 # NB: don't mirror EEI into ecosystem_intactness — those
                                 # sliders are the user's MANUAL settings and must only
                                 # change when the user moves a slider. The calc engine
@@ -5659,11 +5721,15 @@ if analyze_button and st.session_state.selected_area:
                                 st.session_state.point_eei_values = {}
                                 st.session_state.average_eei = None
                                 st.session_state.ecosystem_eei = {}
+                                st.session_state.eei_status = None
+                                st.session_state.ecosystem_eei_demo = {}
                         else:
                             # EEI disabled - clear any stored values
                             st.session_state.point_eei_values = {}
                             st.session_state.average_eei = None
                             st.session_state.ecosystem_eei = {}
+                            st.session_state.eei_status = None
+                            st.session_state.ecosystem_eei_demo = {}
                         
                         # Show completion in progress container
                         with analysis_progress_container.container():
@@ -7290,6 +7356,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             'average_eei': st.session_state.get('average_eei'),
                             'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
                             'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
+                            'eei_status': st.session_state.get('eei_status'),
+                            'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
                             'predominant_country': st.session_state.get('predominant_country_info'),
                         }
                 except Exception:
