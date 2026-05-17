@@ -163,6 +163,68 @@ def run_mangrove_partial_hd_test():
     )
 
 
+def run_eroi_tests():
+    """Flow-based EROI metric checks (utils.analysis_helpers.compute_eroi).
+
+    EROI treats ecosystem-service values as annual flows: the uplift
+    (target - baseline) is a perpetual annual flow, ramped linearly over the
+    project duration and appraised over a discounted 30-year window, net of
+    any ongoing maintenance cost that begins after the project ends.
+    """
+    from utils.analysis_helpers import compute_eroi
+
+    checks = []  # (label, ok)
+
+    def check(label, ok):
+        checks.append((label, bool(ok)))
+
+    # Exact arithmetic case: immediate uplift (no ramp), zero discount, no
+    # maintenance. U = 60k/yr, C = 300k, H = 30 -> closed-form values.
+    e = compute_eroi(100_000, 160_000, 300_000, duration_years=None,
+                     discount_rate=0.0)
+    check("EROI exact: PV = U x 30", abs(e['pv_benefits'] - 60_000 * 30) < 1e-6)
+    check("EROI exact: BCR = 6.0", abs(e['bcr'] - 6.0) < 1e-9)
+    check("EROI exact: NPV = 1.5M", abs(e['npv'] - 1_500_000) < 1e-6)
+    check("EROI exact: yield = 20%/yr", abs(e['annual_yield'] - 0.20) < 1e-9)
+    check("EROI exact: payback = 5.0 yr", abs(e['payback_years'] - 5.0) < 1e-9)
+    check("EROI exact: IRR positive", e['irr'] is not None and e['irr'] > 0)
+
+    # Discounted, ramped case — verify the internal identities hold.
+    d = compute_eroi(100_000, 160_000, 300_000, duration_years=5,
+                     discount_rate=0.035)
+    check("EROI identity: pv_costs = cost + pv_maintenance",
+          abs(d['pv_costs'] - (d['cost'] + d['pv_maintenance'])) < 1e-6)
+    check("EROI identity: NPV = pv_benefits - pv_costs",
+          abs(d['npv'] - (d['pv_benefits'] - d['pv_costs'])) < 1e-6)
+    check("EROI identity: BCR = pv_benefits / pv_costs",
+          abs(d['bcr'] - d['pv_benefits'] / d['pv_costs']) < 1e-9)
+    check("EROI: discount+ramp cut PV below undiscounted immediate PV",
+          d['pv_benefits'] < e['pv_benefits'])
+
+    # Maintenance: applied after the 5-yr ramp, reduces the return metrics.
+    m = compute_eroi(100_000, 160_000, 300_000, duration_years=5,
+                     discount_rate=0.035, maintenance_cost=10_000)
+    exp_pv_m = sum(10_000 / (1.035 ** t) for t in range(6, 31))
+    check("EROI maintenance: PV starts the year after the 5-yr ramp",
+          abs(m['pv_maintenance'] - exp_pv_m) < 1e-6)
+    check("EROI maintenance: NPV lower than no-maintenance", m['npv'] < d['npv'])
+    check("EROI maintenance: net yield = (U - M) / C",
+          abs(m['annual_yield'] - (60_000 - 10_000) / 300_000) < 1e-9)
+
+    # Not-applicable cases return None.
+    check("EROI None when no uplift",
+          compute_eroi(160_000, 100_000, 300_000, 5, 0.035) is None)
+    check("EROI None when cost <= 0",
+          compute_eroi(100_000, 160_000, 0, 5, 0.035) is None)
+    check("EROI None when target missing",
+          compute_eroi(100_000, None, 300_000, 5, 0.035) is None)
+
+    for label, ok in checks:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
+    passed = sum(1 for _, ok in checks if ok)
+    return passed, len(checks) - passed
+
+
 def run_tests():
     passed = 0
     failed = 0
@@ -195,6 +257,10 @@ def run_tests():
             passed += 1
         else:
             failed += 1
+
+    eroi_passed, eroi_failed = run_eroi_tests()
+    passed += eroi_passed
+    failed += eroi_failed
 
     print(f"\n{passed}/{passed + failed} tests passed.")
     return failed == 0

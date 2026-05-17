@@ -32,23 +32,19 @@ def _result_is_demo(result: Dict) -> bool:
     Return True if a single per-point/region result is DEMO (fabricated) data.
 
     The EEI API can serve REAL Earth Engine data or fallback DEMO data
-    (latitude-based estimates). A result is REAL when it carries a "source"
-    field (e.g. "Google Earth Engine - Landler Open Data") and is not flagged
-    demo. A DEMO result carries "demo_mode": true (often with a "note" field),
-    or simply lacks the "source" field that confirms real provenance.
+    (latitude-based estimates). The ONLY reliable demo signal is the explicit
+    "demo_mode": true flag — the EEI service sets it on every fabricated
+    result and never on a real Earth Engine response.
 
-    IMPORTANT: a real result may legitimately have null entries inside its
-    "values" block (e.g. "eii": null = no dataset pixels at that location).
-    A null value is NOT a demo signal and must not be treated as one — this
-    function only inspects demo_mode/source, never the values themselves.
+    A missing "source" field must NOT be treated as a demo signal: when the
+    dataset has no pixel at a location (ocean / data gap) the EEI service
+    returns a *real* "no data" response — values with null entries and a
+    "message" — that legitimately carries neither "source" nor "demo_mode".
+    Such a result is real (just empty), not demo.
     """
     if not isinstance(result, dict):
         return True
-    if result.get("demo_mode") is True:
-        return True
-    # Real Earth Engine results are tagged with a "source" field; its absence
-    # means the provenance cannot be confirmed, so treat it as non-real.
-    return not result.get("source")
+    return result.get("demo_mode") is True
 
 
 def get_eei_batch(coordinates: List[Tuple[float, float]], timeout: int = 30) -> Dict:

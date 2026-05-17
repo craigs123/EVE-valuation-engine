@@ -304,6 +304,63 @@ def generate_pdf_report(
             f'Per Hectare: <b>Int$ {per_ha:,.0f}/ha/yr</b>', body))
     story.append(Spacer(1, 0.3 * cm))
 
+    # ----------------------------------------------- investment returns (EROI)
+    eroi = (summary_stats or {}).get('eroi')
+    if eroi:
+        story.append(Paragraph('Investment Returns (EROI)', h2))
+        _irr_txt = (f'{eroi["irr"] * 100:.1f}%'
+                    if eroi.get('irr') is not None else '—')
+        _pb = eroi.get('payback_years')
+        _pb_txt = (f'{_pb:.1f} yr' if _pb is not None
+                   else f'> {eroi["horizon_years"]} yr')
+        eroi_rows = [
+            ['Annual uplift at target', f'Int$ {eroi["uplift"]:,.0f}/yr',
+             'Capital cost', f'Int$ {eroi["cost"]:,.0f}'],
+            ['Annual maintenance', f'Int$ {eroi["maintenance_cost"]:,.0f}/yr',
+             'PV of maintenance', f'Int$ {eroi["pv_maintenance"]:,.0f}'],
+            ['Benefit–cost ratio', f'{eroi["bcr"]:.2f}×',
+             'Net present value', f'Int$ {eroi["npv"]:,.0f}'],
+            ['Internal rate of return', _irr_txt,
+             'Payback period', _pb_txt],
+            ['Annual yield (net)', f'{eroi["annual_yield"] * 100:.1f}% / yr',
+             f'{eroi["horizon_years"]}-yr value (PV)',
+             f'Int$ {eroi["pv_benefits"]:,.0f}'],
+        ]
+        eroi_table = Table(eroi_rows, colWidths=[4.5 * cm, 4 * cm, 4.5 * cm, 4 * cm])
+        eroi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('TEXTCOLOR', (2, 0), (2, -1), EVE_DARK),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(eroi_table)
+        story.append(Spacer(1, 0.15 * cm))
+        _ramp = eroi.get('duration_years')
+        _ramp_txt = (f'a {_ramp:.1f}-year linear ramp' if _ramp
+                     else 'an immediate uplift')
+        story.append(Paragraph(
+            f'Ecosystem-service values are annual flows. The uplift (target '
+            f'minus baseline annual value) is treated as perpetual once '
+            f'reached, following {_ramp_txt}. Annual maintenance is counted '
+            f'each year after the project ends. Net present value and the '
+            f'benefit&ndash;cost ratio use a {eroi["horizon_years"]}-year '
+            f'appraisal window discounted at {eroi["discount_rate"] * 100:.1f}%, '
+            f'and are net of the present value of maintenance. Annual yield = '
+            f'net annual benefit (uplift after maintenance) / capital cost; '
+            f'payback is the undiscounted time for the cumulative net benefit '
+            f'to repay the capital cost.',
+            caption))
+        story.append(Spacer(1, 0.3 * cm))
+
     # ------------------------------------------------ service-by-service breakdown
     if has_cats:
         _SERVICE_LABELS = {
