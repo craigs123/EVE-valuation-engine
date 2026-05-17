@@ -301,19 +301,20 @@ def compute_eroi(baseline_value, target_value, cost, duration_years,
     net_annual = uplift - maint                  # mature net annual benefit
     annual_yield = net_annual / cost             # fraction per year
 
+    # Per-year net cash flow (benefit uplift minus maintenance).
+    yearly_net = [yearly_uplift[i] - yearly_maint[i] for i in range(horizon)]
+
     # Undiscounted, ramp-aware payback on the NET stream (uplift - maintenance).
     payback_years = None
     running = 0.0
-    for i in range(horizon):
-        net_v = yearly_uplift[i] - yearly_maint[i]
+    for i, net_v in enumerate(yearly_net):
         prev = running
         running += net_v
         if running >= cost:
             payback_years = (i + (cost - prev) / net_v) if net_v > 0 else float(i + 1)
             break
 
-    irr = _irr([-cost] + [yearly_uplift[i] - yearly_maint[i]
-                          for i in range(horizon)])
+    irr = _irr([-cost] + yearly_net)
 
     return {
         'uplift': uplift,
@@ -332,4 +333,5 @@ def compute_eroi(baseline_value, target_value, cost, duration_years,
         'annual_yield': annual_yield,
         'payback_years': payback_years,
         'irr': irr,
+        'yearly_net': yearly_net,
     }

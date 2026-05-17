@@ -1905,7 +1905,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.13 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.14 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -3292,71 +3292,74 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
                else "not defined")
     M = eroi.get('maintenance_cost', 0.0)
 
-    st.markdown(
-        "Ecosystem-service valuations are annual **flows** (Int$/year), not "
-        "one-off stocks. A restoration project raises the annual flow from a "
-        "baseline level to a target level; the **uplift** is the permanent "
-        "additional value delivered every year once the target is reached."
-    )
+    # Fixed-height scrollable container so the dialog scrolls within the modal
+    # (matching the Analysis Settings dialog) rather than overflowing the page.
+    with st.container(height=600):
+        st.markdown(
+            "Ecosystem-service valuations are annual **flows** (Int$/year), not "
+            "one-off stocks. A restoration project raises the annual flow from a "
+            "baseline level to a target level; the **uplift** is the permanent "
+            "additional value delivered every year once the target is reached."
+        )
 
-    st.markdown("#### Inputs for this project")
-    st.markdown(
-        f"- Annual uplift **U** = target − baseline annual value = "
-        f"**${eroi['uplift']:,.0f}/yr**\n"
-        f"- Capital cost **C** = **${eroi['cost']:,.0f}** (single outflow, year 0)\n"
-        f"- Annual maintenance **M** = "
-        f"**${M:,.0f}/yr** (counted after the project ends)\n"
-        f"- Ramp period **D** = **{ramp_txt}** (gap between baseline and target dates)\n"
-        f"- Discount rate **r** = **{r_pct:.1f}%**\n"
-        f"- Appraisal horizon **H** = **{H} years**"
-    )
+        st.markdown("#### Inputs for this project")
+        st.markdown(
+            f"- Annual uplift **U** = target − baseline annual value = "
+            f"**${eroi['uplift']:,.0f}/yr**\n"
+            f"- Capital cost **C** = **${eroi['cost']:,.0f}** (single outflow, year 0)\n"
+            f"- Annual maintenance **M** = "
+            f"**${M:,.0f}/yr** (counted after the project ends)\n"
+            f"- Ramp period **D** = **{ramp_txt}** (gap between baseline and target dates)\n"
+            f"- Discount rate **r** = **{r_pct:.1f}%**\n"
+            f"- Appraisal horizon **H** = **{H} years**"
+        )
 
-    st.markdown("#### Assumptions")
-    st.markdown(
-        "- The uplift is **perpetual** — once the target state is reached it "
-        "continues every year.\n"
-        "- During the ramp the uplift grows **linearly** from 0 to the full "
-        "value; each year is valued at its midpoint.\n"
-        "- The capital cost is a **single upfront outflow**. Maintenance is an "
-        "**ongoing annual cost** that begins the year *after* the ramp ends — "
-        "the capital cost is assumed to cover the works during the project.\n"
-        f"- Benefits and maintenance are counted over a fixed **{H}-year** "
-        "window; value beyond it is excluded.\n"
-        "- All figures are whole-project totals — the metrics are unchanged "
-        "on a per-hectare basis."
-    )
+        st.markdown("#### Assumptions")
+        st.markdown(
+            "- The uplift is **perpetual** — once the target state is reached it "
+            "continues every year.\n"
+            "- During the ramp the uplift grows **linearly** from 0 to the full "
+            "value; each year is valued at its midpoint.\n"
+            "- The capital cost is a **single upfront outflow**. Maintenance is an "
+            "**ongoing annual cost** that begins the year *after* the ramp ends — "
+            "the capital cost is assumed to cover the works during the project.\n"
+            f"- Benefits and maintenance are counted over a fixed **{H}-year** "
+            "window; value beyond it is excluded.\n"
+            "- All figures are whole-project totals — the metrics are unchanged "
+            "on a per-hectare basis."
+        )
 
-    st.markdown("#### Formulas")
-    st.markdown(
-        "- Yearly uplift (year t = 1…H):  "
-        "`uplift_t = U × min((t − 0.5) / D, 1)`  — `= U` when D = 0\n"
-        "- Yearly maintenance:  `maint_t = M` for years after the ramp, else `0`\n"
-        "- Present value of benefits:  `PV_b = Σ uplift_t / (1 + r)^t`\n"
-        "- Present value of maintenance:  `PV_m = Σ maint_t / (1 + r)^t`\n"
-        "- Net present value:  `NPV = PV_b − C − PV_m`\n"
-        "- Benefit–cost ratio:  `BCR = PV_b / (C + PV_m)`\n"
-        "- Annual yield (mature net return):  `yield = (U − M) / C`\n"
-        "- Payback period:  smallest t where the cumulative **undiscounted** "
-        "net flow `(uplift_t − maint_t)` ≥ C\n"
-        "- Internal rate of return:  the rate `r*` at which `NPV = 0` "
-        "(cash flows −C, then `uplift_t − maint_t` for each year)"
-    )
+        st.markdown("#### Formulas")
+        st.markdown(
+            "- Yearly uplift (year t = 1…H):  "
+            "`uplift_t = U × min((t − 0.5) / D, 1)`  — `= U` when D = 0\n"
+            "- Yearly maintenance:  `maint_t = M` for years after the ramp, else `0`\n"
+            "- Present value of benefits:  `PV_b = Σ uplift_t / (1 + r)^t`\n"
+            "- Present value of maintenance:  `PV_m = Σ maint_t / (1 + r)^t`\n"
+            "- Net present value:  `NPV = PV_b − C − PV_m`\n"
+            "- Benefit–cost ratio:  `BCR = PV_b / (C + PV_m)`\n"
+            "- Annual yield (mature net return):  `yield = (U − M) / C`\n"
+            "- Payback period:  smallest t where the cumulative **undiscounted** "
+            "net flow `(uplift_t − maint_t)` ≥ C\n"
+            "- Internal rate of return:  the rate `r*` at which `NPV = 0` "
+            "(cash flows −C, then `uplift_t − maint_t` for each year)"
+        )
 
-    st.markdown("#### Results for this project")
-    st.markdown(
-        f"- Present value of benefits **PV_b** = **${eroi['pv_benefits']:,.0f}** "
-        f"(undiscounted {H}-yr total ${eroi['cum_benefit']:,.0f})\n"
-        f"- Present value of maintenance **PV_m** = "
-        f"**${eroi['pv_maintenance']:,.0f}**\n"
-        f"- **NPV** = ${eroi['pv_benefits']:,.0f} − ${eroi['cost']:,.0f} − "
-        f"${eroi['pv_maintenance']:,.0f} = **${eroi['npv']:,.0f}**\n"
-        f"- **BCR** = ${eroi['pv_benefits']:,.0f} / ${eroi['pv_costs']:,.0f} = "
-        f"**{eroi['bcr']:.2f}×**\n"
-        f"- **Annual yield** = (${eroi['uplift']:,.0f} − ${M:,.0f}) / "
-        f"${eroi['cost']:,.0f} = **{eroi['annual_yield'] * 100:.1f}% / yr**\n"
-        f"- **Payback period** = **{pb_txt}**\n"
-        f"- **IRR** = **{irr_txt}**"
-    )
+        st.markdown("#### Results for this project")
+        st.markdown(
+            f"- Present value of benefits **PV_b** = **${eroi['pv_benefits']:,.0f}** "
+            f"(undiscounted {H}-yr total ${eroi['cum_benefit']:,.0f})\n"
+            f"- Present value of maintenance **PV_m** = "
+            f"**${eroi['pv_maintenance']:,.0f}**\n"
+            f"- **NPV** = ${eroi['pv_benefits']:,.0f} − ${eroi['cost']:,.0f} − "
+            f"${eroi['pv_maintenance']:,.0f} = **${eroi['npv']:,.0f}**\n"
+            f"- **BCR** = ${eroi['pv_benefits']:,.0f} / ${eroi['pv_costs']:,.0f} = "
+            f"**{eroi['bcr']:.2f}×**\n"
+            f"- **Annual yield** = (${eroi['uplift']:,.0f} − ${M:,.0f}) / "
+            f"${eroi['cost']:,.0f} = **{eroi['annual_yield'] * 100:.1f}% / yr**\n"
+            f"- **Payback period** = **{pb_txt}**\n"
+            f"- **IRR** = **{irr_txt}**"
+        )
 
 
 def render_eroi_panel(results: dict) -> None:
@@ -7468,6 +7471,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
                             'predominant_country': st.session_state.get('predominant_country_info'),
                             'eroi': _eroi_pdf,
+                            'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
+                            'target_date': st.session_state.get('pending_indicator_target_date'),
                         }
                 except Exception:
                     _pdf_summary = None
