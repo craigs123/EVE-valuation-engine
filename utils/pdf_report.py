@@ -192,6 +192,30 @@ def generate_pdf_report(
         story.append(sm_table)
         story.append(Spacer(1, 0.25 * cm))
 
+        # Demo-data caveat: if the EEI service fell back to fabricated data
+        # for any point, those points were excluded — say so explicitly so
+        # the report never implies the EEI figures are fully measured.
+        eei_status = summary_stats.get('eei_status') or {}
+        if eei_enabled and eei_status.get('any_demo'):
+            demo_ecos = summary_stats.get('eei_demo_ecosystems') or {}
+            _note = (
+                f'Note: the EEI service returned demo (fabricated) data for '
+                f'{eei_status.get("demo", 0)} of {eei_status.get("total", 0)} '
+                f'sample points (Earth Engine unavailable). Those points were '
+                f'excluded; the EEI figures above and below reflect real '
+                f'Earth Engine data only.'
+            )
+            if demo_ecos:
+                _pct = list(demo_ecos.values())[0]
+                _names = ', '.join(sorted(demo_ecos))
+                _note += (
+                    f' No real EEI data was available for: {_names} — these '
+                    f'ecosystems default to {_pct:.0f}% intactness rather than '
+                    f'the optimistic 100%.'
+                )
+            story.append(Paragraph(_note, caption))
+            story.append(Spacer(1, 0.25 * cm))
+
         # Ecosystem composition from sample points
         eco_counts = summary_stats.get('ecosystem_counts', {})
         if eco_counts:
@@ -352,15 +376,18 @@ def generate_pdf_report(
         'drawing on 10,874+ peer-reviewed estimates from 1,100+ scientific studies. '
         'A regional GDP adjustment (income-elasticity method, World Bank 2024 GDP per capita data) '
         'is applied: <i>factor = 1 + (elasticity × (country_GDP / global_GDP − 1))</i>, '
-        'bounded to 0.4–2.5×. Ecosystem Ecological Integrity (EEI) intactness multipliers '
-        'are applied where available. Open-water areas are excluded from natural capital totals '
+        'bounded to 0.4–2.5×. Ecosystem Ecological Integrity (EEI) intactness multipliers — '
+        'sourced from live Google Earth Engine data via the EEI Explorer API — are applied '
+        'where available; demo (fabricated) fallback data is never used, and an ecosystem '
+        'with no real EEI data defaults to a conservative 50% intactness rather than 100%. '
+        'Open-water areas are excluded from natural capital totals '
         '(NDWI masking). All values are in 2024 International dollars per hectare per year.',
         body,
     ))
     story.append(Spacer(1, 0.3 * cm))
     story.append(Paragraph(
-        '<i>Analysis is rerun each time using the latest satellite and coefficient data. '
-        'Past reports may differ from current values if data sources have been updated.</i>',
+        '<i>Past valuations may differ from current values if data sources '
+        'have been updated.</i>',
         caption,
     ))
     story.append(Spacer(1, 0.3 * cm))
@@ -390,20 +417,37 @@ def generate_pdf_report(
     story.append(Spacer(1, 0.2 * cm))
     try:
         if os.path.exists(_LOGO_PATH):
-            logo = Image(_LOGO_PATH, width=3 * cm, height=2.96 * cm)
+            logo = Image(_LOGO_PATH, width=2.25 * cm, height=2.22 * cm)
             logo.hAlign = 'CENTER'
             story.append(logo)
     except Exception:
         pass
-    attribution_text = (
-        'Built by '
-        '<link href="https://www.greenandgreyassociates.com" color="#2E7D32">'
-        'Green &amp; Grey Associates</link>'
-    )
-    story.append(Paragraph(attribution_text, footer_style))
-    story.append(Paragraph('© 2026 Green &amp; Grey Associates', footer_style))
+    def _draw_page_footer(canvas, page_doc):
+        """Footer drawn on every page: attribution (linked) left-justified,
+        copyright right-justified, within the bottom margin."""
+        canvas.saveState()
+        canvas.setFont('Helvetica', 7.5)
+        _y = 1.4 * cm
+        # Attribution — green, hyperlinked to the Green & Grey Associates site.
+        _built = 'Built by Green & Grey Associates'
+        canvas.setFillColor(EVE_GREEN)
+        canvas.drawString(page_doc.leftMargin, _y, _built)
+        _built_w = canvas.stringWidth(_built, 'Helvetica', 7.5)
+        canvas.linkURL(
+            'https://www.greenandgreyassociates.com',
+            (page_doc.leftMargin, _y - 1.5,
+             page_doc.leftMargin + _built_w, _y + 7.5),
+            relative=0,
+        )
+        # Copyright — grey, right-justified.
+        canvas.setFillColor(GREY)
+        canvas.drawRightString(
+            page_doc.leftMargin + page_doc.width, _y,
+            '© 2026 Green & Grey Associates',
+        )
+        canvas.restoreState()
 
-    doc.build(story)
+    doc.build(story, onFirstPage=_draw_page_footer, onLaterPages=_draw_page_footer)
     return buf.getvalue()
 
 

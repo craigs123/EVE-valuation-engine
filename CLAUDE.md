@@ -92,7 +92,7 @@ gcloud run services add-iam-policy-binding eve-valuation-engine-staging \
   - `country_gdp_2024.py` — World Bank 2024 GDP per capita data for regional adjustment (income elasticity method, bounded 0.4–2.5x)
   - `openlandmap_integration.py`, `openlandmap_stac_api.py`, `esa_landcover_codes.py` — land cover / ecosystem-type detection
   - `satellite_data.py`, `enhanced_satellite_simulator.py` — satellite bands + simulation for quality adjustment (NDVI, NDWI water masking)
-  - `eei_api.py` — Ecosystem Ecological Integrity API client (https://api.ecosystemintegrity.com); per-point EEI feeds default intactness multipliers
+  - `eei_api.py` — Ecosystem Ecological Integrity API client (https://eve-solutions-482317.uc.r.appspot.com); per-point EEI feeds default intactness multipliers
   - `usgs_integration.py`, `nominatim_geocoding.py` — external data clients
   - `natural_capital_metrics.py`, `analysis_helpers.py`, `sampling_utils.py`, `visualization.py`, `data_export.py`, `user_guidance.py`
 - `data/` — `esvd_database.csv`, `data/sample_areas.json`
