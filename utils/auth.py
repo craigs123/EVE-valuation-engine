@@ -358,7 +358,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.8.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.8.11 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -426,19 +426,41 @@ def _render_auth_ui():
                                 _persist_auth_cookie(user)
                             st.rerun()
                         elif err == 'pending_verification':
+                            # Remember the email so the resend button below can
+                            # offer a fresh verification link.
+                            st.session_state['_pending_verif_email'] = email.strip()
                             st.error(
                                 "Email has not been verified. Please check your "
                                 "inbox and verify your email before returning here "
                                 "and signing in."
                             )
                         elif err == 'removed':
+                            st.session_state.pop('_pending_verif_email', None)
                             st.error(
                                 "This account has been removed because the email "
                                 "was not verified in time. Use the **Create Account** "
                                 "tab to sign up again with this email."
                             )
                         else:
+                            st.session_state.pop('_pending_verif_email', None)
                             st.error("Invalid email or password.")
+
+                # Resend verification — shown after a failed sign-in where the
+                # account exists but the email is still unverified.
+                if st.session_state.get('_pending_verif_email'):
+                    if st.button("Resend verification email", key="resend_verif_btn",
+                                 use_container_width=True):
+                        if UserDB.resend_verification(st.session_state['_pending_verif_email']):
+                            st.success(
+                                "Verification email re-sent — check your inbox "
+                                "and spam folder."
+                            )
+                        else:
+                            st.error(
+                                "Couldn't resend the verification email. The account "
+                                "may already be verified or removed, or email sending "
+                                "is temporarily unavailable — please try again later."
+                            )
 
                 if st.button("Forgot password?", key="forgot_pw_btn",
                              help="Reset your password via email",
@@ -479,18 +501,25 @@ def _render_auth_ui():
                         st.error(err)
                 else:
                     try:
-                        UserDB.register(
+                        _reg = UserDB.register(
                             reg_email.strip(),
                             reg_password,
                             reg_name.strip(),
                             reg_org.strip(),
                         )
                         # Do NOT log the user in — verification is required first.
-                        st.success(
-                            "Account created. A verification email has been sent — "
-                            "please check your inbox (and your spam folder) and click "
-                            "the verification link before signing in."
-                        )
+                        if _reg.get('verification_email_sent'):
+                            st.success(
+                                "Account created. A verification email has been sent — "
+                                "please check your inbox (and your spam folder) and click "
+                                "the verification link before signing in."
+                            )
+                        else:
+                            st.warning(
+                                "Account created, but the verification email could not be "
+                                "sent right now. Go to the **Sign In** tab and use "
+                                "**Resend verification email** to try again."
+                            )
                     except ValueError as exc:
                         st.error(str(exc))
                     except Exception as exc:

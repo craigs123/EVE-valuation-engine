@@ -535,12 +535,17 @@ class UserDB:
                     db.add(user)
                     db.commit()
                     db.refresh(user)
+                email_sent = False
                 try:
                     from utils.email_utils import send_verification_email
-                    send_verification_email(user.email, token)
+                    email_sent = send_verification_email(user.email, token)
                 except Exception as e:
                     logger.warning(f"Verification email failed: {e}")
-                return UserDB._user_dict(user)
+                result = UserDB._user_dict(user)
+                # Transient flag (not a DB column) so the caller can tell the
+                # user whether the verification email actually went out.
+                result['verification_email_sent'] = bool(email_sent)
+                return result
         except ValueError:
             raise
         except Exception as e:
@@ -662,8 +667,9 @@ class UserDB:
     @staticmethod
     def resend_verification(email: str) -> bool:
         """Regenerate and resend the verification email for a Pending account.
-        Returns False for unknown emails, already-Active accounts, and Removed
-        accounts (the latter must re-register)."""
+        Returns True only if the email was actually sent. Returns False for
+        unknown emails, already-Active accounts, Removed accounts (the latter
+        must re-register), and when the email could not be sent."""
         import secrets
         try:
             with get_db() as db:
@@ -675,8 +681,7 @@ class UserDB:
                 user.verification_token_expiry = datetime.utcnow() + timedelta(hours=24)
                 db.commit()
                 from utils.email_utils import send_verification_email
-                send_verification_email(user.email, token)
-                return True
+                return bool(send_verification_email(user.email, token))
         except Exception as e:
             logger.error(f"resend_verification failed: {e}")
             return False
