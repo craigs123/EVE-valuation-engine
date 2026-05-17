@@ -1847,9 +1847,11 @@ if _verify_token:
     if _UserDB.verify_email(_verify_token):
         st.query_params.clear()
         st.success("Email verified. You can now sign in.")
+        st.link_button("Go to the login page", "/", type="primary")
     else:
         st.query_params.clear()
         st.error("This verification link has expired or is invalid. Please sign in and request a new one.")
+        st.link_button("Go to the login page", "/")
     st.stop()
 
 if _reset_token:
@@ -1894,7 +1896,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.11 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
