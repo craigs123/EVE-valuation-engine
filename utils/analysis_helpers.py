@@ -184,3 +184,152 @@ def create_bbox_from_center_and_area(
         'min_lon': min_lon,
         'max_lon': max_lon,
     }
+
+
+# ---------------------------------------------------------------------------
+# Ecological Return on Investment (EROI)
+# ---------------------------------------------------------------------------
+
+# Appraisal horizon (years) for the discounted EROI metrics. Ecosystem-service
+# uplift is treated as perpetual once a site reaches its target state; 30 years
+# is the window over which NPV and the benefit-cost ratio are reported.
+EROI_APPRAISAL_HORIZON_YEARS = 30
+
+
+def _npv(rate: float, cashflows: list) -> float:
+    """Net present value of ``cashflows``, where ``cashflows[t]`` falls at the
+    end of year ``t`` (``cashflows[0]`` at t0, undiscounted)."""
+    return sum(cf / (1.0 + rate) ** t for t, cf in enumerate(cashflows))
+
+
+def _irr(cashflows: list) -> "float | None":
+    """Internal rate of return via bisection.
+
+    ``cashflows[0]`` is the t0 outflow (negative); the rest are annual inflows.
+    Returns None when the flows do not change sign or no root is bracketed.
+    NPV is monotonic in the rate for this one-outflow/many-inflow shape, so
+    bisection is robust.
+    """
+    if not cashflows:
+        return None
+    if all(cf >= 0 for cf in cashflows) or all(cf <= 0 for cf in cashflows):
+        return None
+    lo, hi = -0.9, 10.0
+    f_lo = _npv(lo, cashflows)
+    f_hi = _npv(hi, cashflows)
+    if f_lo == 0:
+        return lo
+    if f_hi == 0:
+        return hi
+    if f_lo * f_hi > 0:
+        return None  # root not bracketed in the search range
+    for _ in range(200):
+        mid = (lo + hi) / 2.0
+        f_mid = _npv(mid, cashflows)
+        if abs(f_mid) < 1e-6 or (hi - lo) < 1e-12:
+            return mid
+        if f_lo * f_mid < 0:
+            hi = mid
+        else:
+            lo, f_lo = mid, f_mid
+    return (lo + hi) / 2.0
+
+
+def compute_eroi(baseline_value, target_value, cost, duration_years,
+                 discount_rate, maintenance_cost: float = 0.0,
+                 horizon: int = EROI_APPRAISAL_HORIZON_YEARS):
+    """Flow-based Ecological Return on Investment metrics.
+
+    Ecosystem-service valuations are annual *flows* (Int$/yr), not stocks. A
+    restoration project lifts the annual flow from ``baseline_value`` to
+    ``target_value``; the uplift ``U = target - baseline`` is a permanent
+    annual flow once the target state is reached. ``duration_years`` is the
+    linear ramp period (the gap between the baseline and target dates) over
+    which the uplift grows from 0 to U; after the ramp it continues at U for
+    the remainder of the appraisal ``horizon``.
+
+    ``maintenance_cost`` is an optional ongoing annual cost that begins the
+    year *after* the ramp completes (i.e. after the project has ended) — the
+    upfront ``cost`` is assumed to cover the works during the project itself.
+
+    Args:
+        baseline_value:   baseline annual ecosystem-service value (Int$/yr)
+        target_value:     target annual ecosystem-service value (Int$/yr)
+        cost:             one-time capital cost (Int$), incurred at t0
+        duration_years:   ramp years; None or 0 -> immediate full uplift
+        discount_rate:    annual discount rate as a fraction (e.g. 0.035)
+        maintenance_cost: ongoing annual maintenance cost (Int$/yr), applied
+                          after the ramp ends; 0 to disable
+        horizon:          appraisal horizon in years
+
+    Returns:
+        dict of metrics, or None when EROI does not apply (missing baseline or
+        target valuation, cost <= 0, or no positive uplift).
+    """
+    if baseline_value is None or target_value is None:
+        return None
+    if not cost or cost <= 0:
+        return None
+    uplift = target_value - baseline_value
+    if uplift <= 0:
+        return None
+
+    rate = discount_rate or 0.0
+    horizon = int(horizon)
+    ramp = duration_years if (duration_years and duration_years > 0) else 0.0
+    maint = maintenance_cost or 0.0
+
+    # Per-year uplift (midpoint of the year on the linear ramp, capped at the
+    # full uplift) and maintenance (begins the year after the ramp ends; with
+    # no ramp it applies from year 1).
+    yearly_uplift = []
+    yearly_maint = []
+    for t in range(1, horizon + 1):
+        frac = 1.0 if ramp <= 0 else min((t - 0.5) / ramp, 1.0)
+        yearly_uplift.append(uplift * frac)
+        yearly_maint.append(maint if t > ramp else 0.0)
+
+    def _pv(stream):
+        return sum(v / (1.0 + rate) ** (i + 1) for i, v in enumerate(stream))
+
+    pv_benefits = _pv(yearly_uplift)
+    pv_maintenance = _pv(yearly_maint)
+    pv_costs = cost + pv_maintenance
+    cum_benefit = sum(yearly_uplift)
+    npv = pv_benefits - pv_costs
+    bcr = pv_benefits / pv_costs                 # benefits / all costs
+    net_annual = uplift - maint                  # mature net annual benefit
+    annual_yield = net_annual / cost             # fraction per year
+
+    # Undiscounted, ramp-aware payback on the NET stream (uplift - maintenance).
+    payback_years = None
+    running = 0.0
+    for i in range(horizon):
+        net_v = yearly_uplift[i] - yearly_maint[i]
+        prev = running
+        running += net_v
+        if running >= cost:
+            payback_years = (i + (cost - prev) / net_v) if net_v > 0 else float(i + 1)
+            break
+
+    irr = _irr([-cost] + [yearly_uplift[i] - yearly_maint[i]
+                          for i in range(horizon)])
+
+    return {
+        'uplift': uplift,
+        'maintenance_cost': maint,
+        'net_annual': net_annual,
+        'cost': cost,
+        'duration_years': duration_years,
+        'discount_rate': rate,
+        'horizon_years': horizon,
+        'pv_benefits': pv_benefits,
+        'pv_maintenance': pv_maintenance,
+        'pv_costs': pv_costs,
+        'cum_benefit': cum_benefit,
+        'npv': npv,
+        'bcr': bcr,
+        'annual_yield': annual_yield,
+        'payback_years': payback_years,
+        'irr': irr,
+    }
