@@ -81,6 +81,219 @@ def generate_pdf_report(
 
     story = []
 
+    # ===================================================================
+    # Investment-grade front matter — rendered only for project runs (an
+    # EROI metrics dict is present). Non-project reports are unchanged.
+    # ===================================================================
+    eroi = (summary_stats or {}).get('eroi')
+    if eroi:
+        baseline_val = results.get('total_value') or 0
+        target_val = results.get('total_value_target') or 0
+        _irr_s = (f'{eroi["irr"] * 100:.1f}%'
+                  if eroi.get('irr') is not None else '—')
+        _pb = eroi.get('payback_years')
+        _pb_s = (f'{_pb:.1f} yr' if _pb is not None
+                 else f'> {eroi["horizon_years"]} yr')
+
+        def _fmt_date(d):
+            try:
+                return d.strftime('%d %b %Y')
+            except Exception:
+                return '—'
+
+        # ---- Page 1: cover ---------------------------------------------
+        cover_title = ParagraphStyle('cover_title', parent=h1, fontSize=26,
+                                     alignment=TA_CENTER, spaceAfter=6, leading=30)
+        cover_sub = ParagraphStyle('cover_sub', parent=h2, fontSize=15,
+                                   alignment=TA_CENTER, textColor=EVE_DARK,
+                                   spaceBefore=2, spaceAfter=2)
+        cover_meta = ParagraphStyle('cover_meta', parent=caption,
+                                    alignment=TA_CENTER, fontSize=10, leading=14)
+        story.append(Spacer(1, 3.5 * cm))
+        try:
+            if os.path.exists(_LOGO_PATH):
+                _cover_logo = Image(_LOGO_PATH, width=3.2 * cm, height=3.16 * cm)
+                _cover_logo.hAlign = 'CENTER'
+                story.append(_cover_logo)
+                story.append(Spacer(1, 0.8 * cm))
+        except Exception:
+            pass
+        story.append(Paragraph('Natural Capital', cover_title))
+        story.append(Paragraph('Investment Report', cover_title))
+        story.append(Spacer(1, 0.5 * cm))
+        story.append(HRFlowable(width="55%", thickness=1.5, color=EVE_GREEN,
+                                spaceAfter=12, hAlign='CENTER'))
+        story.append(Paragraph(area_name, cover_sub))
+        if country:
+            story.append(Paragraph(country, cover_meta))
+        story.append(Spacer(1, 1.5 * cm))
+        story.append(Paragraph(
+            f'Prepared {datetime.utcnow().strftime("%d %B %Y")}', cover_meta))
+        if auth_user:
+            _nm = auth_user.get('display_name') or auth_user.get('email', '')
+            if _nm:
+                story.append(Paragraph(f'Prepared by {_nm}', cover_meta))
+        story.append(PageBreak())
+
+        # ---- Page 2: executive summary ---------------------------------
+        story.append(Paragraph('Executive Summary', h1))
+        story.append(HRFlowable(width="100%", thickness=1.5, color=EVE_GREEN,
+                                spaceAfter=10))
+        kpi_values = [f'{eroi["bcr"]:.2f}×', f'Int$ {eroi["npv"]:,.0f}',
+                      _irr_s, _pb_s, f'{eroi["annual_yield"] * 100:.1f}%/yr']
+        kpi_labels = ['Benefit–Cost Ratio', 'Net Present Value',
+                      'Internal Rate of Return', 'Payback Period', 'Annual Yield']
+        kpi_table = Table([kpi_values, kpi_labels], colWidths=[3.4 * cm] * 5)
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), EVE_GREEN),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 13),
+            ('BACKGROUND', (0, 1), (-1, 1), EVE_GREEN_LIGHT),
+            ('TEXTCOLOR', (0, 1), (-1, 1), EVE_DARK),
+            ('FONTSIZE', (0, 1), (-1, 1), 7),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1.5, colors.white),
+        ]))
+        story.append(kpi_table)
+        story.append(Spacer(1, 0.4 * cm))
+
+        _maint_clause = (
+            f' Ongoing maintenance of Int$ {eroi["maintenance_cost"]:,.0f}/yr is '
+            f'counted after the project ends.'
+            if eroi['maintenance_cost'] > 0 else '')
+        _irr_clause = (f' an internal rate of return of <b>{eroi["irr"] * 100:.1f}%</b>,'
+                       if eroi.get('irr') is not None else '')
+        _pb_clause = (f' and recovers the capital cost in about <b>{_pb:.1f} years</b>'
+                      if _pb is not None else '')
+        narrative = (
+            f'This project at <b>{area_name}</b> calls for a capital investment of '
+            f'<b>Int$ {eroi["cost"]:,.0f}</b> to raise the area’s annual '
+            f'ecosystem-service value from <b>Int$ {baseline_val:,.0f}/yr</b> to '
+            f'<b>Int$ {target_val:,.0f}/yr</b> — a permanent uplift of '
+            f'<b>Int$ {eroi["uplift"]:,.0f}/yr</b>.{_maint_clause} Appraised over '
+            f'{eroi["horizon_years"]} years at a {eroi["discount_rate"] * 100:.1f}% '
+            f'discount rate, the investment returns a benefit–cost ratio of '
+            f'<b>{eroi["bcr"]:.2f}×</b>, a net present value of '
+            f'<b>Int$ {eroi["npv"]:,.0f}</b>,{_irr_clause}{_pb_clause}.'
+        )
+        story.append(Paragraph(narrative, body))
+        story.append(Spacer(1, 0.35 * cm))
+        _bt_chart = _baseline_target_chart(results)
+        if _bt_chart:
+            _bt_img = Image(io.BytesIO(_bt_chart), width=14 * cm, height=7 * cm)
+            _bt_img.hAlign = 'CENTER'
+            story.append(_bt_img)
+        story.append(PageBreak())
+
+        # ---- Page 3: project inputs + EROI detail ----------------------
+        story.append(Paragraph('Project Inputs & Parameters', h2))
+        _sel_ha = results.get('selected_area_ha', results.get('area_ha', 0)) or 0
+        _b_pct = results.get('baseline_area_pct', 100)
+        _t_pct = results.get('target_area_pct', 100)
+        _b_ha = results.get('area_ha', 0) or 0
+        _t_ha = results.get('area_ha_target', _b_ha) or 0
+        inputs_rows = [
+            ['Baseline date', _fmt_date((summary_stats or {}).get('baseline_date')),
+             'Target date', _fmt_date((summary_stats or {}).get('target_date'))],
+            ['Ramp / project duration',
+             (f'{eroi["duration_years"]:.1f} yr' if eroi.get('duration_years')
+              else 'immediate'),
+             'Appraisal horizon', f'{eroi["horizon_years"]} yr'],
+            ['Selected area', f'{_sel_ha:,.1f} ha',
+             'Discount rate', f'{eroi["discount_rate"] * 100:.1f}%'],
+            ['Baseline project area', f'{_b_pct}%  ({_b_ha:,.1f} ha)',
+             'Target project area', f'{_t_pct}%  ({_t_ha:,.1f} ha)'],
+            ['Baseline annual value', f'Int$ {baseline_val:,.0f}/yr',
+             'Target annual value', f'Int$ {target_val:,.0f}/yr'],
+            ['Annual uplift', f'Int$ {eroi["uplift"]:,.0f}/yr',
+             'Capital cost (initial)', f'Int$ {eroi["cost"]:,.0f}'],
+            ['Annual maintenance (ongoing)',
+             f'Int$ {eroi["maintenance_cost"]:,.0f}/yr', '', ''],
+        ]
+        inputs_table = Table(inputs_rows,
+                             colWidths=[4.5 * cm, 4 * cm, 4.5 * cm, 4 * cm])
+        inputs_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('TEXTCOLOR', (2, 0), (2, -1), EVE_DARK),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(inputs_table)
+        story.append(Spacer(1, 0.35 * cm))
+
+        story.append(Paragraph('Investment Returns (EROI)', h2))
+        eroi_rows = [
+            ['Annual uplift at target', f'Int$ {eroi["uplift"]:,.0f}/yr',
+             'Capital cost', f'Int$ {eroi["cost"]:,.0f}'],
+            ['Annual maintenance', f'Int$ {eroi["maintenance_cost"]:,.0f}/yr',
+             'PV of maintenance', f'Int$ {eroi["pv_maintenance"]:,.0f}'],
+            ['Benefit–cost ratio', f'{eroi["bcr"]:.2f}×',
+             'Net present value', f'Int$ {eroi["npv"]:,.0f}'],
+            ['Internal rate of return', _irr_s,
+             'Payback period', _pb_s],
+            ['Annual yield (net)', f'{eroi["annual_yield"] * 100:.1f}% / yr',
+             f'{eroi["horizon_years"]}-yr value (PV)',
+             f'Int$ {eroi["pv_benefits"]:,.0f}'],
+        ]
+        eroi_table = Table(eroi_rows,
+                           colWidths=[4.5 * cm, 4 * cm, 4.5 * cm, 4 * cm])
+        eroi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('TEXTCOLOR', (2, 0), (2, -1), EVE_DARK),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(eroi_table)
+        story.append(Spacer(1, 0.25 * cm))
+
+        _ramp = eroi.get('duration_years')
+        _ramp_txt = (f'a {_ramp:.1f}-year linear ramp' if _ramp
+                     else 'an immediate uplift')
+        story.append(Paragraph('<b>Assumptions</b>', body))
+        story.append(Paragraph(
+            f'Ecosystem-service values are annual flows, not one-off stocks. The '
+            f'uplift (target minus baseline annual value) is treated as perpetual '
+            f'once the target state is reached, via {_ramp_txt} during which the '
+            f'uplift grows linearly from zero. The capital cost is a single upfront '
+            f'outflow; maintenance is an ongoing annual cost beginning after the '
+            f'project ends. Benefits and maintenance are appraised over a fixed '
+            f'{eroi["horizon_years"]}-year window discounted at '
+            f'{eroi["discount_rate"] * 100:.1f}%; NPV and the benefit&ndash;cost ratio '
+            f'are net of the present value of maintenance. Annual yield = net annual '
+            f'benefit (uplift after maintenance) / capital cost; payback is the '
+            f'undiscounted time for cumulative net benefit to repay the capital '
+            f'cost; IRR is the discount rate at which NPV is zero.',
+            caption))
+        story.append(Spacer(1, 0.3 * cm))
+        _cum_chart = _cumulative_value_chart(eroi)
+        if _cum_chart:
+            _cum_img = Image(io.BytesIO(_cum_chart), width=14 * cm, height=7 * cm)
+            _cum_img.hAlign = 'CENTER'
+            story.append(_cum_img)
+        story.append(PageBreak())
+
     # ------------------------------------------------------------------ header
     story.append(Paragraph("🌱 Ecosystem Valuation Engine", h1))
     story.append(Paragraph(f"<b>Natural Capital Analysis Report</b> — {area_name}", h2))
@@ -304,62 +517,8 @@ def generate_pdf_report(
             f'Per Hectare: <b>Int$ {per_ha:,.0f}/ha/yr</b>', body))
     story.append(Spacer(1, 0.3 * cm))
 
-    # ----------------------------------------------- investment returns (EROI)
-    eroi = (summary_stats or {}).get('eroi')
-    if eroi:
-        story.append(Paragraph('Investment Returns (EROI)', h2))
-        _irr_txt = (f'{eroi["irr"] * 100:.1f}%'
-                    if eroi.get('irr') is not None else '—')
-        _pb = eroi.get('payback_years')
-        _pb_txt = (f'{_pb:.1f} yr' if _pb is not None
-                   else f'> {eroi["horizon_years"]} yr')
-        eroi_rows = [
-            ['Annual uplift at target', f'Int$ {eroi["uplift"]:,.0f}/yr',
-             'Capital cost', f'Int$ {eroi["cost"]:,.0f}'],
-            ['Annual maintenance', f'Int$ {eroi["maintenance_cost"]:,.0f}/yr',
-             'PV of maintenance', f'Int$ {eroi["pv_maintenance"]:,.0f}'],
-            ['Benefit–cost ratio', f'{eroi["bcr"]:.2f}×',
-             'Net present value', f'Int$ {eroi["npv"]:,.0f}'],
-            ['Internal rate of return', _irr_txt,
-             'Payback period', _pb_txt],
-            ['Annual yield (net)', f'{eroi["annual_yield"] * 100:.1f}% / yr',
-             f'{eroi["horizon_years"]}-yr value (PV)',
-             f'Int$ {eroi["pv_benefits"]:,.0f}'],
-        ]
-        eroi_table = Table(eroi_rows, colWidths=[4.5 * cm, 4 * cm, 4.5 * cm, 4 * cm])
-        eroi_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
-            ('TEXTCOLOR', (2, 0), (2, -1), EVE_DARK),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
-            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        story.append(eroi_table)
-        story.append(Spacer(1, 0.15 * cm))
-        _ramp = eroi.get('duration_years')
-        _ramp_txt = (f'a {_ramp:.1f}-year linear ramp' if _ramp
-                     else 'an immediate uplift')
-        story.append(Paragraph(
-            f'Ecosystem-service values are annual flows. The uplift (target '
-            f'minus baseline annual value) is treated as perpetual once '
-            f'reached, following {_ramp_txt}. Annual maintenance is counted '
-            f'each year after the project ends. Net present value and the '
-            f'benefit&ndash;cost ratio use a {eroi["horizon_years"]}-year '
-            f'appraisal window discounted at {eroi["discount_rate"] * 100:.1f}%, '
-            f'and are net of the present value of maintenance. Annual yield = '
-            f'net annual benefit (uplift after maintenance) / capital cost; '
-            f'payback is the undiscounted time for the cumulative net benefit '
-            f'to repay the capital cost.',
-            caption))
-        story.append(Spacer(1, 0.3 * cm))
+    # Investment Returns (EROI) for project runs is rendered in the
+    # investment-grade front matter above, not here.
 
     # ------------------------------------------------ service-by-service breakdown
     if has_cats:
@@ -586,6 +745,98 @@ def _try_chart_image(results: Dict[str, Any]) -> Optional[bytes]:
             height=320,
             width=600,
             margin=dict(t=60, b=40, l=60, r=20),
+            showlegend=False,
+        )
+        return pio.to_image(fig, format='png', width=600, height=320, scale=1.5)
+    except Exception:
+        return None
+
+
+def _baseline_target_chart(results: Dict[str, Any]) -> Optional[bytes]:
+    """Bar chart: baseline vs target annual ecosystem-service value, with the
+    uplift in the title. PNG bytes, or None if unavailable / kaleido missing."""
+    try:
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
+        baseline = results.get('total_value') or 0
+        target = results.get('total_value_target')
+        if target is None:
+            return None
+        uplift = target - baseline
+        fig = go.Figure(go.Bar(
+            x=['Baseline', 'Target'],
+            y=[baseline, target],
+            marker_color=['#81C784', '#2E7D32'],
+            text=[f'Int$ {baseline:,.0f}', f'Int$ {target:,.0f}'],
+            textposition='outside',
+            textfont=dict(size=11),
+        ))
+        fig.update_layout(
+            title=dict(text=f'Annual Ecosystem-Service Value — Baseline vs Target '
+                            f'(uplift Int$ {uplift:,.0f}/yr)',
+                       font=dict(size=12, color='#1B5E20')),
+            yaxis_title='Int$/year',
+            plot_bgcolor='#F9FBF9',
+            paper_bgcolor='white',
+            height=320,
+            width=600,
+            margin=dict(t=60, b=40, l=75, r=20),
+            showlegend=False,
+        )
+        return pio.to_image(fig, format='png', width=600, height=320, scale=1.5)
+    except Exception:
+        return None
+
+
+def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
+    """Line/area chart: cumulative undiscounted net benefit over the appraisal
+    horizon against the capital-cost line — the crossing point is the payback
+    period. PNG bytes, or None if unavailable / kaleido missing."""
+    try:
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
+        yearly_net = eroi.get('yearly_net')
+        if not yearly_net:
+            return None
+        cost = eroi['cost']
+        years = list(range(1, len(yearly_net) + 1))
+        cum = []
+        run = 0.0
+        for v in yearly_net:
+            run += v
+            cum.append(run)
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=years, y=cum, mode='lines',
+            line=dict(color='#2E7D32', width=2.5),
+            fill='tozeroy', fillcolor='rgba(46,125,50,0.12)',
+            name='Cumulative net benefit',
+        ))
+        fig.add_hline(
+            y=cost, line=dict(color='#C62828', width=1.5, dash='dash'),
+            annotation_text=f'Capital cost Int$ {cost:,.0f}',
+            annotation_position='top left',
+        )
+        pb = eroi.get('payback_years')
+        if pb is not None:
+            fig.add_vline(
+                x=pb, line=dict(color='#888888', width=1, dash='dot'),
+                annotation_text=f'Payback {pb:.1f} yr',
+                annotation_position='bottom right',
+            )
+        fig.update_layout(
+            title=dict(text='Cumulative Net Benefit vs Capital Cost',
+                       font=dict(size=12, color='#1B5E20')),
+            xaxis_title='Year',
+            yaxis_title='Cumulative Int$',
+            plot_bgcolor='#F9FBF9',
+            paper_bgcolor='white',
+            height=320,
+            width=600,
+            margin=dict(t=60, b=40, l=75, r=20),
             showlegend=False,
         )
         return pio.to_image(fig, format='png', width=600, height=320, scale=1.5)
