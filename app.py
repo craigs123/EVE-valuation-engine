@@ -1910,7 +1910,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.16 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.17 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2739,33 +2739,17 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
         )
         st.session_state['pending_indicator_project_cost'] = _cost
 
-        # Cost intensity beneath the field — mirrors the project-area captions:
-        # capital cost per hectare per year over the project duration. The
-        # duration is computed inline (the _project_duration_years helper is
-        # defined later in this module, so it is not yet bound at this point).
+        # Capital cost intensity, shown permanently beneath the field and
+        # styled like the project-area captions. Cost per hectare per year
+        # over the 30-year appraisal horizon; recomputes whenever the capital
+        # cost or the target project area changes.
         _cost_proj_area = _sel_area_ha * _target_area_pct / 100.0
-        _cost_dur_yr = None
-        try:
-            _cost_days = (_target_date - _baseline_date).days
-            if _cost_days > 0:
-                _cost_dur_yr = _cost_days / 365.25
-        except Exception:
-            _cost_dur_yr = None
-        if _cost > 0 and _cost_proj_area > 0:
-            if _cost_dur_yr:
-                st.caption(
-                    f"Capital cost: Int$ "
-                    f"{_cost / _cost_proj_area / _cost_dur_yr:,.0f}/ha/yr  ·  "
-                    f"Int$ {_cost / _cost_proj_area:,.0f}/ha over "
-                    f"{_cost_dur_yr:.1f} yr  ·  {_cost_proj_area:,.1f} ha "
-                    f"project area"
-                )
-            else:
-                st.caption(
-                    f"Capital cost: Int$ {_cost / _cost_proj_area:,.0f}/ha  ·  "
-                    f"{_cost_proj_area:,.1f} ha project area  ·  set baseline "
-                    f"and target dates for a per-year figure"
-                )
+        _cost_per_ha_yr = (
+            _cost / _cost_proj_area / 30.0 if _cost_proj_area > 0 else 0.0
+        )
+        st.caption(
+            f"Int$ {_cost_per_ha_yr:,.0f}/ha/yr over {_cost_proj_area:,.1f} ha"
+        )
 
         # Discount rate for the EROI net present value / benefit-cost ratio.
         _discount = st.number_input(
@@ -2792,6 +2776,17 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
                  "EROI each year after the project ends. Leave at 0 to skip.",
         )
         st.session_state['pending_indicator_maintenance_cost'] = _maint
+
+        # Maintenance cost intensity, shown permanently beneath the field and
+        # styled like the project-area captions. Maintenance is already an
+        # annual figure, so dividing by the target project area gives the
+        # per-hectare-per-year cost directly; recomputes when the maintenance
+        # cost or the target project area changes.
+        _maint_proj_area = _sel_area_ha * _target_area_pct / 100.0
+        _maint_per_ha_yr = (
+            _maint / _maint_proj_area if _maint_proj_area > 0 else 0.0
+        )
+        st.caption(f"Int$ {_maint_per_ha_yr:,.0f}/ha/yr")
 
         # Reversal buffer — permanence-risk discount applied to annual benefits.
         _buffer_pct = st.slider(
