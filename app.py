@@ -548,6 +548,11 @@ if 'pending_indicator_discount_rate' not in st.session_state:
 if 'pending_indicator_maintenance_cost' not in st.session_state:
     st.session_state.pending_indicator_maintenance_cost = 0.0
 
+# Reversal buffer (fraction 0-1) — share of annual ecosystem-service benefits
+# withheld for permanence risk in the EROI metrics. Default 20%.
+if 'pending_indicator_reversal_buffer' not in st.session_state:
+    st.session_state.pending_indicator_reversal_buffer = 0.20
+
 # Project-area percentages for project-specific indicators. The selected map
 # area is not assumed to be 100% project area; these scale the baseline and
 # target valuations to the real project size. 100 = whole selected area.
@@ -1905,7 +1910,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.14 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.15 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2760,6 +2765,22 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
         )
         st.session_state['pending_indicator_maintenance_cost'] = _maint
 
+        # Reversal buffer — permanence-risk discount applied to annual benefits.
+        _buffer_pct = st.slider(
+            "Reversal buffer (permanence risk)",
+            min_value=5, max_value=40, step=1,
+            value=int(round(float(
+                st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.20
+            ) * 100)),
+            key='pi_pre_reversal_buffer',
+            format="%d%%",
+            help="Proportion of annual benefits withheld to account for "
+                 "permanence risk (storm damage, sea-level rise, re-clearance, "
+                 "governance failure). Default 20% is consistent with the Verra "
+                 "VCS VM0033 buffer methodology for mangrove blue carbon projects.",
+        )
+        st.session_state['pending_indicator_reversal_buffer'] = _buffer_pct / 100.0
+
         _dur_preview = _project_duration_years(_baseline_date, _target_date)
         if _dur_preview:
             st.caption(
@@ -3259,7 +3280,8 @@ def _project_duration_years(baseline_date, target_date) -> float | None:
 def _compute_eroi(results: dict, cost: float,
                   duration_years: "float | None",
                   discount_rate: float,
-                  maintenance_cost: float = 0.0) -> "dict | None":
+                  maintenance_cost: float = 0.0,
+                  reversal_buffer_pct: float = 0.0) -> "dict | None":
     """Thin wrapper around :func:`utils.analysis_helpers.compute_eroi`.
 
     Returns the flow-based EROI metrics dict for a completed project
@@ -3275,6 +3297,7 @@ def _compute_eroi(results: dict, cost: float,
         duration_years=duration_years,
         discount_rate=discount_rate,
         maintenance_cost=maintenance_cost,
+        reversal_buffer_pct=reversal_buffer_pct,
     )
 
 
@@ -3306,7 +3329,7 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
         st.markdown(
             f"- Annual uplift **U** = target − baseline annual value = "
             f"**${eroi['uplift']:,.0f}/yr**\n"
-            f"- Capital cost **C** = **${eroi['cost']:,.0f}** (single outflow, year 0)\n"
+            f"- Capital cost **C** = **${eroi['cost']:,.0f}** (total, spread evenly over the project)\n"
             f"- Annual maintenance **M** = "
             f"**${M:,.0f}/yr** (counted after the project ends)\n"
             f"- Ramp period **D** = **{ramp_txt}** (gap between baseline and target dates)\n"
@@ -3320,11 +3343,11 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
             "continues every year.\n"
             "- During the ramp the uplift grows **linearly** from 0 to the full "
             "value; each year is valued at its midpoint.\n"
-            "- The capital cost is a **single upfront outflow**. Maintenance is an "
-            "**ongoing annual cost** that begins the year *after* the ramp ends — "
-            "the capital cost is assumed to cover the works during the project.\n"
-            f"- Benefits and maintenance are counted over a fixed **{H}-year** "
-            "window; value beyond it is excluded.\n"
+            "- The capital cost is **spread evenly across the project duration** "
+            "(the ramp). Maintenance is an **ongoing annual cost** that begins the "
+            "year *after* the ramp ends.\n"
+            f"- Benefits, capital and maintenance are counted over a fixed "
+            f"**{H}-year** window; value beyond it is excluded.\n"
             "- All figures are whole-project totals — the metrics are unchanged "
             "on a per-hectare basis."
         )
@@ -3334,24 +3357,28 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
             "- Yearly uplift (year t = 1…H):  "
             "`uplift_t = U × min((t − 0.5) / D, 1)`  — `= U` when D = 0\n"
             "- Yearly maintenance:  `maint_t = M` for years after the ramp, else `0`\n"
+            "- Yearly capital:  `capital_t = C / D` during the project, else `0`\n"
             "- Present value of benefits:  `PV_b = Σ uplift_t / (1 + r)^t`\n"
+            "- Present value of capital:  `PV_c = Σ capital_t / (1 + r)^t`\n"
             "- Present value of maintenance:  `PV_m = Σ maint_t / (1 + r)^t`\n"
-            "- Net present value:  `NPV = PV_b − C − PV_m`\n"
-            "- Benefit–cost ratio:  `BCR = PV_b / (C + PV_m)`\n"
+            "- Net present value:  `NPV = PV_b − PV_c − PV_m`\n"
+            "- Benefit–cost ratio:  `BCR = PV_b / (PV_c + PV_m)`\n"
             "- Annual yield (mature net return):  `yield = (U − M) / C`\n"
             "- Payback period:  smallest t where the cumulative **undiscounted** "
-            "net flow `(uplift_t − maint_t)` ≥ C\n"
+            "net cash flow `(uplift_t − maint_t − capital_t)` ≥ 0\n"
             "- Internal rate of return:  the rate `r*` at which `NPV = 0` "
-            "(cash flows −C, then `uplift_t − maint_t` for each year)"
+            "(cash flows `uplift_t − maint_t − capital_t` for each year)"
         )
 
         st.markdown("#### Results for this project")
         st.markdown(
             f"- Present value of benefits **PV_b** = **${eroi['pv_benefits']:,.0f}** "
             f"(undiscounted {H}-yr total ${eroi['cum_benefit']:,.0f})\n"
+            f"- Present value of capital **PV_c** = "
+            f"**${eroi['pv_capital']:,.0f}**\n"
             f"- Present value of maintenance **PV_m** = "
             f"**${eroi['pv_maintenance']:,.0f}**\n"
-            f"- **NPV** = ${eroi['pv_benefits']:,.0f} − ${eroi['cost']:,.0f} − "
+            f"- **NPV** = ${eroi['pv_benefits']:,.0f} − ${eroi['pv_capital']:,.0f} − "
             f"${eroi['pv_maintenance']:,.0f} = **${eroi['npv']:,.0f}**\n"
             f"- **BCR** = ${eroi['pv_benefits']:,.0f} / ${eroi['pv_costs']:,.0f} = "
             f"**{eroi['bcr']:.2f}×**\n"
@@ -3360,6 +3387,10 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
             f"- **Payback period** = **{pb_txt}**\n"
             f"- **IRR** = **{irr_txt}**"
         )
+
+    if st.button("Close", key="eroi_calc_close_btn", type="primary",
+                 use_container_width=True):
+        st.rerun()
 
 
 def render_eroi_panel(results: dict) -> None:
@@ -3379,45 +3410,43 @@ def render_eroi_panel(results: dict) -> None:
     maintenance_cost = float(
         st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0
     )
+    reversal_buffer = float(
+        st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0
+    )
 
+    # Heading sits above the panel, matching "## Ecosystem Services Breakdown".
+    st.markdown("## Ecological Return on Investment (EROI)")
+    if cost <= 0:
+        st.info("Enter an estimated project cost in the project-indicator "
+                "panel to see EROI.")
+        return
+    eroi = _compute_eroi(results, cost, duration_years, discount_rate,
+                         maintenance_cost, reversal_buffer)
+    if eroi is None:
+        st.info("EROI is not applicable here — the target valuation does not "
+                "exceed the baseline, so there is no value gain to return on "
+                "the investment.")
+        return
+
+    area_ha = results.get('area_ha') or results.get('area_hectares') or 0
+    H = eroi['horizon_years']
+
+    # Metric cards — one unified bordered panel, matching the Ecosystem
+    # Services panel: st.columns of st.metric with a single caption each.
     with st.container(border=True, key="results_eroi_panel"):
-        st.markdown("### Ecological Return on Investment (EROI)")
-        if cost <= 0:
-            st.info("Enter an estimated project cost in the project-indicator "
-                    "panel to see EROI.")
-            return
-        eroi = _compute_eroi(results, cost, duration_years, discount_rate,
-                             maintenance_cost)
-        if eroi is None:
-            st.info("EROI is not applicable here — the target valuation does "
-                    "not exceed the baseline, so there is no value gain to "
-                    "return on the investment.")
-            return
-
-        area_ha = results.get('area_ha') or results.get('area_hectares') or 0
-        H = eroi['horizon_years']
-
-        # Row 1 — the underlying flows: annual uplift, cost, horizon value.
         c1, c2, c3 = st.columns(3)
         with c1:
             st.metric("Annual uplift at target", f"${eroi['uplift']:,.0f}/yr")
             if area_ha:
                 st.caption(f"${eroi['uplift'] / area_ha:,.0f}/ha/yr")
-            if eroi['maintenance_cost'] > 0:
-                st.caption(f"net of maintenance ${eroi['net_annual']:,.0f}/yr")
         with c2:
             st.metric("Project cost", f"${eroi['cost']:,.0f}")
             if area_ha:
                 st.caption(f"${eroi['cost'] / area_ha:,.0f}/ha")
-            if eroi['maintenance_cost'] > 0:
-                st.caption(f"+ ${eroi['maintenance_cost']:,.0f}/yr maintenance "
-                           f"after project end")
         with c3:
-            st.metric(f"{H}-yr value (present value)",
-                      f"${eroi['pv_benefits']:,.0f}")
-            st.caption(f"undiscounted {H}-yr total ${eroi['cum_benefit']:,.0f}")
+            st.metric(f"{H}-yr value (PV)", f"${eroi['pv_benefits']:,.0f}")
+            st.caption(f"undiscounted ${eroi['cum_benefit']:,.0f}")
 
-        # Row 2 — investor-standard return metrics.
         m1, m2, m3, m4, m5 = st.columns(5)
         with m1:
             st.metric("Benefit–cost ratio", f"{eroi['bcr']:.2f}×")
@@ -3427,26 +3456,25 @@ def render_eroi_panel(results: dict) -> None:
             st.metric("IRR", f"{eroi['irr'] * 100:.1f}%"
                       if eroi.get('irr') is not None else "—")
         with m4:
-            if eroi['payback_years'] is not None:
-                st.metric("Payback period", f"{eroi['payback_years']:.1f} yr")
-            else:
-                st.metric("Payback period", "—")
-                st.caption(f"beyond {H} yr")
+            st.metric("Payback period",
+                      f"{eroi['payback_years']:.1f} yr"
+                      if eroi['payback_years'] is not None else "—")
         with m5:
-            st.metric("Annual yield",
-                      f"{eroi['annual_yield'] * 100:.1f}% / yr")
+            st.metric("Annual yield", f"{eroi['annual_yield'] * 100:.1f}% / yr")
 
-        _dur_txt = (f"{duration_years:.1f}-yr linear ramp" if duration_years
-                    else "immediate uplift (no baseline/target dates set)")
-        _maint_txt = (f" · ${eroi['maintenance_cost']:,.0f}/yr maintenance"
-                      if eroi['maintenance_cost'] > 0 else "")
-        st.caption(
-            f"Perpetual ecosystem-services uplift · {_dur_txt} · "
-            f"{H}-yr appraisal window · {discount_rate * 100:.1f}% discount rate"
-            f"{_maint_txt}."
-        )
-        if st.button("Calculation details", key="eroi_calc_details_btn"):
-            _eroi_calc_details_dialog(eroi)
+    _dur_txt = (f"{duration_years:.1f}-yr linear ramp" if duration_years
+                else "immediate uplift (no baseline/target dates set)")
+    _maint_txt = (f" · ${eroi['maintenance_cost']:,.0f}/yr maintenance"
+                  if eroi['maintenance_cost'] > 0 else "")
+    _buf_txt = (f" · {eroi['reversal_buffer_pct'] * 100:.0f}% reversal buffer"
+                if eroi['reversal_buffer_pct'] > 0 else "")
+    st.caption(
+        f"Perpetual ecosystem-services uplift · {_dur_txt} · "
+        f"{H}-yr appraisal window · {discount_rate * 100:.1f}% discount rate"
+        f"{_maint_txt}{_buf_txt}."
+    )
+    if st.button("Calculation details", key="eroi_calc_details_btn"):
+        _eroi_calc_details_dialog(eroi)
 
 
 def _build_indicator_state_blob() -> dict | None:
@@ -7455,6 +7483,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                     st.session_state.get('pending_indicator_target_date')),
                                 discount_rate=float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0,
                                 maintenance_cost=float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0),
+                                reversal_buffer_pct=float(st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0),
                             )
                         except Exception:
                             _eroi_pdf = None

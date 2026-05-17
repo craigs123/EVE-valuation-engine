@@ -196,6 +196,8 @@ def generate_pdf_report(
         _t_pct = results.get('target_area_pct', 100)
         _b_ha = results.get('area_ha', 0) or 0
         _t_ha = results.get('area_ha_target', _b_ha) or 0
+        _eei = (summary_stats or {}).get('average_eei')
+        _eei_txt = f'{_eei:.3f}' if _eei is not None else '—'
         inputs_rows = [
             ['Baseline date', _fmt_date((summary_stats or {}).get('baseline_date')),
              'Target date', _fmt_date((summary_stats or {}).get('target_date'))],
@@ -209,10 +211,11 @@ def generate_pdf_report(
              'Target project area', f'{_t_pct}%  ({_t_ha:,.1f} ha)'],
             ['Baseline annual value', f'Int$ {baseline_val:,.0f}/yr',
              'Target annual value', f'Int$ {target_val:,.0f}/yr'],
-            ['Annual uplift', f'Int$ {eroi["uplift"]:,.0f}/yr',
-             'Capital cost (initial)', f'Int$ {eroi["cost"]:,.0f}'],
+            ['Annual uplift (gross)', f'Int$ {eroi["uplift_gross"]:,.0f}/yr',
+             'Capital cost (total)', f'Int$ {eroi["cost"]:,.0f}'],
             ['Annual maintenance (ongoing)',
-             f'Int$ {eroi["maintenance_cost"]:,.0f}/yr', '', ''],
+             f'Int$ {eroi["maintenance_cost"]:,.0f}/yr',
+             'Baseline EEI', _eei_txt],
         ]
         inputs_table = Table(inputs_rows,
                              colWidths=[4.5 * cm, 4 * cm, 4.5 * cm, 4 * cm])
@@ -236,8 +239,12 @@ def generate_pdf_report(
 
         story.append(Paragraph('Investment Returns (EROI)', h2))
         eroi_rows = [
-            ['Annual uplift at target', f'Int$ {eroi["uplift"]:,.0f}/yr',
+            ['Annual uplift (gross)', f'Int$ {eroi["uplift_gross"]:,.0f}/yr',
              'Capital cost', f'Int$ {eroi["cost"]:,.0f}'],
+            ['Reversal buffer applied',
+             f'{eroi["reversal_buffer_pct"] * 100:.0f}%',
+             'Buffer-adjusted annual uplift',
+             f'Int$ {eroi["uplift"]:,.0f}/yr'],
             ['Annual maintenance', f'Int$ {eroi["maintenance_cost"]:,.0f}/yr',
              'PV of maintenance', f'Int$ {eroi["pv_maintenance"]:,.0f}'],
             ['Benefit–cost ratio', f'{eroi["bcr"]:.2f}×',
@@ -268,6 +275,55 @@ def generate_pdf_report(
         story.append(eroi_table)
         story.append(Spacer(1, 0.25 * cm))
 
+        # ---- Counterfactual --------------------------------------------
+        # TODO: the closing note is framed for mangroves; EVE should supply the
+        # ecosystem type (and a degradation rate) so a non-static, declining
+        # counterfactual can be modelled where the ecosystem warrants it.
+        story.append(Paragraph('Counterfactual', h2))
+        _cf_rows = [
+            ['Counterfactual annual value (no intervention)',
+             f'Int$ {baseline_val:,.0f}/yr'],
+            ['With-project annual value at target',
+             f'Int$ {target_val:,.0f}/yr'],
+            ['Incremental annual uplift (pre-buffer)',
+             f'Int$ {eroi["uplift_gross"]:,.0f}/yr'],
+            [f'PV of counterfactual ({eroi["horizon_years"]}-yr appraisal)',
+             f'Int$ {eroi["pv_counterfactual"]:,.0f}'],
+            [f'PV of with-project benefits ({eroi["horizon_years"]}-yr appraisal)',
+             f'Int$ {eroi["pv_with_project"]:,.0f}'],
+            ['Net incremental PV',
+             f'Int$ {eroi["pv_benefits"]:,.0f}'],
+        ]
+        _cf_table = Table(_cf_rows, colWidths=[11.5 * cm, 5.5 * cm])
+        _cf_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(_cf_table)
+        story.append(Spacer(1, 0.15 * cm))
+        _cf_eei_clause = f' (EEI = {_eei:.3f})' if _eei is not None else ''
+        story.append(Paragraph(
+            f'The counterfactual assumes no restoration intervention. The '
+            f'intervention area retains its current ecological condition'
+            f'{_cf_eei_clause} throughout the {eroi["horizon_years"]}-year '
+            f'appraisal period. All benefit calculations represent incremental '
+            f'value above this no-intervention baseline. This is a conservative '
+            f'assumption: unprotected mangroves in this region face ongoing '
+            f'anthropogenic pressure and the true counterfactual trajectory may '
+            f'be declining rather than static.',
+            caption))
+        story.append(Spacer(1, 0.3 * cm))
+
         _ramp = eroi.get('duration_years')
         _ramp_txt = (f'a {_ramp:.1f}-year linear ramp' if _ramp
                      else 'an immediate uplift')
@@ -276,15 +332,21 @@ def generate_pdf_report(
             f'Ecosystem-service values are annual flows, not one-off stocks. The '
             f'uplift (target minus baseline annual value) is treated as perpetual '
             f'once the target state is reached, via {_ramp_txt} during which the '
-            f'uplift grows linearly from zero. The capital cost is a single upfront '
-            f'outflow; maintenance is an ongoing annual cost beginning after the '
-            f'project ends. Benefits and maintenance are appraised over a fixed '
-            f'{eroi["horizon_years"]}-year window discounted at '
-            f'{eroi["discount_rate"] * 100:.1f}%; NPV and the benefit&ndash;cost ratio '
-            f'are net of the present value of maintenance. Annual yield = net annual '
-            f'benefit (uplift after maintenance) / capital cost; payback is the '
-            f'undiscounted time for cumulative net benefit to repay the capital '
-            f'cost; IRR is the discount rate at which NPV is zero.',
+            f'uplift grows linearly from zero. The capital cost is spread evenly '
+            f'across the project duration; maintenance is an ongoing annual cost '
+            f'beginning after the project ends. Benefits, capital and maintenance '
+            f'are appraised over a fixed {eroi["horizon_years"]}-year window '
+            f'discounted at {eroi["discount_rate"] * 100:.1f}%; NPV and the '
+            f'benefit&ndash;cost ratio are net of the present value of capital and '
+            f'maintenance. Annual yield = net annual benefit (uplift after '
+            f'maintenance) / capital cost; payback is the undiscounted time for '
+            f'cumulative net cash flow to reach break-even; IRR is the discount '
+            f'rate at which NPV is zero. '
+            f'A {eroi["reversal_buffer_pct"] * 100:.0f}% reversal buffer is '
+            f'applied to annual ecosystem service benefits, consistent with '
+            f'permanence risk provisions in voluntary carbon market standards '
+            f'(Verra VCS VM0033). Pre-buffer figures are shown in the '
+            f'sensitivity analysis.',
             caption))
         story.append(Spacer(1, 0.3 * cm))
         _cum_chart = _cumulative_value_chart(eroi)
@@ -292,6 +354,105 @@ def generate_pdf_report(
             _cum_img = Image(io.BytesIO(_cum_chart), width=14 * cm, height=7 * cm)
             _cum_img.hAlign = 'CENTER'
             story.append(_cum_img)
+        story.append(PageBreak())
+
+        # ---- Sensitivity analysis --------------------------------------
+        from utils.analysis_helpers import compute_eroi as _ch_eroi_s
+        _base_kwargs = dict(
+            baseline_value=baseline_val,
+            target_value=target_val,
+            cost=eroi['cost'],
+            duration_years=eroi['duration_years'],
+            discount_rate=eroi['discount_rate'],
+            maintenance_cost=eroi['maintenance_cost'],
+            reversal_buffer_pct=eroi['reversal_buffer_pct'],
+            horizon=eroi['horizon_years'],
+        )
+        _ug = eroi['uplift_gross']
+        _base_ramp = eroi.get('duration_years') or 0.0
+
+        def _sens_variant(**override):
+            _r = _ch_eroi_s(**{**_base_kwargs, **override})
+            return (_r['bcr'], _r['npv']) if _r else (0.0, 0.0)
+
+        # (label, pessimistic 'low' override, optimistic 'high' override)
+        _sens_specs = [
+            ('Capital cost  (+25% / -15%)',
+             {'cost': eroi['cost'] * 1.25}, {'cost': eroi['cost'] * 0.85}),
+            ('Annual maintenance  (+50% / -25%)',
+             {'maintenance_cost': eroi['maintenance_cost'] * 1.50},
+             {'maintenance_cost': eroi['maintenance_cost'] * 0.75}),
+            ('Ecosystem service uplift  (-20% / +20%)',
+             {'target_value': baseline_val + _ug * 0.80},
+             {'target_value': baseline_val + _ug * 1.20}),
+            ('Ramp duration  (+2 / -1 yr)',
+             {'duration_years': _base_ramp + 2},
+             {'duration_years': max(0.0, _base_ramp - 1)}),
+            ('Discount rate  (7.0% / 2.0%)',
+             {'discount_rate': 0.07}, {'discount_rate': 0.02}),
+            ('Reversal buffer  (30% / 10%)',
+             {'reversal_buffer_pct': 0.30}, {'reversal_buffer_pct': 0.10}),
+        ]
+        _central_bcr, _central_npv = eroi['bcr'], eroi['npv']
+        _sens_rows = []
+        for _lbl, _lo, _hi in _sens_specs:
+            _lb, _ln = _sens_variant(**_lo)
+            _hb, _hn = _sens_variant(**_hi)
+            _sens_rows.append((_lbl, _lb, _ln, _hb, _hn))
+
+        story.append(Paragraph('Sensitivity Analysis', h2))
+        _sens_tbl = [['Parameter', 'Low BCR', 'Low NPV', 'Central BCR',
+                      'Central NPV', 'High BCR', 'High NPV']]
+        for _lbl, _lb, _ln, _hb, _hn in _sens_rows:
+            _sens_tbl.append([
+                _lbl,
+                f'{_lb:.2f}×', f'{_ln:,.0f}',
+                f'{_central_bcr:.2f}×', f'{_central_npv:,.0f}',
+                f'{_hb:.2f}×', f'{_hn:,.0f}',
+            ])
+        _sens_table = Table(_sens_tbl, colWidths=[4.2 * cm, 1.8 * cm, 2.4 * cm,
+                                                  1.85 * cm, 2.4 * cm, 1.8 * cm,
+                                                  2.4 * cm])
+        _sens_table.setStyle(_standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT))
+        story.append(_sens_table)
+        story.append(Paragraph('All NPV figures in Int$. The Central column '
+                               'repeats the base-case result for reference.',
+                               caption))
+        story.append(Spacer(1, 0.3 * cm))
+
+        _torn = _tornado_chart(_sens_rows, _central_npv)
+        if _torn:
+            _torn_img = Image(io.BytesIO(_torn), width=15 * cm, height=7.5 * cm)
+            _torn_img.hAlign = 'CENTER'
+            story.append(_torn_img)
+            story.append(Spacer(1, 0.25 * cm))
+
+        # Interpretation — top driver, worst-case BCR floor, central IRR.
+        _top = max(_sens_rows, key=lambda r: abs(r[4] - r[2]))
+        _top_name = _top[0].split('  (')[0]
+        _floor_bcr = min([_central_bcr] + [r[1] for r in _sens_rows]
+                         + [r[3] for r in _sens_rows])
+        _irr_disp = (f'{eroi["irr"]:.1%}' if eroi.get('irr') is not None
+                     else 'not defined')
+        # TODO: the Monte Carlo threshold is a policy parameter — EVE could
+        # supply a deal-size cut-off above which stochastic analysis is required.
+        story.append(Paragraph(
+            f'The sensitivity analysis shows that the investment case is most '
+            f'sensitive to <b>{_top_name}</b>. Even under the most pessimistic '
+            f'single-parameter assumption tested, the benefit&ndash;cost ratio '
+            f'remains <b>{_floor_bcr:.2f}×</b>. The central-case IRR of '
+            f'<b>{_irr_disp}</b> should be treated as indicative; a full '
+            f'stochastic Monte Carlo analysis is recommended before committing '
+            f'capital at this scale.',
+            body))
+        story.append(Spacer(1, 0.15 * cm))
+        story.append(Paragraph(
+            'Sensitivity rows vary one parameter at a time (ceteris paribus). '
+            'Interactions between parameters are not modelled. Pre-buffer uplift '
+            'is used as the gross uplift baseline for the ecosystem service '
+            'uplift sensitivity row.',
+            caption))
+
         story.append(PageBreak())
 
     # ------------------------------------------------------------------ header
@@ -577,13 +738,25 @@ def generate_pdf_report(
             story.append(detail_table)
             story.append(Spacer(1, 0.4 * cm))
 
-    # --------------------------------------------------- embedded chart (if kaleido)
-    chart_img = _try_chart_image(results)
-    if chart_img:
-        story.append(Paragraph('Service Value Breakdown', h2))
-        img_obj = Image(io.BytesIO(chart_img), width=14 * cm, height=7 * cm)
-        story.append(img_obj)
+    # ------------------------------------------------ embedded charts (if kaleido)
+    # Pie chart of service-category share — included in every report.
+    pie_img = _service_pie_chart(results)
+    if pie_img:
+        story.append(Paragraph('Service Category Share', h2))
+        _pie_obj = Image(io.BytesIO(pie_img), width=11 * cm, height=7.3 * cm)
+        _pie_obj.hAlign = 'CENTER'
+        story.append(_pie_obj)
         story.append(Spacer(1, 0.3 * cm))
+
+    # Service-category value bar chart — Investment Report (project runs) only.
+    if eroi:
+        chart_img = _try_chart_image(results)
+        if chart_img:
+            story.append(Paragraph('Service Value Breakdown', h2))
+            img_obj = Image(io.BytesIO(chart_img), width=14 * cm, height=7 * cm)
+            img_obj.hAlign = 'CENTER'
+            story.append(img_obj)
+            story.append(Spacer(1, 0.3 * cm))
 
     # ------------------------------------------------------------ methodology note
     story.append(Paragraph('Methodology', h2))
@@ -790,8 +963,9 @@ def _baseline_target_chart(results: Dict[str, Any]) -> Optional[bytes]:
 
 
 def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
-    """Line/area chart: cumulative undiscounted net benefit over the appraisal
-    horizon against the capital-cost line — the crossing point is the payback
+    """Line/area chart: cumulative net cash flow (benefit uplift, less
+    maintenance, less the spread capital cost) over the appraisal horizon.
+    The point where it crosses the zero break-even line is the payback
     period. PNG bytes, or None if unavailable / kaleido missing."""
     try:
         import plotly.graph_objects as go
@@ -800,7 +974,6 @@ def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
         yearly_net = eroi.get('yearly_net')
         if not yearly_net:
             return None
-        cost = eroi['cost']
         years = list(range(1, len(yearly_net) + 1))
         cum = []
         run = 0.0
@@ -813,11 +986,11 @@ def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
             x=years, y=cum, mode='lines',
             line=dict(color='#2E7D32', width=2.5),
             fill='tozeroy', fillcolor='rgba(46,125,50,0.12)',
-            name='Cumulative net benefit',
+            name='Cumulative net cash flow',
         ))
         fig.add_hline(
-            y=cost, line=dict(color='#C62828', width=1.5, dash='dash'),
-            annotation_text=f'Capital cost Int$ {cost:,.0f}',
+            y=0, line=dict(color='#C62828', width=1.2, dash='dash'),
+            annotation_text='Break-even',
             annotation_position='top left',
         )
         pb = eroi.get('payback_years')
@@ -828,7 +1001,7 @@ def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
                 annotation_position='bottom right',
             )
         fig.update_layout(
-            title=dict(text='Cumulative Net Benefit vs Capital Cost',
+            title=dict(text='Cumulative Net Cash Flow (after capital & maintenance)',
                        font=dict(size=12, color='#1B5E20')),
             xaxis_title='Year',
             yaxis_title='Cumulative Int$',
@@ -840,5 +1013,88 @@ def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
             showlegend=False,
         )
         return pio.to_image(fig, format='png', width=600, height=320, scale=1.5)
+    except Exception:
+        return None
+
+
+def _service_pie_chart(results: Dict[str, Any]) -> Optional[bytes]:
+    """Donut chart of each ecosystem-service category's share of total annual
+    value. PNG bytes, or None if unavailable / kaleido missing."""
+    try:
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
+        esvd = results.get('esvd_results', {})
+        categories = ['provisioning', 'regulating', 'cultural', 'supporting']
+        cat_data = _resolve_categories_data(esvd, results, categories)
+        if not cat_data:
+            return None
+        values = [cat_data.get(c, {}).get('total', 0) for c in categories]
+        if not any(values):
+            return None
+        fig = go.Figure(data=[go.Pie(
+            labels=[c.title() for c in categories],
+            values=values,
+            hole=0.4,
+            textinfo='label+percent',
+            textposition='outside',
+            marker=dict(colors=['#2E7D32', '#558B2F', '#1976D2', '#7B1FA2']),
+            sort=False,
+        )])
+        fig.update_layout(
+            title=dict(text='Share of Annual Value by Service Category',
+                       font=dict(size=12, color='#1B5E20')),
+            paper_bgcolor='white',
+            showlegend=False,
+            height=380,
+            width=560,
+            margin=dict(t=55, b=55, l=70, r=70),
+        )
+        return pio.to_image(fig, format='png', width=560, height=380, scale=1.5)
+    except Exception:
+        return None
+
+
+def _tornado_chart(sens_rows, central_npv: float) -> Optional[bytes]:
+    """Horizontal tornado chart of NPV sensitivity.
+
+    ``sens_rows`` is a list of (label, low_bcr, low_npv, high_bcr, high_npv).
+    Each bar spans the parameter's low→high NPV; bars are sorted by range so
+    the widest sits at the top. The central NPV is a dashed vertical line.
+    Bars are green where the high variant lifts NPV, amber where it lowers it.
+    PNG bytes, or None if unavailable / kaleido missing."""
+    try:
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
+        if not sens_rows:
+            return None
+        rows = sorted(sens_rows, key=lambda r: abs(r[4] - r[2]))  # widest last
+        labels = [r[0] for r in rows]
+        lows = [min(r[2], r[4]) for r in rows]
+        highs = [max(r[2], r[4]) for r in rows]
+        widths = [h - l for l, h in zip(lows, highs)]
+        colours = ['#2E7D32' if (r[4] - r[2]) >= 0 else '#F39C12' for r in rows]
+        fig = go.Figure(go.Bar(
+            y=labels, x=widths, base=lows, orientation='h',
+            marker_color=colours,
+        ))
+        fig.add_vline(
+            x=central_npv, line=dict(color='#555555', width=1.5, dash='dash'),
+            annotation_text=f'Central NPV Int$ {central_npv:,.0f}',
+            annotation_position='top',
+        )
+        fig.update_layout(
+            title=dict(text='NPV Sensitivity (tornado)',
+                       font=dict(size=12, color='#1B5E20')),
+            xaxis_title='Net present value (Int$)',
+            plot_bgcolor='#F9FBF9',
+            paper_bgcolor='white',
+            height=330,
+            width=660,
+            margin=dict(t=55, b=45, l=200, r=30),
+            showlegend=False,
+        )
+        return pio.to_image(fig, format='png', width=660, height=330, scale=1.5)
     except Exception:
         return None

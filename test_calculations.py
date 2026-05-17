@@ -192,14 +192,50 @@ def run_eroi_tests():
     # Discounted, ramped case — verify the internal identities hold.
     d = compute_eroi(100_000, 160_000, 300_000, duration_years=5,
                      discount_rate=0.035)
-    check("EROI identity: pv_costs = cost + pv_maintenance",
-          abs(d['pv_costs'] - (d['cost'] + d['pv_maintenance'])) < 1e-6)
+    check("EROI identity: pv_costs = pv_capital + pv_maintenance",
+          abs(d['pv_costs'] - (d['pv_capital'] + d['pv_maintenance'])) < 1e-6)
     check("EROI identity: NPV = pv_benefits - pv_costs",
           abs(d['npv'] - (d['pv_benefits'] - d['pv_costs'])) < 1e-6)
     check("EROI identity: BCR = pv_benefits / pv_costs",
           abs(d['bcr'] - d['pv_benefits'] / d['pv_costs']) < 1e-9)
     check("EROI: discount+ramp cut PV below undiscounted immediate PV",
           d['pv_benefits'] < e['pv_benefits'])
+
+    # Capital cost spread over the project duration: undiscounted, the spread
+    # installments sum exactly to the capital cost; discounted, PV is lower.
+    check("EROI capital: undiscounted PV of capital equals the cost",
+          abs(e['pv_capital'] - 300_000) < 1e-6)
+    z = compute_eroi(100_000, 160_000, 300_000, duration_years=5,
+                     discount_rate=0.0)
+    check("EROI capital: ramp-spread installments (undiscounted) sum to cost",
+          abs(z['pv_capital'] - 300_000) < 1e-6)
+    check("EROI capital: discounted PV of capital is below the nominal cost",
+          0 < d['pv_capital'] < d['cost'])
+
+    # Reversal buffer scales the uplift only; capital/maintenance untouched.
+    nb = compute_eroi(100_000, 160_000, 300_000, duration_years=5,
+                      discount_rate=0.035)                        # buffer 0
+    bf = compute_eroi(100_000, 160_000, 300_000, duration_years=5,
+                      discount_rate=0.035, reversal_buffer_pct=0.20)
+    check("EROI buffer: gross uplift unchanged by the buffer",
+          abs(bf['uplift_gross'] - nb['uplift_gross']) < 1e-9)
+    check("EROI buffer: buffered uplift = gross x (1 - buffer)",
+          abs(bf['uplift'] - bf['uplift_gross'] * 0.80) < 1e-6)
+    check("EROI buffer: pv_benefits scales by (1 - buffer)",
+          abs(bf['pv_benefits'] - nb['pv_benefits'] * 0.80) < 1e-6)
+    check("EROI buffer: capital PV unaffected by the buffer",
+          abs(bf['pv_capital'] - nb['pv_capital']) < 1e-6)
+    check("EROI buffer: lowers BCR and NPV",
+          bf['bcr'] < nb['bcr'] and bf['npv'] < nb['npv'])
+    check("EROI buffer: 0% buffer reproduces the un-buffered result",
+          abs(compute_eroi(100_000, 160_000, 300_000, duration_years=5,
+                           discount_rate=0.035,
+                           reversal_buffer_pct=0.0)['npv'] - nb['npv']) < 1e-9)
+
+    # Counterfactual identity: with-project minus counterfactual == benefits.
+    check("EROI counterfactual: pv_with_project - pv_counterfactual = pv_benefits",
+          abs((bf['pv_with_project'] - bf['pv_counterfactual'])
+              - bf['pv_benefits']) < 1e-6)
 
     # Maintenance: applied after the 5-yr ramp, reduces the return metrics.
     m = compute_eroi(100_000, 160_000, 300_000, duration_years=5,

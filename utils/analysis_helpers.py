@@ -237,6 +237,7 @@ def _irr(cashflows: list) -> "float | None":
 
 def compute_eroi(baseline_value, target_value, cost, duration_years,
                  discount_rate, maintenance_cost: float = 0.0,
+                 reversal_buffer_pct: float = 0.0,
                  horizon: int = EROI_APPRAISAL_HORIZON_YEARS):
     """Flow-based Ecological Return on Investment metrics.
 
@@ -248,19 +249,25 @@ def compute_eroi(baseline_value, target_value, cost, duration_years,
     which the uplift grows from 0 to U; after the ramp it continues at U for
     the remainder of the appraisal ``horizon``.
 
-    ``maintenance_cost`` is an optional ongoing annual cost that begins the
-    year *after* the ramp completes (i.e. after the project has ended) — the
-    upfront ``cost`` is assumed to cover the works during the project itself.
+    The capital ``cost`` is spread evenly across the project duration (the
+    ramp). ``maintenance_cost`` is an optional ongoing annual cost that begins
+    the year *after* the ramp completes (i.e. after the project has ended).
+
+    ``reversal_buffer_pct`` withholds a fraction of the annual uplift for
+    permanence risk: every benefit metric uses the buffered uplift, while the
+    capital and maintenance costs are left un-buffered.
 
     Args:
-        baseline_value:   baseline annual ecosystem-service value (Int$/yr)
-        target_value:     target annual ecosystem-service value (Int$/yr)
-        cost:             one-time capital cost (Int$), incurred at t0
-        duration_years:   ramp years; None or 0 -> immediate full uplift
-        discount_rate:    annual discount rate as a fraction (e.g. 0.035)
-        maintenance_cost: ongoing annual maintenance cost (Int$/yr), applied
-                          after the ramp ends; 0 to disable
-        horizon:          appraisal horizon in years
+        baseline_value:    baseline annual ecosystem-service value (Int$/yr)
+        target_value:      target annual ecosystem-service value (Int$/yr)
+        cost:              total capital cost (Int$), spread over the ramp
+        duration_years:    ramp years; None or 0 -> immediate full uplift
+        discount_rate:     annual discount rate as a fraction (e.g. 0.035)
+        maintenance_cost:  ongoing annual maintenance cost (Int$/yr), applied
+                           after the ramp ends; 0 to disable
+        reversal_buffer_pct: fraction of annual uplift withheld for permanence
+                           risk (e.g. 0.20); 0 to disable
+        horizon:           appraisal horizon in years
 
     Returns:
         dict of metrics, or None when EROI does not apply (missing baseline or
@@ -270,54 +277,77 @@ def compute_eroi(baseline_value, target_value, cost, duration_years,
         return None
     if not cost or cost <= 0:
         return None
-    uplift = target_value - baseline_value
-    if uplift <= 0:
+    uplift_gross = target_value - baseline_value
+    if uplift_gross <= 0:
         return None
+    # Reversal buffer: a fraction of the annual benefit withheld for permanence
+    # risk. It scales the uplift only — capital and maintenance are not buffered.
+    buffer = max(0.0, min(reversal_buffer_pct or 0.0, 1.0))
+    uplift = uplift_gross * (1.0 - buffer)
 
     rate = discount_rate or 0.0
     horizon = int(horizon)
     ramp = duration_years if (duration_years and duration_years > 0) else 0.0
     maint = maintenance_cost or 0.0
 
-    # Per-year uplift (midpoint of the year on the linear ramp, capped at the
-    # full uplift) and maintenance (begins the year after the ramp ends; with
-    # no ramp it applies from year 1).
+    # Per-year streams over the appraisal horizon:
+    #  - uplift: midpoint of the year on the linear ramp, capped at full U;
+    #  - maintenance: begins the year after the ramp ends;
+    #  - capital: the cost spread evenly across the project duration (the
+    #    ramp). With no ramp/dates it falls in year 1. Installments sum to cost.
     yearly_uplift = []
     yearly_maint = []
+    yearly_capital = []
     for t in range(1, horizon + 1):
         frac = 1.0 if ramp <= 0 else min((t - 0.5) / ramp, 1.0)
         yearly_uplift.append(uplift * frac)
         yearly_maint.append(maint if t > ramp else 0.0)
+        if ramp > 0:
+            # Slice of year t that lies within the [0, ramp] project window.
+            yearly_capital.append(cost * (min(t, ramp) - min(t - 1, ramp)) / ramp)
+        else:
+            yearly_capital.append(cost if t == 1 else 0.0)
 
     def _pv(stream):
         return sum(v / (1.0 + rate) ** (i + 1) for i, v in enumerate(stream))
 
     pv_benefits = _pv(yearly_uplift)
     pv_maintenance = _pv(yearly_maint)
-    pv_costs = cost + pv_maintenance
+    pv_capital = _pv(yearly_capital)
+    pv_costs = pv_capital + pv_maintenance
+    # Counterfactual: the baseline annual value continues flat for the whole
+    # horizon (no intervention). pv_with_project adds the buffered uplift PV;
+    # pv_with_project - pv_counterfactual == pv_benefits.
+    pv_counterfactual = _pv([baseline_value] * horizon)
+    pv_with_project = pv_counterfactual + pv_benefits
     cum_benefit = sum(yearly_uplift)
     npv = pv_benefits - pv_costs
     bcr = pv_benefits / pv_costs                 # benefits / all costs
     net_annual = uplift - maint                  # mature net annual benefit
-    annual_yield = net_annual / cost             # fraction per year
+    annual_yield = net_annual / cost             # fraction per year on capital
 
-    # Per-year net cash flow (benefit uplift minus maintenance).
-    yearly_net = [yearly_uplift[i] - yearly_maint[i] for i in range(horizon)]
+    # Per-year net cash flow: benefit uplift, less maintenance, less the
+    # capital installment for that year.
+    yearly_net = [yearly_uplift[i] - yearly_maint[i] - yearly_capital[i]
+                  for i in range(horizon)]
 
-    # Undiscounted, ramp-aware payback on the NET stream (uplift - maintenance).
+    # Undiscounted payback: first year the cumulative net cash flow turns
+    # non-negative (the project has repaid its spread capital outlay).
     payback_years = None
     running = 0.0
     for i, net_v in enumerate(yearly_net):
         prev = running
         running += net_v
-        if running >= cost:
-            payback_years = (i + (cost - prev) / net_v) if net_v > 0 else float(i + 1)
+        if running >= 0:
+            payback_years = (i + (-prev) / net_v) if net_v > 0 else float(i + 1)
             break
 
-    irr = _irr([-cost] + yearly_net)
+    irr = _irr([0.0] + yearly_net)
 
     return {
         'uplift': uplift,
+        'uplift_gross': uplift_gross,
+        'reversal_buffer_pct': buffer,
         'maintenance_cost': maint,
         'net_annual': net_annual,
         'cost': cost,
@@ -326,7 +356,10 @@ def compute_eroi(baseline_value, target_value, cost, duration_years,
         'horizon_years': horizon,
         'pv_benefits': pv_benefits,
         'pv_maintenance': pv_maintenance,
+        'pv_capital': pv_capital,
         'pv_costs': pv_costs,
+        'pv_counterfactual': pv_counterfactual,
+        'pv_with_project': pv_with_project,
         'cum_benefit': cum_benefit,
         'npv': npv,
         'bcr': bcr,
