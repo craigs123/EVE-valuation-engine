@@ -1910,7 +1910,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.15 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.16 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2738,6 +2738,34 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
                  "skip EROI.",
         )
         st.session_state['pending_indicator_project_cost'] = _cost
+
+        # Cost intensity beneath the field — mirrors the project-area captions:
+        # capital cost per hectare per year over the project duration. The
+        # duration is computed inline (the _project_duration_years helper is
+        # defined later in this module, so it is not yet bound at this point).
+        _cost_proj_area = _sel_area_ha * _target_area_pct / 100.0
+        _cost_dur_yr = None
+        try:
+            _cost_days = (_target_date - _baseline_date).days
+            if _cost_days > 0:
+                _cost_dur_yr = _cost_days / 365.25
+        except Exception:
+            _cost_dur_yr = None
+        if _cost > 0 and _cost_proj_area > 0:
+            if _cost_dur_yr:
+                st.caption(
+                    f"Capital cost: Int$ "
+                    f"{_cost / _cost_proj_area / _cost_dur_yr:,.0f}/ha/yr  ·  "
+                    f"Int$ {_cost / _cost_proj_area:,.0f}/ha over "
+                    f"{_cost_dur_yr:.1f} yr  ·  {_cost_proj_area:,.1f} ha "
+                    f"project area"
+                )
+            else:
+                st.caption(
+                    f"Capital cost: Int$ {_cost / _cost_proj_area:,.0f}/ha  ·  "
+                    f"{_cost_proj_area:,.1f} ha project area  ·  set baseline "
+                    f"and target dates for a per-year figure"
+                )
 
         # Discount rate for the EROI net present value / benefit-cost ratio.
         _discount = st.number_input(
@@ -4881,11 +4909,12 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         # Only process if coordinates actually changed (prevent hanging)
         current_coords = st.session_state.get('area_coordinates', [])
         
-        # Simplified comparison to prevent hanging
-        coords_hash = hash(str(coordinates))
-        current_hash = st.session_state.get('coords_hash', None)
+        # Compare the drawn coordinates directly against the area already in
+        # session state. This is reliable, unlike the old hash(str(...)) check
+        # which could mismatch on a plain rerun and silently wipe a completed
+        # analysis (bouncing the user back to the pre-Analyze panel).
         
-        if coords_hash != current_hash:
+        if coordinates != current_coords:
             # Save the new selection with batch state updates
             st.session_state.update({
                 'selected_area': {
@@ -4893,7 +4922,6 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                     'coordinates': coordinates
                 },
                 'area_coordinates': coordinates,
-                'coords_hash': coords_hash,  # Store hash to prevent reprocessing
                 'analysis_results': None,
                 'calculation_ready': False,  # Hide results until recalculated
                 # Clear caches to force recalculation
@@ -4932,8 +4960,8 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error calculating area: {e}")
-                    # Reset to prevent hanging
-                    st.session_state.coords_hash = None
+                    # Clear stored coordinates so the next run retries.
+                    st.session_state['area_coordinates'] = None
     else:
         st.warning("Please draw a polygon or rectangle area")
 
@@ -6599,7 +6627,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             # computed for this analysis.
             _show_target = bool(_msm_rows_target and results.get('esvd_results_target'))
             if _msm_rows and st.session_state.get('use_indicator_multipliers'):
-                with st.expander("Sub-service value breakdown (indicator-driven)", expanded=True):
+                with st.expander("Sub-service value breakdown (indicator-driven)", expanded=False):
                     import pandas as pd
                     # Coefficient lookup for this ecosystem
                     try:
@@ -7412,123 +7440,129 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     render_scenario_builder(results)
 
     # ── PDF Download ──────────────────────────────────────────────────────────
-    # Placed after the Scenario Builder so future report enhancements can
-    # include any scenario information the user has produced.
-    st.markdown("---")
-    st.markdown("### 📄 Download Report")
-    _pdf_col1, _pdf_col2 = st.columns([3, 1])
-    with _pdf_col1:
-        _pdf_area_name = st.text_input(
-            "Report title (area name)",
-            value=st.session_state.get('default_area_name', 'Analysis Area'),
-            key="pdf_area_name",
-            label_visibility="collapsed",
-            placeholder="Area name for report header",
-        )
-    with _pdf_col2:
-        _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
-                                 key="prepare_pdf_btn")
-    if _prepare_pdf:
-        with st.spinner("Building PDF report…"):
-            try:
-                from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
-                _pdf_results = st.session_state.analysis_results
-                _pdf_auth = st.session_state.get('auth_user')
-                _pdf_coords = st.session_state.get('area_coordinates', [])
-                _pdf_bbox = st.session_state.get('cached_bbox', {}) or {}
-                _pdf_country = ''
+    # Wrapped in a fragment so "Prepare PDF Report" reruns only this section.
+    # A full-script rerun would re-execute the map / area-selection pipeline,
+    # which can clear analysis_results / calculation_ready and bounce the user
+    # back to the pre-Analyze panel.
+    @st.fragment
+    def render_pdf_download():
+        st.markdown("---")
+        st.markdown("### 📄 Download Report")
+        _pdf_col1, _pdf_col2 = st.columns([3, 1])
+        with _pdf_col1:
+            _pdf_area_name = st.text_input(
+                "Report title (area name)",
+                value=st.session_state.get('default_area_name', 'Analysis Area'),
+                key="pdf_area_name",
+                label_visibility="collapsed",
+                placeholder="Area name for report header",
+            )
+        with _pdf_col2:
+            _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
+                                     key="prepare_pdf_btn")
+        if _prepare_pdf:
+            with st.spinner("Building PDF report…"):
                 try:
-                    if _pdf_bbox:
-                        _clat = (_pdf_bbox.get('min_lat', 0) + _pdf_bbox.get('max_lat', 0)) / 2
-                        _clon = (_pdf_bbox.get('min_lon', 0) + _pdf_bbox.get('max_lon', 0)) / 2
-                        _pdf_country = get_country_from_coordinates(_clat, _clon)
-                except Exception:
-                    pass
+                    from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
+                    _pdf_results = st.session_state.analysis_results
+                    _pdf_auth = st.session_state.get('auth_user')
+                    _pdf_coords = st.session_state.get('area_coordinates', [])
+                    _pdf_bbox = st.session_state.get('cached_bbox', {}) or {}
+                    _pdf_country = ''
+                    try:
+                        if _pdf_bbox:
+                            _clat = (_pdf_bbox.get('min_lat', 0) + _pdf_bbox.get('max_lat', 0)) / 2
+                            _clon = (_pdf_bbox.get('min_lon', 0) + _pdf_bbox.get('max_lon', 0)) / 2
+                            _pdf_country = get_country_from_coordinates(_clat, _clon)
+                    except Exception:
+                        pass
 
-                # Recompute the Summary Statistics bundle (sample-point breakdown)
-                # so the PDF mirrors what the UI shows.
-                _pdf_summary = None
-                try:
-                    _sampling = st.session_state.get('sampling_point_data', {}) or {}
-                    if _sampling:
-                        _country_counts: Dict[str, int] = {}
-                        _eco_counts: Dict[str, int] = {}
-                        _land_pts = 0
-                        _water_pts = 0
-                        for _pt in _sampling.values():
-                            if _pt.get('landcover_class') == 210:
-                                _water_pts += 1
-                                continue
-                            _land_pts += 1
-                            _pt_coords = _pt.get('coordinates', {}) or {}
-                            _lat = _pt_coords.get('lat', 0)
-                            _lon = _pt_coords.get('lon', 0)
-                            if _lat or _lon:
-                                _c = get_country_from_coordinates(_lat, _lon)
-                                _country_counts[_c] = _country_counts.get(_c, 0) + 1
-                            _eco = _pt.get('ecosystem_type') or get_esvd_ecosystem_from_landcover_code(
-                                _pt.get('landcover_class'), _pdf_results
-                            ) or 'Unknown'
-                            _eco_counts[_eco] = _eco_counts.get(_eco, 0) + 1
-                        # EROI metrics for the PDF (project runs only).
-                        _eroi_pdf = None
-                        try:
-                            from utils.analysis_helpers import compute_eroi as _ch_eroi
-                            _eroi_pdf = _ch_eroi(
-                                baseline_value=_pdf_results.get('total_value'),
-                                target_value=_pdf_results.get('total_value_target'),
-                                cost=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
-                                duration_years=_project_duration_years(
-                                    st.session_state.get('pending_indicator_baseline_date'),
-                                    st.session_state.get('pending_indicator_target_date')),
-                                discount_rate=float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0,
-                                maintenance_cost=float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0),
-                                reversal_buffer_pct=float(st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0),
-                            )
-                        except Exception:
-                            _eroi_pdf = None
-                        _pdf_summary = {
-                            'sample_points_total': len(_sampling),
-                            'land_points': _land_pts,
-                            'water_points': _water_pts,
-                            'country_counts': _country_counts,
-                            'ecosystem_counts': _eco_counts,
-                            'average_eei': st.session_state.get('average_eei'),
-                            'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
-                            'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
-                            'eei_status': st.session_state.get('eei_status'),
-                            'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
-                            'predominant_country': st.session_state.get('predominant_country_info'),
-                            'eroi': _eroi_pdf,
-                            'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
-                            'target_date': st.session_state.get('pending_indicator_target_date'),
-                        }
-                except Exception:
+                    # Recompute the Summary Statistics bundle (sample-point
+                    # breakdown) so the PDF mirrors what the UI shows.
                     _pdf_summary = None
+                    try:
+                        _sampling = st.session_state.get('sampling_point_data', {}) or {}
+                        if _sampling:
+                            _country_counts: Dict[str, int] = {}
+                            _eco_counts: Dict[str, int] = {}
+                            _land_pts = 0
+                            _water_pts = 0
+                            for _pt in _sampling.values():
+                                if _pt.get('landcover_class') == 210:
+                                    _water_pts += 1
+                                    continue
+                                _land_pts += 1
+                                _pt_coords = _pt.get('coordinates', {}) or {}
+                                _lat = _pt_coords.get('lat', 0)
+                                _lon = _pt_coords.get('lon', 0)
+                                if _lat or _lon:
+                                    _c = get_country_from_coordinates(_lat, _lon)
+                                    _country_counts[_c] = _country_counts.get(_c, 0) + 1
+                                _eco = _pt.get('ecosystem_type') or get_esvd_ecosystem_from_landcover_code(
+                                    _pt.get('landcover_class'), _pdf_results
+                                ) or 'Unknown'
+                                _eco_counts[_eco] = _eco_counts.get(_eco, 0) + 1
+                            # EROI metrics for the PDF (project runs only).
+                            _eroi_pdf = None
+                            try:
+                                from utils.analysis_helpers import compute_eroi as _ch_eroi
+                                _eroi_pdf = _ch_eroi(
+                                    baseline_value=_pdf_results.get('total_value'),
+                                    target_value=_pdf_results.get('total_value_target'),
+                                    cost=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
+                                    duration_years=_project_duration_years(
+                                        st.session_state.get('pending_indicator_baseline_date'),
+                                        st.session_state.get('pending_indicator_target_date')),
+                                    discount_rate=float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0,
+                                    maintenance_cost=float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0),
+                                    reversal_buffer_pct=float(st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0),
+                                )
+                            except Exception:
+                                _eroi_pdf = None
+                            _pdf_summary = {
+                                'sample_points_total': len(_sampling),
+                                'land_points': _land_pts,
+                                'water_points': _water_pts,
+                                'country_counts': _country_counts,
+                                'ecosystem_counts': _eco_counts,
+                                'average_eei': st.session_state.get('average_eei'),
+                                'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
+                                'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
+                                'eei_status': st.session_state.get('eei_status'),
+                                'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
+                                'predominant_country': st.session_state.get('predominant_country_info'),
+                                'eroi': _eroi_pdf,
+                                'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
+                                'target_date': st.session_state.get('pending_indicator_target_date'),
+                            }
+                    except Exception:
+                        _pdf_summary = None
 
-                _pdf_bytes = _gen_pdf_fn(
-                    results=_pdf_results,
-                    auth_user=_pdf_auth,
-                    area_name=_pdf_area_name or 'Analysis Area',
-                    country=_pdf_country,
-                    bbox=_pdf_bbox,
-                    coordinates=_pdf_coords,
-                    summary_stats=_pdf_summary,
-                )
-                _ts = datetime.now().strftime('%Y%m%d_%H%M')
-                st.session_state['_pdf_bytes'] = _pdf_bytes
-                st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
-            except Exception as _pdf_err:
-                st.error(f"PDF generation failed: {_pdf_err}")
-    if st.session_state.get('_pdf_bytes'):
-        st.download_button(
-            label="⬇️ Download PDF Report",
-            data=st.session_state['_pdf_bytes'],
-            file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
-            mime="application/pdf",
-            use_container_width=True,
-            key="pdf_dl_btn",
-        )
+                    _pdf_bytes = _gen_pdf_fn(
+                        results=_pdf_results,
+                        auth_user=_pdf_auth,
+                        area_name=_pdf_area_name or 'Analysis Area',
+                        country=_pdf_country,
+                        bbox=_pdf_bbox,
+                        coordinates=_pdf_coords,
+                        summary_stats=_pdf_summary,
+                    )
+                    _ts = datetime.now().strftime('%Y%m%d_%H%M')
+                    st.session_state['_pdf_bytes'] = _pdf_bytes
+                    st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
+                except Exception as _pdf_err:
+                    st.error(f"PDF generation failed: {_pdf_err}")
+        if st.session_state.get('_pdf_bytes'):
+            st.download_button(
+                label="⬇️ Download PDF Report",
+                data=st.session_state['_pdf_bytes'],
+                file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
+                mime="application/pdf",
+                use_container_width=True,
+                key="pdf_dl_btn",
+            )
+
+    render_pdf_download()
 
     # The legacy bottom-of-page Project Indicators section was removed —
     # superseded by the pre-Analyze project-indicator panel. The
