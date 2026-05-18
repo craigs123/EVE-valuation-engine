@@ -548,6 +548,15 @@ if 'pending_indicator_discount_rate' not in st.session_state:
 if 'pending_indicator_maintenance_cost' not in st.session_state:
     st.session_state.pending_indicator_maintenance_cost = 0.0
 
+# Carbon revenue opportunity settings (set in the Analysis Settings dialog;
+# initialised here too so the dialog widgets do not silently mis-default).
+if 'carbon_scc' not in st.session_state:
+    st.session_state.carbon_scc = 190.0          # Social Cost of Carbon, Int$/tCO2e
+if 'carbon_price_low' not in st.session_state:
+    st.session_state.carbon_price_low = 10.0     # VCM credit price, low (Int$/tCO2e)
+if 'carbon_price_high' not in st.session_state:
+    st.session_state.carbon_price_high = 30.0    # VCM credit price, high (Int$/tCO2e)
+
 # Reversal buffer (fraction 0-1) — share of annual ecosystem-service benefits
 # withheld for permanence risk in the EROI metrics. Default 20%.
 if 'pending_indicator_reversal_buffer' not in st.session_state:
@@ -1910,7 +1919,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2213,6 +2222,53 @@ def analysis_settings_dialog():
                 openlandmap_stac.landcover_to_esvd = st.session_state.custom_landcover_mapping.copy()
             except Exception:
                 pass
+
+        st.divider()
+
+        st.markdown("##### Carbon revenue opportunity")
+        st.caption("Inputs for the potential carbon-credit revenue estimate "
+                   "shown with the results.")
+        _scc_map = {"Conservative (Int$100)": 100.0,
+                    "Central (Int$190)": 190.0,
+                    "High (Int$300)": 300.0}
+        _scc_choice = st.selectbox(
+            "Social cost of carbon",
+            list(_scc_map) + ["Custom"], index=1,
+            key="dlg_carbon_scc_choice",
+            help="Social cost of carbon used to back-calculate implied "
+                 "sequestration from the ESVD climate regulation service "
+                 "value. Central default (Int$190/tCO2e) is consistent with "
+                 "the US EPA 2023 interim Social Cost of Carbon estimate.",
+        )
+        if _scc_choice == "Custom":
+            _scc_val = st.number_input(
+                "Custom social cost of carbon (Int$/tCO2e)",
+                min_value=50.0, max_value=500.0, step=10.0,
+                value=float(st.session_state.get('carbon_scc', 190.0) or 190.0),
+                key="dlg_carbon_scc_custom",
+            )
+        else:
+            _scc_val = _scc_map[_scc_choice]
+        st.session_state['carbon_scc'] = float(_scc_val)
+
+        st.caption("Carbon credit price range (voluntary carbon market, "
+                   "Int$/tCO2e) — values the implied sequestration as a "
+                   "potential revenue range.")
+        _cpc1, _cpc2 = st.columns(2)
+        with _cpc1:
+            _cp_lo = st.number_input(
+                "Credit price — low", min_value=0.0, max_value=500.0, step=1.0,
+                value=float(st.session_state.get('carbon_price_low', 10.0) or 10.0),
+                key="dlg_carbon_price_low",
+            )
+        with _cpc2:
+            _cp_hi = st.number_input(
+                "Credit price — high", min_value=0.0, max_value=500.0, step=1.0,
+                value=float(st.session_state.get('carbon_price_high', 30.0) or 30.0),
+                key="dlg_carbon_price_high",
+            )
+        st.session_state['carbon_price_low'] = float(_cp_lo)
+        st.session_state['carbon_price_high'] = float(_cp_hi)
 
         st.divider()
 
@@ -3501,6 +3557,87 @@ def render_eroi_panel(results: dict) -> None:
     )
     if st.button("Calculation details", key="eroi_calc_details_btn"):
         _eroi_calc_details_dialog(eroi)
+
+
+def _climate_regulation_total(results: dict) -> float:
+    """Total ESVD climate-regulation value (Int$/yr) for the analysis,
+    summing across nested ecosystems for multi-ecosystem runs."""
+    esvd = results.get('esvd_results', {}) or {}
+    total = ((esvd.get('regulating', {}) or {}).get('services', {}) or {}
+             ).get('climate_regulation', 0) or 0
+    if not total:
+        eco = esvd.get('ecosystem_breakdown') or esvd.get('ecosystem_results') or {}
+        for _ev in eco.values():
+            if isinstance(_ev, dict):
+                total += (((_ev.get('regulating', {}) or {}).get('services', {})
+                           or {}).get('climate_regulation', 0) or 0)
+    return float(total or 0)
+
+
+def render_carbon_revenue_panel(results: dict) -> None:
+    """Render the 'Potential Revenue Opportunity' panel — carbon-credit revenue
+    back-calculated from the ESVD climate-regulation value. Standalone and
+    display-only; it does not feed the valuation or the EROI metrics."""
+    if not results:
+        return
+    area_ha = results.get('area_ha') or results.get('area_hectares') or 0
+    climate_reg_total = _climate_regulation_total(results)
+    if not area_ha or climate_reg_total <= 0:
+        return  # no climate-regulation value to work from
+
+    from utils.analysis_helpers import compute_carbon_revenue
+    carbon = compute_carbon_revenue(
+        climate_reg_per_ha=climate_reg_total / area_ha,
+        regional_factor=results.get('regional_adjustment_factor',
+                                    results.get('regional_factor', 1.0)),
+        assumed_scc=float(st.session_state.get('carbon_scc', 190.0) or 190.0),
+        carbon_price_low=float(st.session_state.get('carbon_price_low', 10.0) or 0.0),
+        carbon_price_high=float(st.session_state.get('carbon_price_high', 30.0) or 0.0),
+        intervention_area_ha=(results.get('area_ha_target') or area_ha),
+        ecosystem_type=results.get('ecosystem_type'),
+    )
+    if carbon is None:
+        return
+
+    st.markdown("## Potential Revenue Opportunity (carbon credits)")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Implied sequestration",
+                  f"{carbon['implied_seq_ha_yr']:,.1f} tCO2e/ha/yr", border=True)
+        st.caption(f"{carbon['implied_seq_total_yr']:,.0f} tCO2e/yr over the "
+                   f"project area")
+    with c2:
+        st.metric("Potential carbon revenue",
+                  f"${carbon['revenue_low']:,.0f} – ${carbon['revenue_high']:,.0f}/yr",
+                  border=True)
+        st.caption(f"at Int${carbon['carbon_price_low']:,.0f}–"
+                   f"{carbon['carbon_price_high']:,.0f}/tCO2e credit price")
+    with c3:
+        st.metric("ESVD climate value (global)",
+                  f"${carbon['climate_reg_global']:,.0f}/ha/yr", border=True)
+        st.caption(f"regional ${carbon['climate_reg_per_ha']:,.0f}/ha/yr ÷ "
+                   f"SCC Int${carbon['assumed_scc']:,.0f}/tCO2e")
+
+    if carbon['consistency'] == 'ok':
+        st.success(f"Implied sequestration is consistent with the published "
+                   f"range ({carbon['benchmark_low']:.0f}–"
+                   f"{carbon['benchmark_high']:.0f} tCO2e/ha/yr, Hamilton & "
+                   f"Friess 2018).")
+    elif carbon['consistency'] == 'warning':
+        st.warning(f"⚠️ Warning: tCO2 sequestered outside of the expected range "
+                   f"— implied {carbon['implied_seq_ha_yr']:,.1f} vs published "
+                   f"{carbon['benchmark_low']:.0f}–{carbon['benchmark_high']:.0f} "
+                   f"tCO2e/ha/yr. Review the assumed SCC or the ESVD value.")
+    else:
+        st.caption(f"No published sequestration benchmark for "
+                   f"{carbon.get('ecosystem_type') or 'this ecosystem'} yet — "
+                   f"consistency check not available.")
+
+    st.caption(
+        "These carbon figures re-express value already contained in the ESVD "
+        "climate-regulation service total — a potential-revenue estimate, not "
+        "an additional line on the natural-capital valuation."
+    )
 
 
 def _build_indicator_state_blob() -> dict | None:
@@ -6515,6 +6652,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     # a target valuation. Placed in the shared region so it renders after the
     # totals in both Summary and Detailed modes.
     render_eroi_panel(results)
+    render_carbon_revenue_panel(results)
 
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
@@ -7517,6 +7655,24 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                 )
                             except Exception:
                                 _eroi_pdf = None
+                            # Carbon revenue opportunity for the PDF.
+                            _carbon_pdf = None
+                            try:
+                                from utils.analysis_helpers import compute_carbon_revenue as _ccr
+                                _cr_area = _pdf_results.get('area_ha') or _pdf_results.get('area_hectares') or 0
+                                _cr_total = _climate_regulation_total(_pdf_results)
+                                if _cr_area and _cr_total > 0:
+                                    _carbon_pdf = _ccr(
+                                        climate_reg_per_ha=_cr_total / _cr_area,
+                                        regional_factor=_pdf_results.get('regional_adjustment_factor', _pdf_results.get('regional_factor', 1.0)),
+                                        assumed_scc=float(st.session_state.get('carbon_scc', 190.0) or 190.0),
+                                        carbon_price_low=float(st.session_state.get('carbon_price_low', 10.0) or 0.0),
+                                        carbon_price_high=float(st.session_state.get('carbon_price_high', 30.0) or 0.0),
+                                        intervention_area_ha=(_pdf_results.get('area_ha_target') or _cr_area),
+                                        ecosystem_type=_pdf_results.get('ecosystem_type'),
+                                    )
+                            except Exception:
+                                _carbon_pdf = None
                             _pdf_summary = {
                                 'sample_points_total': len(_sampling),
                                 'land_points': _land_pts,
@@ -7530,6 +7686,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                 'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
                                 'predominant_country': st.session_state.get('predominant_country_info'),
                                 'eroi': _eroi_pdf,
+                                'carbon': _carbon_pdf,
                                 'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
                                 'target_date': st.session_state.get('pending_indicator_target_date'),
                             }
