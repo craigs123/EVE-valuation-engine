@@ -1910,13 +1910,13 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.18 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
     <a href='https://www.greenandgreyassociates.com' target='_blank'
        style='display:inline-flex; align-items:center;'>
-        <img src='/app/static/greengrey-logo.png'
+        <img src='/app/static/greengrey-logo-no-circle.png'
              alt='Green & Grey Associates'
              style='height:80px; width:auto; opacity:0.85;' />
     </a>

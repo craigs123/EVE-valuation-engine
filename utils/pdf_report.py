@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 
 _LOGO_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    'static', 'greengrey-logo.png',
+    'static', 'greengrey-logo-no-circle.png',
 )
 
 
@@ -443,7 +443,7 @@ def generate_pdf_report(
 
         _torn = _tornado_chart(_sens_rows, _central_npv)
         if _torn:
-            _torn_img = Image(io.BytesIO(_torn), width=15 * cm, height=7.5 * cm)
+            _torn_img = Image(io.BytesIO(_torn), width=15 * cm, height=9.5 * cm)
             _torn_img.hAlign = 'CENTER'
             story.append(_torn_img)
             story.append(Spacer(1, 0.25 * cm))
@@ -1091,7 +1091,9 @@ def _tornado_chart(sens_rows, central_npv: float) -> Optional[bytes]:
         if not sens_rows:
             return None
         rows = sorted(sens_rows, key=lambda r: abs(r[4] - r[2]))  # widest last
-        labels = [r[0] for r in rows]
+        # Wrap each y-axis label onto two lines — parameter name, then the
+        # variant range — so long labels are not clipped by the left margin.
+        labels = [r[0].replace('  (', '<br>(') for r in rows]
         lows = [min(r[2], r[4]) for r in rows]
         highs = [max(r[2], r[4]) for r in rows]
         widths = [h - l for l, h in zip(lows, highs)]
@@ -1111,11 +1113,11 @@ def _tornado_chart(sens_rows, central_npv: float) -> Optional[bytes]:
             xaxis_title='Net present value (Int$)',
             plot_bgcolor='#F9FBF9',
             paper_bgcolor='white',
-            height=330,
+            height=420,
             width=660,
             margin=dict(t=55, b=45, l=200, r=30),
             showlegend=False,
         )
-        return pio.to_image(fig, format='png', width=660, height=330, scale=1.5)
+        return pio.to_image(fig, format='png', width=660, height=420, scale=1.5)
     except Exception:
         return None

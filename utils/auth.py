@@ -358,7 +358,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.8.18 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.8.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -545,7 +545,7 @@ def _render_auth_ui():
             """<div style='text-align:center; padding:0; margin-top:-0.75rem;'>
                 <a href='https://www.greenandgreyassociates.com' target='_blank'
                    style='display:inline-block; margin-bottom:0.2rem;'>
-                    <img src='/app/static/greengrey-logo.png'
+                    <img src='/app/static/greengrey-logo-no-circle.png'
                          alt='Green & Grey Associates'
                          style='height:80px; width:auto; opacity:0.85;' />
                 </a>
