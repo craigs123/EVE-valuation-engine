@@ -8,6 +8,7 @@ dependencies = [
     "numpy>=2.3.2",
     "pandas>=2.3.1",
     "plotly>=6.3.0",
+    "kaleido==0.2.1",
     "streamlit-folium>=0.25.1",
     "streamlit>=1.48.1",
     "trafilatura>=2.0.0",

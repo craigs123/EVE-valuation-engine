@@ -548,6 +548,11 @@ if 'pending_indicator_discount_rate' not in st.session_state:
 if 'pending_indicator_maintenance_cost' not in st.session_state:
     st.session_state.pending_indicator_maintenance_cost = 0.0
 
+# Reversal buffer (fraction 0-1) — share of annual ecosystem-service benefits
+# withheld for permanence risk in the EROI metrics. Default 20%.
+if 'pending_indicator_reversal_buffer' not in st.session_state:
+    st.session_state.pending_indicator_reversal_buffer = 0.20
+
 # Project-area percentages for project-specific indicators. The selected map
 # area is not assumed to be 100% project area; these scale the baseline and
 # target valuations to the real project size. 100 = whole selected area.
@@ -1905,13 +1910,13 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.14 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.19 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
     <a href='https://www.greenandgreyassociates.com' target='_blank'
        style='display:inline-flex; align-items:center;'>
-        <img src='/app/static/greengrey-logo.png'
+        <img src='/app/static/greengrey-logo-no-circle.png'
              alt='Green & Grey Associates'
              style='height:80px; width:auto; opacity:0.85;' />
     </a>
@@ -2734,6 +2739,18 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
         )
         st.session_state['pending_indicator_project_cost'] = _cost
 
+        # Capital cost intensity, shown permanently beneath the field and
+        # styled like the project-area captions. Cost per hectare per year
+        # over the 30-year appraisal horizon; recomputes whenever the capital
+        # cost or the target project area changes.
+        _cost_proj_area = _sel_area_ha * _target_area_pct / 100.0
+        _cost_per_ha_yr = (
+            _cost / _cost_proj_area / 30.0 if _cost_proj_area > 0 else 0.0
+        )
+        st.caption(
+            f"Int$ {_cost_per_ha_yr:,.0f}/ha/yr over {_cost_proj_area:,.1f} ha"
+        )
+
         # Discount rate for the EROI net present value / benefit-cost ratio.
         _discount = st.number_input(
             "Discount rate for EROI (%)",
@@ -2759,6 +2776,33 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
                  "EROI each year after the project ends. Leave at 0 to skip.",
         )
         st.session_state['pending_indicator_maintenance_cost'] = _maint
+
+        # Maintenance cost intensity, shown permanently beneath the field and
+        # styled like the project-area captions. Maintenance is already an
+        # annual figure, so dividing by the target project area gives the
+        # per-hectare-per-year cost directly; recomputes when the maintenance
+        # cost or the target project area changes.
+        _maint_proj_area = _sel_area_ha * _target_area_pct / 100.0
+        _maint_per_ha_yr = (
+            _maint / _maint_proj_area if _maint_proj_area > 0 else 0.0
+        )
+        st.caption(f"Int$ {_maint_per_ha_yr:,.0f}/ha/yr")
+
+        # Reversal buffer — permanence-risk discount applied to annual benefits.
+        _buffer_pct = st.slider(
+            "Reversal buffer (permanence risk)",
+            min_value=5, max_value=40, step=1,
+            value=int(round(float(
+                st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.20
+            ) * 100)),
+            key='pi_pre_reversal_buffer',
+            format="%d%%",
+            help="Proportion of annual benefits withheld to account for "
+                 "permanence risk (storm damage, sea-level rise, re-clearance, "
+                 "governance failure). Default 20% is consistent with the Verra "
+                 "VCS VM0033 buffer methodology for mangrove blue carbon projects.",
+        )
+        st.session_state['pending_indicator_reversal_buffer'] = _buffer_pct / 100.0
 
         _dur_preview = _project_duration_years(_baseline_date, _target_date)
         if _dur_preview:
@@ -3259,7 +3303,8 @@ def _project_duration_years(baseline_date, target_date) -> float | None:
 def _compute_eroi(results: dict, cost: float,
                   duration_years: "float | None",
                   discount_rate: float,
-                  maintenance_cost: float = 0.0) -> "dict | None":
+                  maintenance_cost: float = 0.0,
+                  reversal_buffer_pct: float = 0.0) -> "dict | None":
     """Thin wrapper around :func:`utils.analysis_helpers.compute_eroi`.
 
     Returns the flow-based EROI metrics dict for a completed project
@@ -3275,6 +3320,7 @@ def _compute_eroi(results: dict, cost: float,
         duration_years=duration_years,
         discount_rate=discount_rate,
         maintenance_cost=maintenance_cost,
+        reversal_buffer_pct=reversal_buffer_pct,
     )
 
 
@@ -3306,7 +3352,7 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
         st.markdown(
             f"- Annual uplift **U** = target − baseline annual value = "
             f"**${eroi['uplift']:,.0f}/yr**\n"
-            f"- Capital cost **C** = **${eroi['cost']:,.0f}** (single outflow, year 0)\n"
+            f"- Capital cost **C** = **${eroi['cost']:,.0f}** (total, spread evenly over the project)\n"
             f"- Annual maintenance **M** = "
             f"**${M:,.0f}/yr** (counted after the project ends)\n"
             f"- Ramp period **D** = **{ramp_txt}** (gap between baseline and target dates)\n"
@@ -3320,11 +3366,11 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
             "continues every year.\n"
             "- During the ramp the uplift grows **linearly** from 0 to the full "
             "value; each year is valued at its midpoint.\n"
-            "- The capital cost is a **single upfront outflow**. Maintenance is an "
-            "**ongoing annual cost** that begins the year *after* the ramp ends — "
-            "the capital cost is assumed to cover the works during the project.\n"
-            f"- Benefits and maintenance are counted over a fixed **{H}-year** "
-            "window; value beyond it is excluded.\n"
+            "- The capital cost is **spread evenly across the project duration** "
+            "(the ramp). Maintenance is an **ongoing annual cost** that begins the "
+            "year *after* the ramp ends.\n"
+            f"- Benefits, capital and maintenance are counted over a fixed "
+            f"**{H}-year** window; value beyond it is excluded.\n"
             "- All figures are whole-project totals — the metrics are unchanged "
             "on a per-hectare basis."
         )
@@ -3334,24 +3380,28 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
             "- Yearly uplift (year t = 1…H):  "
             "`uplift_t = U × min((t − 0.5) / D, 1)`  — `= U` when D = 0\n"
             "- Yearly maintenance:  `maint_t = M` for years after the ramp, else `0`\n"
+            "- Yearly capital:  `capital_t = C / D` during the project, else `0`\n"
             "- Present value of benefits:  `PV_b = Σ uplift_t / (1 + r)^t`\n"
+            "- Present value of capital:  `PV_c = Σ capital_t / (1 + r)^t`\n"
             "- Present value of maintenance:  `PV_m = Σ maint_t / (1 + r)^t`\n"
-            "- Net present value:  `NPV = PV_b − C − PV_m`\n"
-            "- Benefit–cost ratio:  `BCR = PV_b / (C + PV_m)`\n"
+            "- Net present value:  `NPV = PV_b − PV_c − PV_m`\n"
+            "- Benefit–cost ratio:  `BCR = PV_b / (PV_c + PV_m)`\n"
             "- Annual yield (mature net return):  `yield = (U − M) / C`\n"
             "- Payback period:  smallest t where the cumulative **undiscounted** "
-            "net flow `(uplift_t − maint_t)` ≥ C\n"
+            "net cash flow `(uplift_t − maint_t − capital_t)` ≥ 0\n"
             "- Internal rate of return:  the rate `r*` at which `NPV = 0` "
-            "(cash flows −C, then `uplift_t − maint_t` for each year)"
+            "(cash flows `uplift_t − maint_t − capital_t` for each year)"
         )
 
         st.markdown("#### Results for this project")
         st.markdown(
             f"- Present value of benefits **PV_b** = **${eroi['pv_benefits']:,.0f}** "
             f"(undiscounted {H}-yr total ${eroi['cum_benefit']:,.0f})\n"
+            f"- Present value of capital **PV_c** = "
+            f"**${eroi['pv_capital']:,.0f}**\n"
             f"- Present value of maintenance **PV_m** = "
             f"**${eroi['pv_maintenance']:,.0f}**\n"
-            f"- **NPV** = ${eroi['pv_benefits']:,.0f} − ${eroi['cost']:,.0f} − "
+            f"- **NPV** = ${eroi['pv_benefits']:,.0f} − ${eroi['pv_capital']:,.0f} − "
             f"${eroi['pv_maintenance']:,.0f} = **${eroi['npv']:,.0f}**\n"
             f"- **BCR** = ${eroi['pv_benefits']:,.0f} / ${eroi['pv_costs']:,.0f} = "
             f"**{eroi['bcr']:.2f}×**\n"
@@ -3360,6 +3410,10 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
             f"- **Payback period** = **{pb_txt}**\n"
             f"- **IRR** = **{irr_txt}**"
         )
+
+    if st.button("Close", key="eroi_calc_close_btn", type="primary",
+                 use_container_width=True):
+        st.rerun()
 
 
 def render_eroi_panel(results: dict) -> None:
@@ -3379,74 +3433,74 @@ def render_eroi_panel(results: dict) -> None:
     maintenance_cost = float(
         st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0
     )
+    reversal_buffer = float(
+        st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0
+    )
 
-    with st.container(border=True, key="results_eroi_panel"):
-        st.markdown("### Ecological Return on Investment (EROI)")
-        if cost <= 0:
-            st.info("Enter an estimated project cost in the project-indicator "
-                    "panel to see EROI.")
-            return
-        eroi = _compute_eroi(results, cost, duration_years, discount_rate,
-                             maintenance_cost)
-        if eroi is None:
-            st.info("EROI is not applicable here — the target valuation does "
-                    "not exceed the baseline, so there is no value gain to "
-                    "return on the investment.")
-            return
+    # Heading sits above the panel, matching "## Ecosystem Services Breakdown".
+    st.markdown("## Ecological Return on Investment (EROI)")
+    if cost <= 0:
+        st.info("Enter an estimated project cost in the project-indicator "
+                "panel to see EROI.")
+        return
+    eroi = _compute_eroi(results, cost, duration_years, discount_rate,
+                         maintenance_cost, reversal_buffer)
+    if eroi is None:
+        st.info("EROI is not applicable here — the target valuation does not "
+                "exceed the baseline, so there is no value gain to return on "
+                "the investment.")
+        return
 
-        area_ha = results.get('area_ha') or results.get('area_hectares') or 0
-        H = eroi['horizon_years']
+    area_ha = results.get('area_ha') or results.get('area_hectares') or 0
+    H = eroi['horizon_years']
 
-        # Row 1 — the underlying flows: annual uplift, cost, horizon value.
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("Annual uplift at target", f"${eroi['uplift']:,.0f}/yr")
-            if area_ha:
-                st.caption(f"${eroi['uplift'] / area_ha:,.0f}/ha/yr")
-            if eroi['maintenance_cost'] > 0:
-                st.caption(f"net of maintenance ${eroi['net_annual']:,.0f}/yr")
-        with c2:
-            st.metric("Project cost", f"${eroi['cost']:,.0f}")
-            if area_ha:
-                st.caption(f"${eroi['cost'] / area_ha:,.0f}/ha")
-            if eroi['maintenance_cost'] > 0:
-                st.caption(f"+ ${eroi['maintenance_cost']:,.0f}/yr maintenance "
-                           f"after project end")
-        with c3:
-            st.metric(f"{H}-yr value (present value)",
-                      f"${eroi['pv_benefits']:,.0f}")
-            st.caption(f"undiscounted {H}-yr total ${eroi['cum_benefit']:,.0f}")
+    # Simple boxed figures — each metric in its own border box (st.metric
+    # border=True), with no outer container, so the row reads as clean boxed
+    # figures rather than cards nested inside a card.
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Annual uplift at target", f"${eroi['uplift']:,.0f}/yr",
+                  border=True)
+        if area_ha:
+            st.caption(f"${eroi['uplift'] / area_ha:,.0f}/ha/yr")
+    with c2:
+        st.metric("Project cost", f"${eroi['cost']:,.0f}", border=True)
+        if area_ha:
+            st.caption(f"${eroi['cost'] / area_ha:,.0f}/ha")
+    with c3:
+        st.metric(f"{H}-yr value (PV)", f"${eroi['pv_benefits']:,.0f}",
+                  border=True)
+        st.caption(f"undiscounted ${eroi['cum_benefit']:,.0f}")
 
-        # Row 2 — investor-standard return metrics.
-        m1, m2, m3, m4, m5 = st.columns(5)
-        with m1:
-            st.metric("Benefit–cost ratio", f"{eroi['bcr']:.2f}×")
-        with m2:
-            st.metric("NPV", f"${eroi['npv']:,.0f}")
-        with m3:
-            st.metric("IRR", f"{eroi['irr'] * 100:.1f}%"
-                      if eroi.get('irr') is not None else "—")
-        with m4:
-            if eroi['payback_years'] is not None:
-                st.metric("Payback period", f"{eroi['payback_years']:.1f} yr")
-            else:
-                st.metric("Payback period", "—")
-                st.caption(f"beyond {H} yr")
-        with m5:
-            st.metric("Annual yield",
-                      f"{eroi['annual_yield'] * 100:.1f}% / yr")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    with m1:
+        st.metric("Benefit–cost ratio", f"{eroi['bcr']:.2f}×", border=True)
+    with m2:
+        st.metric("NPV", f"${eroi['npv']:,.0f}", border=True)
+    with m3:
+        st.metric("IRR", f"{eroi['irr'] * 100:.1f}%"
+                  if eroi.get('irr') is not None else "—", border=True)
+    with m4:
+        st.metric("Payback period",
+                  f"{eroi['payback_years']:.1f} yr"
+                  if eroi['payback_years'] is not None else "—", border=True)
+    with m5:
+        st.metric("Annual yield", f"{eroi['annual_yield'] * 100:.1f}% / yr",
+                  border=True)
 
-        _dur_txt = (f"{duration_years:.1f}-yr linear ramp" if duration_years
-                    else "immediate uplift (no baseline/target dates set)")
-        _maint_txt = (f" · ${eroi['maintenance_cost']:,.0f}/yr maintenance"
-                      if eroi['maintenance_cost'] > 0 else "")
-        st.caption(
-            f"Perpetual ecosystem-services uplift · {_dur_txt} · "
-            f"{H}-yr appraisal window · {discount_rate * 100:.1f}% discount rate"
-            f"{_maint_txt}."
-        )
-        if st.button("Calculation details", key="eroi_calc_details_btn"):
-            _eroi_calc_details_dialog(eroi)
+    _dur_txt = (f"{duration_years:.1f}-yr linear ramp" if duration_years
+                else "immediate uplift (no baseline/target dates set)")
+    _maint_txt = (f" · ${eroi['maintenance_cost']:,.0f}/yr maintenance"
+                  if eroi['maintenance_cost'] > 0 else "")
+    _buf_txt = (f" · {eroi['reversal_buffer_pct'] * 100:.0f}% reversal buffer"
+                if eroi['reversal_buffer_pct'] > 0 else "")
+    st.caption(
+        f"Perpetual ecosystem-services uplift · {_dur_txt} · "
+        f"{H}-yr appraisal window · {discount_rate * 100:.1f}% discount rate"
+        f"{_maint_txt}{_buf_txt}."
+    )
+    if st.button("Calculation details", key="eroi_calc_details_btn"):
+        _eroi_calc_details_dialog(eroi)
 
 
 def _build_indicator_state_blob() -> dict | None:
@@ -4853,11 +4907,12 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         # Only process if coordinates actually changed (prevent hanging)
         current_coords = st.session_state.get('area_coordinates', [])
         
-        # Simplified comparison to prevent hanging
-        coords_hash = hash(str(coordinates))
-        current_hash = st.session_state.get('coords_hash', None)
+        # Compare the drawn coordinates directly against the area already in
+        # session state. This is reliable, unlike the old hash(str(...)) check
+        # which could mismatch on a plain rerun and silently wipe a completed
+        # analysis (bouncing the user back to the pre-Analyze panel).
         
-        if coords_hash != current_hash:
+        if coordinates != current_coords:
             # Save the new selection with batch state updates
             st.session_state.update({
                 'selected_area': {
@@ -4865,7 +4920,6 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                     'coordinates': coordinates
                 },
                 'area_coordinates': coordinates,
-                'coords_hash': coords_hash,  # Store hash to prevent reprocessing
                 'analysis_results': None,
                 'calculation_ready': False,  # Hide results until recalculated
                 # Clear caches to force recalculation
@@ -4904,8 +4958,8 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error calculating area: {e}")
-                    # Reset to prevent hanging
-                    st.session_state.coords_hash = None
+                    # Clear stored coordinates so the next run retries.
+                    st.session_state['area_coordinates'] = None
     else:
         st.warning("Please draw a polygon or rectangle area")
 
@@ -6571,7 +6625,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             # computed for this analysis.
             _show_target = bool(_msm_rows_target and results.get('esvd_results_target'))
             if _msm_rows and st.session_state.get('use_indicator_multipliers'):
-                with st.expander("Sub-service value breakdown (indicator-driven)", expanded=True):
+                with st.expander("Sub-service value breakdown (indicator-driven)", expanded=False):
                     import pandas as pd
                     # Coefficient lookup for this ecosystem
                     try:
@@ -7384,122 +7438,129 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     render_scenario_builder(results)
 
     # ── PDF Download ──────────────────────────────────────────────────────────
-    # Placed after the Scenario Builder so future report enhancements can
-    # include any scenario information the user has produced.
-    st.markdown("---")
-    st.markdown("### 📄 Download Report")
-    _pdf_col1, _pdf_col2 = st.columns([3, 1])
-    with _pdf_col1:
-        _pdf_area_name = st.text_input(
-            "Report title (area name)",
-            value=st.session_state.get('default_area_name', 'Analysis Area'),
-            key="pdf_area_name",
-            label_visibility="collapsed",
-            placeholder="Area name for report header",
-        )
-    with _pdf_col2:
-        _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
-                                 key="prepare_pdf_btn")
-    if _prepare_pdf:
-        with st.spinner("Building PDF report…"):
-            try:
-                from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
-                _pdf_results = st.session_state.analysis_results
-                _pdf_auth = st.session_state.get('auth_user')
-                _pdf_coords = st.session_state.get('area_coordinates', [])
-                _pdf_bbox = st.session_state.get('cached_bbox', {}) or {}
-                _pdf_country = ''
+    # Wrapped in a fragment so "Prepare PDF Report" reruns only this section.
+    # A full-script rerun would re-execute the map / area-selection pipeline,
+    # which can clear analysis_results / calculation_ready and bounce the user
+    # back to the pre-Analyze panel.
+    @st.fragment
+    def render_pdf_download():
+        st.markdown("---")
+        st.markdown("### 📄 Download Report")
+        _pdf_col1, _pdf_col2 = st.columns([3, 1])
+        with _pdf_col1:
+            _pdf_area_name = st.text_input(
+                "Report title (area name)",
+                value=st.session_state.get('default_area_name', 'Analysis Area'),
+                key="pdf_area_name",
+                label_visibility="collapsed",
+                placeholder="Area name for report header",
+            )
+        with _pdf_col2:
+            _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
+                                     key="prepare_pdf_btn")
+        if _prepare_pdf:
+            with st.spinner("Building PDF report…"):
                 try:
-                    if _pdf_bbox:
-                        _clat = (_pdf_bbox.get('min_lat', 0) + _pdf_bbox.get('max_lat', 0)) / 2
-                        _clon = (_pdf_bbox.get('min_lon', 0) + _pdf_bbox.get('max_lon', 0)) / 2
-                        _pdf_country = get_country_from_coordinates(_clat, _clon)
-                except Exception:
-                    pass
+                    from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
+                    _pdf_results = st.session_state.analysis_results
+                    _pdf_auth = st.session_state.get('auth_user')
+                    _pdf_coords = st.session_state.get('area_coordinates', [])
+                    _pdf_bbox = st.session_state.get('cached_bbox', {}) or {}
+                    _pdf_country = ''
+                    try:
+                        if _pdf_bbox:
+                            _clat = (_pdf_bbox.get('min_lat', 0) + _pdf_bbox.get('max_lat', 0)) / 2
+                            _clon = (_pdf_bbox.get('min_lon', 0) + _pdf_bbox.get('max_lon', 0)) / 2
+                            _pdf_country = get_country_from_coordinates(_clat, _clon)
+                    except Exception:
+                        pass
 
-                # Recompute the Summary Statistics bundle (sample-point breakdown)
-                # so the PDF mirrors what the UI shows.
-                _pdf_summary = None
-                try:
-                    _sampling = st.session_state.get('sampling_point_data', {}) or {}
-                    if _sampling:
-                        _country_counts: Dict[str, int] = {}
-                        _eco_counts: Dict[str, int] = {}
-                        _land_pts = 0
-                        _water_pts = 0
-                        for _pt in _sampling.values():
-                            if _pt.get('landcover_class') == 210:
-                                _water_pts += 1
-                                continue
-                            _land_pts += 1
-                            _pt_coords = _pt.get('coordinates', {}) or {}
-                            _lat = _pt_coords.get('lat', 0)
-                            _lon = _pt_coords.get('lon', 0)
-                            if _lat or _lon:
-                                _c = get_country_from_coordinates(_lat, _lon)
-                                _country_counts[_c] = _country_counts.get(_c, 0) + 1
-                            _eco = _pt.get('ecosystem_type') or get_esvd_ecosystem_from_landcover_code(
-                                _pt.get('landcover_class'), _pdf_results
-                            ) or 'Unknown'
-                            _eco_counts[_eco] = _eco_counts.get(_eco, 0) + 1
-                        # EROI metrics for the PDF (project runs only).
-                        _eroi_pdf = None
-                        try:
-                            from utils.analysis_helpers import compute_eroi as _ch_eroi
-                            _eroi_pdf = _ch_eroi(
-                                baseline_value=_pdf_results.get('total_value'),
-                                target_value=_pdf_results.get('total_value_target'),
-                                cost=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
-                                duration_years=_project_duration_years(
-                                    st.session_state.get('pending_indicator_baseline_date'),
-                                    st.session_state.get('pending_indicator_target_date')),
-                                discount_rate=float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0,
-                                maintenance_cost=float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0),
-                            )
-                        except Exception:
-                            _eroi_pdf = None
-                        _pdf_summary = {
-                            'sample_points_total': len(_sampling),
-                            'land_points': _land_pts,
-                            'water_points': _water_pts,
-                            'country_counts': _country_counts,
-                            'ecosystem_counts': _eco_counts,
-                            'average_eei': st.session_state.get('average_eei'),
-                            'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
-                            'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
-                            'eei_status': st.session_state.get('eei_status'),
-                            'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
-                            'predominant_country': st.session_state.get('predominant_country_info'),
-                            'eroi': _eroi_pdf,
-                            'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
-                            'target_date': st.session_state.get('pending_indicator_target_date'),
-                        }
-                except Exception:
+                    # Recompute the Summary Statistics bundle (sample-point
+                    # breakdown) so the PDF mirrors what the UI shows.
                     _pdf_summary = None
+                    try:
+                        _sampling = st.session_state.get('sampling_point_data', {}) or {}
+                        if _sampling:
+                            _country_counts: Dict[str, int] = {}
+                            _eco_counts: Dict[str, int] = {}
+                            _land_pts = 0
+                            _water_pts = 0
+                            for _pt in _sampling.values():
+                                if _pt.get('landcover_class') == 210:
+                                    _water_pts += 1
+                                    continue
+                                _land_pts += 1
+                                _pt_coords = _pt.get('coordinates', {}) or {}
+                                _lat = _pt_coords.get('lat', 0)
+                                _lon = _pt_coords.get('lon', 0)
+                                if _lat or _lon:
+                                    _c = get_country_from_coordinates(_lat, _lon)
+                                    _country_counts[_c] = _country_counts.get(_c, 0) + 1
+                                _eco = _pt.get('ecosystem_type') or get_esvd_ecosystem_from_landcover_code(
+                                    _pt.get('landcover_class'), _pdf_results
+                                ) or 'Unknown'
+                                _eco_counts[_eco] = _eco_counts.get(_eco, 0) + 1
+                            # EROI metrics for the PDF (project runs only).
+                            _eroi_pdf = None
+                            try:
+                                from utils.analysis_helpers import compute_eroi as _ch_eroi
+                                _eroi_pdf = _ch_eroi(
+                                    baseline_value=_pdf_results.get('total_value'),
+                                    target_value=_pdf_results.get('total_value_target'),
+                                    cost=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
+                                    duration_years=_project_duration_years(
+                                        st.session_state.get('pending_indicator_baseline_date'),
+                                        st.session_state.get('pending_indicator_target_date')),
+                                    discount_rate=float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0,
+                                    maintenance_cost=float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0),
+                                    reversal_buffer_pct=float(st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0),
+                                )
+                            except Exception:
+                                _eroi_pdf = None
+                            _pdf_summary = {
+                                'sample_points_total': len(_sampling),
+                                'land_points': _land_pts,
+                                'water_points': _water_pts,
+                                'country_counts': _country_counts,
+                                'ecosystem_counts': _eco_counts,
+                                'average_eei': st.session_state.get('average_eei'),
+                                'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
+                                'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
+                                'eei_status': st.session_state.get('eei_status'),
+                                'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
+                                'predominant_country': st.session_state.get('predominant_country_info'),
+                                'eroi': _eroi_pdf,
+                                'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
+                                'target_date': st.session_state.get('pending_indicator_target_date'),
+                            }
+                    except Exception:
+                        _pdf_summary = None
 
-                _pdf_bytes = _gen_pdf_fn(
-                    results=_pdf_results,
-                    auth_user=_pdf_auth,
-                    area_name=_pdf_area_name or 'Analysis Area',
-                    country=_pdf_country,
-                    bbox=_pdf_bbox,
-                    coordinates=_pdf_coords,
-                    summary_stats=_pdf_summary,
-                )
-                _ts = datetime.now().strftime('%Y%m%d_%H%M')
-                st.session_state['_pdf_bytes'] = _pdf_bytes
-                st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
-            except Exception as _pdf_err:
-                st.error(f"PDF generation failed: {_pdf_err}")
-    if st.session_state.get('_pdf_bytes'):
-        st.download_button(
-            label="⬇️ Download PDF Report",
-            data=st.session_state['_pdf_bytes'],
-            file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
-            mime="application/pdf",
-            use_container_width=True,
-            key="pdf_dl_btn",
-        )
+                    _pdf_bytes = _gen_pdf_fn(
+                        results=_pdf_results,
+                        auth_user=_pdf_auth,
+                        area_name=_pdf_area_name or 'Analysis Area',
+                        country=_pdf_country,
+                        bbox=_pdf_bbox,
+                        coordinates=_pdf_coords,
+                        summary_stats=_pdf_summary,
+                    )
+                    _ts = datetime.now().strftime('%Y%m%d_%H%M')
+                    st.session_state['_pdf_bytes'] = _pdf_bytes
+                    st.session_state['_pdf_fname'] = f"EVE_report_{_ts}.pdf"
+                except Exception as _pdf_err:
+                    st.error(f"PDF generation failed: {_pdf_err}")
+        if st.session_state.get('_pdf_bytes'):
+            st.download_button(
+                label="⬇️ Download PDF Report",
+                data=st.session_state['_pdf_bytes'],
+                file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
+                mime="application/pdf",
+                use_container_width=True,
+                key="pdf_dl_btn",
+            )
+
+    render_pdf_download()
 
     # The legacy bottom-of-page Project Indicators section was removed —
     # superseded by the pre-Analyze project-indicator panel. The
