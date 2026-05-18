@@ -255,6 +255,32 @@ def run_eroi_tests():
     check("EROI None when target missing",
           compute_eroi(100_000, None, 300_000, 5, 0.035) is None)
 
+    # --- Carbon revenue opportunity ---
+    from utils.analysis_helpers import compute_carbon_revenue
+    cr = compute_carbon_revenue(1330.0, 1.0, 190.0, 10.0, 30.0, 1000.0, 'Mangroves')
+    check("Carbon: global value = regional / regional_factor",
+          abs(cr['climate_reg_global'] - 1330.0) < 1e-6)
+    check("Carbon: implied sequestration = global / SCC",
+          abs(cr['implied_seq_ha_yr'] - 7.0) < 1e-9)
+    check("Carbon: total sequestration = rate x area",
+          abs(cr['implied_seq_total_yr'] - 7000.0) < 1e-6)
+    check("Carbon: revenue range = total seq x price range",
+          abs(cr['revenue_low'] - 70_000.0) < 1e-6
+          and abs(cr['revenue_high'] - 210_000.0) < 1e-6)
+    check("Carbon: in-range implied rate flags 'ok'", cr['consistency'] == 'ok')
+    crr = compute_carbon_revenue(665.0, 0.5, 190.0, 10.0, 30.0, 1000.0, 'Mangroves')
+    check("Carbon: regional factor reversed correctly",
+          abs(crr['implied_seq_ha_yr'] - 7.0) < 1e-9)
+    cw = compute_carbon_revenue(5700.0, 1.0, 190.0, 10.0, 30.0, 1000.0, 'Mangroves')
+    check("Carbon: far-out implied rate flags 'warning'",
+          cw['consistency'] == 'warning')
+    cn = compute_carbon_revenue(1330.0, 1.0, 190.0, 10.0, 30.0, 1000.0, 'Grassland')
+    check("Carbon: no benchmark gives consistency 'na'",
+          cn['consistency'] == 'na' and cn['benchmark_low'] is None)
+    check("Carbon: None when no climate-regulation value",
+          compute_carbon_revenue(0.0, 1.0, 190.0, 10.0, 30.0, 1000.0,
+                                 'Mangroves') is None)
+
     for label, ok in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
     passed = sum(1 for _, ok in checks if ok)

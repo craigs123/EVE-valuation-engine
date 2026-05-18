@@ -368,3 +368,83 @@ def compute_eroi(baseline_value, target_value, cost, duration_years,
         'irr': irr,
         'yearly_net': yearly_net,
     }
+
+
+# ---------------------------------------------------------------------------
+# Carbon revenue opportunity
+# ---------------------------------------------------------------------------
+
+# Social Cost of Carbon presets (Int$/tCO2e) used to back-calculate the
+# implied physical sequestration from the ESVD climate-regulation value.
+SCC_LOW = 100      # conservative, older literature
+SCC_CENTRAL = 190  # US EPA 2023 interim figure
+SCC_HIGH = 300     # high-damage scenario (Rennert et al. 2022, Nature)
+
+# Published sequestration benchmarks (tCO2e/ha/yr) by ecosystem type.
+# TODO: add tropical forest, freshwater wetland, peatland, grassland and
+# seagrass benchmarks when EVE supplies them. Peatland sequestration is
+# highly variable and site-specific — flag explicitly for peatland.
+SEQ_BENCHMARKS = {
+    'Mangroves': (6.0, 8.0),  # Hamilton & Friess (2018), Nature Climate Change
+}
+
+
+def compute_carbon_revenue(climate_reg_per_ha, regional_factor, assumed_scc,
+                           carbon_price_low, carbon_price_high,
+                           intervention_area_ha, ecosystem_type):
+    """Potential carbon-credit revenue opportunity, back-calculated from the
+    EEI-adjusted ESVD climate-regulation value.
+
+    The ESVD climate-regulation value already carries EVE's regional GDP
+    adjustment and EEI intactness multiplier. The regional adjustment is
+    reversed to recover the global transfer value; dividing by the Social
+    Cost of Carbon back-calculates the implied physical sequestration rate
+    (still intactness-weighted). That tonnage is then valued across a
+    voluntary carbon-market credit-price range to give a revenue range.
+
+    Returns a dict of figures, or None when there is no climate-regulation
+    value to work from.
+    """
+    if not climate_reg_per_ha or climate_reg_per_ha <= 0:
+        return None
+    rf = regional_factor if (regional_factor and regional_factor > 0) else 1.0
+    scc = assumed_scc if (assumed_scc and assumed_scc > 0) else SCC_CENTRAL
+    area = intervention_area_ha or 0.0
+
+    climate_reg_global = climate_reg_per_ha / rf
+    implied_seq_ha_yr = climate_reg_global / scc
+    implied_seq_total_yr = implied_seq_ha_yr * area
+
+    p_lo = max(0.0, carbon_price_low or 0.0)
+    p_hi = max(0.0, carbon_price_high or 0.0)
+    if p_hi < p_lo:
+        p_lo, p_hi = p_hi, p_lo
+    revenue_low = implied_seq_total_yr * p_lo
+    revenue_high = implied_seq_total_yr * p_hi
+
+    bench = SEQ_BENCHMARKS.get(ecosystem_type)
+    if bench:
+        b_lo, b_hi = bench
+        # 'ok' within +/-30% of the published range; 'warning' well outside.
+        consistency = ('ok' if b_lo * 0.7 <= implied_seq_ha_yr <= b_hi * 1.3
+                       else 'warning')
+    else:
+        b_lo = b_hi = None
+        consistency = 'na'  # no published benchmark for this ecosystem type
+
+    return {
+        'climate_reg_per_ha': climate_reg_per_ha,
+        'climate_reg_global': climate_reg_global,
+        'regional_factor': rf,
+        'assumed_scc': scc,
+        'implied_seq_ha_yr': implied_seq_ha_yr,
+        'implied_seq_total_yr': implied_seq_total_yr,
+        'carbon_price_low': p_lo,
+        'carbon_price_high': p_hi,
+        'revenue_low': revenue_low,
+        'revenue_high': revenue_high,
+        'benchmark_low': b_lo,
+        'benchmark_high': b_hi,
+        'consistency': consistency,
+        'ecosystem_type': ecosystem_type,
+    }

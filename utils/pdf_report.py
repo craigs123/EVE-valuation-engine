@@ -811,6 +811,92 @@ def generate_pdf_report(
     story.append(Spacer(1, 0.5 * cm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=GREY, spaceAfter=4))
 
+    # ---- Potential carbon-credit revenue ------------------------------
+    # Rendered for all report types (basic and investment) whenever the
+    # carbon summary is present — a diagnostic re-expression of the ESVD
+    # climate-regulation value. Shown only in the PDF, not the results page.
+    carbon = (summary_stats or {}).get('carbon')
+    if carbon:
+        story.append(PageBreak())
+        story.append(Paragraph(
+            'Potential Revenue Opportunity (Carbon Credits)', h2))
+        _carbon_rows = [
+            ['ESVD climate regulation (regional)',
+             f'Int$ {carbon["climate_reg_per_ha"]:,.0f}/ha/yr'],
+            ['ESVD climate regulation (global, adj.)',
+             f'Int$ {carbon["climate_reg_global"]:,.0f}/ha/yr'],
+            ['Assumed social cost of carbon',
+             f'Int$ {carbon["assumed_scc"]:,.0f}/tCO2e'],
+            ['Implied sequestration rate',
+             f'{carbon["implied_seq_ha_yr"]:,.1f} tCO2e/ha/yr'],
+            ['Total implied sequestration (project)',
+             f'{carbon["implied_seq_total_yr"]:,.0f} tCO2e/yr'],
+            ['Carbon credit price range',
+             f'Int$ {carbon["carbon_price_low"]:,.0f} – '
+             f'{carbon["carbon_price_high"]:,.0f}/tCO2e'],
+            ['Potential carbon-credit revenue',
+             f'Int$ {carbon["revenue_low"]:,.0f} – '
+             f'{carbon["revenue_high"]:,.0f}/yr'],
+        ]
+        if carbon.get('benchmark_low') is not None:
+            _carbon_rows.append([
+                'Literature benchmark',
+                f'{carbon["benchmark_low"]:.0f}–'
+                f'{carbon["benchmark_high"]:.0f} tCO2e/ha/yr *'])
+        _carbon_table = Table(_carbon_rows, colWidths=[8.5 * cm, 8.5 * cm])
+        _carbon_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0, 0), (0, -1), EVE_DARK),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.white),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [EVE_GREEN_LIGHT, colors.white]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(_carbon_table)
+        story.append(Spacer(1, 0.15 * cm))
+
+        _cons = carbon.get('consistency')
+        if _cons == 'ok':
+            story.append(Paragraph(
+                'Consistency check: the implied sequestration rate is '
+                'consistent with the published range.', caption))
+        elif _cons == 'warning':
+            story.append(Paragraph(
+                '<b>Warning: tCO2 sequestered outside of the expected '
+                'range</b> — review the assumed social cost of carbon or '
+                'the ESVD transfer value.', caption))
+        if carbon.get('benchmark_low') is not None:
+            story.append(Paragraph(
+                '* Hamilton, S.E. &amp; Friess, D.A. (2018). Global carbon '
+                'stocks and potential emissions due to mangrove '
+                'deforestation from 2000 to 2012. Nature Climate Change, '
+                '8, 240&ndash;244.', caption))
+        story.append(Spacer(1, 0.2 * cm))
+
+        _disc = Paragraph(
+            '<b>Note:</b> these carbon figures are back-calculated from the '
+            'ESVD climate-regulation value already included in the '
+            'natural-capital total — a diagnostic re-expression of that '
+            'value as a potential carbon-credit revenue opportunity, not an '
+            'additional revenue line. Do not add them on top of the ESVD '
+            'valuation.', caption)
+        _disc_box = Table([[_disc]], colWidths=[17 * cm])
+        _disc_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFF8E1')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#FB8C00')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(_disc_box)
+        story.append(Spacer(1, 0.3 * cm))
+
     # -------------------------------------------------------------------- footer
     user_display = ''
     if auth_user:
