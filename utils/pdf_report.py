@@ -67,14 +67,24 @@ def generate_pdf_report(
     )
 
     styles = getSampleStyleSheet()
+    # keepWithNext=1: a heading is never left as the last flowable on a page —
+    # ReportLab pushes it to the next page with the content that follows, so
+    # headers and subheaders are never orphaned.
     h1 = ParagraphStyle('EVEh1', parent=styles['Heading1'],
-                        textColor=EVE_DARK, fontSize=18, spaceAfter=4)
+                        textColor=EVE_DARK, fontSize=18, spaceAfter=4,
+                        keepWithNext=1)
     h2 = ParagraphStyle('EVEh2', parent=styles['Heading2'],
-                        textColor=EVE_GREEN, fontSize=13, spaceBefore=10, spaceAfter=4)
+                        textColor=EVE_GREEN, fontSize=13, spaceBefore=10,
+                        spaceAfter=4, keepWithNext=1)
     body = ParagraphStyle('EVEbody', parent=styles['Normal'],
                           fontSize=9, leading=13, textColor=colors.black)
     caption = ParagraphStyle('EVEcaption', parent=styles['Normal'],
                               fontSize=8, leading=11, textColor=GREY)
+    # Bold inline sub-heading (e.g. "Assumptions"); keepWithNext so it never
+    # orphans at the foot of a page.
+    subhead = ParagraphStyle('EVEsubhead', parent=styles['Normal'],
+                             fontSize=9, leading=13, textColor=colors.black,
+                             spaceBefore=4, keepWithNext=1)
     footer_style = ParagraphStyle('EVEfooter', parent=styles['Normal'],
                                   fontSize=7.5, leading=10, textColor=GREY,
                                   alignment=TA_CENTER)
@@ -148,7 +158,7 @@ def generate_pdf_report(
             ('BACKGROUND', (0, 0), (-1, 0), EVE_GREEN),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 13),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
             ('BACKGROUND', (0, 1), (-1, 1), EVE_GREEN_LIGHT),
             ('TEXTCOLOR', (0, 1), (-1, 1), EVE_DARK),
             ('FONTSIZE', (0, 1), (-1, 1), 7),
@@ -327,7 +337,7 @@ def generate_pdf_report(
         _ramp = eroi.get('duration_years')
         _ramp_txt = (f'a {_ramp:.1f}-year linear ramp' if _ramp
                      else 'an immediate uplift')
-        story.append(Paragraph('<b>Assumptions</b>', body))
+        story.append(Paragraph('<b>Assumptions</b>', subhead))
         story.append(Paragraph(
             f'Ecosystem-service values are annual flows, not one-off stocks. The '
             f'uplift (target minus baseline annual value) is treated as perpetual '
@@ -354,6 +364,17 @@ def generate_pdf_report(
             _cum_img = Image(io.BytesIO(_cum_chart), width=14 * cm, height=7 * cm)
             _cum_img.hAlign = 'CENTER'
             story.append(_cum_img)
+            story.append(Spacer(1, 0.1 * cm))
+            story.append(Paragraph(
+                'The cumulative net cash flow is the running, undiscounted total '
+                'of the project’s annual net position — the buffered '
+                'ecosystem-service uplift, less maintenance and the spread capital '
+                'cost. It starts negative while capital is being outlaid; the year '
+                'the curve crosses the zero break-even line is the payback period, '
+                'after which the project is in cumulative surplus. Because this '
+                'view is undiscounted, its end value exceeds the (discounted) net '
+                'present value reported above.',
+                caption))
         story.append(PageBreak())
 
         # ---- Sensitivity analysis --------------------------------------

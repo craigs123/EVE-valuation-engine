@@ -1910,7 +1910,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.17 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.18 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -3454,36 +3454,39 @@ def render_eroi_panel(results: dict) -> None:
     area_ha = results.get('area_ha') or results.get('area_hectares') or 0
     H = eroi['horizon_years']
 
-    # Metric cards — one unified bordered panel, matching the Ecosystem
-    # Services panel: st.columns of st.metric with a single caption each.
-    with st.container(border=True, key="results_eroi_panel"):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("Annual uplift at target", f"${eroi['uplift']:,.0f}/yr")
-            if area_ha:
-                st.caption(f"${eroi['uplift'] / area_ha:,.0f}/ha/yr")
-        with c2:
-            st.metric("Project cost", f"${eroi['cost']:,.0f}")
-            if area_ha:
-                st.caption(f"${eroi['cost'] / area_ha:,.0f}/ha")
-        with c3:
-            st.metric(f"{H}-yr value (PV)", f"${eroi['pv_benefits']:,.0f}")
-            st.caption(f"undiscounted ${eroi['cum_benefit']:,.0f}")
+    # Simple boxed figures — each metric in its own border box (st.metric
+    # border=True), with no outer container, so the row reads as clean boxed
+    # figures rather than cards nested inside a card.
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Annual uplift at target", f"${eroi['uplift']:,.0f}/yr",
+                  border=True)
+        if area_ha:
+            st.caption(f"${eroi['uplift'] / area_ha:,.0f}/ha/yr")
+    with c2:
+        st.metric("Project cost", f"${eroi['cost']:,.0f}", border=True)
+        if area_ha:
+            st.caption(f"${eroi['cost'] / area_ha:,.0f}/ha")
+    with c3:
+        st.metric(f"{H}-yr value (PV)", f"${eroi['pv_benefits']:,.0f}",
+                  border=True)
+        st.caption(f"undiscounted ${eroi['cum_benefit']:,.0f}")
 
-        m1, m2, m3, m4, m5 = st.columns(5)
-        with m1:
-            st.metric("Benefit–cost ratio", f"{eroi['bcr']:.2f}×")
-        with m2:
-            st.metric("NPV", f"${eroi['npv']:,.0f}")
-        with m3:
-            st.metric("IRR", f"{eroi['irr'] * 100:.1f}%"
-                      if eroi.get('irr') is not None else "—")
-        with m4:
-            st.metric("Payback period",
-                      f"{eroi['payback_years']:.1f} yr"
-                      if eroi['payback_years'] is not None else "—")
-        with m5:
-            st.metric("Annual yield", f"{eroi['annual_yield'] * 100:.1f}% / yr")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    with m1:
+        st.metric("Benefit–cost ratio", f"{eroi['bcr']:.2f}×", border=True)
+    with m2:
+        st.metric("NPV", f"${eroi['npv']:,.0f}", border=True)
+    with m3:
+        st.metric("IRR", f"{eroi['irr'] * 100:.1f}%"
+                  if eroi.get('irr') is not None else "—", border=True)
+    with m4:
+        st.metric("Payback period",
+                  f"{eroi['payback_years']:.1f} yr"
+                  if eroi['payback_years'] is not None else "—", border=True)
+    with m5:
+        st.metric("Annual yield", f"{eroi['annual_yield'] * 100:.1f}% / yr",
+                  border=True)
 
     _dur_txt = (f"{duration_years:.1f}-yr linear ramp" if duration_years
                 else "immediate uplift (no baseline/target dates set)")
