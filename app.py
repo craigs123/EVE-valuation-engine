@@ -1919,7 +1919,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.20 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.21 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -6652,7 +6652,10 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
     # a target valuation. Placed in the shared region so it renders after the
     # totals in both Summary and Detailed modes.
     render_eroi_panel(results)
-    render_carbon_revenue_panel(results)
+    # Carbon "Potential Revenue Opportunity" figures are PDF-only — rendered
+    # in the investment PDF (see generate_pdf_report). The on-screen panel is
+    # intentionally not shown; render_carbon_revenue_panel() is kept (uncalled)
+    # in case an on-screen view is wanted again.
 
     # Show ecosystem services breakdown if available
     if 'esvd_results' in results:
