@@ -1919,7 +1919,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.22 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.25 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -5759,6 +5759,16 @@ if analyze_button and st.session_state.selected_area:
                                 progress_text.info(f"🔍 Sampling progress: {current_point}/{total_points} samples ({progress:.0%})")
                     
                     if not _pending_classification:
+                        # Pass the selected test area through so analyze_area_ecosystem
+                        # can swap in a synthesized "Test Area Fallback" result if
+                        # the OpenLandMap COG host is unreachable. For user-drawn
+                        # areas (use_test_area_single=False) the test_area_id stays
+                        # None and the normal STAC + geographic-fallback path runs.
+                        _test_area_for_fallback = (
+                            selected_test_area
+                            if (use_test_area_single and selected_test_area)
+                            else None
+                        )
                         ecosystem_info = detect_ecosystem_type(
                             st.session_state.area_coordinates,
                             st.session_state.sampling_frequency,
@@ -5767,7 +5777,8 @@ if analyze_button and st.session_state.selected_area:
                             include_environmental_indicators=(
                                 st.session_state.get('show_indicator_fapar', False)
                                 or st.session_state.get('show_indicator_soil_c', False)
-                            )
+                            ),
+                            test_area_id=_test_area_for_fallback,
                         )
 
                         # Always do fresh sampling for each analysis
