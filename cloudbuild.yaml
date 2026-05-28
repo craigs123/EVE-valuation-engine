@@ -1,0 +1,51 @@
+# Cloud Build config using Kaniko with registry-backed layer caching.
+#
+# Why this file exists: `gcloud run deploy --source .` (the previous
+# build path) runs a fresh Docker build on a stateless Cloud Build VM
+# every time, so a code-only edit re-installs every Python dependency
+# from scratch — ~4–6 minutes per deploy. Kaniko with `--cache=true`
+# stores layer hashes in a dedicated Artifact Registry cache repo and
+# reuses them on subsequent builds. Code-only deploys then skip the
+# pip-install layer and finish in roughly 60–90 s.
+#
+# Used by:
+#   - scripts/deploy_staging.sh  (staging service + lifecycle Job)
+#   - scripts/deploy_prod.sh     (prod service)
+# Both scripts call `gcloud builds submit --config cloudbuild.yaml ...`
+# then `gcloud run deploy ... --image <built-tag>`.
+
+substitutions:
+  _IMAGE_NAME: us-central1-docker.pkg.dev/eve-solutions-482317/cloud-run-source-deploy/eve-valuation-engine
+
+steps:
+  - name: gcr.io/kaniko-project/executor:latest
+    args:
+      - --dockerfile=Dockerfile
+      - --context=dir:///workspace
+      # Two tags: BUILD_ID gives every revision a unique reference (so
+      # Cloud Run knows to roll a new revision), :latest is what the
+      # deploy scripts hand to `--image`.
+      - --destination=${_IMAGE_NAME}:${BUILD_ID}
+      - --destination=${_IMAGE_NAME}:latest
+      # Layer cache lives in a sibling repo path so it doesn't clutter
+      # the main image tags. 7-day TTL means the deps layer survives
+      # a typical week of code-only edits without needing a rebuild.
+      - --cache=true
+      - --cache-ttl=168h
+      - --cache-repo=${_IMAGE_NAME}/cache
+
+# NOTE: do NOT add an `images:` section here. Kaniko pushes via its
+# own --destination flags above, and Cloud Build's `images:` post-step
+# verification fails ("failed to find one or more images after
+# execution of build steps") because it expects the docker daemon to
+# have produced the images locally, which Kaniko doesn't do.
+
+# E2_HIGHCPU_8 gives Kaniko more CPU during the (still long, on a
+# cold cache) initial build. Subsequent cached builds spend almost no
+# time on this step regardless of machine size.
+options:
+  machineType: E2_HIGHCPU_8
+
+# Generous timeout for the cold-cache first build (still well under
+# the Cloud Build default of 10 min, so this is just defensive).
+timeout: 1200s

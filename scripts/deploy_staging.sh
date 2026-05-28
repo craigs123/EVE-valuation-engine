@@ -2,9 +2,16 @@
 # Ongoing staging deploys (after one-time setup via setup_staging_db.ps1 +
 # setup_staging.sh).
 #
-# Rebuilds the Docker image from the current working tree and redeploys
-# both the Cloud Run service and the lifecycle Job. Env vars and secrets
-# already on the staging resources are preserved (no --set-env-vars).
+# Builds the Docker image via Cloud Build + Kaniko (with registry-backed
+# layer cache, see cloudbuild.yaml), then redeploys both the staging
+# Cloud Run service and the lifecycle Job from the same image. Env vars
+# and secrets already on the staging resources are preserved (no
+# --set-env-vars).
+#
+# Switched off `gcloud run deploy --source` on 2026-05-28 because each
+# code-only deploy was rebuilding all Python deps from scratch (~4–6
+# min). Kaniko's layer cache drops that to ~60–90 s once the deps layer
+# is warm.
 #
 # Typical workflow:
 #   git checkout staging
@@ -22,10 +29,18 @@ REGION="us-central1"
 SERVICE="eve-valuation-engine-staging"
 JOB_NAME="eve-account-lifecycle-staging"
 CLOUDSQL_INSTANCE="eve-solutions-482317:us-central1:eve-db"
+IMAGE_NAME="us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/eve-valuation-engine"
 
+echo "─── Building image via Cloud Build + Kaniko cache ───────────────────────"
+gcloud builds submit \
+    --config cloudbuild.yaml \
+    --project "$PROJECT_ID" \
+    --quiet
+
+echo ""
 echo "─── Deploying $SERVICE (web) ────────────────────────────────────────────"
 gcloud run deploy "$SERVICE" \
-    --source . \
+    --image "${IMAGE_NAME}:latest" \
     --region "$REGION" \
     --project "$PROJECT_ID" \
     --platform managed \
@@ -34,7 +49,7 @@ gcloud run deploy "$SERVICE" \
 echo ""
 echo "─── Deploying $JOB_NAME (lifecycle) ─────────────────────────────────────"
 gcloud run jobs deploy "$JOB_NAME" \
-    --source . \
+    --image "${IMAGE_NAME}:latest" \
     --region "$REGION" --project "$PROJECT_ID" \
     --command=python \
     --args=-m,scripts.check_unverified \

@@ -1230,40 +1230,60 @@ def get_country_from_coordinates(lat: float, lon: float) -> str:
 def display_data_source_status(analysis_results: Dict = None):
     """Display clear indicators of which data source is being used"""
     openlandmap_status = preload_openlandmap_status()
-    
+
+    # Detect when the sample points actually came from the GEE backup
+    # (ESA WorldCover via the EEI app) or the test-area fallback. Either
+    # one means OLM STAC was NOT the active source for this analysis —
+    # so the status panel should reflect that instead of always saying
+    # "Connected" off the cached preload check.
+    sampling_data = analysis_results.get('sampling_point_data', {}) if analysis_results else {}
+    sources_seen = [p.get('source', '') for p in sampling_data.values()]
+    gee_backup_active = any('WorldCover' in s for s in sources_seen)
+    test_area_fallback_active = any('Test Area Fallback' in s for s in sources_seen)
+    has_real_olm_data = any(
+        ('Real ESA Satellite Data' in s) or ('GeoTIFF Pixel' in s)
+        for s in sources_seen
+    )
+
     with st.container():
         col1, col2 = st.columns(2)
-        
+
         with col1:
-            if openlandmap_status.get('authentication_success', False):
+            if gee_backup_active or test_area_fallback_active:
+                # OLM was the chosen primary but didn't answer for this run —
+                # surface that the backup path took over. st.error gives the
+                # pastel red tone matching the "down" status.
+                st.error("🌍 **OpenLandMap STAC**: Not connecting")
+            elif openlandmap_status.get('authentication_success', False):
                 st.success("🌍 **OpenLandMap STAC**: Connected")
             else:
-                st.warning("🌍 **OpenLandMap STAC**: Connection Issues")
+                st.error("🌍 **OpenLandMap STAC**: Connection Issues")
                 if openlandmap_status.get('error'):
                     st.caption(f"Reason: {openlandmap_status['error']}")
-        
+
         with col2:
-            # Check if we have authentic OpenLandMap data or are using estimated values
-            data_source_active = st.session_state.get('landcover_data_source', analysis_results.get('landcover_data_source', '') if analysis_results else '')
-            
-            # Also check sampling point data for real satellite data indicators
-            has_real_data = False
-            if analysis_results:
-                sampling_data = analysis_results.get('sampling_point_data', {})
+            # Active-source label reflects which path actually populated the
+            # sample points, in priority order: GEE backup → test-area
+            # fallback → real OLM data → geographic fallback.
+            data_source_active = st.session_state.get(
+                'landcover_data_source',
+                analysis_results.get('landcover_data_source', '') if analysis_results else '',
+            )
+
+            # Env-indicator pull is a secondary signal that OLM had real
+            # data — only trust it when GEE/test fallback paths didn't fire.
+            has_env_indicators = False
+            if not gee_backup_active and not test_area_fallback_active and analysis_results:
                 for point_data in sampling_data.values():
-                    source = point_data.get('source', '')
-                    # Check for explicit real data markers
-                    if 'Real ESA Satellite Data' in source or 'GeoTIFF Pixel' in source:
-                        has_real_data = True
+                    if (point_data.get('stac_data') or {}):
+                        has_env_indicators = True
                         break
-                    # CRITICAL FIX: Also check if environmental indicators were successfully extracted
-                    stac_data = point_data.get('stac_data', {})
-                    if stac_data and len(stac_data) > 0:
-                        # If we have any environmental indicators, we have real data
-                        has_real_data = True
-                        break
-            
-            if data_source_active == 'openlandmap' or has_real_data:
+
+            if gee_backup_active:
+                st.success("**Active Source**: ESA WorldCover v200")
+            elif test_area_fallback_active:
+                st.info("**Active Source**: Test Area Fallback")
+            elif data_source_active == 'openlandmap' or has_real_olm_data or has_env_indicators:
                 st.success("**Active Source**: Real ESA Satellite Data")
             else:
                 st.warning("⚠️  **Active Source**: Geographic Fallback")
@@ -1295,9 +1315,6 @@ def display_data_source_status(analysis_results: Dict = None):
                         break
                 
                 if (data_source_check == 'openlandmap' or has_real_sampling_data) and sampling_point_data:
-                    st.markdown("**OpenLandMap STAC Data:**")
-                    st.write(f"• Data Source: Authentic satellite-derived landcover classifications")
-                    st.write(f"• Sample Points Analyzed: {len(sampling_point_data)} points")
                     st.markdown("**Sample Points Summary Table:**")
                     
                     # Prepare data for table
@@ -1919,7 +1936,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.25 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.28 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2154,8 +2171,14 @@ def analysis_settings_dialog():
                 reset_analysis_state()
 
         st.divider()
-        with st.expander("OpenLandMap Settings (advanced — landcover → ecosystem mapping)", expanded=False):
-            from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
+        with st.expander("Ecosystem Mapping (advanced — landcover → ecosystem mapping)", expanded=False):
+            from utils.esa_landcover_codes import (
+                DEFAULT_LANDCOVER_MAPPING,
+                get_all_esa_codes,
+                get_default_multipliers,
+                get_esa_description,
+                get_worldcover_for_cci,
+            )
             _default_map = DEFAULT_LANDCOVER_MAPPING
             _esvd_types = [
                 "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
@@ -2171,9 +2194,12 @@ def analysis_settings_dialog():
             _desc = get_all_esa_codes()
             st.markdown("**Landcover → Ecosystem mapping**")
             st.caption(
-                "Each ESA CCI / WorldCover land-cover code maps to one ESVD ecosystem "
-                "type. The ESA description is shown alongside each code; change the "
-                "ecosystem on the right to override that code's default routing."
+                "Each ESA CCI land-cover code maps to one ESVD ecosystem type. "
+                "The WorldCover columns show the ESA WorldCover class (used by the "
+                "GEE backup when OpenLandMap is unreachable) that maps to each CCI "
+                "code — blank entries are CCI sub-classes with no WorldCover "
+                "counterpart. Change the ecosystem on the right to override that "
+                "code's default routing."
             )
             if st.button("Reset to defaults", key="dlg_reset_mapping"):
                 st.session_state.custom_landcover_mapping = _default_map.copy()
@@ -2182,18 +2208,23 @@ def analysis_settings_dialog():
             if _changes:
                 st.info(f"{_changes} custom mappings active")
 
-            # Header row
-            _hc1, _hc2, _hc3 = st.columns([1, 5, 3])
+            # Header row — five columns now (CCI code / description / WC code /
+            # WC description / ESVD type).
+            _hc1, _hc2, _hc3, _hc4, _hc5 = st.columns([1, 4, 1, 3, 3])
             with _hc1:
-                st.markdown("**Code**")
+                st.markdown("**CCI**")
             with _hc2:
-                st.markdown("**ESA description**")
+                st.markdown("**ESA CCI description**")
             with _hc3:
+                st.markdown("**WC**")
+            with _hc4:
+                st.markdown("**WorldCover description**")
+            with _hc5:
                 st.markdown("**ESVD ecosystem type**")
             st.divider()
 
             for code in sorted(_default_map.keys()):
-                _mc1, _mc2, _mc3 = st.columns([1, 5, 3])
+                _mc1, _mc2, _mc3, _mc4, _mc5 = st.columns([1, 4, 1, 3, 3])
                 with _mc1:
                     st.markdown(f"**{code}**")
                 with _mc2:
@@ -2210,7 +2241,12 @@ def analysis_settings_dialog():
                         )
                     else:
                         st.write(_label)
+                _wc_code, _wc_desc = get_worldcover_for_cci(code)
                 with _mc3:
+                    st.write(f"**{_wc_code}**" if _wc_code is not None else "—")
+                with _mc4:
+                    st.write(_wc_desc if _wc_desc is not None else "—")
+                with _mc5:
                     _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
                     _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
                     _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
@@ -2303,7 +2339,7 @@ def analysis_settings_dialog():
                 for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
             ]
             st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
-                       "Customise per-code values in **OpenLandMap Settings** above.")
+                       "Customise per-code values in **Ecosystem Mapping** above.")
             st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
         # Admin-only section: list of registered users.
@@ -5285,6 +5321,41 @@ if _curr_area_selected and not _prev_area_selected:
         height=0,
     )
 st.session_state['_prev_area_selected_for_scroll'] = _curr_area_selected
+
+# Auto-scroll the new results into view the first render after a calc
+# completes. Without this, Streamlit's default rerun behaviour leaves the
+# user at the top of the page and they have to scroll back down to find
+# what just rendered. Same pattern as the area-selected scroll above:
+# fires only on the False→True transition of calculation_ready, tracked
+# via a session-state flag so subsequent reruns (tabs, indicator tweaks,
+# dropdown changes) don't keep yanking the view around.
+_curr_calc_ready = bool(st.session_state.get('calculation_ready'))
+_prev_calc_ready = bool(st.session_state.get('_prev_calc_ready_for_scroll', False))
+if _curr_calc_ready and not _prev_calc_ready:
+    import streamlit.components.v1 as _components
+    _components.html(
+        """
+        <script>
+        // Short delay lets the new results section finish mounting before
+        // we scroll — otherwise the target might not exist yet. 'instant'
+        // (not 'smooth') so the up→down hop is over before the user sees
+        // it, rather than animating the bounce.
+        setTimeout(() => {
+            const doc = window.parent.document;
+            const target =
+                Array.from(doc.querySelectorAll('h2, h3'))
+                    .find(h => /Sampling Results|Sampling Points|Results/i.test(h.textContent))
+                || doc.querySelector('[class*="st-key-results_totals_panel"]')
+                || doc.querySelector('[class*="st-key-calc_below_dropdown"]');
+            if (target) {
+                target.scrollIntoView({ behavior: 'instant', block: 'start' });
+            }
+        }, 120);
+        </script>
+        """,
+        height=0,
+    )
+st.session_state['_prev_calc_ready_for_scroll'] = _curr_calc_ready
 
 # Legacy results section — disabled; display handled by the calculation_ready block below
 if False and st.session_state.get('analysis_results'):

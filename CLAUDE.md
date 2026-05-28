@@ -44,7 +44,7 @@ Two Cloud Run environments live in GCP project `eve-solutions-482317`, region `u
 ```
 feature-branch → PR → staging → (test on staging URL) → PR → main
                        │                                   │
-                       ↓ bash scripts/deploy_staging.sh    ↓ gcloud run deploy …
+                       ↓ bash scripts/deploy_staging.sh    ↓ bash scripts/deploy_prod.sh
                 staging service                       prod service
 ```
 
@@ -53,11 +53,16 @@ feature-branch → PR → staging → (test on staging URL) → PR → main
 3. From `staging` branch: bump the version to the next `vX.Y.Z beta`, push, run `bash scripts/deploy_staging.sh`.
 4. Test on the staging URL (need to be authenticated — see "Accessing staging" below).
 5. When green: open PR `staging` → `main`. Merge.
-6. From `main`: bump the version to the release `vX.Y.Z beta` — set the clean X.Y.Z release number, but **keep the `beta` suffix** (the app is still beta-stage) — push, run prod deploy:
-   ```
-   gcloud run deploy eve-valuation-engine --source . --region us-central1 --platform managed --quiet
-   ```
+6. From `main`: bump the version to the release `vX.Y.Z beta` — set the clean X.Y.Z release number, but **keep the `beta` suffix** (the app is still beta-stage) — push, run `bash scripts/deploy_prod.sh`.
 7. If schema changed: run Alembic migration against the prod DB **before** the prod deploy (see `reference_local_migration.md` memory). Same migration must already have been run against `eve_staging` during step 3 testing.
+
+Both deploy scripts use `cloudbuild.yaml` + Kaniko with registry-backed
+layer caching, which makes code-only deploys finish in ~60–90 s instead
+of 4–6 min. The cache lives in the
+`cloud-run-source-deploy/eve-valuation-engine/cache` Artifact Registry
+repo and is shared between staging and prod (same Dockerfile, same
+deps, so warming the cache from a staging deploy also speeds up the
+next prod deploy).
 
 **Accessing staging (IAM-locked):**
 
@@ -75,7 +80,8 @@ gcloud run services add-iam-policy-binding eve-valuation-engine-staging \
 
 - `setup_staging_db.ps1` — one-time: creates `eve_staging` DB, runs Alembic up to head, revokes IP authorization.
 - `setup_staging.sh` — one-time: creates staging Cloud Run service + Job + Scheduler, copies env vars from prod with `DATABASE_URL` repointed at `eve_staging` and `APP_BASE_URL` set to the staging URL.
-- `deploy_staging.sh` — ongoing: rebuilds Docker image + redeploys the staging service and Job.
+- `deploy_staging.sh` — ongoing: builds via `cloudbuild.yaml` + Kaniko cache, then redeploys the staging service and Job from the resulting image.
+- `deploy_prod.sh` — ongoing: same Kaniko build, redeploys the prod service.
 - `deploy_staging.ps1` — PowerShell wrapper: runs `deploy_staging.sh`, then auto-launches the `gcloud run services proxy` in a new window and opens `http://localhost:8080` in the browser. Use `.\scripts\deploy_staging.ps1` from a PowerShell terminal in the repo root. `-SkipDeploy` opens the proxy + browser without re-deploying; `-Port 8090` changes the local port.
 - `setup_lifecycle_job.sh` — one-time / re-runnable: prod lifecycle Job setup.
 - `check_unverified.py` — entry point for both lifecycle Jobs (`python -m scripts.check_unverified`).

@@ -1017,22 +1017,33 @@ class OpenLandMapIntegrator:
             ecosystem_results = []
             successful_queries = 0
 
-            # If this is a known test area AND the OpenLandMap COG host is
-            # unreachable, short-circuit the per-point STAC retries (which
-            # would otherwise burn ~5s per point in sleeps before falling
-            # back). Each point gets the test area's expected landcover code
-            # tagged as "Test Area Fallback" so the rest of the pipeline
-            # (ESVD lookup, UI display, PDF) works normally.
+            # Backup-source dispatch when OpenLandMap's COG host is
+            # unreachable. We probe ONCE up-front instead of letting every
+            # sample point burn through 3 retries × 1.5s sleeps. Routing:
+            #   1. Known test area  → synthesised "Test Area Fallback"
+            #      result (no API cost).
+            #   2. Real user area   → batch ESA WorldCover via GEE (the
+            #      EEI app's /api/landcover-batch). GEE only fires when
+            #      OLM is actually down, so we never pay GEE costs during
+            #      normal operation.
+            #   3. GEE also fails   → fall through to per-point STAC +
+            #      geographic fallback (existing slow path).
             fallback_landcover = TEST_AREA_FALLBACK_LANDCOVER.get(test_area_id) if test_area_id else None
-            if fallback_landcover is not None and not _stac_asset_host_reachable():
-                print(f"⚠️ OpenLandMap COG host unreachable — using Test Area Fallback for {test_area_id} ({len(sample_points)} points)")
-                return self._build_test_area_fallback_results(
-                    sample_points,
-                    fallback_landcover,
-                    test_area_id,
-                    include_environmental_indicators,
-                    progress_callback,
-                )
+            if not _stac_asset_host_reachable():
+                if fallback_landcover is not None:
+                    print(f"⚠️ OpenLandMap COG host unreachable — using Test Area Fallback for {test_area_id} ({len(sample_points)} points)")
+                    return self._build_test_area_fallback_results(
+                        sample_points,
+                        fallback_landcover,
+                        test_area_id,
+                        include_environmental_indicators,
+                        progress_callback,
+                    )
+                print(f"⚠️ OpenLandMap COG host unreachable — trying GEE landcover backup for {len(sample_points)} points")
+                gee_result = self._build_gee_landcover_results(sample_points, progress_callback)
+                if gee_result is not None:
+                    return gee_result
+                print("⚠️ GEE landcover backup also failed — falling through to per-point STAC + geographic fallback")
 
             # FAST PROCESSING: Direct pixel extraction without complex STAC discovery
             try:
@@ -1134,6 +1145,90 @@ class OpenLandMapIntegrator:
         except Exception as e:
             raise RuntimeError(f"Ecosystem analysis failed: {str(e)}. Unable to complete area-based ecosystem detection.")
     
+    def _build_gee_landcover_results(
+        self,
+        sample_points: List[Tuple[float, float]],
+        progress_callback=None,
+    ) -> Optional[Dict]:
+        """Backup landcover path via the EEI app's GEE-backed
+        /api/landcover-batch endpoint. Called only when the OpenLandMap
+        COG host is unreachable AND we don't have a synthesised
+        test-area fallback to use. Returns the same shape as the normal
+        STAC path so downstream code (ESVD lookup, UI display, PDF) is
+        unaffected, or None if the GEE endpoint fails so the caller can
+        fall through to the remaining backup tiers.
+        """
+        try:
+            from .landcover_api import get_landcover_batch
+        except Exception as e:
+            print(f"⚠️ Landcover-API client unavailable: {e}")
+            return None
+
+        batch = get_landcover_batch(sample_points)
+        if not batch or not batch.get('results'):
+            return None
+
+        ecosystem_results = []
+        for idx, (lat, lon) in enumerate(sample_points):
+            r = batch['results'][idx] if idx < len(batch['results']) else None
+            if not r or r.get('error') or r.get('landcover_code') is None:
+                if progress_callback:
+                    progress_callback(idx + 1, len(sample_points))
+                continue
+            landcover_code = int(r['landcover_code'])
+            base_eco = r.get('ecosystem_type') or self.landcover_to_ecosystem.get(landcover_code, "Unknown")
+            # WorldCover's "Tree cover" class lands on CCI 70, which EVE
+            # treats as generic Forest. Refine to Boreal/Temperate/Tropical
+            # by latitude (same rule the STAC path applies).
+            if base_eco == "Forest" or landcover_code in (70, 71, 90):
+                abs_lat = abs(lat)
+                if 50 <= abs_lat <= 70:
+                    ecosystem_type = 'Boreal Forest'
+                elif abs_lat <= 25:
+                    ecosystem_type = 'Tropical Forest'
+                else:
+                    ecosystem_type = 'Temperate Forest'
+            else:
+                ecosystem_type = base_eco
+
+            ecosystem_results.append({
+                'ecosystem_type': ecosystem_type,
+                'source': r.get('source', 'ESA WorldCover (GEE backup)'),
+                'landcover_class': landcover_code,
+                'coordinates': {'lat': lat, 'lon': lon},
+                'raw_stac_data': {
+                    'extraction_method': 'gee_landcover_backup',
+                    'worldcover_code': r.get('worldcover_code'),
+                    'landcover_code': landcover_code,
+                },
+                'stac_data': {
+                    'landcover': [{'name': 'Land Cover', 'value': landcover_code, 'unit': 'class'}],
+                    'data_source': r.get('source', 'ESA WorldCover (GEE backup)'),
+                    'query_time': time.time(),
+                },
+            })
+            if progress_callback:
+                progress_callback(idx + 1, len(sample_points))
+
+        if not ecosystem_results:
+            return None
+
+        type_counts = Counter(r['ecosystem_type'] for r in ecosystem_results)
+        ecosystem_counts = {k: {'count': v} for k, v in type_counts.items()}
+        dominant_ecosystem = max(ecosystem_counts.keys(), key=lambda x: ecosystem_counts[x]['count'])
+        dominant_count = ecosystem_counts[dominant_ecosystem]['count']
+        coverage_percentage = (dominant_count / len(ecosystem_results)) * 100
+
+        return {
+            'primary_ecosystem': dominant_ecosystem,
+            'coverage_percentage': coverage_percentage,
+            'successful_queries': len(ecosystem_results),
+            'total_samples': len(sample_points),
+            'ecosystem_distribution': ecosystem_counts,
+            'source': 'ESA WorldCover (GEE backup)',
+            'sample_results': ecosystem_results,
+        }
+
     def _build_test_area_fallback_results(
         self,
         sample_points: List[Tuple[float, float]],
