@@ -58,6 +58,15 @@ gcloud run jobs deploy "$JOB_NAME" \
     --max-retries=1 \
     --quiet
 
+# Belt-and-braces — see the matching block in scripts/deploy_prod.sh.
+echo ""
+echo "─── Routing 100% traffic to latest revision ─────────────────────────────"
+gcloud run services update-traffic "$SERVICE" \
+    --to-latest \
+    --region "$REGION" \
+    --project "$PROJECT_ID" \
+    --quiet
+
 STAGING_URL=$(gcloud run services describe "$SERVICE" \
     --region "$REGION" --project "$PROJECT_ID" \
     --format='value(status.url)')

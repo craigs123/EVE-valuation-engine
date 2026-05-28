@@ -39,6 +39,21 @@ gcloud run deploy "$SERVICE" \
     --platform managed \
     --quiet
 
+# Force 100% traffic to the freshly-built revision. Belt-and-braces:
+# `gcloud run deploy` normally routes traffic automatically, BUT if a
+# previous run had explicitly pinned traffic (e.g. an `update-traffic
+# --to-revisions=...=100` for a rollback), new revisions stay at 0%
+# until traffic is explicitly shifted. This bit us on 2026-05-28
+# after the v3.8.22 rollback. `--to-latest` is a safe no-op when
+# traffic is already on the new revision.
+echo ""
+echo "─── Routing 100% traffic to latest revision ─────────────────────────────"
+gcloud run services update-traffic "$SERVICE" \
+    --to-latest \
+    --region "$REGION" \
+    --project "$PROJECT_ID" \
+    --quiet
+
 PROD_URL=$(gcloud run services describe "$SERVICE" \
     --region "$REGION" --project "$PROJECT_ID" \
     --format='value(status.url)')
