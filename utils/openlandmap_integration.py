@@ -15,6 +15,43 @@ try:
 except ImportError:
     EE_AVAILABLE = False
 
+
+# Per-test-area fallback ESA CCI landcover code, used when the OpenLandMap
+# data host is unreachable (e.g. the 2026-05-28 outage of s3.openlandmap.org).
+# The result is labelled with data_source='Test Area Fallback' so it can't be
+# mistaken for real satellite data. Real user-drawn areas are unaffected —
+# they continue to use the live STAC + geographic-fallback path.
+TEST_AREA_FALLBACK_LANDCOVER: Dict[str, int] = {
+    "🌾 Test area (Agricultural)":           10,    # Cropland, rainfed
+    "🌱 Test area (Grassland)":              130,   # Grassland
+    "🌿 Test area (Shrubland)":              120,   # Shrubland
+    "🌲 Test area (Boreal Forest)":          70,    # Tree cover, needleleaved evergreen
+    "🌳 Test area (Temperate Forest)":       60,    # Temperate forest
+    "🌴 Test area (Tropical Forest)":        50,    # Tropical forest
+    "🦀 Test area (Mangrove)":               170,   # Tree cover, flooded, saline (mangroves)
+    "🏜️ Test area (Desert)":                 200,   # Bare areas
+    "🏙️ Test area (Urban)":                  190,   # Urban areas
+    "🌊 Test area (Water (ocean))":          211,   # Marine
+    "🏞️ Test area (Water (Rivers/Lakes))":   210,   # Inland water bodies
+    "🏖️ Test area (Water (Coastal))":        170,   # Coastal (treated as Coastal ecosystem)
+}
+
+
+def _stac_asset_host_reachable(timeout: float = 2.0) -> bool:
+    """Quick health probe for the OpenLandMap COG asset host.
+
+    The STAC catalog (Wasabi S3) and the actual COG asset host
+    (s3.openlandmap.org) are separate services. The latter has gone down in
+    isolation before, breaking every per-pixel read while collection
+    metadata still loads. A single HEAD here is much cheaper than letting
+    every sample point burn through 3 retries × 1.5s sleeps.
+    """
+    try:
+        r = requests.head("https://s3.openlandmap.org/", timeout=timeout)
+        return r.status_code < 500
+    except Exception:
+        return False
+
 class OpenLandMapIntegrator:
     """
     Integrates with OpenLandMap.com to fetch land cover data and determine ecosystem types
@@ -952,34 +989,55 @@ class OpenLandMapIntegrator:
         except Exception as e:
             raise RuntimeError(f"Failed to parse landcover response: {str(e)}")
     
-    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True) -> Dict:
+    def analyze_area_ecosystem(self, coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True, test_area_id: Optional[str] = None) -> Dict:
         """
         Analyze ecosystem type for a polygon area using multiple sample points
-        
+
         Args:
             coordinates: List of coordinate pairs defining the polygon
             sampling_frequency: Sampling density multiplier
             max_sampling_limit: Maximum number of sample points for analysis
             progress_callback: Optional callback function for progress updates (current_point, total_points)
             include_environmental_indicators: If False, only collect land cover data (much faster)
+            test_area_id: Optional name of the selected test area (e.g. "🦀 Test area (Mangrove)").
+                When set and the OpenLandMap data host is unreachable, every sample point is
+                assigned the test area's expected landcover code with data_source set to
+                "Test Area Fallback" — so test runs still complete during STAC outages.
         """
         try:
             if not coordinates or len(coordinates) < 3:
                 raise ValueError("Insufficient coordinates provided. At least 3 coordinate pairs are required for polygon analysis.")
-            
+
             # Use user-defined sample limit directly (simplified approach)
             num_points = max_sampling_limit
-            
+
             # Generate sample points within the polygon
             sample_points = self._generate_sample_points(coordinates, num_points=num_points)
-            
+
             ecosystem_results = []
             successful_queries = 0
-            
+
+            # If this is a known test area AND the OpenLandMap COG host is
+            # unreachable, short-circuit the per-point STAC retries (which
+            # would otherwise burn ~5s per point in sleeps before falling
+            # back). Each point gets the test area's expected landcover code
+            # tagged as "Test Area Fallback" so the rest of the pipeline
+            # (ESVD lookup, UI display, PDF) works normally.
+            fallback_landcover = TEST_AREA_FALLBACK_LANDCOVER.get(test_area_id) if test_area_id else None
+            if fallback_landcover is not None and not _stac_asset_host_reachable():
+                print(f"⚠️ OpenLandMap COG host unreachable — using Test Area Fallback for {test_area_id} ({len(sample_points)} points)")
+                return self._build_test_area_fallback_results(
+                    sample_points,
+                    fallback_landcover,
+                    test_area_id,
+                    include_environmental_indicators,
+                    progress_callback,
+                )
+
             # FAST PROCESSING: Direct pixel extraction without complex STAC discovery
             try:
                 from .openlandmap_stac_api import openlandmap_stac
-                
+
                 print(f"🚀 FAST MODE: Processing {len(sample_points)} points with direct extraction")
                 for i, (lat, lon) in enumerate(sample_points):
                     result = openlandmap_stac.get_ecosystem_type(lat, lon)
@@ -1076,6 +1134,76 @@ class OpenLandMapIntegrator:
         except Exception as e:
             raise RuntimeError(f"Ecosystem analysis failed: {str(e)}. Unable to complete area-based ecosystem detection.")
     
+    def _build_test_area_fallback_results(
+        self,
+        sample_points: List[Tuple[float, float]],
+        landcover_code: int,
+        test_area_id: str,
+        include_environmental_indicators: bool,
+        progress_callback=None,
+    ) -> Dict:
+        """Build a complete analyze_area_ecosystem result entirely from the
+        test-area fallback landcover code. Used when the OpenLandMap COG
+        host is unreachable so test runs still complete in ~1s instead of
+        the multi-minute retry storm. Output shape mirrors the normal
+        STAC-path result so downstream code is unaffected."""
+        base_ecosystem_type = self.landcover_to_ecosystem.get(landcover_code, "Unknown")
+        # ESA codes 70/71/90 map to a generic "Forest" — the STAC path
+        # promotes those to Boreal/Tropical/Temperate based on latitude
+        # (openlandmap_stac_api._determine_forest_type_from_coordinates).
+        # Replicate the same rule here so the fallback returns the same
+        # specific forest type STAC would have for these test areas.
+        needs_forest_refinement = (
+            base_ecosystem_type == "Forest" or landcover_code in (70, 71, 90)
+        )
+        ecosystem_results = []
+        for idx, (lat, lon) in enumerate(sample_points):
+            if needs_forest_refinement:
+                abs_lat = abs(lat)
+                if 50 <= abs_lat <= 70:
+                    ecosystem_type = 'Boreal Forest'
+                elif abs_lat <= 25:
+                    ecosystem_type = 'Tropical Forest'
+                else:
+                    ecosystem_type = 'Temperate Forest'
+            else:
+                ecosystem_type = base_ecosystem_type
+            stac_data: Dict = {
+                'landcover': [{'name': 'Land Cover', 'value': landcover_code, 'unit': 'class'}],
+                'data_source': 'Test Area Fallback',
+                'query_time': time.time(),
+            }
+            ecosystem_results.append({
+                'ecosystem_type': ecosystem_type,
+                'source': 'Test Area Fallback',
+                'landcover_class': landcover_code,
+                'coordinates': {'lat': lat, 'lon': lon},
+                'raw_stac_data': {
+                    'extraction_method': 'test_area_fallback',
+                    'test_area_id': test_area_id,
+                    'landcover_code': landcover_code,
+                },
+                'stac_data': stac_data,
+            })
+            if progress_callback:
+                progress_callback(idx + 1, len(sample_points))
+
+        type_counts = Counter(r['ecosystem_type'] for r in ecosystem_results)
+        ecosystem_counts = {k: {'count': v} for k, v in type_counts.items()}
+        dominant_ecosystem = max(ecosystem_counts.keys(), key=lambda x: ecosystem_counts[x]['count'])
+        dominant_count = ecosystem_counts[dominant_ecosystem]['count']
+        coverage_percentage = (dominant_count / len(ecosystem_results)) * 100
+
+        return {
+            'primary_ecosystem': dominant_ecosystem,
+            'coverage_percentage': coverage_percentage,
+            'successful_queries': len(ecosystem_results),
+            'total_samples': len(sample_points),
+            'ecosystem_distribution': ecosystem_counts,
+            'source': 'Test Area Fallback',
+            'sample_results': ecosystem_results,
+        }
+
     def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 4) -> List[Tuple[float, float]]:
         """
         Generate sample points within a polygon for ecosystem analysis (optimized)
@@ -1156,16 +1284,26 @@ class OpenLandMapIntegrator:
         return max(4, actual_points)  # Ensure minimum of 4 points
     
 
-def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True) -> Dict:
+def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True, test_area_id: Optional[str] = None) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
-    
+
     Args:
         coordinates: List of coordinate pairs defining the polygon
-        sampling_frequency: Sampling density multiplier  
+        sampling_frequency: Sampling density multiplier
         max_sampling_limit: Maximum number of sample points for analysis
         progress_callback: Optional callback function for progress updates
         include_environmental_indicators: If False, only collect land cover data (much faster)
+        test_area_id: Optional selected-test-area name; when set and the
+            OpenLandMap COG host is unreachable, returns synthesized
+            "Test Area Fallback" results so the analysis still completes.
     """
     integrator = OpenLandMapIntegrator()
-    return integrator.analyze_area_ecosystem(coordinates, sampling_frequency, max_sampling_limit, progress_callback, include_environmental_indicators)
+    return integrator.analyze_area_ecosystem(
+        coordinates,
+        sampling_frequency,
+        max_sampling_limit,
+        progress_callback,
+        include_environmental_indicators,
+        test_area_id=test_area_id,
+    )
