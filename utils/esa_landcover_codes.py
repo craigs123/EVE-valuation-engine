@@ -77,6 +77,56 @@ ESA_LANDCOVER_DESCRIPTIONS = {
     95: "Mangroves"  # WorldCover class 95: Mangroves
 }
 
+# ─── ESA WorldCover v200 (10 m, 2021) — coarser landcover scheme used by
+# the GEE backup path when OpenLandMap is unreachable. The EEI app's
+# /api/landcover-batch endpoint translates WorldCover → CCI server-side
+# so EVE's analysis pipeline only ever sees CCI codes; the mapping below
+# is documentation for the Settings → Ecosystem Mapping table.
+WORLDCOVER_DESCRIPTIONS = {
+    10:  "Tree cover",
+    20:  "Shrubland",
+    30:  "Grassland",
+    40:  "Cropland",
+    50:  "Built-up",
+    60:  "Bare / sparse vegetation",
+    70:  "Snow and ice",
+    80:  "Permanent water bodies",
+    90:  "Herbaceous wetland",
+    95:  "Mangroves",
+    100: "Moss and lichen",
+}
+
+# CCI → WorldCover reverse lookup. Only the CCI codes that the EEI app's
+# WORLDCOVER_TO_CCI dict targets appear here; sub-classes (e.g. 11, 12,
+# 121) and other CCI variants that have no WorldCover counterpart show
+# blank in the UI table.
+CCI_TO_WORLDCOVER = {
+    10:  40,    # CCI Cropland rainfed              ← WC 40 Cropland
+    70:  10,    # CCI Needleleaved evergreen        ← WC 10 Tree cover (lat-refined downstream)
+    120: 20,    # CCI Shrubland                     ← WC 20 Shrubland
+    130: 30,    # CCI Grassland                     ← WC 30 Grassland
+    140: 100,   # CCI Lichens and mosses            ← WC 100 Moss and lichen
+    170: 95,    # CCI Tree cover, flooded, saline   ← WC 95 Mangroves
+    180: 90,    # CCI Shrub/herbaceous flooded      ← WC 90 Herbaceous wetland
+    190: 190,   # CCI Urban (placeholder — see below)
+    200: 60,    # CCI Bare areas                    ← WC 60 Bare / sparse
+    210: 80,    # CCI Water bodies                  ← WC 80 Permanent water
+    220: 70,    # CCI Permanent snow and ice        ← WC 70 Snow and ice
+}
+# Correct WC code for CCI 190 (Urban) is WorldCover 50, not 190.
+CCI_TO_WORLDCOVER[190] = 50
+
+
+def get_worldcover_for_cci(cci_code: int):
+    """Return (wc_code, wc_description) for a CCI code, or (None, None) if
+    no WorldCover counterpart exists. Used by the Settings → Ecosystem
+    Mapping table."""
+    wc = CCI_TO_WORLDCOVER.get(cci_code)
+    if wc is None:
+        return None, None
+    return wc, WORLDCOVER_DESCRIPTIONS.get(wc, f"WorldCover Class {wc}")
+
+
 # Default ESA Code Multipliers (100% = no adjustment)
 # Users can customize these values in the application settings
 ESA_DEFAULT_MULTIPLIERS = {code: 100 for code in ESA_LANDCOVER_DESCRIPTIONS.keys()}

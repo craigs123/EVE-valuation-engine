@@ -1251,12 +1251,13 @@ def display_data_source_status(analysis_results: Dict = None):
         with col1:
             if gee_backup_active or test_area_fallback_active:
                 # OLM was the chosen primary but didn't answer for this run —
-                # surface that the backup path took over.
-                st.warning("🌍 **OpenLandMap STAC**: Not connecting")
+                # surface that the backup path took over. st.error gives the
+                # pastel red tone matching the "down" status.
+                st.error("🌍 **OpenLandMap STAC**: Not connecting")
             elif openlandmap_status.get('authentication_success', False):
                 st.success("🌍 **OpenLandMap STAC**: Connected")
             else:
-                st.warning("🌍 **OpenLandMap STAC**: Connection Issues")
+                st.error("🌍 **OpenLandMap STAC**: Connection Issues")
                 if openlandmap_status.get('error'):
                     st.caption(f"Reason: {openlandmap_status['error']}")
 
@@ -1935,7 +1936,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.27 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.28 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2170,8 +2171,14 @@ def analysis_settings_dialog():
                 reset_analysis_state()
 
         st.divider()
-        with st.expander("OpenLandMap Settings (advanced — landcover → ecosystem mapping)", expanded=False):
-            from utils.esa_landcover_codes import DEFAULT_LANDCOVER_MAPPING, get_all_esa_codes, get_default_multipliers, get_esa_description
+        with st.expander("Ecosystem Mapping (advanced — landcover → ecosystem mapping)", expanded=False):
+            from utils.esa_landcover_codes import (
+                DEFAULT_LANDCOVER_MAPPING,
+                get_all_esa_codes,
+                get_default_multipliers,
+                get_esa_description,
+                get_worldcover_for_cci,
+            )
             _default_map = DEFAULT_LANDCOVER_MAPPING
             _esvd_types = [
                 "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
@@ -2187,9 +2194,12 @@ def analysis_settings_dialog():
             _desc = get_all_esa_codes()
             st.markdown("**Landcover → Ecosystem mapping**")
             st.caption(
-                "Each ESA CCI / WorldCover land-cover code maps to one ESVD ecosystem "
-                "type. The ESA description is shown alongside each code; change the "
-                "ecosystem on the right to override that code's default routing."
+                "Each ESA CCI land-cover code maps to one ESVD ecosystem type. "
+                "The WorldCover columns show the ESA WorldCover class (used by the "
+                "GEE backup when OpenLandMap is unreachable) that maps to each CCI "
+                "code — blank entries are CCI sub-classes with no WorldCover "
+                "counterpart. Change the ecosystem on the right to override that "
+                "code's default routing."
             )
             if st.button("Reset to defaults", key="dlg_reset_mapping"):
                 st.session_state.custom_landcover_mapping = _default_map.copy()
@@ -2198,18 +2208,23 @@ def analysis_settings_dialog():
             if _changes:
                 st.info(f"{_changes} custom mappings active")
 
-            # Header row
-            _hc1, _hc2, _hc3 = st.columns([1, 5, 3])
+            # Header row — five columns now (CCI code / description / WC code /
+            # WC description / ESVD type).
+            _hc1, _hc2, _hc3, _hc4, _hc5 = st.columns([1, 4, 1, 3, 3])
             with _hc1:
-                st.markdown("**Code**")
+                st.markdown("**CCI**")
             with _hc2:
-                st.markdown("**ESA description**")
+                st.markdown("**ESA CCI description**")
             with _hc3:
+                st.markdown("**WC**")
+            with _hc4:
+                st.markdown("**WorldCover description**")
+            with _hc5:
                 st.markdown("**ESVD ecosystem type**")
             st.divider()
 
             for code in sorted(_default_map.keys()):
-                _mc1, _mc2, _mc3 = st.columns([1, 5, 3])
+                _mc1, _mc2, _mc3, _mc4, _mc5 = st.columns([1, 4, 1, 3, 3])
                 with _mc1:
                     st.markdown(f"**{code}**")
                 with _mc2:
@@ -2226,7 +2241,12 @@ def analysis_settings_dialog():
                         )
                     else:
                         st.write(_label)
+                _wc_code, _wc_desc = get_worldcover_for_cci(code)
                 with _mc3:
+                    st.write(f"**{_wc_code}**" if _wc_code is not None else "—")
+                with _mc4:
+                    st.write(_wc_desc if _wc_desc is not None else "—")
+                with _mc5:
                     _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
                     _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
                     _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
@@ -2319,7 +2339,7 @@ def analysis_settings_dialog():
                 for code in sorted(DEFAULT_LANDCOVER_MAPPING.keys())
             ]
             st.caption("Default ESA CCI Land Cover → ESVD ecosystem-type mapping. "
-                       "Customise per-code values in **OpenLandMap Settings** above.")
+                       "Customise per-code values in **Ecosystem Mapping** above.")
             st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
         # Admin-only section: list of registered users.
