@@ -4,7 +4,8 @@ Static map image for the PDF report.
 Given the analysis bounding box (and optionally the drawn polygon vertices),
 this fetches Esri World Imagery satellite tiles for the area, stitches them
 into a single image, crops to the (padded) bounding box and draws the
-selected-area outline on top. Returns PNG bytes for embedding in the report.
+selected-area outline on top. Returns JPEG bytes for embedding in the report
+(JPEG keeps satellite imagery to a few hundred KB rather than ~2 MB as PNG).
 
 Everything is best-effort: any failure (no network, tile server down, missing
 Pillow) returns ``None`` so the PDF still builds without the image.
@@ -72,7 +73,7 @@ def _pad_bbox(bbox: Dict[str, float], frac: float) -> Dict[str, float]:
     }
 
 
-def render_area_map_png(
+def render_area_map_image(
     bbox: Optional[Dict[str, float]],
     coordinates: Optional[List] = None,
     padding_frac: float = 0.18,
@@ -89,7 +90,7 @@ def render_area_map_png(
         coordinates: polygon vertices as [lon, lat] pairs (GeoJSON order); the
                      outline is drawn if provided.
     Returns:
-        PNG bytes, or None on any failure.
+        JPEG bytes, or None on any failure.
     """
     if not bbox or not all(k in bbox for k in
                            ('min_lat', 'max_lat', 'min_lon', 'max_lon')):
@@ -189,7 +190,7 @@ def render_area_map_png(
             )
 
         out = io.BytesIO()
-        crop.save(out, format='PNG', optimize=True)
+        crop.save(out, format='JPEG', quality=85, optimize=True)
         return out.getvalue()
     except Exception as exc:  # pragma: no cover - defensive
         logger.warning("static_map: render failed (%s)", exc)

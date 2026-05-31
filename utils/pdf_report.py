@@ -522,9 +522,9 @@ def generate_pdf_report(
         # Satellite image of the selected area with its outline drawn on.
         # Best-effort: silently skipped if tiles can't be fetched.
         try:
-            from utils.static_map import render_area_map_png, attribution as _map_attr
+            from utils.static_map import render_area_map_image, attribution as _map_attr
             from reportlab.lib.utils import ImageReader
-            _map_png = render_area_map_png(bbox, coordinates)
+            _map_png = render_area_map_image(bbox, coordinates)
             if _map_png:
                 _ir = ImageReader(io.BytesIO(_map_png))
                 _iw, _ih = _ir.getSize()
