@@ -377,8 +377,19 @@ def get_country_from_coordinates(lat: float, lon: float) -> str:
     """
     # Import here to avoid circular imports
     from .nominatim_geocoding import get_country_from_coordinates_nominatim
-    
+
     return get_country_from_coordinates_nominatim(lat, lon)
+
+
+def _is_european_atlantic_zone(lat: float, lon: float) -> bool:
+    """European Atlantic / Continental temperate-forest bbox.
+
+    Raises the boreal-forest threshold from 50°N to 60°N here so the UK,
+    Ireland, continental Europe, the Baltics and southern Scandinavia are
+    classified as temperate rather than boreal. North-American and East-Asian
+    forest at the same lat band remains boreal, matching standard biome maps.
+    """
+    return 35.0 <= lat <= 71.0 and -25.0 <= lon <= 45.0
 
 
 class PrecomputedESVDCoefficients:
@@ -795,17 +806,18 @@ class PrecomputedESVDCoefficients:
     
     def _determine_forest_type(self, center_lat: float, center_lon: float) -> str:
         """Determine specific forest type based on coordinates"""
-        
+
         abs_lat = abs(center_lat)
-        
-        # Boreal forest zones (50-70° latitude)
-        if 50 <= abs_lat <= 70:
+        boreal_threshold = 60.0 if _is_european_atlantic_zone(center_lat, center_lon) else 50.0
+
+        # Boreal forest zones
+        if boreal_threshold <= abs_lat <= 70:
             return 'boreal_forest'
-        
-        # Tropical forest zones (0-25° latitude)  
+
+        # Tropical forest zones (0-25° latitude)
         elif abs_lat <= 25:
             return 'tropical_forest'
-        
+
         # Mediterranean climate zones (30-45° latitude, specific regions)
         elif 30 <= abs_lat <= 45:
             # Mediterranean Basin
@@ -814,7 +826,7 @@ class PrecomputedESVDCoefficients:
             # California
             elif (32 <= center_lat <= 42 and -125 <= center_lon <= -115):
                 return 'temperate_forest'
-            # Central Chile  
+            # Central Chile
             elif (-40 <= center_lat <= -30 and -75 <= center_lon <= -70):
                 return 'temperate_forest'
             # South Africa (Western Cape)
@@ -825,11 +837,11 @@ class PrecomputedESVDCoefficients:
                 return 'temperate_forest'
             else:
                 return 'temperate_forest'
-        
-        # Temperate forest zones (25-50° latitude, excluding Mediterranean)
-        elif 25 < abs_lat < 50:
+
+        # Temperate forest zones (25° up to boreal threshold, excluding Mediterranean)
+        elif 25 < abs_lat < boreal_threshold:
             return 'temperate_forest'
-        
+
         # Default fallback
         return 'temperate_forest'
 

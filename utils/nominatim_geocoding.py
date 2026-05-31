@@ -338,7 +338,7 @@ class NominatimGeocoder:
                 'lat': lat,
                 'lon': lon,
                 'addressdetails': 1,
-                'zoom': 3,  # Country-level resolution
+                'zoom': 10,  # City-level zoom — Nominatim's country polygon match is loose at coastlines under low zoom (e.g. N Devon mis-resolved to Ireland under zoom=3)
                 'accept-language': 'en'  # Prefer English responses
             }
             
