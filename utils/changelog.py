@@ -14,6 +14,16 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.9.0 beta",
+        "date": "2026-06-01",
+        "changes": [
+            "PDF report's Environmental Indicators table now shows each sample "
+            "point's latitude/longitude in the first column and its EEI "
+            "(Ecosystem Ecological Integrity) value alongside the other "
+            "selected indicators.",
+        ],
+    },
+    {
         "version": "v3.8.32 beta",
         "date": "2026-06-01",
         "changes": [

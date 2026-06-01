@@ -1936,7 +1936,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.32 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.9.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -7692,7 +7692,14 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         show_bdod = st.session_state.get('show_indicator_bdod', False)
         show_nitrogen = st.session_state.get('show_indicator_nitrogen', False)
         show_any_soilgrids = show_phh2o or show_soc or show_bdod or show_nitrogen
-        if not (show_fapar or show_soil_c or show_any_soilgrids):
+        # EEI (PDF-only column): per-sample-point Ecosystem Ecological Integrity,
+        # shown when EEI is enabled and per-point values are available.
+        point_eei_values = st.session_state.get('point_eei_values', {}) or {}
+        show_eei = (
+            bool(st.session_state.get('use_eei_for_intactness', False))
+            and bool(point_eei_values)
+        )
+        if not (show_fapar or show_soil_c or show_any_soilgrids or show_eei):
             return None
 
         soil_results = {}
@@ -7716,7 +7723,9 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             except Exception:
                 soil_results = {}
 
-        columns = ["Sample Point"]
+        columns = ["Lat, Lon"]
+        if show_eei:
+            columns.append("EEI (0-1)")
         if show_fapar:
             columns.append("FAPAR (0-1)")
         if show_soil_c:
@@ -7732,11 +7741,17 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
 
         rows = []
         for point_id, point_data in sampling_point_data.items():
-            try:
-                point_num = int(str(point_id).replace('point_', '')) + 1
-            except Exception:
-                point_num = len(rows) + 1
-            row = [f"Point {point_num}"]
+            _coords = point_data.get('coordinates', {}) or {}
+            _lat = _coords.get('lat')
+            _lon = _coords.get('lon')
+            if isinstance(_lat, (int, float)) and isinstance(_lon, (int, float)):
+                _latlon = f"{_lat:.4f}, {_lon:.4f}"
+            else:
+                _latlon = "—"
+            row = [_latlon]
+            if show_eei:
+                _eei_v = point_eei_values.get(point_id)
+                row.append(f"{_eei_v:.3f}" if isinstance(_eei_v, (int, float)) else "—")
             if show_fapar or show_soil_c:
                 fapar_value = "—"
                 soil_carbon_value = "—"

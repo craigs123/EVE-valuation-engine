@@ -695,9 +695,9 @@ def generate_pdf_report(
         _env_cols = env_ind['columns']
         _env_data = [_env_cols] + env_ind['rows']
         _n_env = len(_env_cols)
-        # First column (point label) fixed; remaining share the rest of the
-        # 17 cm content width evenly.
-        _env_first = 2.6
+        # First column holds the sample-point lat/lon (wider than a plain
+        # label); remaining columns share the rest of the 17 cm width evenly.
+        _env_first = 3.3
         _env_rest = (17.0 - _env_first) / max(1, _n_env - 1)
         _env_widths = [_env_first * cm] + [_env_rest * cm] * (_n_env - 1)
         _env_table = Table(_env_data, colWidths=_env_widths, repeatRows=1)
