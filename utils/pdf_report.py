@@ -679,6 +679,35 @@ def generate_pdf_report(
 
         story.append(Spacer(1, 0.15 * cm))
 
+    # ------------------------------------------------ environmental indicators
+    # Per-sample-point supplementary indicators, shown only when the user
+    # selected them in Analysis Settings (mirrors the on-screen table).
+    env_ind = (summary_stats or {}).get('env_indicators') if summary_stats else None
+    if env_ind and env_ind.get('columns') and env_ind.get('rows'):
+        story.append(Paragraph('Environmental Indicators', h2))
+        story.append(Paragraph(
+            'Per-sample-point supplementary indicators, as selected in Analysis '
+            'Settings &rarr; Environmental Indicators. FAPAR and soil carbon are '
+            'from the STAC datasets collected during analysis; SoilGrids 2.0 '
+            'properties (0&ndash;5&nbsp;cm topsoil, 250&nbsp;m, CC&nbsp;BY&nbsp;4.0) '
+            'are fetched on demand.', caption))
+        story.append(Spacer(1, 0.15 * cm))
+        _env_cols = env_ind['columns']
+        _env_data = [_env_cols] + env_ind['rows']
+        _n_env = len(_env_cols)
+        # First column (point label) fixed; remaining share the rest of the
+        # 17 cm content width evenly.
+        _env_first = 2.6
+        _env_rest = (17.0 - _env_first) / max(1, _n_env - 1)
+        _env_widths = [_env_first * cm] + [_env_rest * cm] * (_n_env - 1)
+        _env_table = Table(_env_data, colWidths=_env_widths, repeatRows=1)
+        _env_style = _standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT)
+        _env_style.add('FONTSIZE', (0, 0), (-1, -1), 7.5)
+        _env_style.add('ALIGN', (1, 0), (-1, -1), 'CENTER')
+        _env_table.setStyle(_env_style)
+        story.append(_env_table)
+        story.append(Spacer(1, 0.3 * cm))
+
     # ------------------------------------------------------ service value table
     story.append(Paragraph('Ecosystem Service Values', h2))
 
