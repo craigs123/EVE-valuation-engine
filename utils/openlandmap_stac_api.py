@@ -52,12 +52,17 @@ HTTP_ENV = {
     'VSI_CACHE': 'TRUE',
     'VSI_CACHE_SIZE': '50000000',  # Increased cache for large COGs
     'SSL_CERT_FILE': certifi.where(),
-    # Enhanced timeout and retry configuration for reliability
-    'GDAL_HTTP_TIMEOUT': '60',  # Increased timeout for large files
-    'GDAL_HTTP_CONNECTTIMEOUT': '30', 
-    'GDAL_HTTP_MAX_RETRY': '5',  # More retries
-    'GDAL_HTTP_RETRY_DELAY': '2',
-    'CPL_VSIL_CURL_RETRY_DELAY': '2',
+    # Timeout / retry budget. Kept tight on purpose: a healthy single-pixel
+    # COG read returns in a few seconds, so these caps don't bite normal
+    # operation, but they stop a stalled host from burning minutes per point.
+    # The circuit breaker in openlandmap_integration.analyze_area_ecosystem
+    # then switches the whole run to the WorldCover (GEE) backup after a couple
+    # of consecutive failures rather than grinding through every point.
+    'GDAL_HTTP_TIMEOUT': '15',  # was 60
+    'GDAL_HTTP_CONNECTTIMEOUT': '8',  # was 30
+    'GDAL_HTTP_MAX_RETRY': '1',  # was 5
+    'GDAL_HTTP_RETRY_DELAY': '1',  # was 2
+    'CPL_VSIL_CURL_RETRY_DELAY': '1',  # was 2
     # Additional SSL and HTTP configurations
     'CURL_CA_BUNDLE': certifi.where(),
     'GDAL_HTTP_UNSAFESSL': 'YES',  # Allow self-signed certificates
@@ -1513,16 +1518,23 @@ class OpenLandMapSTAC:
             _coordinate_cache.popitem(last=False)  # evict oldest entry
 
         print(f"🔄 Fast mode: Trying direct landcover extraction for ({quantized_lat}, {quantized_lon})")
+        # Two quick attempts only. Per-point retries used to be 3 with
+        # 1.5s/3s sleeps, which — multiplied across every sample point during
+        # an OLM outage — was the bulk of the "big delay". The circuit breaker
+        # in analyze_area_ecosystem now handles a genuine outage by switching
+        # the whole run to the WorldCover backup, so a point only needs a
+        # short retry to ride out a one-off blip.
+        _MAX_ATTEMPTS = 2
         result = None
-        for _attempt in range(3):
+        for _attempt in range(_MAX_ATTEMPTS):
             result = self._extract_landcover_direct(quantized_lat, quantized_lon)
             if result:
                 break
-            if _attempt < 2:
-                print(f"⚠️ Landcover extraction attempt {_attempt + 1}/3 failed, retrying...")
-                time.sleep(1.5 * (_attempt + 1))
+            if _attempt < _MAX_ATTEMPTS - 1:
+                print(f"⚠️ Landcover extraction attempt {_attempt + 1}/{_MAX_ATTEMPTS} failed, retrying...")
+                time.sleep(0.5)
         if not result:
-            print(f"⚠️ All 3 landcover extraction attempts failed, using geographic fallback")
+            print(f"⚠️ All {_MAX_ATTEMPTS} landcover extraction attempts failed, using geographic fallback")
             # Don't cache fallback results — a transient failure should be retried next run
             return self._fallback_ecosystem_detection(quantized_lat, quantized_lon)
 
@@ -1657,7 +1669,7 @@ class OpenLandMapSTAC:
             
             # Set GDAL SSL configuration to handle certificate issues (like working app)
             os.environ['GDAL_HTTP_UNSAFESSL'] = 'YES'
-            os.environ['GDAL_HTTP_TIMEOUT'] = '30'
+            os.environ['GDAL_HTTP_TIMEOUT'] = '15'  # was 30 — fail stalled reads fast
             
             # Coordinate bounds checking (as per technical guidance)
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):

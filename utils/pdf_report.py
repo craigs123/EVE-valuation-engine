@@ -635,9 +635,13 @@ def generate_pdf_report(
             story.append(Paragraph(_note, caption))
             story.append(Spacer(1, 0.25 * cm))
 
-        # Ecosystem composition from sample points
+        # Ecosystem composition from sample points — forced onto its own page
+        # so the Ecosystem Type breakdown always starts fresh rather than
+        # being split across a page boundary.
         eco_counts = summary_stats.get('ecosystem_counts', {})
         if eco_counts:
+            story.append(PageBreak())
+            story.append(Paragraph('Ecosystem Composition', h2))
             eco_rows = [['Ecosystem Type (from samples)', 'Points', '%']]
             for eco, count in sorted(eco_counts.items(), key=lambda x: -x[1]):
                 pct = (count / total_pts * 100) if total_pts else 0
