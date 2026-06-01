@@ -1936,7 +1936,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.8.31 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.8.32 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2378,6 +2378,22 @@ def analysis_settings_dialog():
                         st.info("No users found.")
                 except Exception as _admin_err:
                     st.error(f"Could not load user list: {_admin_err}")
+
+        # Version changelog — what changed in each release, newest first.
+        st.divider()
+        with st.expander("📋 Version Changelog (what's new)", expanded=False):
+            try:
+                from utils.changelog import CHANGELOG
+                for _entry in CHANGELOG:
+                    _hdr = _entry.get('version', '')
+                    if _entry.get('date'):
+                        _hdr += f" &nbsp;·&nbsp; {_entry['date']}"
+                    st.markdown(f"**{_hdr}**")
+                    for _chg in _entry.get('changes', []):
+                        st.markdown(f"- {_chg}")
+                    st.markdown("")
+            except Exception as _cl_err:
+                st.caption(f"Changelog unavailable: {_cl_err}")
 
     if st.button("Close", use_container_width=True, key="dlg_close"):
         st.rerun()
@@ -7660,6 +7676,105 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
 
     render_scenario_builder(results)
 
+    def _build_pdf_env_indicators(sampling_point_data):
+        """Rebuild the Supplementary Environmental Indicators table for the PDF,
+        mirroring the on-screen table. Columns are gated by the same
+        show_indicator_* flags from Analysis Settings → Environmental Indicators.
+        Returns {'columns': [...], 'rows': [[...], ...]} or None when no
+        indicator is selected or there's no sample data. SoilGrids is fetched on
+        demand here (same as the UI) only when a SoilGrids column is selected."""
+        if not sampling_point_data:
+            return None
+        show_fapar = st.session_state.get('show_indicator_fapar', False)
+        show_soil_c = st.session_state.get('show_indicator_soil_c', False)
+        show_phh2o = st.session_state.get('show_indicator_phh2o', False)
+        show_soc = st.session_state.get('show_indicator_soc', False)
+        show_bdod = st.session_state.get('show_indicator_bdod', False)
+        show_nitrogen = st.session_state.get('show_indicator_nitrogen', False)
+        show_any_soilgrids = show_phh2o or show_soc or show_bdod or show_nitrogen
+        if not (show_fapar or show_soil_c or show_any_soilgrids):
+            return None
+
+        soil_results = {}
+        sg_coord_by_point = {}
+        soilgrids_format = lambda _k, _v: "—"
+        if show_any_soilgrids:
+            try:
+                from utils.soilgrids_api import (
+                    format_value as soilgrids_format,
+                    get_soil_properties_batch,
+                )
+                sg_coords = []
+                for point_id, point_data in sampling_point_data.items():
+                    coords = point_data.get('coordinates', {}) or {}
+                    lat = coords.get('lat', 0)
+                    lon = coords.get('lon', 0)
+                    if lat != 0 or lon != 0:
+                        sg_coords.append((lat, lon))
+                        sg_coord_by_point[point_id] = (lat, lon)
+                soil_results = get_soil_properties_batch(sg_coords) if sg_coords else {}
+            except Exception:
+                soil_results = {}
+
+        columns = ["Sample Point"]
+        if show_fapar:
+            columns.append("FAPAR (0-1)")
+        if show_soil_c:
+            columns.append("Soil C (g/kg)")
+        if show_phh2o:
+            columns.append("pH (H2O)")
+        if show_soc:
+            columns.append("SOC (g/kg)")
+        if show_bdod:
+            columns.append("Bulk Density (g/cm3)")
+        if show_nitrogen:
+            columns.append("Nitrogen (g/kg)")
+
+        rows = []
+        for point_id, point_data in sampling_point_data.items():
+            try:
+                point_num = int(str(point_id).replace('point_', '')) + 1
+            except Exception:
+                point_num = len(rows) + 1
+            row = [f"Point {point_num}"]
+            if show_fapar or show_soil_c:
+                fapar_value = "—"
+                soil_carbon_value = "—"
+                stac_data = point_data.get('stac_data', {}) or {}
+                for item in stac_data.get('vegetation', []) or []:
+                    name = (item.get('name') or '').lower()
+                    value = item.get('value')
+                    if 'fapar' in name or 'absorbed' in name:
+                        if value is not None:
+                            if value > 1:
+                                value = value / 255.0
+                            fapar_value = f"{value:.3f}"
+                        break
+                for item in stac_data.get('soil', []) or []:
+                    name = (item.get('name') or '').lower()
+                    value = item.get('value')
+                    if 'carbon' in name or 'organic' in name:
+                        if value is not None and isinstance(value, (int, float)):
+                            soil_carbon_value = f"{value:.1f}"
+                        break
+                if show_fapar:
+                    row.append(fapar_value)
+                if show_soil_c:
+                    row.append(soil_carbon_value)
+            if show_any_soilgrids:
+                sg_props = soil_results.get(sg_coord_by_point.get(point_id), {}) or {}
+                if show_phh2o:
+                    row.append(soilgrids_format('phh2o', sg_props.get('phh2o')))
+                if show_soc:
+                    row.append(soilgrids_format('soc', sg_props.get('soc')))
+                if show_bdod:
+                    row.append(soilgrids_format('bdod', sg_props.get('bdod')))
+                if show_nitrogen:
+                    row.append(soilgrids_format('nitrogen', sg_props.get('nitrogen')))
+            rows.append(row)
+
+        return {'columns': columns, 'rows': rows} if rows else None
+
     # ── PDF Download ──────────────────────────────────────────────────────────
     # Wrapped in a fragment so "Prepare PDF Report" reruns only this section.
     # A full-script rerun would re-execute the map / area-selection pipeline,
@@ -7774,6 +7889,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                 'carbon': _carbon_pdf,
                                 'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
                                 'target_date': st.session_state.get('pending_indicator_target_date'),
+                                'env_indicators': _build_pdf_env_indicators(_sampling),
                             }
                     except Exception:
                         _pdf_summary = None
