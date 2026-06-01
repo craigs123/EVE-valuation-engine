@@ -52,6 +52,28 @@ def _stac_asset_host_reachable(timeout: float = 2.0) -> bool:
     except Exception:
         return False
 
+
+def _refine_forest_type_by_latitude(lat: float, lon: float) -> str:
+    """Promote a generic 'Forest' to Boreal/Temperate/Tropical by latitude.
+
+    Applies the same European-Atlantic exception the STAC path uses
+    (openlandmap_stac_api._determine_forest_type_from_coordinates): the UK,
+    Ireland, continental Europe, the Baltics and southern Scandinavia stay
+    Temperate up to 60°N rather than flipping to Boreal at 50°N. Keeping this
+    in one place means the GEE WorldCover backup and the test-area fallback
+    can't drift from the STAC classification again.
+    """
+    from .openlandmap_stac_api import _is_european_atlantic_zone
+    abs_lat = abs(lat)
+    boreal_threshold = 60.0 if _is_european_atlantic_zone(lat, lon) else 50.0
+    if boreal_threshold <= abs_lat <= 70:
+        return 'Boreal Forest'
+    elif abs_lat <= 25:
+        return 'Tropical Forest'
+    else:
+        return 'Temperate Forest'
+
+
 class OpenLandMapIntegrator:
     """
     Integrates with OpenLandMap.com to fetch land cover data and determine ecosystem types
@@ -1050,9 +1072,36 @@ class OpenLandMapIntegrator:
                 from .openlandmap_stac_api import openlandmap_stac
 
                 print(f"🚀 FAST MODE: Processing {len(sample_points)} points with direct extraction")
+                # Circuit breaker: OpenLandMap can pass the up-front host probe
+                # yet still fail the actual per-point pixel reads. Rather than
+                # grind every point through the GDAL retry budget and land them
+                # all on coarse geographic fallback, trip after a couple of
+                # consecutive read failures and reclassify the WHOLE area via
+                # the ESA WorldCover (GEE) backup, so the source stays uniform
+                # and the switch happens in seconds instead of minutes.
+                olm_consecutive_failures = 0
+                OLM_FAILURE_LIMIT = 2
+                gee_switch_failed = False
                 for i, (lat, lon) in enumerate(sample_points):
                     result = openlandmap_stac.get_ecosystem_type(lat, lon)
+                    _olm_failed = (
+                        not result
+                        or result.get('ecosystem_type') in (None, 'Unknown')
+                        or str(result.get('data_source', '')).startswith('Error')
+                    )
+                    if _olm_failed and not gee_switch_failed:
+                        olm_consecutive_failures += 1
+                        if olm_consecutive_failures >= OLM_FAILURE_LIMIT:
+                            print(f"⚡ Circuit breaker: {olm_consecutive_failures} consecutive OpenLandMap read failures — switching this run to the ESA WorldCover (GEE) backup")
+                            gee_result = self._build_gee_landcover_results(sample_points, progress_callback)
+                            if gee_result is not None:
+                                return gee_result
+                            print("⚠️ GEE backup unavailable after circuit-breaker trip — continuing with per-point geographic fallback")
+                            gee_switch_failed = True
+                        continue
                     if result and result.get('ecosystem_type'):
+                        if not _olm_failed:
+                            olm_consecutive_failures = 0
                         print(f"🔍 FAST RESULT {i}: {result.get('ecosystem_type', 'N/A')}")
                         ecosystem_results.append({
                             'ecosystem_type': result['ecosystem_type'],
@@ -1179,15 +1228,10 @@ class OpenLandMapIntegrator:
             base_eco = r.get('ecosystem_type') or self.landcover_to_ecosystem.get(landcover_code, "Unknown")
             # WorldCover's "Tree cover" class lands on CCI 70, which EVE
             # treats as generic Forest. Refine to Boreal/Temperate/Tropical
-            # by latitude (same rule the STAC path applies).
+            # by latitude (same rule the STAC path applies, incl. the
+            # European-Atlantic temperate exception).
             if base_eco == "Forest" or landcover_code in (70, 71, 90):
-                abs_lat = abs(lat)
-                if 50 <= abs_lat <= 70:
-                    ecosystem_type = 'Boreal Forest'
-                elif abs_lat <= 25:
-                    ecosystem_type = 'Tropical Forest'
-                else:
-                    ecosystem_type = 'Temperate Forest'
+                ecosystem_type = _refine_forest_type_by_latitude(lat, lon)
             else:
                 ecosystem_type = base_eco
 
@@ -1254,13 +1298,7 @@ class OpenLandMapIntegrator:
         ecosystem_results = []
         for idx, (lat, lon) in enumerate(sample_points):
             if needs_forest_refinement:
-                abs_lat = abs(lat)
-                if 50 <= abs_lat <= 70:
-                    ecosystem_type = 'Boreal Forest'
-                elif abs_lat <= 25:
-                    ecosystem_type = 'Tropical Forest'
-                else:
-                    ecosystem_type = 'Temperate Forest'
+                ecosystem_type = _refine_forest_type_by_latitude(lat, lon)
             else:
                 ecosystem_type = base_ecosystem_type
             stac_data: Dict = {

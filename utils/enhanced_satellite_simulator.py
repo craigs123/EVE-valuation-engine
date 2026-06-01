@@ -340,7 +340,9 @@ class EnhancedSatelliteSimulator:
                 return 'Grassland'
         elif abs_lat > 50:  # Northern regions - likely boreal or polar
             if abs_lat <= 70:
-                return 'boreal_forest'  # Boreal forest zone
+                # Boreal/temperate per the European-Atlantic exception, not a
+                # blanket boreal at >50°N (keeps UK/Europe temperate).
+                return self._determine_forest_type(center_lat, center_lon)
             else:
                 return 'Grassland'  # Polar regions
         else:
