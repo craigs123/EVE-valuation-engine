@@ -7716,7 +7716,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             except Exception:
                 soil_results = {}
 
-        columns = ["Sample Point"]
+        columns = ["Lat, Lon"]
         if show_fapar:
             columns.append("FAPAR (0-1)")
         if show_soil_c:
@@ -7732,11 +7732,14 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
 
         rows = []
         for point_id, point_data in sampling_point_data.items():
-            try:
-                point_num = int(str(point_id).replace('point_', '')) + 1
-            except Exception:
-                point_num = len(rows) + 1
-            row = [f"Point {point_num}"]
+            _coords = point_data.get('coordinates', {}) or {}
+            _lat = _coords.get('lat')
+            _lon = _coords.get('lon')
+            if isinstance(_lat, (int, float)) and isinstance(_lon, (int, float)):
+                _latlon = f"{_lat:.4f}, {_lon:.4f}"
+            else:
+                _latlon = "—"
+            row = [_latlon]
             if show_fapar or show_soil_c:
                 fapar_value = "—"
                 soil_carbon_value = "—"
