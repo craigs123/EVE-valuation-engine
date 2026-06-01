@@ -33,6 +33,17 @@ from contextlib import contextmanager
 _coordinate_cache: Dict[Tuple[float, float], Any] = OrderedDict()
 _COORDINATE_CACHE_MAX = 500
 
+
+def _is_european_atlantic_zone(lat: float, lon: float) -> bool:
+    """European Atlantic / Continental temperate-forest bbox.
+
+    Raises the boreal-forest threshold from 50°N to 60°N here so the UK,
+    Ireland, continental Europe, the Baltics and southern Scandinavia are
+    classified as Temperate rather than Boreal. North-American and East-Asian
+    forest at the same lat band remains Boreal, matching standard biome maps.
+    """
+    return 35.0 <= lat <= 71.0 and -25.0 <= lon <= 45.0
+
 # Enhanced GDAL environment configuration for reliable HTTP COG access
 HTTP_ENV = {
     'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
@@ -1364,17 +1375,18 @@ class OpenLandMapSTAC:
         Returns specific forest ecosystem types for ESVD coefficient matching
         """
         abs_lat = abs(lat)
-        
-        # Boreal forest zones (50-70° latitude)
-        if 50 <= abs_lat <= 70:
+        boreal_threshold = 60.0 if _is_european_atlantic_zone(lat, lon) else 50.0
+
+        # Boreal forest zones
+        if boreal_threshold <= abs_lat <= 70:
             return 'Boreal Forest'
-        
+
         # Tropical forest zones (0-25° latitude)
         elif abs_lat <= 25:
             return 'Tropical Forest'
 
-        # Temperate forest zones (25-50° latitude)
-        elif 25 < abs_lat < 50:
+        # Temperate forest zones
+        elif 25 < abs_lat < boreal_threshold:
             return 'Temperate Forest'
 
         # Default fallback

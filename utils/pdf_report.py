@@ -518,6 +518,30 @@ def generate_pdf_report(
     # --------------------------------------------------- geographic coordinates
     if bbox:
         story.append(Paragraph('Geographic Coordinates', h2))
+
+        # Satellite image of the selected area with its outline drawn on.
+        # Best-effort: silently skipped if tiles can't be fetched.
+        try:
+            from utils.static_map import render_area_map_image, attribution as _map_attr
+            from reportlab.lib.utils import ImageReader
+            _map_png = render_area_map_image(bbox, coordinates)
+            if _map_png:
+                _ir = ImageReader(io.BytesIO(_map_png))
+                _iw, _ih = _ir.getSize()
+                _disp_w = 13 * cm
+                _disp_h = _disp_w * (_ih / _iw) if _iw else 9 * cm
+                _max_h = 11 * cm
+                if _disp_h > _max_h:
+                    _disp_w = _disp_w * (_max_h / _disp_h)
+                    _disp_h = _max_h
+                _map_img = Image(io.BytesIO(_map_png), width=_disp_w, height=_disp_h)
+                _map_img.hAlign = 'CENTER'
+                story.append(_map_img)
+                story.append(Paragraph(_map_attr(), caption))
+                story.append(Spacer(1, 0.3 * cm))
+        except Exception:
+            pass
+
         min_lat = bbox.get('min_lat', 0)
         max_lat = bbox.get('max_lat', 0)
         min_lon = bbox.get('min_lon', 0)
