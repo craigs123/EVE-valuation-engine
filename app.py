@@ -7692,7 +7692,14 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         show_bdod = st.session_state.get('show_indicator_bdod', False)
         show_nitrogen = st.session_state.get('show_indicator_nitrogen', False)
         show_any_soilgrids = show_phh2o or show_soc or show_bdod or show_nitrogen
-        if not (show_fapar or show_soil_c or show_any_soilgrids):
+        # EEI (PDF-only column): per-sample-point Ecosystem Ecological Integrity,
+        # shown when EEI is enabled and per-point values are available.
+        point_eei_values = st.session_state.get('point_eei_values', {}) or {}
+        show_eei = (
+            bool(st.session_state.get('use_eei_for_intactness', False))
+            and bool(point_eei_values)
+        )
+        if not (show_fapar or show_soil_c or show_any_soilgrids or show_eei):
             return None
 
         soil_results = {}
@@ -7717,6 +7724,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 soil_results = {}
 
         columns = ["Lat, Lon"]
+        if show_eei:
+            columns.append("EEI (0-1)")
         if show_fapar:
             columns.append("FAPAR (0-1)")
         if show_soil_c:
@@ -7740,6 +7749,9 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             else:
                 _latlon = "—"
             row = [_latlon]
+            if show_eei:
+                _eei_v = point_eei_values.get(point_id)
+                row.append(f"{_eei_v:.3f}" if isinstance(_eei_v, (int, float)) else "—")
             if show_fapar or show_soil_c:
                 fapar_value = "—"
                 soil_carbon_value = "—"
