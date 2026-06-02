@@ -32,11 +32,17 @@ gcloud builds submit \
 
 echo ""
 echo "─── Deploying $SERVICE (prod web) ───────────────────────────────────────"
+# --min-instances=1 keeps one instance always warm so the first visitor after
+# an idle period never waits on a cold start (Python + Streamlit + GDAL boot).
+# Combined with the existing maxScale=1 (PDF/session-affinity workaround) this
+# means exactly one always-on instance. Trade-off: ~a few $/month idle billing.
+# Staging intentionally stays at min=0 (IAM-locked, rarely idle-critical).
 gcloud run deploy "$SERVICE" \
     --image "${IMAGE_NAME}:latest" \
     --region "$REGION" \
     --project "$PROJECT_ID" \
     --platform managed \
+    --min-instances=1 \
     --quiet
 
 # Force 100% traffic to the freshly-built revision. Belt-and-braces:

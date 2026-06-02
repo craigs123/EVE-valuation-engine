@@ -421,6 +421,17 @@ def init_database():
         logger.warning(f"Database initialization warning: {e}")
         return False
 
+@st.cache_resource(show_spinner=False)
+def ensure_schema_ready():
+    """Run init_database() once per container, not once per browser session.
+
+    The connect-test + create_all + idempotent seed in init_database() only
+    needs to run once per process lifetime. Caching the result with
+    @st.cache_resource keeps those Cloud SQL round-trips off every new
+    visitor's first paint. Returns the init_database() boolean.
+    """
+    return init_database()
+
 def test_database_connection():
     """Test database connection"""
     try:
