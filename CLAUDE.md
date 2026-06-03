@@ -86,7 +86,7 @@ gcloud run services add-iam-policy-binding eve-valuation-engine-staging \
 - `setup_lifecycle_job.sh` — one-time / re-runnable: prod lifecycle Job setup.
 - `check_unverified.py` — entry point for both lifecycle Jobs (`python -m scripts.check_unverified`).
 
-**Version bumping rule:** always bump the version string in **both** `app.py` (`version-text` span) and `utils/auth.py` (`<p class="ver">`) before any deploy.
+**Version bumping rule:** always bump the version string in **both** `app.py` (`version-text` span) and `utils/auth.py` (`<p class="ver">`) before any deploy — AND add a matching newest-first entry to `utils/changelog.py` (`CHANGELOG`) describing the user-visible changes in plain, non-technical language. The version bump and the changelog entry are a single inseparable step: never bump the version without adding the changelog entry. (The changelog feeds the "📋 Version Changelog" expander in Analysis Settings.)
 
 ## Repo layout
 
