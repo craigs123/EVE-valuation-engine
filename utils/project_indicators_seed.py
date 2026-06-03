@@ -794,89 +794,146 @@ DEFAULT_PROJECT_TYPE_INDICATORS = [
 ]
 
 
-def seed_project_indicators(session) -> bool:
-    """Idempotent seed of pi_* taxonomy. Bails when pi_project_types is non-empty.
+def _sync_bands(session, IndicatorBand, indicator_id, bands) -> None:
+    """Upsert an indicator's scoring bands, keyed by score (the DB unique key
+    is (indicator_id, score)). Never deletes — a band row may be referenced by
+    pi_analysis_responses.baseline_band_id / target_band_id, so removing it
+    would break user data. A band dropped from the seed simply lingers."""
+    existing = {
+        b.score: b
+        for b in session.query(IndicatorBand).filter_by(indicator_id=indicator_id).all()
+    }
+    for band in bands:
+        row = existing.get(band['score'])
+        if row is None:
+            row = IndicatorBand(indicator_id=indicator_id, score=band['score'])
+            session.add(row)
+        row.label = band['label']
+        row.criteria = band['criteria']
+        row.meaning = band.get('meaning')
+        row.sort_order = band['sort_order']
 
-    Pass an active SQLAlchemy session. Returns True if seed ran, False if skipped.
+
+def _sync_followups(session, IndicatorFollowup, indicator_id, followups) -> None:
+    """Upsert an indicator's followup questions, keyed by slug (the DB unique
+    key is (indicator_id, slug)). Never deletes."""
+    existing = {
+        f.slug: f
+        for f in session.query(IndicatorFollowup).filter_by(indicator_id=indicator_id).all()
+    }
+    for fu in followups:
+        row = existing.get(fu['slug'])
+        if row is None:
+            row = IndicatorFollowup(indicator_id=indicator_id, slug=fu['slug'])
+            session.add(row)
+        row.question_text = fu['question_text']
+        row.input_kind = fu['input_kind']
+        row.options = fu.get('options')
+        row.trigger_max_score = fu.get('trigger_max_score')
+        row.sort_order = fu.get('sort_order', 0)
+
+
+def seed_project_indicators(session) -> bool:
+    """Idempotent upsert of the pi_* taxonomy, keyed by stable slugs/codes.
+
+    Synchronises the database with the DEFAULT_* definitions in this module.
+    Safe to run on every startup:
+
+      * New project types / indicators / bands / followups / assignments are
+        inserted.
+      * Existing rows are updated in place when their definition changes
+        (reworded question, adjusted weight, relabelled band, etc.).
+      * Nothing is ever deleted, and the user-data tables
+        (pi_analysis_responses, computed_sub_service_multipliers) are never
+        touched — only the taxonomy is synced.
+
+    This previously bailed out entirely once any project type existed, which
+    meant new indicator sets added to this file never reached an already-seeded
+    database (staging/prod). Upserting by slug fixes that: adding a set here now
+    lands automatically on the next deploy.
+
+    Pass an active SQLAlchemy session. Returns True (a sync always runs).
     """
     from database import (
         ProjectType, Indicator, IndicatorBand, IndicatorFollowup,
         ProjectTypeIndicator,
     )
 
-    if session.query(ProjectType).count() > 0:
-        return False
-
+    # ── Project types (upsert by slug) ────────────────────────────────────
     project_type_rows = {}
     for pt in DEFAULT_PROJECT_TYPES:
-        row = ProjectType(
-            slug=pt['slug'], name=pt['name'],
-            description=pt.get('description'), icon=pt.get('icon'),
-            ecosystem_type=pt.get('ecosystem_type'),
-            is_active=True, sort_order=pt.get('sort_order', 0),
-        )
-        session.add(row)
+        row = session.query(ProjectType).filter_by(slug=pt['slug']).first()
+        if row is None:
+            row = ProjectType(slug=pt['slug'])
+            session.add(row)
+        row.name = pt['name']
+        row.description = pt.get('description')
+        row.icon = pt.get('icon')
+        row.ecosystem_type = pt.get('ecosystem_type')
+        row.is_active = True
+        row.sort_order = pt.get('sort_order', 0)
         session.flush()
         project_type_rows[pt['slug']] = row
 
+    # ── Indicators + bands + followups (upsert by slug) ───────────────────
     indicator_rows = {}
     for ind in DEFAULT_INDICATORS:
-        row = Indicator(
-            slug=ind['slug'], code=ind['code'], name=ind['name'],
-            commitment_question=ind['commitment_question'],
-            prospectus_scope_statement=ind['prospectus_scope_statement'],
-            baseline_question=ind['baseline_question'],
-            card_description=ind.get('card_description'),
-            why_matters=ind.get('why_matters'),
-            field_method=ind.get('field_method'),
-            remote_sensing_alternative=ind.get('remote_sensing_alternative'),
-            sources=ind.get('sources'),
-            applicable_ecosystems=ind.get('applicable_ecosystems'),
-            is_mandatory=ind.get('is_mandatory', False),
-            mapping_kind=ind.get('mapping_kind', 'band_lookup'),
-            mapping_params=ind.get('mapping_params', {}),
-            service_weights=ind.get('service_weights'),
-            weight=ind.get('weight', 1.0),
-            is_active=True,
-        )
-        session.add(row)
+        row = session.query(Indicator).filter_by(slug=ind['slug']).first()
+        if row is None:
+            row = Indicator(slug=ind['slug'])
+            session.add(row)
+        row.code = ind['code']
+        row.name = ind['name']
+        row.commitment_question = ind['commitment_question']
+        row.prospectus_scope_statement = ind['prospectus_scope_statement']
+        row.baseline_question = ind['baseline_question']
+        row.card_description = ind.get('card_description')
+        row.why_matters = ind.get('why_matters')
+        row.field_method = ind.get('field_method')
+        row.remote_sensing_alternative = ind.get('remote_sensing_alternative')
+        row.sources = ind.get('sources')
+        row.applicable_ecosystems = ind.get('applicable_ecosystems')
+        row.is_mandatory = ind.get('is_mandatory', False)
+        row.mapping_kind = ind.get('mapping_kind', 'band_lookup')
+        row.mapping_params = ind.get('mapping_params', {})
+        row.service_weights = ind.get('service_weights')
+        row.weight = ind.get('weight', 1.0)
+        row.is_active = True
         session.flush()
         indicator_rows[ind['slug']] = row
 
-        for band in ind.get('bands', []):
-            session.add(IndicatorBand(
-                indicator_id=row.id,
-                score=band['score'], label=band['label'],
-                criteria=band['criteria'], meaning=band.get('meaning'),
-                sort_order=band['sort_order'],
-            ))
-        for followup in ind.get('followups', []):
-            session.add(IndicatorFollowup(
-                indicator_id=row.id,
-                slug=followup['slug'],
-                question_text=followup['question_text'],
-                input_kind=followup['input_kind'],
-                options=followup.get('options'),
-                trigger_max_score=followup.get('trigger_max_score'),
-                sort_order=followup.get('sort_order', 0),
-            ))
+        _sync_bands(session, IndicatorBand, row.id, ind.get('bands', []))
+        _sync_followups(session, IndicatorFollowup, row.id, ind.get('followups', []))
+
+    # ── Assignments (upsert by project_type + indicator) ──────────────────
+    def _assign(pt_row, ind_row, sort_order, is_recommended, weight_override=None):
+        link = session.query(ProjectTypeIndicator).filter_by(
+            project_type_id=pt_row.id, indicator_id=ind_row.id,
+        ).first()
+        if link is None:
+            link = ProjectTypeIndicator(
+                project_type_id=pt_row.id, indicator_id=ind_row.id,
+            )
+            session.add(link)
+        link.sort_order = sort_order
+        link.is_recommended = is_recommended
+        link.weight_override = weight_override
 
     for join in DEFAULT_PROJECT_TYPE_INDICATORS:
         pt_row = project_type_rows.get(join['project_type'])
         ind_row = indicator_rows.get(join['indicator'])
         if not pt_row or not ind_row:
             continue
-        session.add(ProjectTypeIndicator(
-            project_type_id=pt_row.id,
-            indicator_id=ind_row.id,
-            sort_order=join.get('sort_order', 0),
-            is_recommended=join.get('is_recommended', False),
-            weight_override=join.get('weight_override'),
-        ))
+        _assign(
+            pt_row, ind_row,
+            join.get('sort_order', 0),
+            join.get('is_recommended', False),
+            join.get('weight_override'),
+        )
 
     # Attach universal cross-cutting indicators (HD) to every project type.
     # sort_order 999 keeps them last; is_recommended so they read as part of
-    # the default set. Any future project type inherits these automatically.
+    # the default set. Any project type added later inherits these for free.
     _explicit = {
         (j['project_type'], j['indicator']) for j in DEFAULT_PROJECT_TYPE_INDICATORS
     }
@@ -885,12 +942,7 @@ def seed_project_indicators(session) -> bool:
             ind_row = indicator_rows.get(uni_slug)
             if not ind_row or (pt_slug, uni_slug) in _explicit:
                 continue
-            session.add(ProjectTypeIndicator(
-                project_type_id=pt_row.id,
-                indicator_id=ind_row.id,
-                sort_order=999,
-                is_recommended=True,
-            ))
+            _assign(pt_row, ind_row, 999, True)
 
     session.commit()
     return True
