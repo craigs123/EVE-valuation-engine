@@ -53,7 +53,7 @@ def send_verification_email(to_email: str, token: str) -> bool:
         </a>
       </p>
       <p style="color:#666;font-size:0.85rem;">
-        This link expires in 24 hours. If you didn't create an account, you can ignore this email.
+        This link expires in 48 hours. If you didn't create an account, you can ignore this email.
       </p>
       <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
       <p style="color:#aaa;font-size:0.8rem;">

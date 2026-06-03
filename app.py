@@ -1498,7 +1498,11 @@ if _verify_token:
         st.link_button("Go to the login page", "/", type="primary")
     else:
         st.query_params.clear()
-        st.error("This verification link has expired or is invalid. Please sign in and request a new one.")
+        st.warning(
+            "This verification link has already been used or has expired. "
+            "If you've already verified your email, just sign in below. "
+            "Otherwise, sign in and use **Resend verification email** to get a fresh link."
+        )
         st.link_button("Go to the login page", "/")
     st.stop()
 
@@ -1544,7 +1548,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.9.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.9.2 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
