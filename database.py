@@ -513,7 +513,10 @@ class UserDB:
                 existing = db.query(User).filter(User.email == email.lower()).first()
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 token = secrets.token_urlsafe(32)
-                expiry = datetime.utcnow() + timedelta(hours=24)
+                # 48h so the original email link stays valid right up to the
+                # account's auto-removal point (signup + 48h). See lifecycle in
+                # process_unverified_accounts().
+                expiry = datetime.utcnow() + timedelta(hours=48)
 
                 if existing:
                     if existing.status == 'Removed':
@@ -607,8 +610,22 @@ class UserDB:
 
     @staticmethod
     def verify_email(token: str) -> bool:
-        """Mark email as verified and promote the account to Active. Returns
-        True on success, False if the token is invalid/expired/removed."""
+        """Mark email as verified and promote the account to Active.
+
+        Idempotent: verification links are routinely opened more than once —
+        by the user on a second device, by a page refresh, or by automated
+        link scanners (corporate email security like SafeLinks/Mimecast,
+        in-app browsers such as the LinkedIn app). The first open verifies
+        the account; to avoid showing an "expired or invalid" error on a
+        perfectly good account when the link is opened again, we deliberately
+        do NOT clear the token on success. A later click matches the same row
+        and, finding it already Active, returns True again. The token still
+        expires naturally via verification_token_expiry for accounts that are
+        never verified.
+
+        Returns False only for genuinely unusable tokens: unknown, belonging
+        to a Removed account, or expired before the account was ever verified.
+        """
         try:
             with get_db() as db:
                 user = db.query(User).filter(User.verification_token == token).first()
@@ -616,13 +633,19 @@ class UserDB:
                     return False
                 if user.status == 'Removed':
                     return False
+                # Already verified (link re-opened on another device, refreshed,
+                # or prefetched by a scanner) — succeed idempotently, regardless
+                # of whether the token's expiry has since passed.
+                if user.status == 'Active' and user.email_verified:
+                    return True
                 if user.verification_token_expiry and user.verification_token_expiry < datetime.utcnow():
                     return False
                 user.email_verified = True
-                user.verification_token = None
-                user.verification_token_expiry = None
                 user.verification_reminder_sent_at = None
                 user.status = 'Active'
+                # verification_token / verification_token_expiry are intentionally
+                # left intact so repeat clicks on the same link stay idempotent
+                # (matched above). They expire harmlessly on their own.
                 db.commit()
                 return True
         except Exception as e:
@@ -689,7 +712,9 @@ class UserDB:
                     return False
                 token = secrets.token_urlsafe(32)
                 user.verification_token = token
-                user.verification_token_expiry = datetime.utcnow() + timedelta(hours=24)
+                # 48h, matching register() — keeps the resent link valid up to
+                # the account's auto-removal point.
+                user.verification_token_expiry = datetime.utcnow() + timedelta(hours=48)
                 db.commit()
                 from utils.email_utils import send_verification_email
                 return bool(send_verification_email(user.email, token))
