@@ -12,6 +12,11 @@ import base64
 import numpy as np
 import uuid
 from utils.sampling_utils import extract_coordinates
+from utils.forced_ecosystems import (
+    FORCED_ECOSYSTEM_TO_KEY,
+    is_forced_ecosystem,
+    forced_display_names,
+)
 from utils.analysis_helpers import (
     _get_ecosystem_intactness_multiplier,
     lat_to_mercator_y,
@@ -2035,7 +2040,7 @@ ECOSYSTEM_DISPLAY_OPTIONS = [
     "Polar", "Grassland", "Shrubland", "Wetland", "Water (ocean)",
     "Rivers and Lakes", "Coastal", "Mangroves", "Marine", "Agricultural",
     "Urban", "Desert",
-]
+] + forced_display_names()  # satellite-undetectable ecosystems (e.g. Peatland)
 
 # Ecosystem -> project-type mapping. Sourced from the DB (pi_project_types)
 # so it grows automatically as new project types are seeded — no hardcoded
@@ -5463,22 +5468,36 @@ if analyze_button and st.session_state.selected_area:
                         # the OpenLandMap COG host is unreachable. For user-drawn
                         # areas (use_test_area_single=False) the test_area_id stays
                         # None and the normal STAC + geographic-fallback path runs.
-                        _test_area_for_fallback = (
-                            selected_test_area
-                            if (use_test_area_single and selected_test_area)
-                            else None
-                        )
-                        ecosystem_info = detect_ecosystem_type(
-                            st.session_state.area_coordinates,
-                            st.session_state.sampling_frequency,
-                            max_sampling_limit=max_limit,
-                            progress_callback=update_progress,
-                            include_environmental_indicators=(
-                                st.session_state.get('show_indicator_fapar', False)
-                                or st.session_state.get('show_indicator_soil_c', False)
-                            ),
-                            test_area_id=_test_area_for_fallback,
-                        )
+                        if is_forced_ecosystem(st.session_state.ecosystem_override):
+                            # Satellite-undetectable ecosystem (e.g. Peatland):
+                            # skip the OpenLandMap landcover lookup and stamp
+                            # every sample point with the forced type. Points are
+                            # still generated (polygon-clipped) so per-point EEI
+                            # and the sample-points table have coordinates.
+                            from utils.openlandmap_integration import build_forced_ecosystem_results
+                            ecosystem_info = build_forced_ecosystem_results(
+                                st.session_state.area_coordinates,
+                                st.session_state.ecosystem_override,
+                                num_points=max_limit,
+                                progress_callback=update_progress,
+                            )
+                        else:
+                            _test_area_for_fallback = (
+                                selected_test_area
+                                if (use_test_area_single and selected_test_area)
+                                else None
+                            )
+                            ecosystem_info = detect_ecosystem_type(
+                                st.session_state.area_coordinates,
+                                st.session_state.sampling_frequency,
+                                max_sampling_limit=max_limit,
+                                progress_callback=update_progress,
+                                include_environmental_indicators=(
+                                    st.session_state.get('show_indicator_fapar', False)
+                                    or st.session_state.get('show_indicator_soil_c', False)
+                                ),
+                                test_area_id=_test_area_for_fallback,
+                            )
 
                         # Always do fresh sampling for each analysis
                         # Extract complete sampling point data from ecosystem detection
@@ -5836,6 +5855,9 @@ if analyze_button and st.session_state.selected_area:
                     "Desert": "desert",
                     "Urban": "urban",
                 }
+                # Satellite-undetectable ecosystems (e.g. Peatland) map their
+                # display name to their ESVD coefficient key here too.
+                override_mapping.update(FORCED_ECOSYSTEM_TO_KEY)
                 ecosystem_type = override_mapping.get(st.session_state.ecosystem_override, "agricultural")
                 
             # Project-area scaling defaults. The single-ecosystem branch below

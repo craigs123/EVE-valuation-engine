@@ -847,8 +847,12 @@ class PrecomputedESVDCoefficients:
 
     def get_ecosystem_coefficients(self, ecosystem_type: str) -> dict:
         """Get all coefficients for a specific ecosystem type"""
-        # Convert to lowercase for consistent lookup
-        ecosystem_key = ecosystem_type.lower()
+        # Normalise to the coefficient-dict key form: lowercase with spaces
+        # replaced by underscores, so multi-word display names ("Rivers and
+        # Lakes" -> "rivers_and_lakes", "Salt Marsh" -> "salt_marsh") resolve
+        # instead of silently falling back to the default set. Mirrors
+        # get_coefficient()'s normalisation.
+        ecosystem_key = ecosystem_type.lower().replace(' ', '_')
         return self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
 
     def get_coefficient(self, ecosystem_type: str, service_type: str, coordinates: tuple | None = None) -> float:

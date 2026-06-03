@@ -1465,6 +1465,50 @@ class OpenLandMapIntegrator:
         return max(4, actual_points)  # Ensure minimum of 4 points
     
 
+def build_forced_ecosystem_results(
+    coordinates: List[List[float]],
+    ecosystem_display: str,
+    num_points: int = 10,
+    progress_callback=None,
+) -> Dict:
+    """Build an ``analyze_area_ecosystem``-shaped result for a
+    satellite-undetectable ecosystem (e.g. Peatland).
+
+    Generates polygon-clipped sample points and stamps every one with the
+    forced ecosystem type, skipping the OpenLandMap landcover lookup entirely
+    (those layers cannot classify these ecosystems). Sample points still carry
+    real coordinates, so per-point EEI is fetched downstream as usual and the
+    sample-points table / PDF render correctly. The result slots into the same
+    extraction path the normal detection flow uses.
+    """
+    integrator = OpenLandMapIntegrator()
+    points = integrator._generate_sample_points(coordinates, num_points=num_points)
+    source = f"Forced ecosystem ({ecosystem_display} — not satellite-detectable)"
+    sample_results = []
+    for i, (lat, lon) in enumerate(points):
+        sample_results.append({
+            'ecosystem_type': ecosystem_display,
+            # 0 = ESA "no data": there is no satellite landcover class for a
+            # forced ecosystem; ecosystem_type above is authoritative.
+            'landcover_class': 0,
+            'source': source,
+            'coordinates': {'lat': lat, 'lon': lon},
+            'stac_data': {},
+            'raw_stac_data': {},
+        })
+        if progress_callback:
+            progress_callback(i + 1, len(points))
+    return {
+        'primary_ecosystem': ecosystem_display,
+        'coverage_percentage': 100.0,
+        'successful_queries': len(sample_results),
+        'total_samples': len(sample_results),
+        'ecosystem_distribution': {ecosystem_display: {'count': len(sample_results)}},
+        'source': source,
+        'sample_results': sample_results,
+    }
+
+
 def detect_ecosystem_type(coordinates: List[List[float]], sampling_frequency: float = 1.0, max_sampling_limit: int = 10, progress_callback=None, include_environmental_indicators: bool = True, test_area_id: Optional[str] = None) -> Dict:
     """
     Main function to detect ecosystem type using OpenLandMap
