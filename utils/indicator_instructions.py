@@ -357,25 +357,90 @@ INDICATOR_INSTRUCTIONS = {
 }
 
 
+# ── Auto-generated instructions from the seed ────────────────────────────────
+# Any indicator without a hand-authored entry above still gets useful panel
+# instructions, generated from its seed definition (baseline_question,
+# field_method, bands, remote-sensing note, sources). This means a new indicator
+# set added to project_indicators_seed.py surfaces a scoring intro, a "How to
+# score" table and a response-help tooltip automatically — no separate authoring
+# step here. Hand-authored entries above always take precedence.
+
+_AUTO_CACHE: dict = {}
+
+
+def _seed_indicator_by_code() -> dict:
+    """code -> seed indicator dict, built once from DEFAULT_INDICATORS."""
+    cache = _AUTO_CACHE.get('by_code')
+    if cache is None:
+        try:
+            from utils.project_indicators_seed import DEFAULT_INDICATORS
+            cache = {ind['code']: ind for ind in DEFAULT_INDICATORS}
+        except Exception:
+            cache = {}
+        _AUTO_CACHE['by_code'] = cache
+    return cache
+
+
+def _auto_instructions_for_code(code: str):
+    """Build an instructions dict from a seed indicator's own fields, or None
+    if that code isn't in the seed."""
+    ind = _seed_indicator_by_code().get(code)
+    if not ind:
+        return None
+    bands = ind.get('bands') or []
+
+    def _detail(b):
+        crit, mean = b.get('criteria', ''), b.get('meaning', '')
+        return f"{crit} — {mean}" if crit and mean else (crit or mean)
+
+    response_help = [
+        (int(round(b['score'] * 100)), b['label'], _detail(b)) for b in bands
+    ]
+
+    blocks = []
+    if ind.get('field_method'):
+        blocks.append({'type': 'md',
+                       'content': "### How to measure\n\n" + ind['field_method']})
+    if bands:
+        table = ["### How to score\n", "| Score | Level | What it means |", "|---|---|---|"]
+        for b in bands:
+            table.append(f"| {int(round(b['score'] * 100))} | {b['label']} | {_detail(b)} |")
+        blocks.append({'type': 'md', 'content': "\n".join(table)})
+    if ind.get('remote_sensing_alternative'):
+        blocks.append({'type': 'md',
+                       'content': "### Remote sensing alternative\n\n"
+                                  + ind['remote_sensing_alternative']})
+    if ind.get('sources'):
+        blocks.append({'type': 'caption', 'content': "Sources: " + ind['sources']})
+
+    return {
+        'scoring_intro': ind.get('baseline_question') or '',
+        'response_help': response_help,
+        'full_instructions': blocks,
+    }
+
+
 def get_indicator_instructions(ecosystem_display_name: str, code: str):
     """Return the instructions dict for an (ecosystem, indicator code) pair.
 
-    Falls back to the universal ``('*', code)`` key so cross-cutting
-    indicators (e.g. HD) need authoring only once and surface for every
-    ecosystem. Returns None when nothing has been authored."""
+    Resolution order: hand-authored ``(ecosystem, code)`` → universal
+    ``('*', code)`` (e.g. HD) → instructions auto-generated from the seed
+    definition. Returns None only when the code is unknown everywhere."""
     return (
         INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
         or INDICATOR_INSTRUCTIONS.get(('*', code))
+        or _auto_instructions_for_code(code)
     )
 
 
 def get_response_help_markdown(ecosystem_display_name: str, code: str):
     """Return a markdown tooltip describing every response category for an
     indicator — used as the Baseline/Target radio help icon. Returns None
-    when no per-response descriptions have been authored."""
+    when no per-response descriptions have been authored or generated."""
     data = (
         INDICATOR_INSTRUCTIONS.get((ecosystem_display_name, code))
         or INDICATOR_INSTRUCTIONS.get(('*', code))
+        or _auto_instructions_for_code(code)
     )
     rows = (data or {}).get('response_help')
     if not rows:
