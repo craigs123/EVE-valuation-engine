@@ -14,6 +14,42 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.9.8 beta",
+        "date": "2026-06-03",
+        "changes": [
+            "New Tropical Forest Reforestation indicator set — project-specific "
+            "indicators (canopy cover, tree species richness, canopy height, "
+            "natural regeneration, leaf litter, wildlife signs and invasive "
+            "pressure) are now available for Tropical Forest as well as "
+            "Mangroves, and adjust the valuation using your on-the-ground scores.",
+            "Each project indicator now shows step-by-step scoring instructions "
+            "and a 'how to score' guide directly in the panel.",
+            "When you manually override the detected ecosystem, the per-type EEI "
+            "breakdown and the sample-point composition list are now hidden (they "
+            "referred to the auto-detected types); the average ecosystem "
+            "integrity and the geographic distribution still show.",
+        ],
+    },
+    {
+        "version": "v3.9.3 beta",
+        "date": "2026-06-03",
+        "changes": [
+            "Sample points are now placed inside your drawn area's actual shape "
+            "rather than its rectangular bounding box, so analyses of irregular "
+            "areas no longer pick up land outside the boundary.",
+        ],
+    },
+    {
+        "version": "v3.9.2 beta",
+        "date": "2026-06-03",
+        "changes": [
+            "Email verification links are more reliable — they can be opened "
+            "more than once (for example on a second device, or after an email "
+            "security scanner has already followed the link) without showing an "
+            "'expired or invalid' error, and now stay valid for 48 hours.",
+        ],
+    },
+    {
         "version": "v3.9.1 beta",
         "date": "2026-06-02",
         "changes": [
