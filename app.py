@@ -2063,15 +2063,23 @@ def _ecosystem_project_type_map() -> Dict[str, str]:
 def _resolve_project_type_slug(ecosystem_display_name) -> Optional[str]:
     """Return the project-type slug serving an EVE ecosystem display name,
     or None when no project type with ecological indicators is wired up.
-    Tolerant of case and singular/plural ('Mangrove' vs 'Mangroves')."""
+    Tolerant of case, singular/plural ('Mangrove' vs 'Mangroves') and the
+    space/underscore difference between EVE display names ('Tropical Forest')
+    and calc keys ('tropical_forest'). The calc path resolves the project type
+    from the post-override calc key, so underscore folding is essential — without
+    it multi-word ecosystems silently get no project indicators."""
     if not ecosystem_display_name or ecosystem_display_name == 'Auto-detect':
         return None
     m = _ecosystem_project_type_map()
     if ecosystem_display_name in m:
         return m[ecosystem_display_name]
-    _norm = str(ecosystem_display_name).strip().lower().rstrip('s')
+
+    def _norm_name(s):
+        return str(s).strip().lower().replace('_', ' ').rstrip('s')
+
+    _norm = _norm_name(ecosystem_display_name)
     for k, v in m.items():
-        if k.strip().lower().rstrip('s') == _norm:
+        if _norm_name(k) == _norm:
             return v
     return None
 
