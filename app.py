@@ -2094,6 +2094,20 @@ PROJECT_INDICATOR_RESOURCES = {
             'source': 'The Nature Conservancy',
         },
     ],
+    'Tropical Forest': [
+        {
+            'title': 'ITTO Guidelines for the Restoration and '
+                     'Rehabilitation of Degraded and Secondary Tropical Forests',
+            'url': 'https://www.itto.int/direct/topics/topics_pdf_download/'
+                   'topics_id=1357&no=1&disp=inline',
+            'source': 'ITTO',
+        },
+        {
+            'title': 'Bonn Challenge — Forest Restoration Resources',
+            'url': 'https://www.bonnchallenge.org/resources',
+            'source': 'IUCN Bonn Challenge',
+        },
+    ],
 }
 
 
