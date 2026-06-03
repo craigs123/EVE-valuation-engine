@@ -1337,39 +1337,87 @@ class OpenLandMapIntegrator:
             'sample_results': ecosystem_results,
         }
 
+    @staticmethod
+    def _bbox_grid(min_lon, min_lat, max_lon, max_lat, grid_size):
+        """Return cell-centre points of a ``grid_size`` × ``grid_size`` grid
+        spanning the bounding box, as an (N, 2) array of (lon, lat)."""
+        i_vals = (np.arange(grid_size) + 0.5) / grid_size
+        lats = min_lat + (max_lat - min_lat) * i_vals
+        lons = min_lon + (max_lon - min_lon) * i_vals
+        lat_grid, lon_grid = np.meshgrid(lats, lons, indexing='ij')
+        return np.column_stack([lon_grid.ravel(), lat_grid.ravel()])  # (lon, lat)
+
     def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 4) -> List[Tuple[float, float]]:
         """
-        Generate sample points within a polygon for ecosystem analysis (optimized)
+        Generate sample points that fall INSIDE the drawn polygon.
+
+        A regular grid is laid over the polygon's bounding box and clipped to
+        the polygon itself via a vectorized point-in-polygon test
+        (``matplotlib.path.Path``). Points landing in the bounding-box corners
+        but outside the actual polygon — which the old bbox-only grid wrongly
+        included — are discarded.
+
+        Behaviour by shape:
+          * Rectangle selection — the polygon equals its bounding box, so the
+            native-density grid is fully inside and is returned unchanged
+            (bit-for-bit identical to the previous implementation).
+          * Arbitrary polygon — if the native-density grid loses points to
+            clipping, the grid is densified until at least the target count of
+            interior points is found, then deterministically subsampled back
+            down so the returned count matches the requested sampling density.
+
+        Points are deterministic grid cell centres (no randomness), preserving
+        reproducibility of analyses. Returns a list of (lat, lon) tuples.
         """
         try:
-            # Convert to numpy array efficiently
-            coords = np.array(coordinates[:-1], dtype=np.float32)  # Use float32 for performance
-            
-            # Calculate bounding box efficiently
-            min_coords = coords.min(axis=0)
-            max_coords = coords.max(axis=0)
-            min_lon, min_lat = min_coords[0], min_coords[1]
-            max_lon, max_lat = max_coords[0], max_coords[1]
-            
-            # Generate grid of points using vectorized operations
-            grid_size = int(np.sqrt(num_points))
-            if grid_size == 0:
-                grid_size = 1
-            
-            # Create coordinate grids
-            i_vals = np.arange(grid_size)
-            j_vals = np.arange(grid_size)
-            
-            # Vectorized point generation
-            lats = min_lat + (max_lat - min_lat) * (i_vals + 0.5) / grid_size
-            lons = min_lon + (max_lon - min_lon) * (j_vals + 0.5) / grid_size
-            
-            # Create all combinations efficiently
-            lat_grid, lon_grid = np.meshgrid(lats, lons, indexing='ij')
-            points = list(zip(lat_grid.flatten(), lon_grid.flatten()))
-            
-            return points
-            
+            from matplotlib.path import Path
+
+            coords = np.asarray(coordinates[:-1], dtype=np.float64)  # vertices are (lon, lat)
+            if coords.shape[0] < 3:
+                raise ValueError("at least 3 polygon vertices are required")
+
+            min_lon, min_lat = coords[:, 0].min(), coords[:, 1].min()
+            max_lon, max_lat = coords[:, 0].max(), coords[:, 1].max()
+
+            # Native grid density — matches the old grid_size = int(sqrt(N)).
+            grid_size0 = int(np.sqrt(num_points)) or 1
+            target_count = max(1, grid_size0 ** 2)
+
+            polygon = Path(coords)
+
+            def interior_points(grid_size):
+                cand = self._bbox_grid(min_lon, min_lat, max_lon, max_lat, grid_size)
+                return cand[polygon.contains_points(cand)]
+
+            # First pass at native density. For a rectangle every point is
+            # inside and len == target_count, so we return the exact old grid.
+            inside = interior_points(grid_size0)
+
+            # Polygon clipped some points away — densify until we recover at
+            # least target_count interior points (or hit a sane cap).
+            if len(inside) < target_count:
+                for grid_size in range(grid_size0 + 1, 129):
+                    denser = interior_points(grid_size)
+                    if len(denser) >= len(inside):
+                        inside = denser
+                    if len(inside) >= target_count:
+                        break
+
+            if len(inside) == 0:
+                # Pathological case (e.g. a polygon thinner than one grid cell):
+                # never return empty — fall back to the bbox grid so the run
+                # still completes, matching legacy behaviour.
+                inside = self._bbox_grid(min_lon, min_lat, max_lon, max_lat, grid_size0)
+
+            # When densification overshot, evenly (deterministically) subsample
+            # down to the requested count so per-point API cost stays bounded.
+            if len(inside) > target_count:
+                idx = np.linspace(0, len(inside) - 1, target_count).round().astype(int)
+                inside = inside[idx]
+
+            # Return as (lat, lon) tuples, preserving the previous contract.
+            return [(float(lat), float(lon)) for lon, lat in inside]
+
         except Exception as e:
             # Return error instead of fallback single point sampling
             raise ValueError(f"Failed to generate sample points: {str(e)}. Area coordinates may be invalid or insufficient for grid sampling.")
