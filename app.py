@@ -1227,13 +1227,22 @@ def display_data_source_status(analysis_results: Dict = None):
                         eei_percent = int(average_eei * 100)
                         st.info(f"**Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%)")
 
-                        if ecosystem_eei and len(ecosystem_eei) > 1:
+                        # The per-ecosystem EEI breakdown is meaningful only under
+                        # auto-detect. When the user has overridden the ecosystem
+                        # type it would list the satellite-detected types that have
+                        # just been overridden — misleading — so hide it. The
+                        # average EEI above still shows.
+                        _autodetect = (
+                            st.session_state.get('ecosystem_override', 'Auto-detect')
+                            == 'Auto-detect'
+                        )
+                        if _autodetect and ecosystem_eei and len(ecosystem_eei) > 1:
                             st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
                             for eco_type, eei_value in sorted(ecosystem_eei.items()):
                                 if eei_value is not None:
                                     eco_eei_percent = eei_value * 100
                                     st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent:.3f}%)")
-                        elif ecosystem_eei and len(ecosystem_eei) == 1:
+                        elif _autodetect and ecosystem_eei and len(ecosystem_eei) == 1:
                             eco_type, eei_value = list(ecosystem_eei.items())[0]
                             if eei_value is not None:
                                 st.caption(f"Single ecosystem ({eco_type}) — EEI {eei_value:.3f} used for intactness default")
@@ -1256,13 +1265,18 @@ def display_data_source_status(analysis_results: Dict = None):
                     esvd_ecosystem = specialized_ecosystem or get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                     ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
 
-                st.markdown("**Ecosystem Composition (from Sample Points):**")
-                total_area = results.get('area_ha', results.get('area_hectares', 0))
-                for ecosystem_type, count in sorted(ecosystem_counts.items()):
-                    percentage = (count / len(sampling_point_data)) * 100
-                    area_ha = total_area * (percentage / 100)
-                    if percentage >= 1.0:
-                        st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
+                # Ecosystem composition is built from per-point satellite
+                # detection, so hide it when the ecosystem has been overridden
+                # (it may list types the user has overridden). Geographic
+                # distribution below is unaffected and still shows.
+                if st.session_state.get('ecosystem_override', 'Auto-detect') == 'Auto-detect':
+                    st.markdown("**Ecosystem Composition (from Sample Points):**")
+                    total_area = results.get('area_ha', results.get('area_hectares', 0))
+                    for ecosystem_type, count in sorted(ecosystem_counts.items()):
+                        percentage = (count / len(sampling_point_data)) * 100
+                        area_ha = total_area * (percentage / 100)
+                        if percentage >= 1.0:
+                            st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
 
                 # Country breakdown (water bodies excluded)
                 country_counts = {}
