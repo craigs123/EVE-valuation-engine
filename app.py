@@ -1567,7 +1567,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.9.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1811,10 +1811,14 @@ def analysis_settings_dialog():
                 get_worldcover_for_cci,
             )
             _default_map = DEFAULT_LANDCOVER_MAPPING
+            # Must contain every value used in DEFAULT_LANDCOVER_MAPPING —
+            # a missing type silently coerces that code to the first option
+            # (this is how 210 "Rivers and Lakes" was showing as "Forest").
             _esvd_types = [
                 "Forest", "Tropical Forest", "Temperate Forest", "Boreal Forest",
                 "Grassland", "Agricultural", "Urban", "Desert",
-                "Wetland", "Coastal", "Mangroves", "Marine", "Shrubland", "polar"
+                "Wetland", "Coastal", "Mangroves", "Marine", "Rivers and Lakes",
+                "Shrubland", "polar"
             ]
             if 'custom_landcover_mapping' not in st.session_state:
                 st.session_state.custom_landcover_mapping = _default_map.copy()
@@ -1878,9 +1882,14 @@ def analysis_settings_dialog():
                 with _mc4:
                     st.write(_wc_desc if _wc_desc is not None else "—")
                 with _mc5:
-                    _cm = st.session_state.custom_landcover_mapping.get(code, "Grassland")
-                    _ci = _esvd_types.index(_cm) if _cm in _esvd_types else 0
-                    _nm = st.selectbox(f"eco_{code}", _esvd_types, index=_ci,
+                    _cm = st.session_state.custom_landcover_mapping.get(
+                        code, _default_map.get(code, "Grassland"))
+                    # Preserve an unrecognised type by offering it as an option
+                    # rather than falling back to index 0 — the selectbox value
+                    # is written straight back into the live mapping below, so
+                    # a silent coercion here would corrupt that code's routing.
+                    _opts = _esvd_types if _cm in _esvd_types else _esvd_types + [_cm]
+                    _nm = st.selectbox(f"eco_{code}", _opts, index=_opts.index(_cm),
                                        key=f"dlg_lcmap_{code}", label_visibility="collapsed")
                     st.session_state.custom_landcover_mapping[code] = _nm
 

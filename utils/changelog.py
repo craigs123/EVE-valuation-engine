@@ -14,6 +14,19 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.0 beta",
+        "date": "2026-07-20",
+        "changes": [
+            "Fixed the Ecosystem Mapping table in Analysis Settings, which showed "
+            "land-cover code 210 (water bodies) as mapping to 'Forest'. Its correct "
+            "default is 'Rivers and Lakes', which was missing from the ecosystem "
+            "drop-down. Opening that panel also silently applied the wrong value, "
+            "so water could be described as forest in the detected-ecosystem "
+            "display before you classified it. Water valuations were not affected: "
+            "your ocean / rivers and lakes / coastal choice always took priority.",
+        ],
+    },
+    {
         "version": "v3.9.9 beta",
         "date": "2026-07-20",
         "changes": [
