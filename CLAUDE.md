@@ -115,7 +115,8 @@ gcloud run services add-iam-policy-binding eve-valuation-engine-staging \
 - Regional adjustment formula: `1 + (elasticity × (country_GDP / global_GDP − 1))`, clipped to `[0.4, 2.5]`
 - Multi-ecosystem path uses rounded percentages to keep calc consistent with UI display — preserve this when editing
 - Default sample point count is 10 (dev speed); user-configurable 10–100
-- Open water is excluded from natural capital totals via NDWI masking — preserve this exclusion when changing sampling/calc code
+- Open water is **included** in natural capital totals. Sample points detected as ESA CCI code 210 ("Water bodies") pause the analysis and prompt the user to classify them in bulk as Ocean → `Marine`, Rivers/Lakes → `Rivers and Lakes`, or Coastal → `Coastal` (`app.py:5301-5372`); the chosen type's ESVD coefficients are then applied normally. Preserve this prompt when changing sampling/calc code. Note `Marine` points are skipped for country assignment and so receive **no** regional GDP adjustment (`app.py:960`), unlike the other two
+- There is no NDWI water masking in the live calculation path. The NDWI code in `utils/natural_capital_metrics.py` (module never imported) and `utils/satellite_data.py` (reached only via `ecosystem_services.get_ecosystem_service_values`, which `app.py` imports but never calls) is dead
 - `unused/` exists because of a long iterative history; prefer the active `utils/` modules and `app.py` pathways. Many filenames in `unused/` look authoritative (e.g. `precomputed_esvd_coefficients_backup.py`) — they are not
 - App name in user-facing copy: "Ecosystem Valuation Engine" or "EVE" (not "Natural Capital Measurement Tool")
 

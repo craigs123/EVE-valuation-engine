@@ -847,8 +847,10 @@ def generate_pdf_report(
         'sourced from live Google Earth Engine data via the EEI Explorer API — are applied '
         'where available; demo (fabricated) fallback data is never used, and an ecosystem '
         'with no real EEI data defaults to a conservative 50% intactness rather than 100%. '
-        'Open-water areas are excluded from natural capital totals '
-        '(NDWI masking). All values are in 2024 International dollars per hectare per year.',
+        'Open-water areas are included in natural capital totals: sample points '
+        'identified as water bodies are classified by the user as ocean, rivers and '
+        'lakes, or coastal, and valued using the corresponding ESVD coefficients. '
+        'All values are in 2024 International dollars per hectare per year.',
         body,
     ))
     story.append(Spacer(1, 0.3 * cm))

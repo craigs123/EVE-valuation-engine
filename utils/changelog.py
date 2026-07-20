@@ -14,6 +14,18 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.9.9 beta",
+        "date": "2026-07-20",
+        "changes": [
+            "Corrected the methodology note in the PDF report. It previously said "
+            "open-water areas were excluded from natural capital totals, which was "
+            "not what the engine does. Water bodies are included: when sample "
+            "points fall on water you are asked to classify them as ocean, rivers "
+            "and lakes, or coastal, and they are valued using the matching "
+            "coefficients. Wording only — no valuation figures have changed.",
+        ],
+    },
+    {
         "version": "v3.9.8 beta",
         "date": "2026-06-03",
         "changes": [
