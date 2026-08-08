@@ -515,10 +515,18 @@ def create_drawing_tools():
 CORNER_POINT_COLOR = '#fd7e14'  # Orange — distinct from drawn/test/saved areas
 
 
-def reset_corner_points():
-    """Forget the listed corner points of a drawn polygon."""
+def reset_corner_points(close_mode=False):
+    """Forget the listed corner points of a drawn polygon.
+
+    Args:
+        close_mode: Also leave corner mode, so map clicks stop adding corners.
+            Clearing the list alone keeps the mode open — the user is usually
+            clearing in order to click a fresh set of corners.
+    """
     st.session_state.coord_entry_points = []
     st.session_state['_corner_text_dirty'] = True
+    if close_mode:
+        st.session_state['corner_mode'] = False
 
 
 def sync_corner_points_from_text():
@@ -1695,7 +1703,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1744,6 +1752,10 @@ def reset_analysis_state():
                 st.session_state[key] = None
             else:
                 del st.session_state[key]
+    # Picking a different area source ends corner mode — those corners belong
+    # to a polygon the user has just navigated away from.
+    reset_corner_points(close_mode=True)
+
     # Clear the location-search box so the user's stale query doesn't sit
     # on screen after they pick a test area. Safe to set directly here:
     # callbacks run before the next render, so the widget hasn't been
@@ -4347,10 +4359,42 @@ current_limit = st.session_state.get('max_sampling_limit', 9)
 # ---------------------------------------------------------------------------
 # Corner points of a drawn polygon
 # ---------------------------------------------------------------------------
-# Populated by the drawing handler when a polygon is completed with the Draw
-# toolbar (see below) — not by plain map clicks.
+# Completing a polygon with the Draw toolbar opens corner mode. While it is
+# open, plain map clicks append corners, so points removed with Undo (or all of
+# them, with Clear) can be put back without redrawing the shape. The mode stays
+# open until the area is committed with 'Use this area' or a rectangle is drawn
+# — deliberately NOT until the list empties, or Undo would shut the mode down
+# at exactly the moment the user wants to add a corner back.
+#
+# Outside corner mode, clicks do nothing at all, which is what keeps stray
+# clicks on a fresh map from creating points or triggering reruns.
 if 'coord_entry_points' not in st.session_state:
     st.session_state.coord_entry_points = []
+
+corner_mode_active = st.session_state.get('corner_mode', False)
+
+if corner_mode_active:
+    _prev_map_state = st.session_state.get('area_map') or {}
+    _last_click = _prev_map_state.get('last_clicked')
+    if _last_click and _last_click.get('lat') is not None:
+        _click_point = (round(float(_last_click['lat']), 6), round(float(_last_click['lng']), 6))
+        # st_folium re-returns the same last_clicked on unrelated reruns, so
+        # without this guard one click would be recorded over and over.
+        if _click_point != st.session_state.get('_last_processed_click'):
+            st.session_state['_last_processed_click'] = _click_point
+            # The click that closed the polygon lands on one of its own
+            # vertices, and only reaches Python on the run after the shape is
+            # created (last_clicked isn't requested until a list exists). Match
+            # it against the existing corners so it isn't added a second time.
+            # A metre of tolerance — nobody deliberately clicks that close to a
+            # corner they already have.
+            _lands_on_existing = any(
+                abs(_click_point[0] - lat) < 1e-5 and abs(_click_point[1] - lon) < 1e-5
+                for lat, lon in st.session_state.coord_entry_points
+            )
+            if not _lands_on_existing:
+                st.session_state.coord_entry_points.append(_click_point)
+                st.session_state['_corner_text_dirty'] = True
 
 # Rebuild the corner text box from the point list. Done here, before the widget
 # is instantiated further down the page — Streamlit refuses writes to a widget's
@@ -4622,9 +4666,12 @@ with col2_map:
         m,
         width="100%",  # Responsive width for all device sizes
         height=400,
-        # Only all_drawings: corner points come from completed polygons, so
-        # plain map clicks (and pans/zooms) must not rerun the whole app.
-        returned_objects=["all_drawings"],
+        # last_clicked is only requested while a corner list is open, so map
+        # clicks rerun the app only when the user is actually editing corners.
+        # center/zoom stay out entirely — panning and zooming never rerun.
+        returned_objects=(
+            ["all_drawings", "last_clicked"] if corner_mode_active else ["all_drawings"]
+        ),
         key="area_map",
         feature_group_to_add=_pending_fg,
         debug=False  # Disable debug for performance
@@ -4650,12 +4697,15 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
             # and fine-tuned numerically. Rectangles are left alone — the square
             # tool keeps its original behaviour, with no corner list.
             if is_axis_aligned_rectangle(coordinates):
+                # The square tool closes corner mode, per its original behaviour.
                 st.session_state.coord_entry_points = []
+                st.session_state['corner_mode'] = False
             else:
                 ring = coordinates[:-1] if coordinates[0] == coordinates[-1] else coordinates
                 st.session_state.coord_entry_points = [
                     (round(float(lat), 6), round(float(lon), 6)) for lon, lat in ring
                 ]
+                st.session_state['corner_mode'] = True
             st.session_state['_corner_text_dirty'] = True
 
             # Save the new selection with batch state updates
@@ -4711,11 +4761,10 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
 with col3_map:
     analyze_button = False
 
-    # ── Corner points recorded by clicking the map ────────────────────────
-    # Shown only once the user has actually clicked, so it stays out of the
-    # way for people who just draw or pick a test area.
-    _corner_points = st.session_state.get('coord_entry_points', [])
-    if _corner_points:
+    # ── Corners of the polygon being defined ──────────────────────────────
+    # Tied to corner mode rather than to the list being non-empty, so clearing
+    # every corner leaves the panel up and clicks still add new ones.
+    if corner_mode_active:
         st.markdown(
             "<div style='font-size:0.78rem; font-weight:600; color:#8a4b00; "
             "padding:0.2rem 0 0.1rem 0;'>📐 Corner points</div>",
@@ -4728,7 +4777,8 @@ with col3_map:
             height=120,
             label_visibility="collapsed",
             help="Corners of the polygon you drew, one 'latitude, longitude' per "
-                 "line. Edit or paste coordinates here, then press 'Use this area'.",
+                 "line. Click the map to add more, edit or paste coordinates here, "
+                 "then press 'Use this area'.",
             on_change=sync_corner_points_from_text,
         )
 
@@ -4744,8 +4794,10 @@ with col3_map:
                 st.caption(f"{len(_preview_pts)} corners · {calculate_area_optimized(_ring):,.1f} ha")
             except Exception:
                 st.caption(f"{len(_preview_pts)} corners")
+        elif _preview_pts:
+            st.caption(f"{len(_preview_pts)} corner(s) · click the map for at least 3")
         else:
-            st.caption(f"{len(_preview_pts)} corner(s) · need at least 3")
+            st.caption("Click the map to add corners")
 
         _undo_col, _clear_col = st.columns(2)
         with _undo_col:
@@ -4782,8 +4834,9 @@ with col3_map:
                     st.session_state.cached_area_ha = _area_ha
                     st.session_state.cached_bbox = _bbox
                     st.session_state.area_coords_cache = _coords
-                    # The committed polygon replaces the pending corner markers.
-                    reset_corner_points()
+                    # Committing ends corner mode: the polygon replaces the
+                    # pending markers and clicks stop adding corners.
+                    reset_corner_points(close_mode=True)
                     st.rerun()
 
         st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)

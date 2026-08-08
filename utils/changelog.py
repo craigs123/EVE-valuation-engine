@@ -14,7 +14,7 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
-        "version": "v3.10.3 beta",
+        "version": "v3.10.4 beta",
         "date": "2026-08-08",
         "changes": [
             "The map now shows the latitude and longitude under your cursor, in large "
@@ -22,9 +22,11 @@ CHANGELOG: List[Dict] = [
             "When you draw an area with the polygon tool, its corners are now listed "
             "beside the map and numbered on it, so you can read off exactly where the "
             "boundary falls.",
-            "That corner list can be edited or pasted into, so you can fine-tune a "
-            "boundary to exact coordinates — or enter an area whose coordinates you "
-            "already have, from a survey or a report — then press 'Use this area'.",
+            "You can then keep adjusting that shape: click the map to add a corner, "
+            "use Undo or Clear to take corners away, or edit and paste coordinates "
+            "into the list directly to set a boundary exactly. This also lets you "
+            "enter an area whose coordinates you already have, from a survey or a "
+            "report. Press 'Use this area' when the shape is right.",
             "The rectangle tool is unchanged.",
         ],
     },
