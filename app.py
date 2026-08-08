@@ -25,6 +25,7 @@ from utils.analysis_helpers import (
     create_bbox_from_center_and_area,
     parse_polygon_coordinates,
     parse_coordinate_lines,
+    parse_latlon_search,
     format_points_as_text,
 )
 
@@ -1703,7 +1704,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.6 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4340,7 +4341,7 @@ col_search, col_layer = st.columns([2, 1])
 with col_search:
     location_search = st.text_input(
         "Search for locations",
-        placeholder="Try searching for locations e.g. Amazon rain forest",
+        placeholder="Search a place, e.g. Amazon rain forest — or coordinates, e.g. 51.5074, -0.1278",
         key="location_search_main",
         label_visibility="collapsed",
     )
@@ -4597,20 +4598,32 @@ else:
     map_center = [40.0, -100.0]  # Default center (USA)
     map_zoom = 4  # Default zoom
     
+    location = None
+    coord_search_point = None
     if location_search:
-        location = None
-        try:
-            from geopy.geocoders import Nominatim
-            geolocator = Nominatim(user_agent="EcosystemValuationEngine")
-            location = geolocator.geocode(location_search)
-        except Exception:
-            pass
-        
-        if location:
-            map_center = [location.latitude, location.longitude]
-            map_zoom = 10
+        # Typed coordinates jump straight to the spot — no geocoder round-trip.
+        # Anything that isn't a coordinate pair falls through to the place-name
+        # lookup unchanged.
+        coord_search_point, coord_search_hint = parse_latlon_search(location_search)
+
+        if coord_search_point:
+            map_center = [coord_search_point[0], coord_search_point[1]]
+            map_zoom = 14  # Closer than a place-name result: this is a precise spot
+        elif coord_search_hint:
+            st.warning(f"❌ {coord_search_hint}")
         else:
-            st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
+            try:
+                from geopy.geocoders import Nominatim
+                geolocator = Nominatim(user_agent="EcosystemValuationEngine")
+                location = geolocator.geocode(location_search)
+            except Exception:
+                pass
+
+            if location:
+                map_center = [location.latitude, location.longitude]
+                map_zoom = 10
+            else:
+                st.warning(f"❌ Location '{location_search}' not found. Try different search terms.")
     
     # Default optimized map view with search location
     m = get_folium_map(map_center[0], map_center[1], map_zoom, map_layer)
@@ -4618,13 +4631,22 @@ else:
     draw_tools.add_to(m)
     
     # Add search result marker if location found
-    if location_search and 'location' in locals() and location:
+    if location_search and location:
         import folium
         folium.Marker(
             [location.latitude, location.longitude],
             popup=f"📍 {location.address}",
             tooltip=f"Searched: {location_search}",
             icon=folium.Icon(color='red', icon='search')
+        ).add_to(m)
+    elif coord_search_point:
+        import folium
+        _cs_lat, _cs_lon = coord_search_point
+        folium.Marker(
+            [_cs_lat, _cs_lon],
+            popup=f"📍 {_cs_lat:.5f}, {_cs_lon:.5f}",
+            tooltip=f"Coordinates: {_cs_lat:.5f}, {_cs_lon:.5f}",
+            icon=folium.Icon(color='red', icon='screenshot')
         ).add_to(m)
 
 # Ultra-optimized map display with performance settings - two-thirds width

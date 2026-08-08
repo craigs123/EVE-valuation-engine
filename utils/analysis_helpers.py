@@ -204,6 +204,48 @@ def format_points_as_text(points: Sequence[Sequence[float]]) -> str:
     return "\n".join(f"{float(lat):.6f}, {float(lon):.6f}" for lat, lon in points)
 
 
+def parse_latlon_search(text: str) -> Tuple[Optional[Tuple[float, float]], Optional[str]]:
+    """Interpret a search-box entry as a single 'latitude, longitude' pair.
+
+    Lets the location search accept typed coordinates as well as place names.
+
+    Returns:
+        ``(point, None)`` when the text is a usable coordinate pair;
+        ``(None, hint)`` when it clearly means to be coordinates but is out of
+        range, so the caller can explain rather than geocode nonsense; and
+        ``(None, None)`` when it is not coordinates at all, which the caller
+        should treat as a place name.
+    """
+    cleaned = (text or '').strip().strip('[]()').strip()
+    if not cleaned:
+        return None, None
+
+    parts = [p for p in _COORD_SPLIT_RE.split(cleaned) if p]
+    if len(parts) != 2:
+        return None, None  # A place name, not a coordinate pair
+
+    try:
+        lat = float(parts[0])
+        lon = float(parts[1])
+    except ValueError:
+        return None, None  # e.g. "New York" — two words, not two numbers
+
+    if not -90.0 <= lat <= 90.0:
+        # A reversed pair is the usual cause, and is worth naming: longitude
+        # ranges beyond 90 while latitude cannot, so the swap is detectable.
+        if -90.0 <= lon <= 90.0 and -180.0 <= lat <= 180.0:
+            return None, (
+                f"Latitude must be between -90 and 90. Did you mean "
+                f"{lon}, {lat} — latitude first?"
+            )
+        return None, f"Latitude {lat} is outside the valid range -90 to 90."
+
+    if not -180.0 <= lon <= 180.0:
+        return None, f"Longitude {lon} is outside the valid range -180 to 180."
+
+    return (lat, lon), None
+
+
 def parse_coordinate_lines(text: str) -> Tuple[List[Tuple[float, float]], Optional[str]]:
     """Parse 'lat, lon' lines into (lat, lon) points, with no minimum count.
 

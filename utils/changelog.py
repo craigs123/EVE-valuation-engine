@@ -14,7 +14,7 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
-        "version": "v3.10.5 beta",
+        "version": "v3.10.6 beta",
         "date": "2026-08-08",
         "changes": [
             "The map now shows the latitude and longitude under your cursor, in large "
@@ -33,6 +33,10 @@ CHANGELOG: List[Dict] = [
             "removed corner was still there.",
             "Fixed: clicking an area you drew yourself described it as a '1000 "
             "hectare test area'. It now shows 'Selected Area' with its real size.",
+            "The location search now accepts coordinates as well as place names. "
+            "Type something like '51.5074, -0.1278' and the map goes straight "
+            "there, zoomed in close, with a marker on the spot. Place-name "
+            "searches work exactly as before.",
         ],
     },
     {
