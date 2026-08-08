@@ -14,6 +14,21 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.1 beta",
+        "date": "2026-08-08",
+        "changes": [
+            "The map now shows the latitude and longitude under your cursor, in the "
+            "bottom-right corner, updating as you move the mouse.",
+            "You can now build an area by clicking the map corner by corner instead of "
+            "drawing it. Each click adds a corner, listed beside the map, with the shape "
+            "previewed as you go. Press 'Use this area' when you have at least three "
+            "corners and the map zooms straight to it.",
+            "The corner list can also be edited or pasted into directly, so an area whose "
+            "coordinates you already have — from a survey or a report — can be entered by "
+            "hand rather than traced on the map.",
+        ],
+    },
+    {
         "version": "v3.10.0 beta",
         "date": "2026-07-20",
         "changes": [

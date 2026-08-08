@@ -23,6 +23,9 @@ from utils.analysis_helpers import (
     compute_zoom_for_bbox,
     compute_center_from_bbox,
     create_bbox_from_center_and_area,
+    parse_polygon_coordinates,
+    parse_coordinate_lines,
+    format_points_as_text,
 )
 
 logger = logging.getLogger(__name__)
@@ -439,7 +442,19 @@ def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satelli
                 'zoomDelta': 1
             }
         )
-    
+
+    # Live cursor coordinates in the map corner. This is a client-side Leaflet
+    # control, so it updates on every mouse move without a Streamlit rerun —
+    # the only way to show moving-cursor coordinates at all.
+    from folium.plugins import MousePosition
+    MousePosition(
+        position='bottomright',
+        separator=' , ',
+        prefix='📍',
+        num_digits=5,
+        empty_string='',
+    ).add_to(m)
+
     return m
 
 @st.cache_data(ttl=7200, max_entries=1, show_spinner=False)  # Single cached instance
@@ -476,6 +491,80 @@ def create_drawing_tools():
         },
         edit_options={'remove': True, 'edit': True}  # Re-enable editing
     )
+
+CORNER_POINT_COLOR = '#fd7e14'  # Orange — distinct from drawn/test/saved areas
+
+
+def reset_corner_points():
+    """Forget all click-recorded corner points.
+
+    Note that `_last_processed_click` is deliberately kept: it marks the map's
+    current last_clicked as already consumed, and clearing it would make the
+    recorder re-add that same click on the very next rerun.
+    """
+    st.session_state.coord_entry_points = []
+    st.session_state['_corner_text_dirty'] = True
+
+
+def sync_corner_points_from_text():
+    """Hand-edited corner list → re-derive the map markers from the text.
+
+    Runs as the text area's on_change callback. Unparseable text is left alone
+    so the user can finish typing; the error surfaces in the caption below it.
+    """
+    points, error = parse_coordinate_lines(st.session_state.get('coord_entry_text', ''))
+    if not error:
+        st.session_state.coord_entry_points = points
+
+
+def build_corner_preview_layer(points):
+    """Build the live preview layer for click-recorded corner points.
+
+    Returns a folium FeatureGroup (or None when there is nothing to show) which
+    is handed to st_folium via feature_group_to_add so it can update without
+    remounting the map and resetting the user's view.
+
+    Args:
+        points: List of (lat, lon) tuples in click order.
+    """
+    if not points:
+        return None
+
+    import folium
+
+    fg = folium.FeatureGroup(name="corner_points")
+
+    for idx, (lat, lon) in enumerate(points, start=1):
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=6,
+            color='#ffffff',
+            weight=2,
+            fillColor=CORNER_POINT_COLOR,
+            fillOpacity=1.0,
+            tooltip=f"Corner {idx}: {lat:.5f}, {lon:.5f}",
+        ).add_to(fg)
+
+    if len(points) == 2:
+        # Not a shape yet — just show the edge drawn so far.
+        folium.PolyLine(
+            locations=[list(p) for p in points],
+            color=CORNER_POINT_COLOR,
+            weight=2,
+            dash_array='6,6',
+        ).add_to(fg)
+    elif len(points) > 2:
+        folium.Polygon(
+            locations=[list(p) for p in points],
+            color=CORNER_POINT_COLOR,
+            weight=2,
+            dash_array='6,6',
+            fillColor=CORNER_POINT_COLOR,
+            fillOpacity=0.12,
+        ).add_to(fg)
+
+    return fg
+
 
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
@@ -1567,7 +1656,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4216,6 +4305,43 @@ with col_layer:
 # Performance-optimized sampling display
 current_limit = st.session_state.get('max_sampling_limit', 9)
 
+# ---------------------------------------------------------------------------
+# Click-to-record corner points
+# ---------------------------------------------------------------------------
+# Every plain click on the map records a corner, listed beside the map. Handled
+# HERE, before the map is built, so the new point makes it into the preview
+# feature group in this same run rather than needing an extra rerun.
+#
+# The previous run's map result is read from session_state rather than the
+# st_folium return value (which doesn't exist yet at this point) — st_folium
+# mirrors its result into st.session_state under its widget key.
+if 'coord_entry_points' not in st.session_state:
+    st.session_state.coord_entry_points = []
+
+st.session_state['_click_recorded_this_run'] = False
+_prev_map_state = st.session_state.get('area_map') or {}
+_last_click = _prev_map_state.get('last_clicked')
+if _last_click and _last_click.get('lat') is not None:
+    _click_point = (round(float(_last_click['lat']), 6), round(float(_last_click['lng']), 6))
+    # st_folium re-returns the same last_clicked on unrelated reruns, so without
+    # this guard a single click would be recorded over and over.
+    if _click_point != st.session_state.get('_last_processed_click'):
+        st.session_state['_last_processed_click'] = _click_point
+        st.session_state.coord_entry_points.append(_click_point)
+        st.session_state['_corner_text_dirty'] = True
+        # Lets the drawing handler below undo this if the click turns out to be
+        # the double-click that completed a Draw-tool polygon.
+        st.session_state['_click_recorded_this_run'] = True
+
+# Rebuild the corner text box from the point list. Done here, before the widget
+# is instantiated further down the page — Streamlit refuses writes to a widget's
+# session_state key once it has rendered, so the buttons that edit the list set
+# `_corner_text_dirty` and rerun rather than writing the text themselves.
+if st.session_state.pop('_corner_text_dirty', False):
+    st.session_state['coord_entry_text'] = format_points_as_text(
+        st.session_state.coord_entry_points
+    )
+
 # Initialize use_test_area_zoom if not set (ensures default map shows on startup)
 if 'use_test_area_zoom' not in st.session_state:
     st.session_state.use_test_area_zoom = False
@@ -4317,6 +4443,11 @@ if st.session_state.get('use_test_area_zoom', False):
                 area_ha = st.session_state.get('cached_area_ha', 0)
                 popup_text = f"Loaded Area ({area_ha:.1f} hectares)"
                 color = '#6f42c1'  # Purple for loaded areas
+            elif st.session_state.get('default_area_name') == "Custom coordinates":
+                # Area committed from click-recorded / typed corner points
+                area_ha = st.session_state.get('cached_area_ha', 0)
+                popup_text = f"Entered Coordinates ({area_ha:.1f} hectares)"
+                color = CORNER_POINT_COLOR
             else:
                 popup_text = "Test Area (1000 hectares)"
                 color = '#28a745'
@@ -4461,13 +4592,23 @@ with col2_map:
     """, unsafe_allow_html=True)
         st.session_state['_map_first_render_done'] = True
 
+    # Pending corner points, drawn through feature_group_to_add rather than onto
+    # the map itself. st_folium keys its component off a hash of the map's
+    # JavaScript, so adding markers to `m` would remount the component and throw
+    # away the user's pan/zoom on every click. The feature group sits outside
+    # that hash, so it updates live and the view stays put.
+    _pending_fg = build_corner_preview_layer(st.session_state.get('coord_entry_points', []))
+
     map_data = st_folium(
         m,
         width="100%",  # Responsive width for all device sizes
         height=400,
-        returned_objects=["all_drawings"],
+        # last_clicked drives the click-to-record corners feature. Note that
+        # center/zoom are deliberately NOT returned — including them would make
+        # every pan and zoom rerun the whole app.
+        returned_objects=["all_drawings", "last_clicked"],
         key="area_map",
-        feature_group_to_add=None,  # Reduce memory usage
+        feature_group_to_add=_pending_fg,
         debug=False  # Disable debug for performance
     )
 
@@ -4487,6 +4628,13 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         # analysis (bouncing the user back to the pre-Analyze panel).
         
         if coordinates != current_coords:
+            # The double-click that closes a Draw-tool polygon also surfaces as
+            # a map click, which the corner recorder above will have logged.
+            # Drop it — the user was drawing, not placing corners.
+            if st.session_state.get('_click_recorded_this_run') and st.session_state.coord_entry_points:
+                st.session_state.coord_entry_points.pop()
+                st.session_state['_corner_text_dirty'] = True
+
             # Save the new selection with batch state updates
             st.session_state.update({
                 'selected_area': {
@@ -4537,8 +4685,100 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
     else:
         st.warning("Please draw a polygon or rectangle area")
 
+# Fallback corner capture. The recorder above reads st_folium's session_state
+# mirror before the map renders, which is a run behind on the very first
+# interaction of a session; this catches the click from the value just returned
+# and reruns so the preview layer picks it up. The _last_processed_click guard
+# means a click already recorded above is never counted twice.
+_returned_click = map_data.get('last_clicked') if map_data else None
+if _returned_click and _returned_click.get('lat') is not None:
+    _rc = (round(float(_returned_click['lat']), 6), round(float(_returned_click['lng']), 6))
+    if _rc != st.session_state.get('_last_processed_click'):
+        st.session_state['_last_processed_click'] = _rc
+        st.session_state.coord_entry_points.append(_rc)
+        st.session_state['_corner_text_dirty'] = True
+        st.rerun()
+
 with col3_map:
     analyze_button = False
+
+    # ── Corner points recorded by clicking the map ────────────────────────
+    # Shown only once the user has actually clicked, so it stays out of the
+    # way for people who just draw or pick a test area.
+    _corner_points = st.session_state.get('coord_entry_points', [])
+    if _corner_points:
+        st.markdown(
+            "<div style='font-size:0.78rem; font-weight:600; color:#8a4b00; "
+            "padding:0.2rem 0 0.1rem 0;'>📐 Corner points</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.text_area(
+            "Corner points",
+            key="coord_entry_text",
+            height=120,
+            label_visibility="collapsed",
+            help="One 'latitude, longitude' per line. Click the map to add corners, "
+                 "or edit/paste them here directly.",
+            on_change=sync_corner_points_from_text,
+        )
+
+        _preview_pts, _preview_err = parse_coordinate_lines(
+            st.session_state.get('coord_entry_text', '')
+        )
+        if _preview_err:
+            st.caption(f"⚠️ {_preview_err}")
+        elif len(_preview_pts) >= 3:
+            _ring = [[lon, lat] for lat, lon in _preview_pts]
+            _ring.append(_ring[0])
+            try:
+                st.caption(f"{len(_preview_pts)} corners · {calculate_area_optimized(_ring):,.1f} ha")
+            except Exception:
+                st.caption(f"{len(_preview_pts)} corners")
+        else:
+            st.caption(f"{len(_preview_pts)} corner(s) · need at least 3")
+
+        _undo_col, _clear_col = st.columns(2)
+        with _undo_col:
+            if st.button("↩ Undo", key="coord_undo", use_container_width=True,
+                         help="Remove the last corner"):
+                st.session_state.coord_entry_points = st.session_state.coord_entry_points[:-1]
+                st.session_state['_corner_text_dirty'] = True
+                st.rerun()
+        with _clear_col:
+            if st.button("✕ Clear", key="coord_clear", use_container_width=True,
+                         help="Remove all corners"):
+                reset_corner_points()
+                st.rerun()
+
+        if st.button("✓ Use this area", key="coord_commit", type="primary",
+                     use_container_width=True):
+            _coords, _err = parse_polygon_coordinates(
+                st.session_state.get('coord_entry_text', '')
+            )
+            if _err:
+                st.error(_err)
+            else:
+                try:
+                    _area_ha = calculate_area_optimized(_coords)
+                    _bbox = calculate_bbox_optimized(_coords)
+                except Exception as _calc_err:
+                    st.error(f"Error calculating area: {_calc_err}")
+                else:
+                    clear_analysis_cache()
+                    st.session_state.area_coordinates = _coords
+                    st.session_state.selected_area = True
+                    st.session_state.use_test_area_zoom = True  # Drives zoom-to-fit
+                    st.session_state.default_area_name = "Custom coordinates"
+                    st.session_state.cached_area_ha = _area_ha
+                    st.session_state.cached_bbox = _bbox
+                    st.session_state.area_coords_cache = _coords
+                    # The committed polygon replaces the pending corner markers.
+                    reset_corner_points()
+                    st.rerun()
+
+        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+
     if st.session_state.get('selected_area'):
         # Compact coordinates
         if st.session_state.get('area_coordinates'):
@@ -4570,7 +4810,8 @@ with col3_map:
         <div style='font-size:0.95rem; font-weight:600; color:#1B5E20;
                     background:#E8F5E9; border-left:4px solid #2E7D32;
                     border-radius:0 6px 6px 0; padding:0.6rem 0.75rem; margin-top:0.5rem;'>
-            ✏️ Draw a polygon or rectangle on the map to select your area
+            ✏️ Draw a polygon or rectangle on the map to select your area —
+            or click the map corner by corner to build it from coordinates
         </div>
         """, unsafe_allow_html=True)
 
