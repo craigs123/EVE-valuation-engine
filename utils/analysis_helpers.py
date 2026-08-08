@@ -6,7 +6,8 @@ They are imported back into app.py to keep the main application flow intact.
 """
 
 import math
-from typing import Dict, Tuple
+import re
+from typing import Dict, List, Optional, Sequence, Tuple
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +185,106 @@ def create_bbox_from_center_and_area(
         'min_lon': min_lon,
         'max_lon': max_lon,
     }
+
+
+# ---------------------------------------------------------------------------
+# User-entered polygon coordinates
+# ---------------------------------------------------------------------------
+
+# Users type/paste latitude first (the order coordinates are normally quoted in
+# and the order the on-screen "Selected area" readout uses), but the rest of the
+# engine works in GeoJSON [lon, lat] order — so these two helpers are the single
+# conversion point between the two conventions.
+
+_COORD_SPLIT_RE = re.compile(r'[\s,]+')
+
+
+def format_points_as_text(points: Sequence[Sequence[float]]) -> str:
+    """Render (lat, lon) points as the one-per-line text the entry box shows."""
+    return "\n".join(f"{float(lat):.6f}, {float(lon):.6f}" for lat, lon in points)
+
+
+def parse_coordinate_lines(text: str) -> Tuple[List[Tuple[float, float]], Optional[str]]:
+    """Parse 'lat, lon' lines into (lat, lon) points, with no minimum count.
+
+    Lenient about formatting: accepts comma, semicolon or whitespace separators,
+    blank lines, and surrounding brackets/parens, so a pasted ``[51.5, -0.12]``
+    works as-is. Used for the live preview, where a part-typed list is normal;
+    :func:`parse_polygon_coordinates` adds the polygon-level rules on top.
+
+    Args:
+        text: Raw text from the coordinate entry box.
+
+    Returns:
+        ``(points, None)`` on success or ``([], error_message)`` on failure.
+    """
+    if not text or not text.strip():
+        return [], None
+
+    # Semicolons are treated as line breaks so single-line pastes also work.
+    raw_lines = text.replace(';', '\n').splitlines()
+
+    points: List[Tuple[float, float]] = []
+    for line_no, raw_line in enumerate(raw_lines, start=1):
+        cleaned = raw_line.strip().strip('[]()').strip()
+        cleaned = cleaned.strip(',').strip()
+        if not cleaned:
+            continue
+
+        parts = [p for p in _COORD_SPLIT_RE.split(cleaned) if p]
+        if len(parts) != 2:
+            return [], (
+                f"Line {line_no}: expected 'latitude, longitude' "
+                f"(two numbers), got '{raw_line.strip()}'."
+            )
+
+        try:
+            lat = float(parts[0])
+            lon = float(parts[1])
+        except ValueError:
+            return [], (
+                f"Line {line_no}: '{raw_line.strip()}' is not a pair of numbers. "
+                "Use decimal degrees, e.g. 51.5074, -0.1278."
+            )
+
+        if not -90.0 <= lat <= 90.0:
+            return [], f"Line {line_no}: latitude {lat} is outside the valid range -90 to 90."
+        if not -180.0 <= lon <= 180.0:
+            return [], f"Line {line_no}: longitude {lon} is outside the valid range -180 to 180."
+
+        points.append((lat, lon))
+
+    return points, None
+
+
+def parse_polygon_coordinates(text: str) -> Tuple[List[List[float]], Optional[str]]:
+    """Parse 'lat, lon' lines into a closed [lon, lat] GeoJSON ring.
+
+    Args:
+        text: Raw text from the coordinate entry box.
+
+    Returns:
+        ``(coordinates, None)`` on success, where coordinates is a list of
+        ``[lon, lat]`` pairs with the first vertex repeated at the end, or
+        ``([], error_message)`` on failure.
+    """
+    points, error = parse_coordinate_lines(text)
+    if error:
+        return [], error
+
+    # A repeated final vertex is how a closed ring is normally written; drop it
+    # before counting so "4 corners written as 5 lines" isn't over-counted.
+    if len(points) > 1 and points[0] == points[-1]:
+        points = points[:-1]
+
+    if len(points) < 3:
+        return [], (
+            f"Need at least 3 corner points to make an area (got {len(points)})."
+        )
+
+    ring = [[lon, lat] for lat, lon in points]
+    ring.append(ring[0])  # Close the ring, matching every other area source
+    return ring, None
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,531 @@
+<title>EVE Valuation Methodology — Technical Reference</title>
+<style>
+  :root {
+    --bg:        #F5F7F6;
+    --surface:   #FFFFFF;
+    --ink:       #131A19;
+    --muted:     #5E6C6A;
+    --faint:     #8A9694;
+    --rule:      #DCE3E0;
+    --accent:    #0F6B5C;
+    --accent-bg: #E4F0EC;
+    --warn:      #9A5B22;
+    --warn-bg:   #F7EDE1;
+    --code-bg:   #EDF1EF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #0E1413;
+      --surface:   #151D1C;
+      --ink:       #E7EDEB;
+      --muted:     #9DACA9;
+      --faint:     #71807D;
+      --rule:      #26332F;
+      --accent:    #57B9A4;
+      --accent-bg: #142C27;
+      --warn:      #D6A063;
+      --warn-bg:   #2C2318;
+      --code-bg:   #1B2523;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #0E1413;
+    --surface:   #151D1C;
+    --ink:       #E7EDEB;
+    --muted:     #9DACA9;
+    --faint:     #71807D;
+    --rule:      #26332F;
+    --accent:    #57B9A4;
+    --accent-bg: #142C27;
+    --warn:      #D6A063;
+    --warn-bg:   #2C2318;
+    --code-bg:   #1B2523;
+  }
+  :root[data-theme="light"] {
+    --bg:        #F5F7F6;
+    --surface:   #FFFFFF;
+    --ink:       #131A19;
+    --muted:     #5E6C6A;
+    --faint:     #8A9694;
+    --rule:      #DCE3E0;
+    --accent:    #0F6B5C;
+    --accent-bg: #E4F0EC;
+    --warn:      #9A5B22;
+    --warn-bg:   #F7EDE1;
+    --code-bg:   #EDF1EF;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 47rem;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  /* ---- masthead ---- */
+  header { display: flex; flex-direction: column; gap: 1rem; }
+  h1 {
+    font-size: clamp(2.1rem, 5.5vw, 3rem);
+    line-height: 1.08;
+    font-weight: 400;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .standfirst {
+    font-size: 1.11rem;
+    color: var(--muted);
+    max-width: 34rem;
+    margin: 0;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.78rem;
+    color: var(--faint);
+  }
+  .meta b { color: var(--muted); font-weight: 600; }
+
+  /* ---- sections ---- */
+  section { display: flex; flex-direction: column; gap: 1rem; }
+  h2 {
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: -0.012em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  h3 {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.94rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    margin: 0.6rem 0 0;
+  }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  code {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.855em;
+    background: var(--code-bg);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+    word-break: break-word;
+  }
+
+  /* ---- pipeline: a real ordered sequence, so it is numbered ---- */
+  .pipeline { display: flex; flex-direction: column; gap: 0; }
+  .stage {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr;
+    gap: 0 1rem;
+    padding: 1.15rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .stage:first-child { border-top: 1px solid var(--rule); }
+  .stage-n {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+    padding-top: 0.22rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage-b { display: flex; flex-direction: column; gap: 0.4rem; }
+  .stage-t {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+  .stage-d { font-size: 0.97rem; color: var(--muted); }
+  .ref {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.76rem;
+    color: var(--faint);
+  }
+
+  /* ---- formula ---- */
+  .formula {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    padding: 1.4rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    overflow-x: auto;
+  }
+  .formula-line {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.93rem;
+    line-height: 1.75;
+    white-space: nowrap;
+  }
+  .formula-note {
+    font-size: 0.88rem;
+    color: var(--muted);
+    white-space: normal;
+  }
+  .tok { color: var(--accent); font-weight: 600; }
+
+  /* ---- tables ---- */
+  .tw { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td {
+    text-align: left;
+    padding: 0.62rem 0.85rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.71rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.k { font-family: ui-monospace, Consolas, monospace; font-size: 0.83rem; white-space: nowrap; }
+
+  /* ---- callout: reserved for verified deviations from expectation ---- */
+  .callout {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn);
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+  }
+  .callout-h {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--warn);
+  }
+  .callout p { color: var(--ink); }
+
+  ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  li { padding-left: 0.2rem; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.82rem;
+    color: var(--faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 34rem) {
+    body { font-size: 16px; }
+    .wrap { padding: 2.5rem 1.1rem 4rem; gap: 2.5rem; }
+    .stage { grid-template-columns: 1.9rem 1fr; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Ecosystem Valuation Engine · Technical Reference</p>
+    <h1>How EVE arrives at a valuation</h1>
+    <p class="standfirst">A trace of the live calculation path — from a drawn polygon to an annual figure in 2024 International dollars — written against the code that actually executes.</p>
+    <div class="meta">
+      <span><b>Version</b> v3.10.0 beta</span>
+      <span><b>Compiled</b> 20 July 2026</span>
+      <span><b>Units</b> Int$ / ha / yr (2024)</span>
+      <span><b>Entry point</b> <code>calculate_ecosystem_values()</code></span>
+    </div>
+  </header>
+
+  <section>
+    <p>This document was derived by reading the executing code path, not by summarising existing methodology write-ups. That distinction matters here: two prior documents in this repository described a water-exclusion step (NDWI masking) that the engine has never performed on the live path. Both have since been corrected. Where behaviour below is surprising, it is marked as such rather than smoothed over.</p>
+    <p>Every claim is anchored to a file and line so it can be re-verified as the code moves.</p>
+  </section>
+
+  <section>
+    <h2>The pipeline</h2>
+    <p>Eight stages run between a drawn area and a total. Order is load-bearing — each stage consumes the previous one's output.</p>
+
+    <div class="pipeline">
+      <div class="stage">
+        <div class="stage-n">01</div>
+        <div class="stage-b">
+          <div class="stage-t">Sample points are placed inside the polygon</div>
+          <div class="stage-d">A regular grid is laid over the polygon's bounding box and clipped to the polygon itself with a vectorised point-in-polygon test. If clipping loses too many points, the grid densifies until the target count of interior points is recovered, then deterministically subsamples back down. Points are grid cell centres — there is no randomness, so an analysis is reproducible. Default 10 points, user-configurable to 100.</div>
+          <div class="ref">utils/openlandmap_integration.py:1350 · _generate_sample_points()</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">02</div>
+        <div class="stage-b">
+          <div class="stage-t">Each point is assigned a land-cover code</div>
+          <div class="stage-d">Land cover is queried per point from OpenLandMap via its STAC API, returning an ESA CCI class code. The data source is recorded per point so real satellite reads can be distinguished from fallbacks.</div>
+          <div class="ref">utils/openlandmap_stac_api.py · utils/openlandmap_integration.py</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">03</div>
+        <div class="stage-b">
+          <div class="stage-t">Codes are routed to ESVD ecosystem types</div>
+          <div class="stage-d">A single mapping table translates each CCI code to one ESVD ecosystem type — <code>10 → Agricultural</code>, <code>170 → Mangroves</code>, <code>190 → Urban</code>. Users can override any row in Analysis Settings; overrides are pushed into the live routing table for the session.</div>
+          <div class="ref">utils/esa_landcover_codes.py:179 · DEFAULT_LANDCOVER_MAPPING</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">04</div>
+        <div class="stage-b">
+          <div class="stage-t">Water bodies are classified by the user</div>
+          <div class="stage-d">Code 210 is deliberately treated as unresolved. If any sample point returns 210, the analysis halts and asks the user to classify <em>all</em> water points at once as Ocean (<code>Marine</code>), Rivers/Lakes (<code>Rivers and Lakes</code>), or Coastal. The original code is retained on each point for provenance. Water is valued, not excluded.</div>
+          <div class="ref">app.py:5301–5372</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">05</div>
+        <div class="stage-b">
+          <div class="stage-t">Composition becomes area weights</div>
+          <div class="stage-d">Each ecosystem type's share is its point count over successful queries. That proportion is rounded to one decimal place as a percentage <em>before</em> being used, so the arithmetic matches the percentages shown in the UI. Each type's area is the total hectares times its rounded share.</div>
+          <div class="ref">app.py:5664–5670</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">06</div>
+        <div class="stage-b">
+          <div class="stage-t">Forests resolve to a climate subtype</div>
+          <div class="stage-d">A generic <code>Forest</code> is refined by latitude before coefficient lookup, because boreal, temperate and tropical forests carry very different coefficient sets. See below for the thresholds.</div>
+          <div class="ref">utils/precomputed_esvd_coefficients.py:807 · _determine_forest_type()</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">07</div>
+        <div class="stage-b">
+          <div class="stage-t">Twenty-two services are valued individually</div>
+          <div class="stage-d">For each ecosystem type, all 22 TEEB services are computed one at a time and summed into four categories. Every multiplier is applied at the individual service level, never to the category total.</div>
+          <div class="ref">utils/precomputed_esvd_coefficients.py:980–1008</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">08</div>
+        <div class="stage-b">
+          <div class="stage-t">Types are summed to an area total</div>
+          <div class="stage-d">Per-type totals are accumulated into the area's annual value, with per-type results retained for the composition breakdown and the PDF report.</div>
+          <div class="ref">app.py:5705–5706</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The core formula</h2>
+    <p>Everything in stage 07 reduces to one line, evaluated once per service per ecosystem type.</p>
+
+    <div class="formula">
+      <div class="formula-line">value = <span class="tok">coefficient</span> × <span class="tok">area_ha</span> × <span class="tok">regional_factor</span> × <span class="tok">urban_mult</span> × <span class="tok">intactness</span></div>
+      <div class="formula-note"><code>coefficient</code> — the ESVD median for this ecosystem type and service, in Int$/ha/yr.<br>
+      <code>area_ha</code> — this type's share of the drawn area, from stage 05.<br>
+      <code>regional_factor</code> — GDP-based income adjustment (below).<br>
+      <code>urban_mult</code> — applied only when the type is <code>Urban</code>; otherwise 1.0.<br>
+      <code>intactness</code> — ecological condition, 0–1 (below).</div>
+    </div>
+
+    <p>The four TEEB categories are not weighted or rescaled — they are simply the sums of their member services.</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>Category</th><th>Services</th><th>TEEB numbers</th></tr></thead>
+        <tbody>
+          <tr><td>Provisioning</td><td class="num">6</td><td>1–6</td></tr>
+          <tr><td>Regulating</td><td class="num">9</td><td>7–15</td></tr>
+          <tr><td>Cultural</td><td class="num">5</td><td>18–22</td></tr>
+          <tr><td>Supporting</td><td class="num">2</td><td>16–17</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Coefficients are pre-computed medians drawn from peer-reviewed studies in the ESVD/TEEB database, held as a literal table keyed by ecosystem type. Ecosystem names normalise to that keyspace by lowercasing and replacing spaces with underscores, so <code>Rivers and Lakes</code> resolves to <code>rivers_and_lakes</code>.</p>
+  </section>
+
+  <section>
+    <h2>Regional adjustment</h2>
+    <p>Coefficients are global medians, so they are adjusted toward the local economy using an income-elasticity method. The country is derived from the point's coordinates.</p>
+
+    <div class="formula">
+      <div class="formula-line">factor = 1 + <span class="tok">ε</span> × ( country_GDP / global_GDP − 1 )</div>
+      <div class="formula-line">factor = clamp( factor, <span class="tok">0.4</span>, <span class="tok">2.5</span> ), rounded to 2 dp</div>
+      <div class="formula-note">ε (income elasticity) defaults to <code>0.6</code>. Global GDP per capita baseline is <code>13,673</code> (World Bank 2024). The bounds prevent extreme values in very rich or very poor economies; the rounding matches what is displayed to the user.</div>
+    </div>
+
+    <p>A factor above 1.0 means the local economy is wealthier than the global average and services are valued upward; below 1.0, downward. With ε at 0.6 the adjustment is deliberately sub-proportional — a country at twice the global GDP gets a 1.6× factor, not 2×.</p>
+
+    <div class="callout">
+      <div class="callout-h">Verified deviation</div>
+      <p><code>Marine</code> is hard-coded to a regional factor of exactly <strong>1.0</strong>, on the reasoning that open ocean is international waters with no meaningful host economy. This overrides any coordinate-derived factor and any explicit override passed in. <code>Rivers and Lakes</code> and <code>Coastal</code> are <em>not</em> exempt — they receive normal adjustment. So reclassifying the same water points from Coastal to Ocean changes the result by both the coefficient set and the presence of the regional factor.</p>
+      <p class="ref">utils/precomputed_esvd_coefficients.py:955–958</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ecological intactness</h2>
+    <p>Intactness scales value by ecological condition — a degraded forest delivers less than an intact one. Three sources feed it, in precedence order.</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>Source</th><th>Granularity</th><th>Behaviour</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Indicator-driven</td>
+            <td>Per service</td>
+            <td>On-the-ground indicator scores compute a distinct multiplier for each of the 22 services. Used when the feature is enabled and the ecosystem resolves to a wired project type.</td>
+          </tr>
+          <tr>
+            <td>EEI (satellite)</td>
+            <td>Per ecosystem</td>
+            <td>Ecosystem Ecological Integrity fetched per sample point from Earth Engine, averaged per ecosystem type, converted from 0–1 to a percentage.</td>
+          </tr>
+          <tr>
+            <td>Manual sliders</td>
+            <td>Per ecosystem</td>
+            <td>The user's own percentage per ecosystem type, used when EEI is switched off.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>When a dict of per-service multipliers is supplied, any service missing from it defaults to 1.0. When a single scalar is supplied instead, it applies uniformly to all 22 services.</p>
+
+    <h3>Not every EEI response is a measurement</h3>
+    <p>When Earth Engine fails to initialise, the EEI service does not return an error. It returns <strong>latitude-based estimates</strong> and marks them <code>"demo_mode": true</code>. These are fabricated, but they look entirely plausible — in range, varying smoothly with position — so nothing downstream would notice them on inspection. EVE therefore treats the flag, not the shape of the value, as the signal.</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>Response</th><th>Signal</th><th>Treatment</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Real measurement</td>
+            <td class="k">source present</td>
+            <td>Used — averaged per ecosystem type.</td>
+          </tr>
+          <tr>
+            <td>Real, but no data</td>
+            <td class="k">nulls + message</td>
+            <td>Used as real. Ocean or a dataset gap legitimately has no pixel; this is <em>not</em> fabrication.</td>
+          </tr>
+          <tr>
+            <td>Fabricated</td>
+            <td class="k">demo_mode: true</td>
+            <td>Discarded before it can reach a valuation.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The flag is checked twice. A <em>top-level</em> <code>demo_mode</code> means Earth Engine never came up and every result in the batch is fabricated; a <em>per-result</em> flag means Earth Engine is up but that individual coordinate fell back. A false top-level flag does not permit skipping the per-result check.</p>
+
+    <p>An ecosystem whose EEI came back entirely demo does not fall through to an optimistic 100% — it takes a deliberately conservative <strong>50%</strong>. An ecosystem with even one real point uses that demo-free average instead. The API's own <code>averages</code> block is deliberately unused, because it blends fabricated and real points into a single number that cannot be separated afterwards.</p>
+
+    <p>None of this is silent. When any point returns demo data the user is told how many points were affected and which ecosystems fell back to 50% — both in Summary Statistics and in the exported PDF.</p>
+    <p class="ref">utils/eei_api.py:30, :206–216, :282 · app.py:1208–1224 · utils/pdf_report.py:617–630</p>
+
+    <div class="callout">
+      <div class="callout-h">Assumption, not verified</div>
+      <p>All of the above is EVE's client-side handling. The EEI service itself lives in a separate repository, so the contract it relies on — that the service sets <code>demo_mode</code> on every fabricated result and never on a real one — has not been checked against the server. If that holds in only one direction, this logic misclassifies silently.</p>
+    </div>
+
+    <h3>Lookup falls back rather than failing</h3>
+    <p>Resolving a type's intactness tries an exact key, then a title-cased key, then — for forests — generic <code>Forest</code>, then Temperate, Boreal, Tropical in turn. If nothing matches it returns 1.0, meaning full intactness. A naming mismatch therefore produces a silently optimistic result rather than an error.</p>
+    <p class="ref">utils/analysis_helpers.py · _get_ecosystem_intactness_multiplier()</p>
+  </section>
+
+  <section>
+    <h2>Forest subtype thresholds</h2>
+    <p>Applied only when the routed type is generic <code>Forest</code> and coordinates are available. Evaluated on absolute latitude, so the rules are hemisphere-symmetric.</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>Condition</th><th>Resolves to</th></tr></thead>
+        <tbody>
+          <tr><td class="k">threshold ≤ |lat| ≤ 70</td><td>Boreal forest</td></tr>
+          <tr><td class="k">|lat| ≤ 25</td><td>Tropical forest</td></tr>
+          <tr><td class="k">30 ≤ |lat| ≤ 45</td><td>Temperate forest</td></tr>
+          <tr><td class="k">25 &lt; |lat| &lt; threshold</td><td>Temperate forest</td></tr>
+          <tr><td class="k">no match</td><td>Temperate forest</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The boreal threshold is <strong>60°</strong> inside the European Atlantic zone and <strong>50°</strong> everywhere else, reflecting the Gulf Stream pushing boreal conditions further north in western Europe. The Mediterranean band carries named sub-regions — Mediterranean Basin, California, central Chile, Western Cape, southwestern Australia — but all five currently resolve to temperate forest, as does the band's fallback.</p>
+  </section>
+
+  <section>
+    <h2>Behaviour worth knowing</h2>
+
+    <div class="callout">
+      <div class="callout-h">Rounding is intentional</div>
+      <p>Composition shares are rounded to one decimal place before area is computed. This is deliberate: it keeps the arithmetic consistent with the percentages displayed in the UI, at the cost of the per-type areas not summing exactly to the drawn area. Preserve it when editing the calculation path.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-h">One land-cover multiplier, applied to every type</div>
+      <p>After per-type valuation, an optional per-ESA-code multiplier is applied to that type's total. The code it looks up is taken from a single <code>landcover_class</code> on the detected-ecosystem record — not from the type being valued in that iteration. In a mixed-composition area this applies one code's multiplier to every ecosystem type. Flagged as observed behaviour; I have not established whether it is intended.</p>
+      <p class="ref">app.py:5699–5703</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-h">No NDWI water masking runs</div>
+      <p>NDWI code exists in two modules but neither executes. <code>utils/natural_capital_metrics.py</code> is never imported anywhere. The NDWI logic in <code>utils/satellite_data.py</code> is reachable only through <code>ecosystem_services.get_ecosystem_service_values()</code>, which <code>app.py</code> imports at line 1343 and never calls. Any document describing open water as masked out is describing an earlier design.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Derived from the executing code path at v3.10.0 beta. Line references drift as the code changes — re-verify before relying on them.</p>
+    <p>All monetary values are 2024 International dollars per hectare per year.</p>
+  </footer>
+
+</div>

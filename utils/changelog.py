@@ -14,6 +14,46 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.1 beta",
+        "date": "2026-08-08",
+        "changes": [
+            "The map now shows the latitude and longitude under your cursor, in the "
+            "bottom-right corner, updating as you move the mouse.",
+            "You can now build an area by clicking the map corner by corner instead of "
+            "drawing it. Each click adds a corner, listed beside the map, with the shape "
+            "previewed as you go. Press 'Use this area' when you have at least three "
+            "corners and the map zooms straight to it.",
+            "The corner list can also be edited or pasted into directly, so an area whose "
+            "coordinates you already have — from a survey or a report — can be entered by "
+            "hand rather than traced on the map.",
+        ],
+    },
+    {
+        "version": "v3.10.0 beta",
+        "date": "2026-07-20",
+        "changes": [
+            "Fixed the Ecosystem Mapping table in Analysis Settings, which showed "
+            "land-cover code 210 (water bodies) as mapping to 'Forest'. Its correct "
+            "default is 'Rivers and Lakes', which was missing from the ecosystem "
+            "drop-down. Opening that panel also silently applied the wrong value, "
+            "so water could be described as forest in the detected-ecosystem "
+            "display before you classified it. Water valuations were not affected: "
+            "your ocean / rivers and lakes / coastal choice always took priority.",
+        ],
+    },
+    {
+        "version": "v3.9.9 beta",
+        "date": "2026-07-20",
+        "changes": [
+            "Corrected the methodology note in the PDF report. It previously said "
+            "open-water areas were excluded from natural capital totals, which was "
+            "not what the engine does. Water bodies are included: when sample "
+            "points fall on water you are asked to classify them as ocean, rivers "
+            "and lakes, or coastal, and they are valued using the matching "
+            "coefficients. Wording only — no valuation figures have changed.",
+        ],
+    },
+    {
         "version": "v3.9.8 beta",
         "date": "2026-06-03",
         "changes": [
