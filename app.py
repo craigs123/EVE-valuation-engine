@@ -455,6 +455,26 @@ def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satelli
         empty_string='',
     ).add_to(m)
 
+    # The plugin's own styling is tiny and near-transparent. Override it here,
+    # in the map's header, so the rule lives inside the rendered map rather
+    # than in the Streamlit page around it.
+    m.get_root().header.add_child(folium.Element("""
+        <style>
+        .leaflet-control-mouseposition {
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            font-family: "Source Sans Pro", -apple-system, sans-serif !important;
+            color: #1B5E20 !important;
+            background: rgba(255, 255, 255, 0.92) !important;
+            padding: 4px 10px !important;
+            margin: 0 !important;
+            border-radius: 6px 0 0 0 !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+            line-height: 1.3 !important;
+        }
+        </style>
+    """))
+
     return m
 
 @st.cache_data(ttl=7200, max_entries=1, show_spinner=False)  # Single cached instance
@@ -1656,7 +1676,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.2 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>

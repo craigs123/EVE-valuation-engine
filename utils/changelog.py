@@ -14,11 +14,11 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
-        "version": "v3.10.1 beta",
+        "version": "v3.10.2 beta",
         "date": "2026-08-08",
         "changes": [
-            "The map now shows the latitude and longitude under your cursor, in the "
-            "bottom-right corner, updating as you move the mouse.",
+            "The map now shows the latitude and longitude under your cursor, in large "
+            "clear type in the bottom-right corner, updating as you move the mouse.",
             "You can now build an area by clicking the map corner by corner instead of "
             "drawing it. Each click adds a corner, listed beside the map, with the shape "
             "previewed as you go. Press 'Use this area' when you have at least three "
