@@ -14,18 +14,18 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
-        "version": "v3.10.2 beta",
+        "version": "v3.10.3 beta",
         "date": "2026-08-08",
         "changes": [
             "The map now shows the latitude and longitude under your cursor, in large "
             "clear type in the bottom-right corner, updating as you move the mouse.",
-            "You can now build an area by clicking the map corner by corner instead of "
-            "drawing it. Each click adds a corner, listed beside the map, with the shape "
-            "previewed as you go. Press 'Use this area' when you have at least three "
-            "corners and the map zooms straight to it.",
-            "The corner list can also be edited or pasted into directly, so an area whose "
-            "coordinates you already have — from a survey or a report — can be entered by "
-            "hand rather than traced on the map.",
+            "When you draw an area with the polygon tool, its corners are now listed "
+            "beside the map and numbered on it, so you can read off exactly where the "
+            "boundary falls.",
+            "That corner list can be edited or pasted into, so you can fine-tune a "
+            "boundary to exact coordinates — or enter an area whose coordinates you "
+            "already have, from a survey or a report — then press 'Use this area'.",
+            "The rectangle tool is unchanged.",
         ],
     },
     {

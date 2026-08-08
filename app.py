@@ -516,12 +516,7 @@ CORNER_POINT_COLOR = '#fd7e14'  # Orange — distinct from drawn/test/saved area
 
 
 def reset_corner_points():
-    """Forget all click-recorded corner points.
-
-    Note that `_last_processed_click` is deliberately kept: it marks the map's
-    current last_clicked as already consumed, and clearing it would make the
-    recorder re-add that same click on the very next rerun.
-    """
+    """Forget the listed corner points of a drawn polygon."""
     st.session_state.coord_entry_points = []
     st.session_state['_corner_text_dirty'] = True
 
@@ -535,6 +530,30 @@ def sync_corner_points_from_text():
     points, error = parse_coordinate_lines(st.session_state.get('coord_entry_text', ''))
     if not error:
         st.session_state.coord_entry_points = points
+
+
+def is_axis_aligned_rectangle(ring, tolerance=1e-9):
+    """True if a closed [lon, lat] ring is a Leaflet.draw rectangle.
+
+    Leaflet serialises rectangles and polygons identically — both come back as
+    GeoJSON 'Polygon' with no shape marker — so the rectangle tool has to be
+    recognised from the geometry. A rectangle is always 4 corners whose edges
+    each hold either longitude or latitude exactly constant. A hand-clicked
+    polygon will not be axis-aligned to within this tolerance.
+
+    Args:
+        ring: Closed ring of [lon, lat] pairs (first vertex repeated at end).
+        tolerance: Degrees of slack allowed on each edge.
+    """
+    corners = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    if len(corners) != 4:
+        return False
+
+    for idx, (lon, lat) in enumerate(corners):
+        next_lon, next_lat = corners[(idx + 1) % 4]
+        if abs(lon - next_lon) > tolerance and abs(lat - next_lat) > tolerance:
+            return False  # Edge is diagonal, so not axis-aligned
+    return True
 
 
 def build_corner_preview_layer(points):
@@ -1676,7 +1695,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.2 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4326,32 +4345,12 @@ with col_layer:
 current_limit = st.session_state.get('max_sampling_limit', 9)
 
 # ---------------------------------------------------------------------------
-# Click-to-record corner points
+# Corner points of a drawn polygon
 # ---------------------------------------------------------------------------
-# Every plain click on the map records a corner, listed beside the map. Handled
-# HERE, before the map is built, so the new point makes it into the preview
-# feature group in this same run rather than needing an extra rerun.
-#
-# The previous run's map result is read from session_state rather than the
-# st_folium return value (which doesn't exist yet at this point) — st_folium
-# mirrors its result into st.session_state under its widget key.
+# Populated by the drawing handler when a polygon is completed with the Draw
+# toolbar (see below) — not by plain map clicks.
 if 'coord_entry_points' not in st.session_state:
     st.session_state.coord_entry_points = []
-
-st.session_state['_click_recorded_this_run'] = False
-_prev_map_state = st.session_state.get('area_map') or {}
-_last_click = _prev_map_state.get('last_clicked')
-if _last_click and _last_click.get('lat') is not None:
-    _click_point = (round(float(_last_click['lat']), 6), round(float(_last_click['lng']), 6))
-    # st_folium re-returns the same last_clicked on unrelated reruns, so without
-    # this guard a single click would be recorded over and over.
-    if _click_point != st.session_state.get('_last_processed_click'):
-        st.session_state['_last_processed_click'] = _click_point
-        st.session_state.coord_entry_points.append(_click_point)
-        st.session_state['_corner_text_dirty'] = True
-        # Lets the drawing handler below undo this if the click turns out to be
-        # the double-click that completed a Draw-tool polygon.
-        st.session_state['_click_recorded_this_run'] = True
 
 # Rebuild the corner text box from the point list. Done here, before the widget
 # is instantiated further down the page — Streamlit refuses writes to a widget's
@@ -4612,21 +4611,20 @@ with col2_map:
     """, unsafe_allow_html=True)
         st.session_state['_map_first_render_done'] = True
 
-    # Pending corner points, drawn through feature_group_to_add rather than onto
-    # the map itself. st_folium keys its component off a hash of the map's
-    # JavaScript, so adding markers to `m` would remount the component and throw
-    # away the user's pan/zoom on every click. The feature group sits outside
-    # that hash, so it updates live and the view stays put.
+    # Numbered corner markers for a drawn polygon, drawn through
+    # feature_group_to_add rather than onto the map itself. st_folium keys its
+    # component off a hash of the map's JavaScript, so adding markers to `m`
+    # would remount the component and throw away the user's pan/zoom whenever
+    # the corners change. The feature group sits outside that hash.
     _pending_fg = build_corner_preview_layer(st.session_state.get('coord_entry_points', []))
 
     map_data = st_folium(
         m,
         width="100%",  # Responsive width for all device sizes
         height=400,
-        # last_clicked drives the click-to-record corners feature. Note that
-        # center/zoom are deliberately NOT returned — including them would make
-        # every pan and zoom rerun the whole app.
-        returned_objects=["all_drawings", "last_clicked"],
+        # Only all_drawings: corner points come from completed polygons, so
+        # plain map clicks (and pans/zooms) must not rerun the whole app.
+        returned_objects=["all_drawings"],
         key="area_map",
         feature_group_to_add=_pending_fg,
         debug=False  # Disable debug for performance
@@ -4648,12 +4646,17 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         # analysis (bouncing the user back to the pre-Analyze panel).
         
         if coordinates != current_coords:
-            # The double-click that closes a Draw-tool polygon also surfaces as
-            # a map click, which the corner recorder above will have logged.
-            # Drop it — the user was drawing, not placing corners.
-            if st.session_state.get('_click_recorded_this_run') and st.session_state.coord_entry_points:
-                st.session_state.coord_entry_points.pop()
-                st.session_state['_corner_text_dirty'] = True
+            # List the vertices of a free-form polygon so they can be read off
+            # and fine-tuned numerically. Rectangles are left alone — the square
+            # tool keeps its original behaviour, with no corner list.
+            if is_axis_aligned_rectangle(coordinates):
+                st.session_state.coord_entry_points = []
+            else:
+                ring = coordinates[:-1] if coordinates[0] == coordinates[-1] else coordinates
+                st.session_state.coord_entry_points = [
+                    (round(float(lat), 6), round(float(lon), 6)) for lon, lat in ring
+                ]
+            st.session_state['_corner_text_dirty'] = True
 
             # Save the new selection with batch state updates
             st.session_state.update({
@@ -4705,20 +4708,6 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
     else:
         st.warning("Please draw a polygon or rectangle area")
 
-# Fallback corner capture. The recorder above reads st_folium's session_state
-# mirror before the map renders, which is a run behind on the very first
-# interaction of a session; this catches the click from the value just returned
-# and reruns so the preview layer picks it up. The _last_processed_click guard
-# means a click already recorded above is never counted twice.
-_returned_click = map_data.get('last_clicked') if map_data else None
-if _returned_click and _returned_click.get('lat') is not None:
-    _rc = (round(float(_returned_click['lat']), 6), round(float(_returned_click['lng']), 6))
-    if _rc != st.session_state.get('_last_processed_click'):
-        st.session_state['_last_processed_click'] = _rc
-        st.session_state.coord_entry_points.append(_rc)
-        st.session_state['_corner_text_dirty'] = True
-        st.rerun()
-
 with col3_map:
     analyze_button = False
 
@@ -4738,8 +4727,8 @@ with col3_map:
             key="coord_entry_text",
             height=120,
             label_visibility="collapsed",
-            help="One 'latitude, longitude' per line. Click the map to add corners, "
-                 "or edit/paste them here directly.",
+            help="Corners of the polygon you drew, one 'latitude, longitude' per "
+                 "line. Edit or paste coordinates here, then press 'Use this area'.",
             on_change=sync_corner_points_from_text,
         )
 
@@ -4830,8 +4819,7 @@ with col3_map:
         <div style='font-size:0.95rem; font-weight:600; color:#1B5E20;
                     background:#E8F5E9; border-left:4px solid #2E7D32;
                     border-radius:0 6px 6px 0; padding:0.6rem 0.75rem; margin-top:0.5rem;'>
-            ✏️ Draw a polygon or rectangle on the map to select your area —
-            or click the map corner by corner to build it from coordinates
+            ✏️ Draw a polygon or rectangle on the map to select your area
         </div>
         """, unsafe_allow_html=True)
 
