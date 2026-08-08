@@ -14,7 +14,7 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
-        "version": "v3.10.1 beta",
+        "version": "v3.10.4 beta",
         "date": "2026-08-08",
         "changes": [
             "The map now shows the latitude and longitude under your cursor, in large "
