@@ -14,7 +14,7 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
-        "version": "v3.10.4 beta",
+        "version": "v3.10.5 beta",
         "date": "2026-08-08",
         "changes": [
             "The map now shows the latitude and longitude under your cursor, in large "
@@ -28,6 +28,11 @@ CHANGELOG: List[Dict] = [
             "enter an area whose coordinates you already have, from a survey or a "
             "report. Press 'Use this area' when the shape is right.",
             "The rectangle tool is unchanged.",
+            "Fixed: while you are adjusting a polygon's corners, the map no longer "
+            "also shows the old shape underneath, which made it look as though a "
+            "removed corner was still there.",
+            "Fixed: clicking an area you drew yourself described it as a '1000 "
+            "hectare test area'. It now shows 'Selected Area' with its real size.",
         ],
     },
     {
