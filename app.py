@@ -1703,7 +1703,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4485,8 +4485,14 @@ if st.session_state.get('use_test_area_zoom', False):
     draw_tools = create_drawing_tools()
     draw_tools.add_to(m)
     
-    # Show test area polygon if coordinates are set
-    if st.session_state.get('area_coordinates'):
+    # Show the committed area polygon if coordinates are set.
+    #
+    # Suppressed while corner mode is open: the committed polygon is the shape
+    # as it was when last drawn, so editing corners would otherwise leave a
+    # stale second outline on the map alongside the live orange preview. During
+    # editing the preview layer is the only shape shown; the committed polygon
+    # comes back once 'Use this area' is pressed.
+    if st.session_state.get('area_coordinates') and not corner_mode_active:
             import folium
             coords = st.session_state.area_coordinates
             if use_test_area_single:
@@ -4512,9 +4518,13 @@ if st.session_state.get('use_test_area_zoom', False):
                 popup_text = f"Entered Coordinates ({area_ha:.1f} hectares)"
                 color = CORNER_POINT_COLOR
             else:
-                popup_text = "Test Area (1000 hectares)"
+                # Anything else reaching here is an area the user drew on the
+                # map. It is NOT a 1000 ha test area — this branch used to say
+                # so, mislabelling every hand-drawn polygon.
+                area_ha = st.session_state.get('cached_area_ha', 0)
+                popup_text = f"Selected Area ({area_ha:.1f} hectares)"
                 color = '#28a745'
-            
+
             folium.Polygon(
                 locations=[(float(coord[1]), float(coord[0])) for coord in coords],
                 color=color,
@@ -4523,9 +4533,11 @@ if st.session_state.get('use_test_area_zoom', False):
                 fillOpacity=0.15,
                 popup=popup_text
             ).add_to(m)
-    elif st.session_state.get('selected_area') and st.session_state.get('area_coordinates'):
+    elif (st.session_state.get('selected_area')
+          and st.session_state.get('area_coordinates')
+          and not corner_mode_active):
         import folium
-    
+
         coords = st.session_state.area_coordinates
         
         # Calculate coords_array for all operations
