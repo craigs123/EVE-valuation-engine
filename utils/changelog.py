@@ -14,6 +14,33 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.10 beta",
+        "date": "2026-08-09",
+        "changes": [
+            "Important: urban ecosystem values are now roughly 100 times lower, "
+            "and this corrects a long-standing error. The recreation and tourism "
+            "figure for urban land was around 2.16 million International dollars "
+            "per hectare per year — about 8,800 times the value its own source "
+            "documentation recorded, and roughly 99% of every urban valuation EVE "
+            "produced. All 22 urban service values have been replaced with revised "
+            "medians from the latest ESVD release.",
+            "Any urban analysis you saved before today is not comparable with one "
+            "run now. Non-urban ecosystems are completely unaffected — forest, "
+            "grassland, wetland, marine and the rest are unchanged.",
+            "Ecosystem integrity (EEI) is no longer applied to urban ecosystems at "
+            "all. The ESVD urban figures come from studies of real city parks, "
+            "street trees and canals measured in their actual, usually poor, "
+            "condition — so condition is already reflected in them, and applying "
+            "EEI as well counted the same degradation twice.",
+            "The Urban Green/Blue Infrastructure setting is unchanged at 18% and "
+            "still applies. It measures how much of an urban hectare is green or "
+            "blue space, which is a separate question from how good that space is.",
+            "The calculation breakdown shown with your results now states where the "
+            "condition adjustment was and was not applied, instead of implying it "
+            "was applied evenly to everything.",
+        ],
+    },
+    {
         "version": "v3.10.9 beta",
         "date": "2026-08-09",
         "changes": [

@@ -418,6 +418,26 @@ def _is_european_atlantic_zone(lat: float, lon: float) -> bool:
 CONDITION_EXEMPT_CATEGORIES = frozenset({'cultural'})
 
 
+# Ecosystem types a scalar condition multiplier is not applied to AT ALL, across
+# every service category. A second, independent axis to the category rule above.
+#
+# The ESVD coefficients for these types are drawn from studies of *representative*
+# sites — for Urban, real city parks, street trees, verges and canals measured in
+# their actual, typically poor, ecological condition. Average condition is
+# therefore already inside the coefficient, so multiplying by EEI again (≈0 for
+# almost all built-up land) counts the same degradation twice and drives the
+# value to zero for a second time.
+#
+# This is distinct from, and composes with, the green/blue extent multiplier:
+#   extent (18% of the hectare is green/blue)
+#     × ESVD coefficient (value per unit of that green/blue, at representative
+#       condition)
+#     × NO further condition term
+#
+# Applies to SCALAR mode only, on the same reasoning as the category rule.
+CONDITION_EXEMPT_ECOSYSTEMS = frozenset({'urban'})
+
+
 class PrecomputedESVDCoefficients:
     """
     Pre-calculated coefficients from authentic ESVD database with country-specific GDP adjustments
@@ -641,29 +661,36 @@ class PrecomputedESVDCoefficients:
                 'spiritual_value': 0.00,        # Service 21: Spiritual experience            (no data)
                 'primary_production': 0.00      # Service 22: (no mangrove mapping in TEEB)
             },
+            # Urban medians refreshed 2026-08-09 from the latest ESVD release,
+            # superseding the earlier block wholesale. The old 'recreation'
+            # value of 2,157,864 was erroneous — roughly 8,800x its own
+            # documented target in detailed_esvd_study_value_mappings.txt and
+            # ~100x every other urban coefficient — and alone accounted for
+            # ~99% of urban valuations. The block sums to 16,982 Int$/ha/yr,
+            # down from 2,206,166.
             'urban': {
-                'food': 1240.00,           # Service 1: Food
-                'water': 1747.00,          # Service 2: Water
-                'raw_materials': 612.00,  # Service 3: Raw materials
+                'food': 1276.80,           # Service 1: Food
+                'water': 318.00,          # Service 2: Water
+                'raw_materials': 156.00,  # Service 3: Raw materials
                 'genetic_resources': 0.00,      # Service 4: Genetic resources
                 'medicinal_resources': 0.00,    # Service 5: Medicinal resources
                 'ornamental_resources': 0.00, # Service 6: Ornamental resources
-                'pollution': 12888.00,   # Service 7: Air quality regulation
-                'climate': 1615.00,     # Service 8: Climate regulation
-                'extreme_events': 7730.00,         # Service 9: Moderation of extreme events
-                'water_regulation': 772.00,     # Service 10: Regulation of water flows
-                'water_purification': 118.00,     # Service 11: Waste treatment
+                'pollution': 5580.00,   # Service 7: Air quality regulation
+                'climate': 1110.00,     # Service 8: Climate regulation
+                'extreme_events': 741.60,         # Service 9: Moderation of extreme events
+                'water_regulation': 76.80,     # Service 10: Regulation of water flows
+                'water_purification': 2766.00,     # Service 11: Waste treatment
                 'erosion': 0.00,        # Service 12: Erosion prevention
                 'soil_formation': 0.00,         # Service 13: Maintenance of soil fertility
                 'pollination': 0.00,            # Service 14: Pollination
                 'biological_control': 0.00,     # Service 15: Biological control
                 'nursery_services': 0.00,   # Service 16: Maintenance of life cycles
                 'habitat': 0.00,  # Service 17: Maintenance of genetic diversity
-                'aesthetic_value': 18631.00,        # Service 18: Aesthetic information
-                'recreation': 2157864.00,  # Service 19: Recreation and tourism
-                'cultural': 173.00,       # Service 20: Culture, art and design
-                'spiritual_value': 108.00,        # Service 21: Spiritual experience
-                'primary_production': 2668.00      # Service 22: Cognitive development
+                'aesthetic_value': 643.20,        # Service 18: Aesthetic information
+                'recreation': 2372.40,  # Service 19: Recreation and tourism
+                'cultural': 1.728,       # Service 20: Culture, art and design
+                'spiritual_value': 2.652,        # Service 21: Spiritual experience
+                'primary_production': 1936.80      # Service 22: Cognitive development
             },
             'shrubland': {
                 'food': 84.00,          # Service 1: Food
@@ -1023,14 +1050,18 @@ class PrecomputedESVDCoefficients:
                 # Dict keys MUST match the inner ``esvd_service`` (calc-keyspace), e.g. 'pollution',
                 # 'climate', 'habitat' — NOT the outer TEEB-style category-key names.
                 #
-                # Scalar mode skips the categories in CONDITION_EXEMPT_CATEGORIES —
-                # see the constant for why. Dict mode is deliberately NOT exempted:
-                # an indicator set states a per-sub-service multiplier explicitly,
-                # including for cultural sub-services, and that stated value is the
-                # measurement. Silently overriding it would discard field data.
+                # Scalar mode skips two independent exemptions — see each
+                # constant for why: CONDITION_EXEMPT_CATEGORIES (cultural
+                # services, demand-driven) and CONDITION_EXEMPT_ECOSYSTEMS
+                # (urban, whose ESVD coefficients already embed condition).
+                # Dict mode is deliberately NOT exempted by either: an indicator
+                # set states a per-sub-service multiplier explicitly, and that
+                # stated value is the measurement. Silently overriding it would
+                # discard field data.
                 if _intactness_dict is not None:
                     value *= _intactness_dict.get(esvd_service, 1.0)
-                elif category not in CONDITION_EXEMPT_CATEGORIES:
+                elif (category not in CONDITION_EXEMPT_CATEGORIES
+                      and detected_ecosystem_type.lower() not in CONDITION_EXEMPT_ECOSYSTEMS):
                     value *= _intactness_scalar
                 
                 category_services[service] = value

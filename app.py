@@ -1406,7 +1406,10 @@ def display_data_source_status(analysis_results: Dict = None):
                             "services. Cultural services (recreation, aesthetic, "
                             "spiritual) are excluded — they depend on the setting "
                             "and who can reach it rather than on ecological "
-                            "condition, so they persist in nature-depleted areas."
+                            "condition, so they persist in nature-depleted areas. "
+                            "It is also not applied to urban ecosystems at all, "
+                            "whose ESVD values already come from studies of "
+                            "real-world urban green and blue space."
                         )
 
                         # The per-ecosystem EEI breakdown is meaningful only under
@@ -1418,16 +1421,32 @@ def display_data_source_status(analysis_results: Dict = None):
                             st.session_state.get('ecosystem_override', 'Auto-detect')
                             == 'Auto-detect'
                         )
+                        # Exempt ecosystems are still measured and still shown —
+                        # the reading is real and worth seeing — but flagged so the
+                        # heading's "used for intactness" is not read as covering
+                        # rows it does not apply to.
+                        from utils.precomputed_esvd_coefficients import CONDITION_EXEMPT_ECOSYSTEMS
+
+                        def _eei_row(eco_type, eei_value):
+                            _pct = eei_value * 100
+                            if eco_type.lower() in CONDITION_EXEMPT_ECOSYSTEMS:
+                                return (f"• **{eco_type}**: {eei_value:.3f} ({_pct:.3f}%) "
+                                        f"— measured, but not applied to this ecosystem type")
+                            return f"• **{eco_type}**: {eei_value:.3f} ({_pct:.3f}%)"
+
                         if _autodetect and ecosystem_eei and len(ecosystem_eei) > 1:
                             st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
                             for eco_type, eei_value in sorted(ecosystem_eei.items()):
                                 if eei_value is not None:
-                                    eco_eei_percent = eei_value * 100
-                                    st.write(f"• **{eco_type}**: {eei_value:.3f} ({eco_eei_percent:.3f}%)")
+                                    st.write(_eei_row(eco_type, eei_value))
                         elif _autodetect and ecosystem_eei and len(ecosystem_eei) == 1:
                             eco_type, eei_value = list(ecosystem_eei.items())[0]
                             if eei_value is not None:
-                                st.caption(f"Single ecosystem ({eco_type}) — EEI {eei_value:.3f} used for intactness default")
+                                if eco_type.lower() in CONDITION_EXEMPT_ECOSYSTEMS:
+                                    st.caption(f"Single ecosystem ({eco_type}) — EEI {eei_value:.3f} measured, "
+                                               f"but not applied to this ecosystem type")
+                                else:
+                                    st.caption(f"Single ecosystem ({eco_type}) — EEI {eei_value:.3f} used for intactness default")
                 else:
                     st.caption("EEI disabled — using manual intactness values from settings")
 
@@ -1749,7 +1768,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -5313,40 +5332,54 @@ if False and st.session_state.get('analysis_results'):
                     
                     category_sum = sum(category_totals.values())
                     
-                    # Check if there's a difference between category sum and actual total (indicating quality factor was applied)
-                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
-                    ecosystem_type_for_calc = results.get('ecosystem_type', 'Temperate Forest')
-                    user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_calc, ecosystem_intactness)
-                    
+                    # The condition multiplier is applied PER SERVICE, not to the
+                    # total, and two exemptions mean it is not applied uniformly:
+                    # cultural services are always skipped, and exempt ecosystem
+                    # types (urban) skip it entirely. So the old approach here —
+                    # recovering the pre-intactness total as
+                    # `actual_total / factor` — no longer holds and could not be
+                    # made to hold. Only the regional factor is genuinely uniform
+                    # and therefore genuinely divisible.
+                    #
+                    # The source is also _effective_intactness_dict(), not the raw
+                    # ecosystem_intactness sliders: with EEI on, the sliders are
+                    # the user's manual settings and are NOT what the calc used.
+                    from utils.precomputed_esvd_coefficients import (
+                        CONDITION_EXEMPT_CATEGORIES, CONDITION_EXEMPT_ECOSYSTEMS,
+                    )
+
                     st.markdown(f"\n**📊 Complete Calculation Flow:**")
-                    
-                    # Get the regional factor for proper breakdown
+
                     regional_factor = results.get('regional_adjustment_factor', 1.0)
-                    ecosystem_intactness = st.session_state.get('ecosystem_intactness', {})
                     ecosystem_type_for_calc = results.get('ecosystem_type', 'Temperate Forest')
-                    user_quality_factor = _get_ecosystem_intactness_multiplier(ecosystem_type_for_calc, ecosystem_intactness)
-                    
-                    # Calculate the correct step-by-step breakdown
-                    # Note: The ESVD results already include regional adjustment, so we need to work backwards
-                    if user_quality_factor != 1.0 and actual_total != 0:
-                        # actual_total = (base × regional) × intactness
-                        regionally_adjusted_total = actual_total / user_quality_factor
-                        true_base_total = regionally_adjusted_total / regional_factor if regional_factor != 0 else regionally_adjusted_total
-                        
-                        st.markdown(f"1. **Base ESVD Services**: ${true_base_total:,.0f}/year")
-                        st.markdown(f"   - Raw coefficients × area = ${true_base_total:,.0f}")
-                        st.markdown(f"2. **Regional Economic Adjustment**: ${true_base_total:,.0f} × {regional_factor:.2f} = ${regionally_adjusted_total:,.0f}/year")
-                        st.markdown(f"3. **User Intactness Factor**: ${regionally_adjusted_total:,.0f} × {user_quality_factor:.2f} = **${actual_total:,.0f}/year**")
+                    user_quality_factor = _get_ecosystem_intactness_multiplier(
+                        ecosystem_type_for_calc, _effective_intactness_dict())
+                    _eco_exempt = ecosystem_type_for_calc.lower() in CONDITION_EXEMPT_ECOSYSTEMS
+                    _source = "EEI" if st.session_state.get('use_eei_for_intactness') else "manual intactness"
+
+                    regionally_adjusted_total = (
+                        actual_total / regional_factor if regional_factor else actual_total)
+                    st.markdown(f"1. **Base ESVD Services**: ${regionally_adjusted_total:,.0f}/year")
+                    st.markdown(f"   - Raw coefficients × area, after any condition adjustment below")
+                    st.markdown(f"2. **Regional Economic Adjustment**: ${regionally_adjusted_total:,.0f} × {regional_factor:.2f} = **${actual_total:,.0f}/year**")
+
+                    if _eco_exempt:
+                        st.markdown(
+                            f"3. **Condition ({_source})**: not applied to "
+                            f"{ecosystem_type_for_calc} — its ESVD coefficients are "
+                            f"drawn from studies of representative urban green/blue "
+                            f"space, so typical condition is already included in them"
+                        )
+                    elif user_quality_factor == 1.0:
+                        st.markdown(f"3. **Condition ({_source})**: no adjustment (100%)")
                     else:
-                        # When user factor is 1.0, show proper base calculation
-                        # actual_total already includes regional factor, so divide it out
-                        true_base_total = actual_total / regional_factor if regional_factor != 0 else actual_total
-                        st.markdown(f"1. **Base ESVD Services**: ${true_base_total:,.0f}/year")
-                        st.markdown(f"   - Raw coefficients × area = ${true_base_total:,.0f}")
-                        st.markdown(f"2. **Regional Economic Adjustment**: ${true_base_total:,.0f} × {regional_factor:.2f} = **${actual_total:,.0f}/year**")
-                        if user_quality_factor == 1.0:
-                            st.markdown(f"3. **User Intactness Factor**: No adjustment (100% intactness)")
-                    
+                        _exempt_names = ", ".join(sorted(CONDITION_EXEMPT_CATEGORIES))
+                        st.markdown(
+                            f"3. **Condition ({_source})**: ×{user_quality_factor:.2f} "
+                            f"applied per service, excluding {_exempt_names} services "
+                            f"(demand-driven, so not reduced by ecological condition)"
+                        )
+
                     st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")
                     
                     # Show predominant country and regional factor

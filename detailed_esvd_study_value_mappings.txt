@@ -2284,6 +2284,29 @@ Std Dev: $2717.42/ha/year
 URBAN ECOSYSTEM
 ================================================================================
 
+*** SUPERSEDED 2026-08-09 — DO NOT USE THE TARGET COEFFICIENTS BELOW ***
+
+The urban coefficients in utils/precomputed_esvd_coefficients.py were replaced
+wholesale on 2026-08-09 with revised medians from the latest ESVD release. The
+per-study mappings recorded below relate to the PREVIOUS derivation and are
+retained for history only; the target coefficients quoted in this section no
+longer match the engine.
+
+Live values (Int$/ha/yr, sum 16,982):
+  1 Food 1276.8 | 2 Water 318 | 3 Raw materials 156 | 4-6 Genetic/Medicinal/
+  Ornamental 0 | 7 Air quality 5580 | 8 Climate 1110 | 9 Extreme events 741.6 |
+  10 Water flows 76.8 | 11 Waste treatment 2766 | 12-17 Erosion/Soil fertility/
+  Pollination/Biological control/Life cycles/Genetic diversity 0 |
+  18 Aesthetic 643.2 | 19 Recreation 2372.4 | 20 Culture art design 1.728 |
+  21 Spiritual 2.652 | 22 Cognitive development 1936.8
+
+Note in particular Recreation: this section records a target of $245.00/ha/yr
+(446 studies, median $610.31), but the engine had carried 2,157,864 — roughly
+8,800x that target, and ~99% of every urban valuation EVE produced. The revised
+2,372.4 supersedes both figures. Per-study mappings for the new values have not
+been supplied; if they become available, replace this section rather than
+appending.
+
 Air Quality Services
 --------------------------------------------------
 Target Coefficient: $320.00/ha/year

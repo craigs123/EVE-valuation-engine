@@ -1314,6 +1314,12 @@ Study IDs: 1021, 790, 790, 623
 URBAN ECOSYSTEM
 ======================================================================
 
+*** SUPERSEDED 2026-08-09 — coefficients below no longer match the engine ***
+The urban block in utils/precomputed_esvd_coefficients.py was replaced
+wholesale with revised medians from the latest ESVD release. See the URBAN
+ECOSYSTEM section of detailed_esvd_study_value_mappings.txt for the live
+values and the reason. Retained here for history only.
+
 Food Services
 ----------------------------------------
 Coefficient: $134.56/ha/year

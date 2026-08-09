@@ -15,7 +15,12 @@ TOLERANCE = 0.001  # 0.1%
 TEST_CASES = [
     # (label, ecosystem_type, area_ha, regional, intactness, urban_mult, expected_total)
     ("Desert (Sahara)",              "Desert",          1000,      0.64, 1.0, 1.0,  3_342_720),
-    ("Urban (Mexico City)",          "Urban",           1000,      1.01, 1.0, 0.18, 401_080_979),
+    # Urban coefficients refreshed 2026-08-09 from the latest ESVD release
+    # (was 401_080_979 on the superseded block, ~99% of which came from a
+    # single erroneous recreation coefficient). Urban is also exempt from the
+    # condition multiplier now, so the intactness column below no longer
+    # affects this row — run_condition_exemption_tests covers that.
+    ("Urban (Mexico City)",          "Urban",           1000,      1.01, 1.0, 0.18, 3_087_323.964),
     ("Cropland (Illinois)",          "Agricultural",    1000,      2.5,  1.0, 1.0,  66_392_500),
     ("Tropical Forest (Brazil)",     "Tropical Forest", 1000,      0.75, 1.0, 1.0,  5_462_250),
     ("Temperate Forest (China)",     "Temperate Forest",1000,      0.95, 1.0, 1.0,  25_869_450),
@@ -288,21 +293,38 @@ def run_eroi_tests():
 
 
 def run_condition_exemption_tests():
-    """Scalar condition multipliers (EEI / manual sliders) must skip cultural.
+    """A scalar condition multiplier (EEI / manual sliders) has two exemptions.
 
-    Cultural services are demand-driven, not condition-driven: an urban park
-    keeps its recreation value to the people using it however degraded the
-    surrounding ecosystem is. See CONDITION_EXEMPT_CATEGORIES in
-    utils.precomputed_esvd_coefficients for the SEEA EA / ONS rationale.
+    Both live in utils.precomputed_esvd_coefficients and are independent axes:
+
+    * CONDITION_EXEMPT_CATEGORIES — cultural services, for every ecosystem
+      type. They are demand-driven: a degraded wood keeps its recreation value
+      to the people walking in it. (SEEA EA / ONS rationale on the constant.)
+    * CONDITION_EXEMPT_ECOSYSTEMS — urban, for every service category. Its ESVD
+      coefficients come from studies of representative urban green/blue space
+      measured in real condition, so condition is already inside them.
+
+    The category checks below deliberately use a NON-exempt ecosystem
+    (Temperate Forest). Running them on Urban — as they were written before the
+    ecosystem exemption existed — would have made them pass for the wrong
+    reason, since Urban now skips the multiplier wholesale.
 
     The pre-existing TEST_CASES all pass intactness=1.0, where applying and
-    skipping the multiplier are indistinguishable, so they cannot catch a
-    regression here.
+    skipping the multiplier are indistinguishable, so none of this is covered
+    there.
     """
     checks = []
 
     def check(label, ok):
         checks.append((label, bool(ok)))
+
+    def forest(eei):
+        return calc.calculate_ecosystem_values(
+            ecosystem_type="Temperate Forest", area_hectares=1000,
+            coordinates=(48.79, 127.35),
+            ecosystem_intactness_multiplier=eei,
+            regional_factor_override=0.95,
+        )
 
     def urban(eei, urb=1.0):
         return calc.calculate_ecosystem_values(
@@ -313,24 +335,41 @@ def run_condition_exemption_tests():
             regional_factor_override=1.01,
         )
 
-    zero, half, full = urban(0.0), urban(0.5), urban(1.0)
+    # --- Category axis: cultural exempt, on a non-exempt ecosystem ---
+    zero, half, full = forest(0.0), forest(0.5), forest(1.0)
 
-    # Cultural is untouched by the scalar, at any value.
-    check("Condition: cultural unchanged at EEI 0 vs 1",
+    check("Category: cultural unchanged at EEI 0 vs 1",
           abs(zero["cultural"]["total"] - full["cultural"]["total"]) < 1e-6)
-    check("Condition: cultural unchanged at EEI 0.5",
+    check("Category: cultural unchanged at EEI 0.5",
           abs(half["cultural"]["total"] - full["cultural"]["total"]) < 1e-6)
-    check("Condition: cultural non-zero at EEI 0 (the point of the exemption)",
+    check("Category: cultural non-zero at EEI 0 (the point of the exemption)",
           zero["cultural"]["total"] > 0)
 
-    # Every other category still scales linearly with condition.
     for cat in ("provisioning", "regulating", "supporting"):
-        check(f"Condition: {cat} zeroed at EEI 0", zero[cat]["total"] == 0)
-        check(f"Condition: {cat} halves at EEI 0.5",
+        check(f"Category: {cat} zeroed at EEI 0", zero[cat]["total"] == 0)
+        check(f"Category: {cat} halves at EEI 0.5",
               abs(half[cat]["total"] - full[cat]["total"] * 0.5) < 1e-6)
 
-    # Dict mode is indicator-driven and must still reach cultural: a set that
-    # measured a cultural sub-service states its value, and that stands.
+    # --- Ecosystem axis: urban exempt, across every category ---
+    u_zero, u_half, u_full = urban(0.0), urban(0.5), urban(1.0)
+
+    check("Ecosystem: urban total unchanged at EEI 0 vs 1",
+          abs(u_zero["total_value"] - u_full["total_value"]) < 1e-6)
+    check("Ecosystem: urban total unchanged at EEI 0.5",
+          abs(u_half["total_value"] - u_full["total_value"]) < 1e-6)
+    for cat in ("provisioning", "regulating"):
+        check(f"Ecosystem: urban {cat} non-zero at EEI 0",
+              u_zero[cat]["total"] > 0)
+        check(f"Ecosystem: urban {cat} unchanged at EEI 0",
+              abs(u_zero[cat]["total"] - u_full[cat]["total"]) < 1e-6)
+
+    # The green/blue extent multiplier is a separate factor and must still
+    # bite on urban — the exemption removes condition, not extent.
+    check("Ecosystem: urban still scales with green/blue extent",
+          abs(urban(0.0, 0.18)["total_value"]
+              - u_zero["total_value"] * 0.18) < 1e-6)
+
+    # --- Dict mode: exempt from neither axis ---
     with_dict = calc.calculate_ecosystem_values(
         ecosystem_type="Urban", area_hectares=1000,
         coordinates=(19.374960, -99.117966), urban_green_blue_multiplier=1.0,
@@ -338,8 +377,8 @@ def run_condition_exemption_tests():
         regional_factor_override=1.01,
     )
     rec_dict = with_dict["cultural"]["services"]["recreation_and_tourism"]
-    rec_base = full["cultural"]["services"]["recreation_and_tourism"]
-    check("Condition: dict mode still scales cultural (indicator data wins)",
+    rec_base = u_full["cultural"]["services"]["recreation_and_tourism"]
+    check("Dict mode: still scales urban cultural (indicator data wins)",
           abs(rec_dict - rec_base * 0.25) < 1e-6)
 
     passed = failed = 0
