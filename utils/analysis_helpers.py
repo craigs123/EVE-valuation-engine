@@ -198,10 +198,36 @@ def create_bbox_from_center_and_area(
 
 _COORD_SPLIT_RE = re.compile(r'[\s,]+')
 
+# Every coordinate the user types or reads is held to this many decimal places.
+#
+# 0.0001° is ~11.1 m of latitude, and 11.1 m down to ~5.6 m of longitude
+# between the equator and 60°. That matches the 10 m ESA WorldCover backup —
+# the finest layer EVE reads — and sits well inside the 250 m OpenLandMap
+# pixels that drive a normal analysis, so a 5th decimal place cannot change
+# which pixel gets sampled. It would only imply a precision the results do not
+# have. `_get_ecosystem_type_cached` in utils/openlandmap_stac_api.py already
+# quantises its cache key to the same 4 dp for exactly this reason.
+COORD_DP = 4
+
+
+def round_coord(value: float) -> float:
+    """Snap one latitude or longitude to EVE's working precision (see COORD_DP)."""
+    return round(float(value), COORD_DP)
+
+
+def format_latlon(lat: float, lon: float, sep: str = ", ") -> str:
+    """Render one (lat, lon) pair at EVE's working precision, latitude first."""
+    return f"{float(lat):.{COORD_DP}f}{sep}{float(lon):.{COORD_DP}f}"
+
 
 def format_points_as_text(points: Sequence[Sequence[float]]) -> str:
-    """Render (lat, lon) points as the one-per-line text the entry box shows."""
-    return "\n".join(f"{float(lat):.6f}, {float(lon):.6f}" for lat, lon in points)
+    """Render (lat, lon) points as the one-per-line text the entry box shows.
+
+    Written at the same precision :func:`parse_coordinate_lines` reads back, so
+    the entry box round-trips exactly: what a user sees is what is stored, and
+    re-saving an untouched list cannot silently move the polygon.
+    """
+    return "\n".join(format_latlon(lat, lon) for lat, lon in points)
 
 
 def parse_latlon_search(text: str) -> Tuple[Optional[Tuple[float, float]], Optional[str]]:
@@ -209,12 +235,15 @@ def parse_latlon_search(text: str) -> Tuple[Optional[Tuple[float, float]], Optio
 
     Lets the location search accept typed coordinates as well as place names.
 
-    Entries shorter than the usual 4 decimal places are taken at face value,
-    with the missing places read as zeros — ``51.5, -0.1`` means exactly
-    ``51.5000, -0.1000``, not "somewhere in that band". Whole numbers are fine
-    too. Do not add a minimum-precision check here: a short entry is a valid
-    point, just a coarser one, and rejecting it would break a normal way of
-    typing a rough location.
+    The result is held to :data:`COORD_DP` decimal places: longer entries are
+    rounded to it, and shorter ones are taken at face value with the missing
+    places read as zeros — ``51.5, -0.1`` means exactly ``51.5000, -0.1000``,
+    not "somewhere in that band". Whole numbers are fine too.
+
+    Rounding a long entry and rejecting a short one are different things, and
+    only the first is wanted. Do not add a minimum-precision check here: a
+    short entry is a valid point, just a coarser one, and refusing it would
+    break a normal way of typing a rough location.
 
     Returns:
         ``(point, None)`` when the text is a usable coordinate pair;
@@ -241,16 +270,17 @@ def parse_latlon_search(text: str) -> Tuple[Optional[Tuple[float, float]], Optio
         # A reversed pair is the usual cause, and is worth naming: longitude
         # ranges beyond 90 while latitude cannot, so the swap is detectable.
         if -90.0 <= lon <= 90.0 and -180.0 <= lat <= 180.0:
+            # Offered at working precision — it is a value to retype.
             return None, (
                 f"Latitude must be between -90 and 90. Did you mean "
-                f"{lon}, {lat} — latitude first?"
+                f"{format_latlon(lon, lat)} — latitude first?"
             )
         return None, f"Latitude {lat} is outside the valid range -90 to 90."
 
     if not -180.0 <= lon <= 180.0:
         return None, f"Longitude {lon} is outside the valid range -180 to 180."
 
-    return (lat, lon), None
+    return (round_coord(lat), round_coord(lon)), None
 
 
 def parse_coordinate_lines(text: str) -> Tuple[List[Tuple[float, float]], Optional[str]]:
@@ -258,10 +288,13 @@ def parse_coordinate_lines(text: str) -> Tuple[List[Tuple[float, float]], Option
 
     Lenient about formatting: accepts comma, semicolon or whitespace separators,
     blank lines, and surrounding brackets/parens, so a pasted ``[51.5, -0.12]``
-    works as-is. As in :func:`parse_latlon_search`, decimal places below the
-    usual 4 are read as zeros rather than rejected. Used for the live preview,
-    where a part-typed list is normal; :func:`parse_polygon_coordinates` adds
-    the polygon-level rules on top.
+    works as-is. As in :func:`parse_latlon_search`, points are held to
+    :data:`COORD_DP` decimal places — longer entries rounded, shorter ones read
+    with the missing places as zeros rather than rejected. This is the read
+    half of the entry box's round trip; :func:`format_points_as_text` writes at
+    the same precision so an untouched list re-saves unchanged. Used for the
+    live preview, where a part-typed list is normal;
+    :func:`parse_polygon_coordinates` adds the polygon-level rules on top.
 
     Args:
         text: Raw text from the coordinate entry box.
@@ -303,7 +336,7 @@ def parse_coordinate_lines(text: str) -> Tuple[List[Tuple[float, float]], Option
         if not -180.0 <= lon <= 180.0:
             return [], f"Line {line_no}: longitude {lon} is outside the valid range -180 to 180."
 
-        points.append((lat, lon))
+        points.append((round_coord(lat), round_coord(lon)))
 
     return points, None
 

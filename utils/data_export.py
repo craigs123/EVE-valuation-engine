@@ -10,6 +10,8 @@ from datetime import datetime
 from typing import Dict, Any, List
 import base64
 
+from utils.analysis_helpers import COORD_DP
+
 def export_to_csv(analysis_results: Dict[str, Any]) -> str:
     """
     Export analysis results to CSV format
@@ -183,8 +185,8 @@ def generate_text_report(analysis_results: Dict[str, Any], area_info: Dict[str, 
                 lons = [coord[0] for coord in coords]
                 report_lines.extend([
                     f"Number of boundary points: {len(coords)}",
-                    f"Latitude range: {min(lats):.6f} to {max(lats):.6f}",
-                    f"Longitude range: {min(lons):.6f} to {max(lons):.6f}",
+                    f"Latitude range: {min(lats):.{COORD_DP}f} to {max(lats):.{COORD_DP}f}",
+                    f"Longitude range: {min(lons):.{COORD_DP}f} to {max(lons):.{COORD_DP}f}",
                 ])
     else:
         report_lines.append("No area information available")

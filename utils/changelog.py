@@ -14,6 +14,25 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.8 beta",
+        "date": "2026-08-09",
+        "changes": [
+            "Every latitude and longitude in EVE is now shown to four decimal "
+            "places. Previously the figure varied depending on where you looked — "
+            "the cursor readout and PDF report used five, the corner list and CSV "
+            "export used six, and the sample point list used four.",
+            "Four decimal places is about 11 metres on the ground, which matches "
+            "the finest satellite layer EVE reads. Extra digits beyond that "
+            "suggested a precision the results do not actually have.",
+            "Coordinates you type are held to the same four places, so the corner "
+            "list now reads back exactly as shown: editing and re-saving a "
+            "boundary can no longer shift it by a fraction you could not see.",
+            "Areas of a few hectares or less may show a slightly different size "
+            "than before, as their corners are now placed on this 11 metre grid. "
+            "Larger areas are unaffected in any meaningful way.",
+        ],
+    },
+    {
         "version": "v3.10.7 beta",
         "date": "2026-08-09",
         "changes": [

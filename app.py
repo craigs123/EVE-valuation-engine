@@ -27,6 +27,9 @@ from utils.analysis_helpers import (
     parse_coordinate_lines,
     parse_latlon_search,
     format_points_as_text,
+    format_latlon,
+    round_coord,
+    COORD_DP,
 )
 
 logger = logging.getLogger(__name__)
@@ -452,7 +455,7 @@ def get_folium_map(center_lat=54.5, center_lon=15.0, zoom=5, layer_type="Satelli
         position='bottomright',
         separator=' , ',
         prefix='📍',
-        num_digits=5,
+        num_digits=COORD_DP,
         empty_string='',
     ).add_to(m)
 
@@ -590,7 +593,7 @@ def build_corner_preview_layer(points):
             weight=2,
             fillColor=CORNER_POINT_COLOR,
             fillOpacity=1.0,
-            tooltip=f"Corner {idx}: {lat:.5f}, {lon:.5f}",
+            tooltip=f"Corner {idx}: {format_latlon(lat, lon)}",
         ).add_to(fg)
 
     if len(points) == 2:
@@ -1704,7 +1707,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.7 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.8 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -4360,7 +4363,7 @@ elif use_test_area_random and _area_selection_changed:
     st.session_state['_active_area_signature'] = _current_area_signature
 
     st.success("**Random Global Test Area Selected**")
-    st.caption(f"Random location in {region_name} ({lat_center:.2f}°N, {lon_center:.2f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
+    st.caption(f"Random location in {region_name} ({lat_center:.{COORD_DP}f}°N, {lon_center:.{COORD_DP}f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
 else:
     # Clear test area flag when unchecked, but preserve manual area zoom
     if not st.session_state.get('area_coordinates'):
@@ -4418,7 +4421,11 @@ if corner_mode_active:
     _prev_map_state = st.session_state.get('area_map') or {}
     _last_click = _prev_map_state.get('last_clicked')
     if _last_click and _last_click.get('lat') is not None:
-        _click_point = (round(float(_last_click['lat']), 6), round(float(_last_click['lng']), 6))
+        # Snapped on capture, so a corner reads back exactly as it is shown in
+        # the list below the map. Doubling as the dedupe key means two clicks
+        # closer than ~11 m count as the same corner — deliberate, since at
+        # this precision they are the same point.
+        _click_point = (round_coord(_last_click['lat']), round_coord(_last_click['lng']))
         # st_folium re-returns the same last_clicked on unrelated reruns, so
         # without this guard one click would be recorded over and over.
         if _click_point != st.session_state.get('_last_processed_click'):
@@ -4684,8 +4691,8 @@ else:
         _cs_lat, _cs_lon = coord_search_point
         folium.Marker(
             [_cs_lat, _cs_lon],
-            popup=f"📍 {_cs_lat:.5f}, {_cs_lon:.5f}",
-            tooltip=f"Coordinates: {_cs_lat:.5f}, {_cs_lon:.5f}",
+            popup=f"📍 {format_latlon(_cs_lat, _cs_lon)}",
+            tooltip=f"Coordinates: {format_latlon(_cs_lat, _cs_lon)}",
             icon=folium.Icon(color='red', icon='screenshot')
         ).add_to(m)
 
@@ -4777,7 +4784,7 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
             else:
                 ring = coordinates[:-1] if coordinates[0] == coordinates[-1] else coordinates
                 st.session_state.coord_entry_points = [
-                    (round(float(lat), 6), round(float(lon), 6)) for lon, lat in ring
+                    (round_coord(lat), round_coord(lon)) for lon, lat in ring
                 ]
                 st.session_state['corner_mode'] = True
             st.session_state['_corner_text_dirty'] = True

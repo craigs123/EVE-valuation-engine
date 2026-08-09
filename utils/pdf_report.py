@@ -8,6 +8,8 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 
+from utils.analysis_helpers import format_latlon
+
 _LOGO_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     'static', 'greengrey-logo-no-circle.png',
@@ -549,10 +551,10 @@ def generate_pdf_report(
         c_lat = (min_lat + max_lat) / 2
         c_lon = (min_lon + max_lon) / 2
         geo_rows = [
-            ['Centre', f'{c_lat:.5f}, {c_lon:.5f}',
-             'Bounding box (N, S)', f'{max_lat:.5f}, {min_lat:.5f}'],
+            ['Centre', format_latlon(c_lat, c_lon),
+             'Bounding box (N, S)', format_latlon(max_lat, min_lat)],
             ['Area (land)', f'{area_ha:,.1f} ha',
-             'Bounding box (E, W)', f'{max_lon:.5f}, {min_lon:.5f}'],
+             'Bounding box (E, W)', format_latlon(max_lon, min_lon)],
         ]
         geo_table = Table(geo_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
         geo_table.setStyle(TableStyle([
