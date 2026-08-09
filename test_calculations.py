@@ -287,6 +287,71 @@ def run_eroi_tests():
     return passed, len(checks) - passed
 
 
+def run_condition_exemption_tests():
+    """Scalar condition multipliers (EEI / manual sliders) must skip cultural.
+
+    Cultural services are demand-driven, not condition-driven: an urban park
+    keeps its recreation value to the people using it however degraded the
+    surrounding ecosystem is. See CONDITION_EXEMPT_CATEGORIES in
+    utils.precomputed_esvd_coefficients for the SEEA EA / ONS rationale.
+
+    The pre-existing TEST_CASES all pass intactness=1.0, where applying and
+    skipping the multiplier are indistinguishable, so they cannot catch a
+    regression here.
+    """
+    checks = []
+
+    def check(label, ok):
+        checks.append((label, bool(ok)))
+
+    def urban(eei, urb=1.0):
+        return calc.calculate_ecosystem_values(
+            ecosystem_type="Urban", area_hectares=1000,
+            coordinates=(19.374960, -99.117966),
+            urban_green_blue_multiplier=urb,
+            ecosystem_intactness_multiplier=eei,
+            regional_factor_override=1.01,
+        )
+
+    zero, half, full = urban(0.0), urban(0.5), urban(1.0)
+
+    # Cultural is untouched by the scalar, at any value.
+    check("Condition: cultural unchanged at EEI 0 vs 1",
+          abs(zero["cultural"]["total"] - full["cultural"]["total"]) < 1e-6)
+    check("Condition: cultural unchanged at EEI 0.5",
+          abs(half["cultural"]["total"] - full["cultural"]["total"]) < 1e-6)
+    check("Condition: cultural non-zero at EEI 0 (the point of the exemption)",
+          zero["cultural"]["total"] > 0)
+
+    # Every other category still scales linearly with condition.
+    for cat in ("provisioning", "regulating", "supporting"):
+        check(f"Condition: {cat} zeroed at EEI 0", zero[cat]["total"] == 0)
+        check(f"Condition: {cat} halves at EEI 0.5",
+              abs(half[cat]["total"] - full[cat]["total"] * 0.5) < 1e-6)
+
+    # Dict mode is indicator-driven and must still reach cultural: a set that
+    # measured a cultural sub-service states its value, and that stands.
+    with_dict = calc.calculate_ecosystem_values(
+        ecosystem_type="Urban", area_hectares=1000,
+        coordinates=(19.374960, -99.117966), urban_green_blue_multiplier=1.0,
+        ecosystem_intactness_multiplier={"recreation": 0.25},
+        regional_factor_override=1.01,
+    )
+    rec_dict = with_dict["cultural"]["services"]["recreation_and_tourism"]
+    rec_base = full["cultural"]["services"]["recreation_and_tourism"]
+    check("Condition: dict mode still scales cultural (indicator data wins)",
+          abs(rec_dict - rec_base * 0.25) < 1e-6)
+
+    passed = failed = 0
+    for label, ok in checks:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
+        if ok:
+            passed += 1
+        else:
+            failed += 1
+    return passed, failed
+
+
 def run_tests():
     passed = 0
     failed = 0
@@ -323,6 +388,10 @@ def run_tests():
     eroi_passed, eroi_failed = run_eroi_tests()
     passed += eroi_passed
     failed += eroi_failed
+
+    cond_passed, cond_failed = run_condition_exemption_tests()
+    passed += cond_passed
+    failed += cond_failed
 
     print(f"\n{passed}/{passed + failed} tests passed.")
     return failed == 0

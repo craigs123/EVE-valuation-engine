@@ -177,7 +177,7 @@ def extract_eei_for_sample_points(
     status = {
         "total": 0, "real": 0, "demo": 0, "null": 0,
         "any_demo": False, "count_mismatch": False, "error": None,
-        "demo_point_ids": [],
+        "demo_point_ids": [], "null_point_ids": [],
     }
 
     valid_points = extract_coordinates(sampling_point_data)
@@ -220,7 +220,10 @@ def extract_eei_for_sample_points(
         eii = values.get('eii')
         if eii is None:
             # Real data, but no dataset pixels at this location — not demo.
+            # Tracked by point_id so callers can tell which ecosystems ended up
+            # with no measurement at all rather than silently defaulting them.
             status["null"] += 1
+            status["null_point_ids"].append(point_id)
             continue
         point_eei_values[point_id] = eii
 
@@ -317,3 +320,49 @@ def get_demo_affected_ecosystems(
             eco_has_demo.add(ecosystem_type)
 
     return sorted(eco_has_demo - eco_has_real)
+
+
+def get_unmeasured_ecosystems(
+    sampling_point_data: Dict,
+    point_eei_values: Dict[str, float],
+    null_point_ids: List[str],
+) -> List[str]:
+    """
+    Return the ecosystem types the EEI dataset has no value for at all.
+
+    These are REAL service responses that simply carry no integrity score at
+    the sampled pixel — ocean and genuine data gaps, chiefly, which is why
+    Marine areas land here routinely. Distinct from the demo case: nothing was
+    fabricated, there is just nothing to read.
+
+    It matters because such an ecosystem is absent from ``ecosystem_eei``, and
+    a missing key makes ``_get_ecosystem_intactness_multiplier`` fall through
+    to its optimistic 100% default. No conservative percentage is invented
+    here — 50% would be as unfounded as 100% for open ocean, and inventing one
+    would be a second methodological error on top of the first. The list is
+    returned so the caller can say plainly which ecosystems are running on the
+    default and let the user set them deliberately.
+
+    An ecosystem qualifies only if it has at least one null point AND no point
+    with a real EEI value.
+
+    Args:
+        sampling_point_data: Dict of sample point data from EVE analysis
+        point_eei_values: Dict mapping point_id to REAL EEI value
+        null_point_ids: point_ids whose EEI came back null (eei_status)
+
+    Returns:
+        Sorted list of ecosystem_type names with no EEI measurement.
+    """
+    null_set = set(null_point_ids or [])
+    eco_has_real = set()
+    eco_has_null = set()
+
+    for point_id, point_data in sampling_point_data.items():
+        ecosystem_type = point_data.get('ecosystem_type', 'Unknown')
+        if point_id in point_eei_values:
+            eco_has_real.add(ecosystem_type)
+        elif point_id in null_set:
+            eco_has_null.add(ecosystem_type)
+
+    return sorted(eco_has_null - eco_has_real)

@@ -392,6 +392,32 @@ def _is_european_atlantic_zone(lat: float, lon: float) -> bool:
     return 35.0 <= lat <= 71.0 and -25.0 <= lon <= 45.0
 
 
+# TEEB service categories that a scalar ecosystem-condition multiplier (EEI, or
+# the manual intactness sliders) is NOT applied to.
+#
+# Condition does not govern every service equally. SEEA EA keeps the ecosystem
+# condition account and the ecosystem services account separate, linking them
+# service by service through biophysical models rather than through one index:
+#   https://seea.un.org/en/ecosystem-accounting/biophysical-modelling
+#
+# Cultural services are the clearest departure, because they are demand-driven.
+# SEEA EA derives them from the physical *setting* and the people with access to
+# it, so they persist — often at their highest per-hectare values — exactly where
+# ecological condition is lowest. The ONS UK urban natural capital accounts value
+# urban amenity at roughly £130bn via hedonic property premiums, and hold park
+# condition (Green Flag) as a separate indicator rather than multiplying service
+# value by it:
+#   https://www.ons.gov.uk/economy/environmentalaccounts/bulletins/uknaturalcapital/urbanaccounts
+#
+# Applying condition uniformly meant a city-centre hectare — EEI 0.0 on the
+# Landler index — valued its recreation, aesthetic and spiritual services at
+# zero. An urban park is not worth nothing to the people using it.
+#
+# Applies to SCALAR mode only. An indicator set passing a per-sub-service dict
+# has measured those sub-services directly and its values stand as given.
+CONDITION_EXEMPT_CATEGORIES = frozenset({'cultural'})
+
+
 class PrecomputedESVDCoefficients:
     """
     Pre-calculated coefficients from authentic ESVD database with country-specific GDP adjustments
@@ -932,7 +958,10 @@ class PrecomputedESVDCoefficients:
             urban_green_blue_multiplier: Multiplier for urban green/blue infrastructure (default 1.0)
             ecosystem_intactness_multiplier: Ecosystem-specific intactness/biodiversity multiplier.
                 Accepts either:
-                * a float (0.0–1.0) — applied uniformly to every sub-service (legacy BBI mode), OR
+                * a float (0.0–1.0) — applied to every sub-service EXCEPT those in
+                  the categories listed in CONDITION_EXEMPT_CATEGORIES (currently
+                  'cultural', which is demand-driven rather than condition-driven;
+                  see that constant for the accounting rationale), OR
                 * a dict[str, float] — per-sub-service multipliers keyed by the
                   calc-keyspace service name (e.g. {'food': 0.85, 'climate': 0.62, ...}).
                   Missing keys default to 1.0. Use this mode when indicator-driven
@@ -993,9 +1022,15 @@ class PrecomputedESVDCoefficients:
                 # Dict mode: per-sub-service multiplier (indicator-driven); scalar mode: uniform BBI.
                 # Dict keys MUST match the inner ``esvd_service`` (calc-keyspace), e.g. 'pollution',
                 # 'climate', 'habitat' — NOT the outer TEEB-style category-key names.
+                #
+                # Scalar mode skips the categories in CONDITION_EXEMPT_CATEGORIES —
+                # see the constant for why. Dict mode is deliberately NOT exempted:
+                # an indicator set states a per-sub-service multiplier explicitly,
+                # including for cultural sub-services, and that stated value is the
+                # measurement. Silently overriding it would discard field data.
                 if _intactness_dict is not None:
                     value *= _intactness_dict.get(esvd_service, 1.0)
-                else:
+                elif category not in CONDITION_EXEMPT_CATEGORIES:
                     value *= _intactness_scalar
                 
                 category_services[service] = value

@@ -14,6 +14,39 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.9 beta",
+        "date": "2026-08-09",
+        "changes": [
+            "Fixed: ecosystem integrity (EEI) is now reported for towns and cities. "
+            "Built-up land scores zero on the integrity index, and a zero score was "
+            "being mistaken for 'no data', so urban sample points showed no EEI at "
+            "all and were quietly valued as if in perfect condition.",
+            "Ecosystem integrity is now applied to provisioning, regulating and "
+            "supporting services only. Cultural services — recreation, aesthetic "
+            "value, spiritual experience — are no longer reduced by it. These "
+            "depend on the place and the people who can reach it, not on ecological "
+            "condition, so a well-used city park keeps its recreation value however "
+            "degraded its surroundings. This follows UN SEEA ecosystem accounting "
+            "and the ONS UK urban natural capital accounts.",
+            "Where an area is measured with its own field indicators, those "
+            "indicators continue to set the value for every service including "
+            "cultural ones. Nothing about that has changed.",
+            "The Urban Green/Blue Infrastructure setting is unchanged at 18% and "
+            "remains user-adjustable. Its description now explains what it measures: "
+            "how much of an urban hectare is green or blue space, as opposed to EEI, "
+            "which measures how good that space is. The two are independent, so both "
+            "still apply.",
+            "The net effect on urban totals is small. Urban cultural services are "
+            "valued much as before, while the provisioning, regulating and supporting "
+            "services now correctly reflect the low ecological condition of built-up "
+            "land rather than being assumed to be in perfect condition.",
+            "Where the integrity dataset has no reading at all — open ocean and "
+            "gaps in coverage — the affected ecosystems are now named on screen, "
+            "with a note that they are being valued at 100% intactness so you can "
+            "set them by hand if you prefer.",
+        ],
+    },
+    {
         "version": "v3.10.8 beta",
         "date": "2026-08-09",
         "changes": [

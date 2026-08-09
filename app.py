@@ -142,8 +142,25 @@ for _ind_key in ('fapar', 'soil_c', 'phh2o', 'soc', 'bdod', 'nitrogen'):
 if 'use_eei_for_intactness' not in st.session_state:
     st.session_state.use_eei_for_intactness = True
 
+# Blue-green infrastructure coverage of an urban hectare, as a percentage.
+# 18% is the European average by area; user-changeable.
+#
+# This is an EXTENT measure, not a condition one, and the distinction is what
+# makes it independent of EEI. A sample point classified 'urban' is mostly
+# built surface; only the blue-green fraction — parks, street trees, verges,
+# ponds, canals — supplies ecosystem services at all, so the coefficient is
+# scaled to that fraction. EEI then describes the *quality* of that fraction,
+# which is typically very low. Extent × condition are orthogonal factors and
+# both belong in the calculation; SEEA EA keeps extent and condition as
+# separate accounts for precisely this reason.
+#
+# (A point landing inside a genuinely large urban forest would not classify as
+# 'urban' in the first place — it would come back as forest and be valued on
+# the forest coefficients, so that case is not double-counted here.)
+URBAN_MULTIPLIER_DEFAULT_PCT = 18.0
+
 if 'urban_green_blue_multiplier' not in st.session_state:
-    st.session_state.urban_green_blue_multiplier = 18.0
+    st.session_state.urban_green_blue_multiplier = URBAN_MULTIPLIER_DEFAULT_PCT
 
 if 'ecosystem_intactness' not in st.session_state:
     st.session_state.ecosystem_intactness = {
@@ -1363,9 +1380,34 @@ def display_data_source_status(analysis_results: Dict = None):
                             )
                         st.warning(_msg)
 
+                    # Ecosystems the EEI dataset simply has no value for — open
+                    # ocean and genuine data gaps, chiefly. Nothing was
+                    # fabricated and nothing is wrong with the service; there is
+                    # just no score to read. They fall back to 100% intactness,
+                    # which is optimistic, so say so rather than let it pass
+                    # silently: the manual sliders are the remedy.
+                    _unmeasured = st.session_state.get('ecosystem_eei_unmeasured') or []
+                    if _unmeasured:
+                        st.warning(
+                            f"⚠️ The EEI dataset holds no integrity value for: "
+                            f"{', '.join(_unmeasured)} — this is normal for open "
+                            f"ocean and other gaps in coverage. These ecosystems "
+                            f"are being valued at the default **100% intactness**, "
+                            f"which may overstate them. Turn off \"Use EEI for "
+                            f"Default Intactness\" in Analysis Settings to set "
+                            f"them by hand."
+                        )
+
                     if average_eei is not None:
                         eei_percent = int(average_eei * 100)
                         st.info(f"**Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%)")
+                        st.caption(
+                            "Applied to provisioning, regulating and supporting "
+                            "services. Cultural services (recreation, aesthetic, "
+                            "spiritual) are excluded — they depend on the setting "
+                            "and who can reach it rather than on ecological "
+                            "condition, so they persist in nature-depleted areas."
+                        )
 
                         # The per-ecosystem EEI breakdown is meaningful only under
                         # auto-detect. When the user has overridden the ecosystem
@@ -1707,7 +1749,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.8 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1894,12 +1936,20 @@ def analysis_settings_dialog():
 
         st.markdown("##### Urban Green/Blue Infrastructure")
         if 'urban_green_blue_multiplier' not in st.session_state:
-            st.session_state.urban_green_blue_multiplier = 18.0
+            st.session_state.urban_green_blue_multiplier = URBAN_MULTIPLIER_DEFAULT_PCT
         _urb = st.slider(
             "Green/Blue Coverage (%)", min_value=0.0, max_value=100.0,
             value=st.session_state.urban_green_blue_multiplier, step=1.0,
             key="dlg_urban_multiplier",
-            help="WHO minimum ~10-15%; European cities 30-50%; North American 20-40%.",
+            help=(
+                "The share of an urban hectare that is blue-green infrastructure "
+                "— parks, street trees, verges, ponds, canals. Only that share "
+                "supplies ecosystem services, so urban coefficients are scaled to "
+                "it. Default 18% (European average by area); WHO minimum ~10-15%, "
+                "European cities 30-50%, North American 20-40%. This measures how "
+                "MUCH green/blue there is; EEI separately measures how GOOD it is, "
+                "so the two are independent and both apply."
+            ),
         )
         st.session_state.urban_green_blue_multiplier = _urb
         st.info(f"Urban multiplier: {_urb/100:.2f}× ({_urb:.0f}%)")
@@ -5771,6 +5821,7 @@ if analyze_button and st.session_state.selected_area:
                                         extract_eei_for_sample_points,
                                         get_eei_per_ecosystem,
                                         get_demo_affected_ecosystems,
+                                        get_unmeasured_ecosystems,
                                         DEMO_FALLBACK_INTACTNESS_PCT,
                                     )
                                     point_eei_values, average_eei, eei_status = extract_eei_for_sample_points(sampling_point_data)
@@ -5790,6 +5841,12 @@ if analyze_button and st.session_state.selected_area:
                                     st.session_state.ecosystem_eei_demo = {
                                         e: DEMO_FALLBACK_INTACTNESS_PCT for e in _demo_ecos
                                     }
+                                    # Ecosystems the dataset holds no value for (ocean, data
+                                    # gaps). No fallback percentage is invented — they run on
+                                    # the 100% default, so the UI names them instead.
+                                    st.session_state.ecosystem_eei_unmeasured = get_unmeasured_ecosystems(
+                                        sampling_point_data, point_eei_values,
+                                        eei_status.get('null_point_ids', []))
                                     # NB: don't mirror EEI into ecosystem_intactness — those
                                     # sliders are the user's MANUAL settings and must only
                                     # change when the user moves a slider. The calc engine
@@ -5801,6 +5858,7 @@ if analyze_button and st.session_state.selected_area:
                                     st.session_state.ecosystem_eei = {}
                                     st.session_state.eei_status = None
                                     st.session_state.ecosystem_eei_demo = {}
+                                    st.session_state.ecosystem_eei_unmeasured = []
                             else:
                                 # EEI disabled - clear any stored values
                                 st.session_state.point_eei_values = {}
@@ -5808,6 +5866,7 @@ if analyze_button and st.session_state.selected_area:
                                 st.session_state.ecosystem_eei = {}
                                 st.session_state.eei_status = None
                                 st.session_state.ecosystem_eei_demo = {}
+                                st.session_state.ecosystem_eei_unmeasured = []
                             
                             st.success(f"All {len(water_body_points)} water bodies classified as {selected_ecosystem}. Analysis continues below.")
                             
@@ -5859,6 +5918,7 @@ if analyze_button and st.session_state.selected_area:
                                     extract_eei_for_sample_points,
                                     get_eei_per_ecosystem,
                                     get_demo_affected_ecosystems,
+                                    get_unmeasured_ecosystems,
                                     DEMO_FALLBACK_INTACTNESS_PCT,
                                 )
                                 point_eei_values, average_eei, eei_status = extract_eei_for_sample_points(sampling_point_data)
@@ -5878,6 +5938,12 @@ if analyze_button and st.session_state.selected_area:
                                 st.session_state.ecosystem_eei_demo = {
                                     e: DEMO_FALLBACK_INTACTNESS_PCT for e in _demo_ecos
                                 }
+                                # Ecosystems the dataset holds no value for (ocean, data
+                                # gaps). No fallback percentage is invented — they run on
+                                # the 100% default, so the UI names them instead.
+                                st.session_state.ecosystem_eei_unmeasured = get_unmeasured_ecosystems(
+                                    sampling_point_data, point_eei_values,
+                                    eei_status.get('null_point_ids', []))
                                 # NB: don't mirror EEI into ecosystem_intactness — those
                                 # sliders are the user's MANUAL settings and must only
                                 # change when the user moves a slider. The calc engine
@@ -5889,6 +5955,7 @@ if analyze_button and st.session_state.selected_area:
                                 st.session_state.ecosystem_eei = {}
                                 st.session_state.eei_status = None
                                 st.session_state.ecosystem_eei_demo = {}
+                                st.session_state.ecosystem_eei_unmeasured = []
                         else:
                             # EEI disabled - clear any stored values
                             st.session_state.point_eei_values = {}
@@ -5896,6 +5963,7 @@ if analyze_button and st.session_state.selected_area:
                             st.session_state.ecosystem_eei = {}
                             st.session_state.eei_status = None
                             st.session_state.ecosystem_eei_demo = {}
+                            st.session_state.ecosystem_eei_unmeasured = []
                         
                         # Show completion in progress container
                         with analysis_progress_container.container():
@@ -6055,7 +6123,7 @@ if analyze_button and st.session_state.selected_area:
                     # Calculate value for this ecosystem type with forest type detection
                     # Only apply urban green/blue multiplier for urban ecosystems
                     if eco_type.lower() == 'urban':
-                        urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                        urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT)
                         urban_multiplier = urban_multiplier_percent / 100.0
                     else:
                         urban_multiplier = 1.0  # Default for non-urban ecosystems
@@ -6142,7 +6210,7 @@ if analyze_button and st.session_state.selected_area:
                 coeffs = get_precomputed_coefficients()
                 # Only apply urban green/blue multiplier for urban ecosystems
                 if ecosystem_type.lower() == 'urban':
-                    urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                    urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT)
                     urban_multiplier = urban_multiplier_percent / 100.0
                 else:
                     urban_multiplier = 1.0  # Default for non-urban ecosystems
@@ -7216,7 +7284,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 st.write(f"**Primary Ecosystem:** {display_name} @ {intactness:.3f}% intactness")
             
             # Show urban green/blue multiplier if applicable
-            urban_multiplier_pct = st.session_state.get('urban_green_blue_multiplier', 18.0)
+            urban_multiplier_pct = st.session_state.get('urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT)
             st.caption(f"🏙️ Urban Green/Blue Multiplier: {urban_multiplier_pct:.0f}%")
         
         with col_scenario_right:
@@ -7347,7 +7415,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             # Apply urban green/blue multiplier for urban ecosystems
                             urban_multiplier = 1.0
                             if eco_internal == 'urban':
-                                urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', 18.0)
+                                urban_multiplier_percent = st.session_state.get('urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT)
                                 urban_multiplier = urban_multiplier_percent / 100.0
                             
                             # Calculate with ecosystem-specific intactness
