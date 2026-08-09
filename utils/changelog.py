@@ -14,6 +14,21 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.10.7 beta",
+        "date": "2026-08-09",
+        "changes": [
+            "Searching for a place or a pair of coordinates now always moves the map "
+            "to what you searched for. Previously, if you had a test area or a saved "
+            "area selected, the search was ignored and the map stayed where it was.",
+            "To make that work, a search now switches the area selector back to "
+            "'None - Draw your own area' and clears the area currently on the map, "
+            "leaving you at the searched location ready to draw a new one.",
+            "Coordinates with fewer than the usual four decimal places are read "
+            "exactly as typed, with the missing places treated as zeros — so "
+            "'51.5, -0.1' means 51.5000, -0.1000. Whole numbers work too.",
+        ],
+    },
+    {
         "version": "v3.10.6 beta",
         "date": "2026-08-08",
         "changes": [

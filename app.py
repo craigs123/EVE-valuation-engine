@@ -1704,7 +1704,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.6 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.10.7 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1736,8 +1736,14 @@ if 'calculation_ready' not in st.session_state:
     st.session_state.calculation_ready = False
 
 # Helper function to reset analysis state when area or settings change
-def reset_analysis_state():
-    """Clear all analysis results to hide sections until recalculated"""
+def reset_analysis_state(clear_search=True):
+    """Clear all analysis results to hide sections until recalculated
+
+    Args:
+        clear_search: Also empty the location-search box. Set False when the
+            search box is itself the thing that triggered the reset, or the
+            user's query would be wiped before it could be looked up.
+    """
     keys_to_clear = [
         'analysis_results', 'detected_ecosystem', 'summary_metrics',
         'regional_adjustment_factor', 'scenario_results', 'scenario_distribution',
@@ -1761,8 +1767,41 @@ def reset_analysis_state():
     # on screen after they pick a test area. Safe to set directly here:
     # callbacks run before the next render, so the widget hasn't been
     # instantiated yet in the new run.
-    if 'location_search_main' in st.session_state:
+    if clear_search and 'location_search_main' in st.session_state:
         st.session_state.location_search_main = ""
+
+
+def reset_area_for_location_search():
+    """A location search sends the map back to free-draw mode at the result.
+
+    Searching means "take me somewhere else to draw", so the area-type
+    dropdown reverts to 'None - Draw your own area' and any committed area is
+    dropped. Both are needed for the search to visibly work: a test area pins
+    the map to its own fixed centre, and a committed polygon makes the map
+    fit_bounds to that polygon — either way the searched location would never
+    be shown.
+
+    Runs as the search box's on_change callback. Callbacks fire before any
+    widget is instantiated in the next run, which is what makes it legal to
+    write main_area_type_selector here even though the selectbox renders
+    earlier in the script than the search box does.
+    """
+    if not st.session_state.get('location_search_main', '').strip():
+        # Emptying the box isn't a search — leave the current area alone.
+        return
+
+    st.session_state.main_area_type_selector = "None - Draw your own area"
+    clear_analysis_cache()
+    # clear_search=False: the query that triggered this is what we're about
+    # to look up.
+    reset_analysis_state(clear_search=False)
+
+    # Drop the "zoom to the committed area" flag and the identity of the area
+    # just navigated away from, so its name/ID can't reattach to whatever the
+    # user draws next.
+    st.session_state.use_test_area_zoom = False
+    for _key in ('_active_area_signature', 'default_area_name', 'current_area_id'):
+        st.session_state.pop(_key, None)
 
 # Initialize local fallbacks to prevent LSP "unbound" diagnostics
 ecosystem_override = st.session_state.get('ecosystem_override', 'Auto-detect')
@@ -4344,6 +4383,7 @@ with col_search:
         placeholder="Search a place, e.g. Amazon rain forest — or coordinates, e.g. 51.5074, -0.1278",
         key="location_search_main",
         label_visibility="collapsed",
+        on_change=reset_area_for_location_search,
     )
 with col_layer:
     map_layer = st.radio(

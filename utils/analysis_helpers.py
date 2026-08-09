@@ -209,6 +209,13 @@ def parse_latlon_search(text: str) -> Tuple[Optional[Tuple[float, float]], Optio
 
     Lets the location search accept typed coordinates as well as place names.
 
+    Entries shorter than the usual 4 decimal places are taken at face value,
+    with the missing places read as zeros — ``51.5, -0.1`` means exactly
+    ``51.5000, -0.1000``, not "somewhere in that band". Whole numbers are fine
+    too. Do not add a minimum-precision check here: a short entry is a valid
+    point, just a coarser one, and rejecting it would break a normal way of
+    typing a rough location.
+
     Returns:
         ``(point, None)`` when the text is a usable coordinate pair;
         ``(None, hint)`` when it clearly means to be coordinates but is out of
@@ -251,8 +258,10 @@ def parse_coordinate_lines(text: str) -> Tuple[List[Tuple[float, float]], Option
 
     Lenient about formatting: accepts comma, semicolon or whitespace separators,
     blank lines, and surrounding brackets/parens, so a pasted ``[51.5, -0.12]``
-    works as-is. Used for the live preview, where a part-typed list is normal;
-    :func:`parse_polygon_coordinates` adds the polygon-level rules on top.
+    works as-is. As in :func:`parse_latlon_search`, decimal places below the
+    usual 4 are read as zeros rather than rejected. Used for the live preview,
+    where a part-typed list is normal; :func:`parse_polygon_coordinates` adds
+    the polygon-level rules on top.
 
     Args:
         text: Raw text from the coordinate entry box.
