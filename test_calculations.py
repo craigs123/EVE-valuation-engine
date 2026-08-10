@@ -7,30 +7,58 @@ import math
 import sys
 sys.path.insert(0, '.')
 
-from utils.precomputed_esvd_coefficients import PrecomputedESVDCoefficients
+from utils.precomputed_esvd_coefficients import (
+    CONDITION_EXEMPT_CATEGORIES,
+    DEFAULT_ESVD_STATISTIC,
+    PrecomputedESVDCoefficients,
+)
 
-calc = PrecomputedESVDCoefficients()
+# Pinned rather than left to the default, so that changing the shipped default
+# fails the explicit check below instead of silently re-baselining every
+# expected total in this file.
+BASELINE_STATISTIC = 'log_winsorised'
+calc = PrecomputedESVDCoefficients(statistic=BASELINE_STATISTIC)
 TOLERANCE = 0.001  # 0.1%
 
+# EXPECTED TOTALS RE-BASELINED 2026-08-10, when every coefficient was replaced
+# from ESVD SEP2025V1.0 (see utils/precomputed_esvd_coefficients.py).
+#
+# Each figure is computed from the SOURCE WORKBOOK — the log-winsorised Int$2025
+# block of "ESVD data - Aug 2026/ESVD_Consolidated_All_Biomes.xlsx", summed over
+# the 22 services and multiplied out by hand as
+#     sum(coefficients) x area_ha x regional_factor x urban_extent
+# — NOT read back out of the engine. That keeps the test meaningful: it checks
+# that the table was transcribed correctly and that the calculation chain applies
+# the factors in the right order, rather than asserting the code equals itself.
+#
+# CAVEAT: the previous baselines came from the 'Test cases' tab of
+# "EVE test data.xlsx", an independently maintained reference. That tab is still
+# at Version 2.9.1 and predates this coefficient replacement, so it could not be
+# used. When it is updated, these figures should be re-checked against it — a
+# genuinely independent source is stronger than a hand-computation from the same
+# workbook the coefficients came from.
+#
+# All rows pass intactness 1.0, so the condition multiplier is a no-op here;
+# run_condition_exemption_tests covers that axis.
 TEST_CASES = [
     # (label, ecosystem_type, area_ha, regional, intactness, urban_mult, expected_total)
-    ("Desert (Sahara)",              "Desert",          1000,      0.64, 1.0, 1.0,  3_342_720),
-    # Urban coefficients refreshed 2026-08-09 from the latest ESVD release
-    # (was 401_080_979 on the superseded block, ~99% of which came from a
-    # single erroneous recreation coefficient). Urban is also exempt from the
-    # condition multiplier now, so the intactness column below no longer
-    # affects this row — run_condition_exemption_tests covers that.
-    ("Urban (Mexico City)",          "Urban",           1000,      1.01, 1.0, 0.18, 3_087_323.964),
-    ("Cropland (Illinois)",          "Agricultural",    1000,      2.5,  1.0, 1.0,  66_392_500),
-    ("Tropical Forest (Brazil)",     "Tropical Forest", 1000,      0.75, 1.0, 1.0,  5_462_250),
-    ("Temperate Forest (China)",     "Temperate Forest",1000,      0.95, 1.0, 1.0,  25_869_450),
-    ("Boreal Forest (Canada)",       "Boreal Forest",   1000,      2.5,  1.0, 1.0,  30_775_000),
-    ("Grassland (Kazakhstan)",       "Grassland",       1000,      2.5,  1.0, 1.0,  15_717_500),
-    ("Shrubland (Australia)",        "Shrubland",       1000,      2.5,  1.0, 1.0,  4_497_500),
-    ("Polar (Greenland)",            "Polar",           124407.3,  1.0,  1.0, 1.0,  13_400_283_504.9),
-    ("Marine (Ocean)",               "Marine",          1000,      1.0,  1.0, 1.0,  71_987_000),
-    ("Rivers and Lakes (Victoria)",  "Rivers and Lakes",1000,      0.44, 1.0, 1.0,  98_805_960),
-    ("Coastal (Italy)",              "Coastal",         1000,      2.1,  1.0, 1.0,  157_909_500),
+    ("Desert (Sahara)",              "Desert",          1000,      0.64, 1.0, 1.0,  792_192),
+    # Urban is exempt from the condition multiplier, so the intactness column
+    # does not affect this row; the 0.18 green/blue extent factor still does.
+    ("Urban (Mexico City)",          "Urban",           1000,      1.01, 1.0, 0.18, 27_949_692.02),
+    ("Cropland (Illinois)",          "Agricultural",    1000,      2.5,  1.0, 1.0,  62_937_125),
+    ("Tropical Forest (Brazil)",     "Tropical Forest", 1000,      0.75, 1.0, 1.0,  18_973_845),
+    ("Temperate Forest (China)",     "Temperate Forest",1000,      0.95, 1.0, 1.0,  25_456_741.5),
+    ("Boreal Forest (Canada)",       "Boreal Forest",   1000,      2.5,  1.0, 1.0,  34_460_525),
+    ("Grassland (Kazakhstan)",       "Grassland",       1000,      2.5,  1.0, 1.0,  304_315_625),
+    ("Shrubland (Australia)",        "Shrubland",       1000,      2.5,  1.0, 1.0,  4_018_825),
+    ("Polar (Greenland)",            "Polar",           124407.3,  1.0,  1.0, 1.0,  531_023_851.54),
+    ("Marine (Ocean)",               "Marine",          1000,      1.0,  1.0, 1.0,  269_199_240),
+    ("Rivers and Lakes (Victoria)",  "Rivers and Lakes",1000,      0.44, 1.0, 1.0,  739_504_009.2),
+    ("Coastal (Italy)",              "Coastal",         1000,      2.1,  1.0, 1.0,  203_527_737),
+    # Mangroves are outside the SEP2025 replacement (ESVD has no mangrove biome)
+    # so this baseline is unchanged — and its continuing to pass is the check
+    # that the replacement touched only what it was meant to.
     ("Mangrove (Sundarbans, India)", "Mangroves",       1000,      0.51, 1.0, 1.0,  15_764_610),
 ]
 
@@ -39,7 +67,7 @@ def run_mixed_test():
     ag = calc.calculate_ecosystem_values("Agricultural", 1000, regional_factor_override=2.5)["total_value"]
     gr = calc.calculate_ecosystem_values("Grassland",    1000, regional_factor_override=2.5)["total_value"]
     actual = 0.778 * ag + 0.222 * gr
-    expected = 55_142_650
+    expected = 116_523_152  # re-baselined 2026-08-10 from the source workbook
     return "Mixed Ecosystem (Ag 77.8% / Grassland 22.2%)", actual, expected
 
 
@@ -297,9 +325,11 @@ def run_condition_exemption_tests():
 
     Both live in utils.precomputed_esvd_coefficients and are independent axes:
 
-    * CONDITION_EXEMPT_CATEGORIES — cultural services, for every ecosystem
-      type. They are demand-driven: a degraded wood keeps its recreation value
-      to the people walking in it. (SEEA EA / ONS rationale on the constant.)
+    * CONDITION_EXEMPT_CATEGORIES — EMPTY since 2026-08-10. The multiplier
+      now reaches all four categories, cultural included, because for a natural
+      ecosystem the cultural value is tied to condition: a degraded reef should
+      not carry a healthy reef's recreation value. Asserted empty below, so
+      this test fails loudly if a category is exempted again without review.
     * CONDITION_EXEMPT_ECOSYSTEMS — urban, for every service category. Its ESVD
       coefficients come from studies of representative urban green/blue space
       measured in real condition, so condition is already inside them.
@@ -335,20 +365,28 @@ def run_condition_exemption_tests():
             regional_factor_override=1.01,
         )
 
-    # --- Category axis: cultural exempt, on a non-exempt ecosystem ---
+    # --- Category axis: no category is exempt, on a non-exempt ecosystem ---
+    # Since 2026-08-10 CONDITION_EXEMPT_CATEGORIES is empty, so cultural must
+    # track condition exactly like the other three for a natural ecosystem.
     zero, half, full = forest(0.0), forest(0.5), forest(1.0)
 
-    check("Category: cultural unchanged at EEI 0 vs 1",
-          abs(zero["cultural"]["total"] - full["cultural"]["total"]) < 1e-6)
-    check("Category: cultural unchanged at EEI 0.5",
-          abs(half["cultural"]["total"] - full["cultural"]["total"]) < 1e-6)
-    check("Category: cultural non-zero at EEI 0 (the point of the exemption)",
-          zero["cultural"]["total"] > 0)
+    check("Category: CONDITION_EXEMPT_CATEGORIES is empty",
+          len(CONDITION_EXEMPT_CATEGORIES) == 0)
+    # The TEST_CASES baselines above are computed on BASELINE_STATISTIC. If the
+    # shipped default moves away from it they stop describing what users get,
+    # so fail here rather than quietly testing a basis nobody runs.
+    check(f"Default valuation basis is still {BASELINE_STATISTIC!r} "
+          f"(TEST_CASES baselines assume it)",
+          DEFAULT_ESVD_STATISTIC == BASELINE_STATISTIC)
 
-    for cat in ("provisioning", "regulating", "supporting"):
+    for cat in ("provisioning", "regulating", "supporting", "cultural"):
         check(f"Category: {cat} zeroed at EEI 0", zero[cat]["total"] == 0)
         check(f"Category: {cat} halves at EEI 0.5",
               abs(half[cat]["total"] - full[cat]["total"] * 0.5) < 1e-6)
+
+    check("Category: forest cultural is non-zero at full condition "
+          "(so the EEI-0 check above is meaningful)",
+          full["cultural"]["total"] > 0)
 
     # --- Ecosystem axis: urban exempt, across every category ---
     u_zero, u_half, u_full = urban(0.0), urban(0.5), urban(1.0)

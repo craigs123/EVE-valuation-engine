@@ -128,8 +128,13 @@ if 'ecosystem_override' not in st.session_state:
 if 'analysis_detail' not in st.session_state:
     st.session_state.analysis_detail = "Summary Analysis"
     
+# 0.6 throughout — matches the fallback used at every other read site and the
+# PrecomputedESVDCoefficients default, so a session that never opens Settings
+# values the same as one that does. (This init said 0.25 until 2026-08-10,
+# which meant the app's real default disagreed with its own documentation and
+# with every other default in the codebase.)
 if 'income_elasticity' not in st.session_state:
-    st.session_state.income_elasticity = 0.25
+    st.session_state.income_elasticity = 0.6
 
 # Which ESVD statistic the coefficient tables are read from —
 # 'log_winsorised', 'median' or 'mean'. Read by resolve_esvd_statistic() in
@@ -1061,6 +1066,51 @@ def display_valuation_basis_banner(results: Dict = None):
         )
 
 
+def display_urban_greenblue_note(results: Dict = None):
+    """State the green/blue extent assumption whenever urban land is valued.
+
+    The urban ESVD coefficients are per hectare OF green/blue infrastructure,
+    not per hectare of urban land, so this percentage is a load-bearing
+    assumption rather than a refinement — at the 18% default it scales urban
+    value to roughly a fifth of what the raw coefficients would give. A reader
+    seeing an urban total has no way to know that from the number alone.
+
+    Silent for analyses with no urban land, so it never becomes wallpaper.
+    """
+    if not results:
+        return
+
+    urban_share = None
+    urban_present = str(results.get('ecosystem_type', '')).strip().lower() == 'urban'
+    composition = (results.get('metadata') or {}).get('ecosystem_composition') or {}
+    for name, share in composition.items():
+        if str(name).strip().lower() == 'urban':
+            urban_present = True
+            try:
+                urban_share = float(share)
+            except (TypeError, ValueError):
+                urban_share = None
+
+    if not urban_present:
+        return
+
+    pct = results.get('urban_green_blue_pct')
+    if pct is None:
+        pct = st.session_state.get('urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT)
+
+    where = "the urban area"
+    if urban_share is not None and 0 < urban_share < 1:
+        where = f"the urban area ({urban_share * 100:.0f}% of this site)"
+
+    st.info(
+        f"🏙️ This valuation assumes **{float(pct):.0f}%** of {where} is "
+        f"green/blue infrastructure — parks, street trees, verges, ponds and "
+        f"canals. Urban ecosystem values are stated per hectare of that "
+        f"green/blue space, so this share converts them to the urban land "
+        f"measured here. Change it in Analysis Settings → Green/Blue Coverage."
+    )
+
+
 def display_data_source_status(analysis_results: Dict = None):
     """Display clear indicators of which data source is being used"""
     openlandmap_status = preload_openlandmap_status()
@@ -1832,7 +1882,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.11.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.11.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2112,13 +2162,20 @@ def analysis_settings_dialog():
         st.divider()
 
         st.markdown("##### Regional Adjustments")
+        _cur_elast = st.session_state.get('income_elasticity', 0.6)
         _elast = st.slider(
             "Income elasticity factor", min_value=0.1, max_value=1.0,
-            value=st.session_state.get('income_elasticity', 0.6), step=0.1,
-            help="0.5–0.6 recommended. Scales regional GDP differences.",
+            value=_cur_elast, step=0.1,
+            help="0.5–0.7 is the usual range; 0.6 is the default. Scales regional GDP differences.",
             key="dlg_income_elasticity",
         )
+        # Elasticity feeds the regional factor, so displayed results go stale the
+        # moment it moves — same reasoning as the intactness sliders and the
+        # valuation-basis radio. Compared with a tolerance because the 0.1 step
+        # yields floats that will not compare exactly.
         st.session_state['income_elasticity'] = _elast
+        if abs(_elast - _cur_elast) > 1e-9:
+            reset_analysis_state()
         st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
 
         st.divider()
@@ -5444,9 +5501,10 @@ if False and st.session_state.get('analysis_results'):
                     category_sum = sum(category_totals.values())
                     
                     # The condition multiplier is applied PER SERVICE, not to the
-                    # total, and two exemptions mean it is not applied uniformly:
-                    # cultural services are always skipped, and exempt ecosystem
-                    # types (urban) skip it entirely. So the old approach here —
+                    # total, and it is not applied uniformly: exempt ecosystem
+                    # types (urban) skip it entirely, and any category listed in
+                    # CONDITION_EXEMPT_CATEGORIES would skip it too (that set is
+                    # empty since 2026-08-10). So the old approach here —
                     # recovering the pre-intactness total as
                     # `actual_total / factor` — no longer holds and could not be
                     # made to hold. Only the regional factor is genuinely uniform
@@ -5484,11 +5542,19 @@ if False and st.session_state.get('analysis_results'):
                     elif user_quality_factor == 1.0:
                         st.markdown(f"3. **Condition ({_source})**: no adjustment (100%)")
                     else:
+                        # CONDITION_EXEMPT_CATEGORIES is empty as of 2026-08-10,
+                        # so the multiplier reaches every category. The clause is
+                        # kept for the case where a category is exempted again —
+                        # with an empty set it must not print "excluding  services".
                         _exempt_names = ", ".join(sorted(CONDITION_EXEMPT_CATEGORIES))
-                        st.markdown(
-                            f"3. **Condition ({_source})**: ×{user_quality_factor:.2f} "
-                            f"applied per service, excluding {_exempt_names} services "
+                        _scope = (
+                            f"applied to every service, excluding {_exempt_names} "
                             f"(demand-driven, so not reduced by ecological condition)"
+                            if _exempt_names else
+                            "applied to every service, cultural included"
+                        )
+                        st.markdown(
+                            f"3. **Condition ({_source})**: ×{user_quality_factor:.2f} {_scope}"
                         )
 
                     st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")
@@ -6481,6 +6547,13 @@ if analyze_button and st.session_state.selected_area:
                     'coefficient_statistic',
                     esvd_results.get('metadata', {}).get('coefficient_statistic'),
                 ),
+                # Green/blue extent assumed for any urban land in this run.
+                # Stamped for the same reason as coefficient_statistic: the
+                # setting is changeable, so a saved analysis must record the
+                # value it was actually costed on rather than whatever the
+                # slider happens to say when it is reopened.
+                'urban_green_blue_pct': st.session_state.get(
+                    'urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT),
             }
             # Indicator-driven target valuation, if all committed indicators
             # have a target_score. Display code below reads these keys and
@@ -6584,6 +6657,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         st.toast("Loading valuation results...", icon="⏳")
         
         display_valuation_basis_banner(results)
+        display_urban_greenblue_note(results)
 
         # Summary totals — one unified panel, no per-metric card chrome
         with st.container(border=True, key="results_totals_panel"):
@@ -6703,6 +6777,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         st.toast("Loading detailed valuation results...", icon="⏳")
         
         display_valuation_basis_banner(results)
+        display_urban_greenblue_note(results)
 
         col_metrics = st.columns(3)
         _total_target_d = results.get('total_value_target')
