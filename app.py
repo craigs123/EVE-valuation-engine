@@ -131,6 +131,20 @@ if 'analysis_detail' not in st.session_state:
 if 'income_elasticity' not in st.session_state:
     st.session_state.income_elasticity = 0.25
 
+# Which ESVD statistic the coefficient tables are read from —
+# 'log_winsorised', 'median' or 'mean'. Read by resolve_esvd_statistic() in
+# utils/precomputed_esvd_coefficients.py, which every construction site of
+# PrecomputedESVDCoefficients() goes through, so setting it here steers the
+# whole app (calculations, breakdown panels, exports) from one place.
+#
+# Log-winsorised mean is the default and the workbook's own preferred basis for
+# summing across services: it keeps every record while compressing a long right
+# tail. Median remains available as the conservative floor and mean as the
+# unmoderated upper bound — the three can differ by two orders of magnitude for
+# the same area, which is why the choice is stamped onto every result.
+if 'esvd_statistic' not in st.session_state:
+    st.session_state.esvd_statistic = 'log_winsorised'
+
 if 'time_preset' not in st.session_state:
     st.session_state.time_preset = "Current Year (2024)"
 
@@ -997,6 +1011,56 @@ def get_country_from_coordinates(lat: float, lon: float) -> str:
     except Exception as e:
         return "Unknown"
 
+def display_valuation_basis_banner(results: Dict = None):
+    """State, prominently, whether a valuation is on median or mean coefficients.
+
+    Median and mean totals for the same area can differ by two orders of
+    magnitude (Rivers and Lakes: 17,212 vs 1,882,746 Int$/ha/yr), and nothing
+    in the headline figure distinguishes them. A number that large needs its
+    basis attached to it wherever it is read, not filed away in a methodology
+    note — so this sits directly above the totals, and the same statement goes
+    on the PDF beside the headline value.
+
+    Reads the basis the results were CALCULATED with, falling back to the
+    current setting. The two only diverge for an analysis saved under one
+    basis and reopened under another; in that case the saved run's basis is
+    the true one.
+    """
+    from utils.precomputed_esvd_coefficients import resolve_esvd_statistic
+
+    stamped = None
+    if results:
+        stamped = (results.get('coefficient_statistic')
+                   or (results.get('metadata') or {}).get('coefficient_statistic'))
+    statistic = resolve_esvd_statistic(stamped)
+
+    if statistic == 'mean':
+        st.warning(
+            "**Valuation basis: MEAN coefficients.** Values below are ESVD "
+            "means — pulled well above typical by a small number of very high "
+            "valuations, in some services several-hundred-fold. Read these "
+            "totals as an upper bound, not a best estimate. Change this in "
+            "Analysis Settings → Valuation Basis.",
+            icon="📈",
+        )
+    elif statistic == 'median':
+        st.info(
+            "**Valuation basis: MEDIAN coefficients** — the typical valuation "
+            "per service, and the most conservative basis. ESVD SEP2025V1.0, "
+            "Int$2025/ha/yr.",
+            icon="📊",
+        )
+    else:
+        st.info(
+            "**Valuation basis: LOG-WINSORISED MEAN** (recommended) — every "
+            "valuation record counts, with extreme values compressed rather "
+            "than discarded. ESVD SEP2025V1.0, Int$2025/ha/yr. Closer to the "
+            "mean than to the median; where a service has few records the cap "
+            "does not bind and this returns the plain mean.",
+            icon="📊",
+        )
+
+
 def display_data_source_status(analysis_results: Dict = None):
     """Display clear indicators of which data source is being used"""
     openlandmap_status = preload_openlandmap_status()
@@ -1768,7 +1832,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.10.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.11.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -1962,12 +2026,13 @@ def analysis_settings_dialog():
             key="dlg_urban_multiplier",
             help=(
                 "The share of an urban hectare that is blue-green infrastructure "
-                "— parks, street trees, verges, ponds, canals. Only that share "
-                "supplies ecosystem services, so urban coefficients are scaled to "
-                "it. Default 18% (European average by area); WHO minimum ~10-15%, "
-                "European cities 30-50%, North American 20-40%. This measures how "
-                "MUCH green/blue there is; EEI separately measures how GOOD it is, "
-                "so the two are independent and both apply."
+                "— parks, street trees, verges, ponds, canals. The urban ESVD "
+                "values are stated per hectare OF that green/blue space, so this "
+                "setting converts an urban hectare into the area they apply to. "
+                "Default 18% (European average by area); WHO minimum ~10-15%, "
+                "European cities 30-50%, North American 20-40%. It measures how "
+                "MUCH green/blue there is — a separate question from how good it "
+                "is, which is why EEI is not additionally applied to urban land."
             ),
         )
         st.session_state.urban_green_blue_multiplier = _urb
@@ -1997,6 +2062,52 @@ def analysis_settings_dialog():
         if st.session_state.get('cached_area_ha'):
             _gs = int(np.sqrt(_samp))
             st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+
+        st.divider()
+
+        st.markdown("##### Valuation Basis")
+        _stat_labels = {
+            'log_winsorised': "Log-winsorised mean (recommended)",
+            'median': "Median (conservative)",
+            'mean': "Mean (includes outliers)",
+        }
+        _cur_stat = st.session_state.get('esvd_statistic', 'log_winsorised')
+        _stat = st.radio(
+            "ESVD coefficient statistic",
+            options=list(_stat_labels),
+            format_func=lambda s: _stat_labels[s],
+            index=list(_stat_labels).index(_cur_stat) if _cur_stat in _stat_labels else 0,
+            key="dlg_esvd_statistic",
+            help=(
+                "Which statistic to read from the ESVD valuation records.\n\n"
+                "• Log-winsorised mean — every record counts, but extreme "
+                "values are compressed rather than allowed to dominate. The "
+                "recommended basis for adding services together.\n\n"
+                "• Median — the typical valuation for a service. The most "
+                "conservative, and unaffected by outliers, but it discards "
+                "the information in the rest of the distribution.\n\n"
+                "• Mean — the plain average, with high valuations at full "
+                "weight. For some services this is hundreds of times the "
+                "median."
+            ),
+        )
+        if _stat != _cur_stat:
+            st.session_state.esvd_statistic = _stat
+            reset_analysis_state()
+        if _stat == 'mean':
+            st.warning(
+                "Mean values are outlier-driven and can be many times the "
+                "median — treat totals as an upper bound, not a best estimate."
+            )
+        elif _stat == 'median':
+            st.caption("Median: the typical valuation per service. ESVD SEP2025V1.0, Int$2025/ha/yr.")
+        else:
+            st.caption(
+                "Log-winsorised mean: outliers compressed in the log domain, "
+                "no records discarded. ESVD SEP2025V1.0, Int$2025/ha/yr. Note "
+                "the cap only binds where a service has enough records — where "
+                "evidence is thin it returns the plain mean."
+            )
 
         st.divider()
 
@@ -2208,7 +2319,7 @@ def analysis_settings_dialog():
 
     **Formula**: `Final Value = ESVD_Base × Regional_Adjustment × Quality_Factor`
 
-    **Standards**: 2020 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
+    **Standards**: 2025 International dollars/ha/year · Bounded 0.4×–2.5× regional adjustment
         """)
         st.caption(
             "Brander, L.M. de Groot, R, Guisado Goñi, V., van 't Hoff, V., "
@@ -6231,7 +6342,13 @@ if analyze_button and st.session_state.selected_area:
                         'calculation_method': 'Mixed ecosystem with forest type detection',
                         'ecosystem_count': len(ecosystem_distribution),
                         'ecosystem_composition': ecosystem_composition,  # Add for display
-                        'regional_adjustment': regional_adjustment  # Include regional factor
+                        'regional_adjustment': regional_adjustment,  # Include regional factor
+                        # Every ecosystem in the mix was valued by the same
+                        # calculator, so the first result's basis speaks for all.
+                        'coefficient_statistic': first_ecosystem_result.get(
+                            'coefficient_statistic',
+                            first_ecosystem_result.get('metadata', {}).get('coefficient_statistic'),
+                        ),
                     }
                 }
                 
@@ -6354,7 +6471,16 @@ if analyze_button and st.session_state.selected_area:
                 'data_source': 'ESVD/TEEB Database',
                 'regional_factor': esvd_results.get('regional_adjustment_factor', esvd_results.get('metadata', {}).get('regional_adjustment', 1.0)),
                 'quality_factor': st.session_state.get('quality_factor', 1.0),  # Default to 100% intactness
-                'intactness_percentage': st.session_state.get('intactness_percentage', 100)
+                'intactness_percentage': st.session_state.get('intactness_percentage', 100),
+                # Which ESVD statistic produced these numbers. Stamped at the
+                # top level, not just inside esvd_results, so a saved analysis
+                # reloaded months later can still say which basis it used —
+                # median and mean totals for the same area differ by up to two
+                # orders of magnitude and are not otherwise distinguishable.
+                'coefficient_statistic': esvd_results.get(
+                    'coefficient_statistic',
+                    esvd_results.get('metadata', {}).get('coefficient_statistic'),
+                ),
             }
             # Indicator-driven target valuation, if all committed indicators
             # have a target_score. Display code below reads these keys and
@@ -6457,6 +6583,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         # Show toast notification while results render
         st.toast("Loading valuation results...", icon="⏳")
         
+        display_valuation_basis_banner(results)
+
         # Summary totals — one unified panel, no per-metric card chrome
         with st.container(border=True, key="results_totals_panel"):
             col1, col2, col3 = st.columns(3)
@@ -6574,6 +6702,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         # Show toast notification while detailed results render
         st.toast("Loading detailed valuation results...", icon="⏳")
         
+        display_valuation_basis_banner(results)
+
         col_metrics = st.columns(3)
         _total_target_d = results.get('total_value_target')
         _per_ha_target_d = results.get('value_per_ha_target')
@@ -6601,10 +6731,13 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             **Primary Data Sources**:
             
             **Pre-computed ESVD Coefficients (Static)**:
-            - Based on ESVD (Ecosystem Services Valuation Database) APR2024 V1.1
-            - 10,874+ peer-reviewed value estimates from 1,100+ scientific studies
-            - Pre-calculated median coefficients for optimal performance (238,270x faster)
-            - Global coverage: 140+ countries, 15 biomes, 23 ecosystem services
+            - Based on ESVD (Ecosystem Services Valuation Database) SEP2025 V1.0
+            - Peer-reviewed value estimates from 1,100+ scientific studies
+            - Pre-calculated coefficients for optimal performance (238,270x faster)
+            - Median by default; mean selectable under Analysis Settings → Valuation Basis
+            - Only records tagged with a single ecosystem service are counted, so the
+              22 service values can be summed without double-counting bundled studies
+            - Coverage: 13 biomes × 22 ecosystem services
             - Static values maintain research authenticity while eliminating API dependencies
             
             **TEEB Integration**:
@@ -6619,7 +6752,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             - Data quality: Availability and reliability of regional studies
             
             **Standardization**:
-            - All values converted to 2020 International dollars
+            - All values converted to 2025 International dollars
             - Per hectare per year basis for global comparability
             - Quality assurance: Only peer-reviewed studies included
             
@@ -7184,11 +7317,11 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     st.success("**Authentic ESVD database integrated**")
                     st.markdown(f"""
                     **Data Source**: {esvd_status['source']}  
-                    **Database Version**: APR2024 V1.1  
+                    **Database Version**: SEP2025 V1.0  
                     **Total Records**: {esvd_status['total_records']:,} peer-reviewed ecosystem service values  
                     **Studies**: {esvd_status['unique_studies']:,} unique research studies  
                     **Biomes**: {esvd_status['unique_biomes']:,} different ecosystem types  
-                    **Standardization**: All values in Int$/ha/year (2020 price levels)
+                    **Standardization**: All values in Int$/ha/year (2025 price levels)
                     
                     🎯 **Your analysis uses real peer-reviewed data from 30+ years of ecosystem service research**
                     """)

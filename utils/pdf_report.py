@@ -491,12 +491,27 @@ def generate_pdf_report(
     analysis_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
     regional_factor = results.get('regional_adjustment_factor', results.get('regional_factor', 1.0))
 
+    # Which coefficient table produced every figure in this report. Resolved
+    # once here and reused by the methodology note further down.
+    from utils.precomputed_esvd_coefficients import resolve_esvd_statistic
+
+    _stat = resolve_esvd_statistic(
+        results.get('coefficient_statistic')
+        or (results.get('metadata') or {}).get('coefficient_statistic')
+    )
+
     meta_rows = [
         ['Analysis Date', analysis_date, 'Country / Region', country or '—'],
         ['Water excluded', f'{water_ha:,.1f} ha' if water_ha else '—',
          'Regional Factor', f'{regional_factor:.2f}×'],
         ['Total Annual Value', f'Int$ {total_value:,.0f}/yr',
          'Value per Hectare', f'Int$ {per_ha:,.0f}/ha/yr'],
+        ['Valuation Basis', {
+            'log_winsorised': 'ESVD LOG-WINSORISED MEAN',
+            'median': 'ESVD MEDIAN coefficients',
+            'mean': 'ESVD MEAN coefficients',
+        }[_stat],
+         'Price Level', 'Int$2025/ha/yr'],
     ]
     meta_table = Table(meta_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
     meta_table.setStyle(TableStyle([
@@ -515,6 +530,32 @@ def generate_pdf_report(
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
     story.append(meta_table)
+    story.append(Spacer(1, 0.2 * cm))
+
+    # A mean-based report is a materially different claim from a median-based
+    # one — up to two orders of magnitude apart for the same area — so it says
+    # so beside the headline figure, not only in the methodology note.
+    if _stat == 'mean':
+        _basis_note = Paragraph(
+            '<b>Valuation basis: ESVD MEAN coefficients.</b> Every figure in '
+            'this report is calculated on mean values, which in this dataset '
+            'are pulled well above typical by a small number of very high '
+            'valuations — for some services several-hundred-fold above the '
+            'median. Treat these totals as an <b>upper bound</b> rather than a '
+            'best estimate. The median basis, which reports the typical '
+            'valuation per service, is the conservative alternative.',
+            caption)
+        _basis_box = Table([[_basis_note]], colWidths=[17 * cm])
+        _basis_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFF8E1')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#FB8C00')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(_basis_box)
+
     story.append(Spacer(1, 0.4 * cm))
 
     # --------------------------------------------------- geographic coordinates
@@ -839,10 +880,33 @@ def generate_pdf_report(
             story.append(Spacer(1, 0.3 * cm))
 
     # ------------------------------------------------------------ methodology note
+    # _stat was resolved with the summary meta table above, which also carries
+    # the basis as its own row and, for mean, a callout beside the headline.
+    _stat_sentence = {
+        'log_winsorised': (
+            'Per-service coefficients are the <b>log-winsorised mean</b> of the qualifying '
+            'valuation records for each biome and service: every record contributes, but values '
+            'above the geometric mean times exp(2 SD of the logged records) are capped at that '
+            'level, so a long right tail is compressed rather than discarded. Where a service '
+            'has few records the cap does not bind and the figure is the plain mean. '
+        ),
+        'median': (
+            'Per-service coefficients are the <b>median</b> of the qualifying valuation '
+            'records for each biome and service — the typical value, and the most conservative basis. '
+        ),
+        'mean': (
+            'Per-service coefficients are the <b>mean</b> of the qualifying valuation records for '
+            'each biome and service. Means in this dataset are strongly skewed by a small number of '
+            'very high valuations and can exceed the median several-hundred-fold; totals in this '
+            'report should be read as an upper bound rather than a typical value. '
+        ),
+    }[_stat]
+
     story.append(Paragraph('Methodology', h2))
     story.append(Paragraph(
-        'Values are sourced from the <b>Ecosystem Services Valuation Database (ESVD/TEEB)</b>, '
-        'drawing on 10,874+ peer-reviewed estimates from 1,100+ scientific studies. '
+        'Values are sourced from the <b>Ecosystem Services Valuation Database (ESVD)</b>, '
+        'database version SEP2025V1.0. '
+        + _stat_sentence +
         'A regional GDP adjustment (income-elasticity method, World Bank 2024 GDP per capita data) '
         'is applied: <i>factor = 1 + (elasticity × (country_GDP / global_GDP − 1))</i>, '
         'bounded to 0.4–2.5×. Ecosystem Ecological Integrity (EEI) intactness multipliers — '
@@ -852,7 +916,7 @@ def generate_pdf_report(
         'Open-water areas are included in natural capital totals: sample points '
         'identified as water bodies are classified by the user as ocean, rivers and '
         'lakes, or coastal, and valued using the corresponding ESVD coefficients. '
-        'All values are in 2024 International dollars per hectare per year.',
+        'All values are in 2025 International dollars per hectare per year.',
         body,
     ))
     story.append(Spacer(1, 0.3 * cm))

@@ -80,7 +80,7 @@ def show_methodology_explanation():
         - Multi-ecosystem composition analysis
         
         **4. Quality Assurance**
-        - Values standardized to 2020 International dollars
+        - Values standardized to 2025 International dollars
         - Geographic adjustment factors applied
         - Confidence indicators provided
         
