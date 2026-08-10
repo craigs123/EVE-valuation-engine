@@ -128,8 +128,13 @@ if 'ecosystem_override' not in st.session_state:
 if 'analysis_detail' not in st.session_state:
     st.session_state.analysis_detail = "Summary Analysis"
     
+# 0.6 throughout — matches the fallback used at every other read site and the
+# PrecomputedESVDCoefficients default, so a session that never opens Settings
+# values the same as one that does. (This init said 0.25 until 2026-08-10,
+# which meant the app's real default disagreed with its own documentation and
+# with every other default in the codebase.)
 if 'income_elasticity' not in st.session_state:
-    st.session_state.income_elasticity = 0.25
+    st.session_state.income_elasticity = 0.6
 
 # Which ESVD statistic the coefficient tables are read from —
 # 'log_winsorised', 'median' or 'mean'. Read by resolve_esvd_statistic() in
@@ -1832,7 +1837,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.11.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.11.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2112,13 +2117,20 @@ def analysis_settings_dialog():
         st.divider()
 
         st.markdown("##### Regional Adjustments")
+        _cur_elast = st.session_state.get('income_elasticity', 0.6)
         _elast = st.slider(
             "Income elasticity factor", min_value=0.1, max_value=1.0,
-            value=st.session_state.get('income_elasticity', 0.6), step=0.1,
-            help="0.5–0.6 recommended. Scales regional GDP differences.",
+            value=_cur_elast, step=0.1,
+            help="0.5–0.7 is the usual range; 0.6 is the default. Scales regional GDP differences.",
             key="dlg_income_elasticity",
         )
+        # Elasticity feeds the regional factor, so displayed results go stale the
+        # moment it moves — same reasoning as the intactness sliders and the
+        # valuation-basis radio. Compared with a tolerance because the 0.1 step
+        # yields floats that will not compare exactly.
         st.session_state['income_elasticity'] = _elast
+        if abs(_elast - _cur_elast) > 1e-9:
+            reset_analysis_state()
         st.caption("Formula: 1 + (e × (GDP_regional/GDP_global − 1)), bounded 0.4×–2.5×")
 
         st.divider()
@@ -5444,9 +5456,10 @@ if False and st.session_state.get('analysis_results'):
                     category_sum = sum(category_totals.values())
                     
                     # The condition multiplier is applied PER SERVICE, not to the
-                    # total, and two exemptions mean it is not applied uniformly:
-                    # cultural services are always skipped, and exempt ecosystem
-                    # types (urban) skip it entirely. So the old approach here —
+                    # total, and it is not applied uniformly: exempt ecosystem
+                    # types (urban) skip it entirely, and any category listed in
+                    # CONDITION_EXEMPT_CATEGORIES would skip it too (that set is
+                    # empty since 2026-08-10). So the old approach here —
                     # recovering the pre-intactness total as
                     # `actual_total / factor` — no longer holds and could not be
                     # made to hold. Only the regional factor is genuinely uniform
@@ -5484,11 +5497,19 @@ if False and st.session_state.get('analysis_results'):
                     elif user_quality_factor == 1.0:
                         st.markdown(f"3. **Condition ({_source})**: no adjustment (100%)")
                     else:
+                        # CONDITION_EXEMPT_CATEGORIES is empty as of 2026-08-10,
+                        # so the multiplier reaches every category. The clause is
+                        # kept for the case where a category is exempted again —
+                        # with an empty set it must not print "excluding  services".
                         _exempt_names = ", ".join(sorted(CONDITION_EXEMPT_CATEGORIES))
-                        st.markdown(
-                            f"3. **Condition ({_source})**: ×{user_quality_factor:.2f} "
-                            f"applied per service, excluding {_exempt_names} services "
+                        _scope = (
+                            f"applied to every service, excluding {_exempt_names} "
                             f"(demand-driven, so not reduced by ecological condition)"
+                            if _exempt_names else
+                            "applied to every service, cultural included"
+                        )
+                        st.markdown(
+                            f"3. **Condition ({_source})**: ×{user_quality_factor:.2f} {_scope}"
                         )
 
                     st.markdown(f"\n**Final Result**: **${actual_total:,.0f}/year**")

@@ -14,6 +14,40 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.11.1 beta",
+        "date": "2026-08-10",
+        "changes": [
+            "Ecosystem condition now affects cultural services too. The "
+            "intactness multiplier — whether taken from EEI or set by hand — is "
+            "applied to all four service groups, including recreation, "
+            "aesthetic value and spiritual value. Previously cultural services "
+            "were held at full value however degraded the habitat was. For a "
+            "wood, reef or wetland, much of the cultural value comes precisely "
+            "from the place being in good condition, so a damaged site should "
+            "not carry the recreation value of a healthy one. Valuations of "
+            "degraded natural areas will fall as a result.",
+            "Urban areas are unchanged: they remain exempt from the condition "
+            "multiplier entirely, so a city park still keeps its full "
+            "recreation and aesthetic value even where ecological condition "
+            "scores near zero. That was the situation the previous rule existed "
+            "to protect, and it is still protected.",
+            "The income elasticity factor now starts at 0.6, the recommended "
+            "value. It previously started at 0.25 unless you opened Analysis "
+            "Settings, where the slider showed 0.6 — so two people analysing "
+            "the same area could get noticeably different totals depending on "
+            "whether they had opened that panel. Everything now uses 0.6 "
+            "unless you change it. Results calculated before this update, on "
+            "the 0.25 starting value, applied a smaller adjustment for local "
+            "income levels than intended.",
+            "The guidance on that setting now reads 0.5 to 0.7 as the usual "
+            "range, with 0.6 as the default.",
+            "Changing the income elasticity now clears the results on screen, "
+            "so you are prompted to re-run rather than left looking at totals "
+            "calculated with the previous value. The intactness and valuation "
+            "basis settings already behaved this way.",
+        ],
+    },
+    {
         "version": "v3.11.0 beta",
         "date": "2026-08-10",
         "changes": [

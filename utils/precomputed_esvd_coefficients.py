@@ -426,27 +426,37 @@ def _is_european_atlantic_zone(lat: float, lon: float) -> bool:
 # TEEB service categories that a scalar ecosystem-condition multiplier (EEI, or
 # the manual intactness sliders) is NOT applied to.
 #
-# Condition does not govern every service equally. SEEA EA keeps the ecosystem
-# condition account and the ecosystem services account separate, linking them
-# service by service through biophysical models rather than through one index:
-#   https://seea.un.org/en/ecosystem-accounting/biophysical-modelling
+# EMPTY as of 2026-08-10: the multiplier now applies to ALL FOUR categories —
+# provisioning, regulating, supporting AND cultural — for every ecosystem type
+# except those in CONDITION_EXEMPT_ECOSYSTEMS.
 #
-# Cultural services are the clearest departure, because they are demand-driven.
-# SEEA EA derives them from the physical *setting* and the people with access to
-# it, so they persist — often at their highest per-hectare values — exactly where
-# ecological condition is lowest. The ONS UK urban natural capital accounts value
-# urban amenity at roughly £130bn via hedonic property premiums, and hold park
-# condition (Green Flag) as a separate indicator rather than multiplying service
-# value by it:
+# 'cultural' sat here from 2026-08-09 until 2026-08-10 on the reasoning that
+# cultural services are demand-driven: SEEA EA derives them from the physical
+# setting and the people with access to it, and the ONS UK urban natural capital
+# accounts hold park condition (Green Flag) as a separate indicator rather than
+# multiplying service value by it —
+#   https://seea.un.org/en/ecosystem-accounting/biophysical-modelling
 #   https://www.ons.gov.uk/economy/environmentalaccounts/bulletins/uknaturalcapital/urbanaccounts
 #
-# Applying condition uniformly meant a city-centre hectare — EEI 0.0 on the
-# Landler index — valued its recreation, aesthetic and spiritual services at
-# zero. An urban park is not worth nothing to the people using it.
+# The concrete problem that motivated it was a city-centre hectare scoring EEI
+# 0.0 and so valuing its recreation, aesthetic and spiritual services at zero.
+# That problem is now solved on the ecosystem axis instead: urban skips the
+# scalar multiplier entirely (CONDITION_EXEMPT_ECOSYSTEMS), so an urban park
+# keeps its full cultural value without needing a category-wide carve-out.
+#
+# Outside urban, the carve-out was doing something harder to defend. For a
+# natural ecosystem the cultural value IS tied to ecological condition in a way
+# it is not in a city: people visit a wood, a reef or a wetland substantially
+# *for* its intactness, so a degraded reef should not carry the aesthetic and
+# recreation value of a healthy one. Holding cultural constant while every other
+# category fell with condition overstated degraded natural sites.
+#
+# The constant is kept rather than deleted: it is the documented knob for this
+# policy, the service loop reads it, and it has been toggled once already.
 #
 # Applies to SCALAR mode only. An indicator set passing a per-sub-service dict
 # has measured those sub-services directly and its values stand as given.
-CONDITION_EXEMPT_CATEGORIES = frozenset({'cultural'})
+CONDITION_EXEMPT_CATEGORIES: frozenset[str] = frozenset()
 
 
 # Ecosystem types a scalar condition multiplier is not applied to AT ALL, across
@@ -1806,10 +1816,11 @@ class PrecomputedESVDCoefficients:
             urban_green_blue_multiplier: Multiplier for urban green/blue infrastructure (default 1.0)
             ecosystem_intactness_multiplier: Ecosystem-specific intactness/biodiversity multiplier.
                 Accepts either:
-                * a float (0.0–1.0) — applied to every sub-service EXCEPT those in
-                  the categories listed in CONDITION_EXEMPT_CATEGORIES (currently
-                  'cultural', which is demand-driven rather than condition-driven;
-                  see that constant for the accounting rationale), OR
+                * a float (0.0–1.0) — applied to every sub-service in all four
+                  categories, cultural included, unless the ecosystem type is in
+                  CONDITION_EXEMPT_ECOSYSTEMS (urban), which skips it wholesale.
+                  CONDITION_EXEMPT_CATEGORIES is empty as of 2026-08-10; see that
+                  constant for the history, OR
                 * a dict[str, float] — per-sub-service multipliers keyed by the
                   calc-keyspace service name (e.g. {'food': 0.85, 'climate': 0.62, ...}).
                   Missing keys default to 1.0. Use this mode when indicator-driven
@@ -1871,10 +1882,13 @@ class PrecomputedESVDCoefficients:
                 # Dict keys MUST match the inner ``esvd_service`` (calc-keyspace), e.g. 'pollution',
                 # 'climate', 'habitat' — NOT the outer TEEB-style category-key names.
                 #
-                # Scalar mode skips two independent exemptions — see each
-                # constant for why: CONDITION_EXEMPT_CATEGORIES (cultural
-                # services, demand-driven) and CONDITION_EXEMPT_ECOSYSTEMS
-                # (urban, whose ESVD coefficients already embed condition).
+                # Scalar mode honours two independent exemption axes — see each
+                # constant for why. CONDITION_EXEMPT_ECOSYSTEMS (urban, whose
+                # ESVD coefficients already embed condition) is the live one.
+                # CONDITION_EXEMPT_CATEGORIES is empty as of 2026-08-10: the
+                # multiplier now applies to all four categories, cultural
+                # included, for every non-exempt ecosystem. The check is kept
+                # because that constant is the documented knob for the policy.
                 # Dict mode is deliberately NOT exempted by either: an indicator
                 # set states a per-sub-service multiplier explicitly, and that
                 # stated value is the measurement. Silently overriding it would
