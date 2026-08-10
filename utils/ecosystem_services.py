@@ -277,7 +277,7 @@ class EcosystemServicesCalculator:
                 'data_source': 'ESVD (Ecosystem Services Valuation Database)',
                 'esvd_metadata': esvd_metadata,
                 'regional_adjustment': esvd_metadata.get('regional_adjustment', 1.0),
-                'database_version': esvd_metadata.get('database_version', 'ESVD APR2024V1.1')
+                'database_version': esvd_metadata.get('database_version', 'ESVD SEP2025V1.0')
             }
             
         except Exception as e:

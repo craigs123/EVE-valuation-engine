@@ -1,3 +1,32 @@
+======================================================================
+*** SUPERSEDED IN FULL — 2026-08-10 ***
+======================================================================
+
+Every coefficient in the engine was replaced on 2026-08-10 from ESVD
+SEP2025V1.0, consolidated in
+"ESVD data - Aug 2026/ESVD_Consolidated_All_Biomes.xlsx". The study-ID
+mappings in this document relate to the RETIRED table and are kept for
+history only — none of the coefficients quoted below are live.
+
+The replacement moved from ANY-TAG to SINGLE-TEEB-TAG-ONLY matching, which
+is what makes summing the 22 services into a per-hectare total safe; it also
+excludes automatically the two studies (Pechanec 2015, Horlings 2019) that
+previously needed manual exclusion. Values are Int$2025 (published Int$2020
+x 1.2), and THREE tables are now held — log-winsorised mean, median and mean —
+with the user choosing between them in Analysis Settings -> Valuation Basis.
+The log-winsorised mean is the default; it compresses outliers in the log
+domain rather than discarding them, but only where a cell has enough records
+for the cap to bind (36 of 184 populated cells), so it sits much closer to the
+mean than to the median.
+
+Record-level traceability now lives in the workbook's per-biome
+"[Biome] Records" tabs rather than in this file.
+
+Full rationale, caveats and the complete live value table:
+  detailed_esvd_study_value_mappings.txt
+
+======================================================================
+
 ESVD COEFFICIENT STUDY ID MAPPINGS
 ======================================================================
 
@@ -1316,9 +1345,14 @@ URBAN ECOSYSTEM
 
 *** SUPERSEDED 2026-08-09 — coefficients below no longer match the engine ***
 The urban block in utils/precomputed_esvd_coefficients.py was replaced
-wholesale with revised medians from the latest ESVD release. See the URBAN
-ECOSYSTEM section of detailed_esvd_study_value_mappings.txt for the live
-values and the reason. Retained here for history only.
+wholesale with ESVD.net summary statistics for biome "15. Urban green and blue
+infrastructure" — median $2020/ha/yr from 237 valuations, restated to $2025
+with a x1.2 multiplier.
+Those are values per hectare OF GREEN/BLUE INFRASTRUCTURE, which the engine's
+18% Green/Blue Coverage setting scales an urban hectare down to. See the URBAN
+ECOSYSTEM section of detailed_esvd_study_value_mappings.txt for the live values,
+the dollar-year caveat, and the reason for the replacement. Retained here for
+history only.
 
 Food Services
 ----------------------------------------

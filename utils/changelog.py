@@ -14,6 +14,44 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.11.0 beta",
+        "date": "2026-08-10",
+        "changes": [
+            "All ecosystem values have been replaced with a new set from the "
+            "Ecosystem Services Valuation Database (September 2025 release), "
+            "covering all 13 habitat types and all 22 ecosystem services. "
+            "Values are in 2025 International dollars per hectare per year. "
+            "Analyses saved before today are not directly comparable with new "
+            "ones.",
+            "The most important change is in how studies are counted. Some "
+            "studies report a single combined figure covering several services "
+            "at once. Previously such a study was counted in full under every "
+            "service it mentioned, so when EVE added the 22 services together "
+            "to reach a total, that one study could be counted many times over. "
+            "Only studies reporting a value for a single service are now "
+            "included, so the services can be added up safely.",
+            "You can now choose how ecosystem values are calculated, under "
+            "Analysis Settings, Valuation Basis. The new default is the "
+            "log-winsorised mean, which counts every study but stops a few "
+            "unusually high valuations from dominating. The median (the typical "
+            "value for a service, and the most cautious choice) and the plain "
+            "mean (which includes high valuations at full weight) are both "
+            "still available.",
+            "These three can differ enormously — for rivers and lakes the "
+            "totals range from about 17,000 to 1.9 million dollars per hectare "
+            "per year — so every result now states which basis produced it. "
+            "You will see it in a banner above your totals, and as a Valuation "
+            "Basis line in the PDF report. Reports produced on mean values "
+            "carry an extra note that the totals are an upper bound.",
+            "A caution on the new default: it holds down unusually high "
+            "valuations only where a service has enough studies behind it. "
+            "Where the evidence is thin it gives the same answer as the plain "
+            "mean. Each value's study count is recorded in the accompanying "
+            "documentation, and anything based on fewer than 15 studies should "
+            "be treated as indicative.",
+        ],
+    },
+    {
         "version": "v3.10.10 beta",
         "date": "2026-08-09",
         "changes": [
@@ -22,8 +60,14 @@ CHANGELOG: List[Dict] = [
             "figure for urban land was around 2.16 million International dollars "
             "per hectare per year — about 8,800 times the value its own source "
             "documentation recorded, and roughly 99% of every urban valuation EVE "
-            "produced. All 22 urban service values have been replaced with revised "
-            "medians from the latest ESVD release.",
+            "produced. All 22 urban service values have been replaced with medians "
+            "from ESVD.net for '15. Urban green and blue infrastructure', drawn "
+            "from 237 valuations, taken in 2020 dollars and restated to 2025 "
+            "dollars.",
+            "Those figures are per hectare of green and blue space, not per hectare "
+            "of city. The Urban Green/Blue Infrastructure setting (18% by default) "
+            "is what converts an urban hectare into the green and blue area they "
+            "apply to.",
             "Any urban analysis you saved before today is not comparable with one "
             "run now. Non-urban ecosystems are completely unaffected — forest, "
             "grassland, wetland, marine and the rest are unchanged.",
