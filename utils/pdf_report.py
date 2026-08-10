@@ -500,6 +500,24 @@ def generate_pdf_report(
         or (results.get('metadata') or {}).get('coefficient_statistic')
     )
 
+    # Green/blue extent assumption, reported only when urban land was valued.
+    # Mirrors display_urban_greenblue_note() in app.py — the urban coefficients
+    # are per hectare OF green/blue infrastructure, so this share is a
+    # load-bearing assumption behind any urban figure in the report.
+    _urban_share = None
+    _urban_present = str(results.get('ecosystem_type', '')).strip().lower() == 'urban'
+    for _name, _share in ((results.get('metadata') or {}).get('ecosystem_composition') or {}).items():
+        if str(_name).strip().lower() == 'urban':
+            _urban_present = True
+            try:
+                _urban_share = float(_share)
+            except (TypeError, ValueError):
+                _urban_share = None
+    try:
+        _urban_pct = float(results.get('urban_green_blue_pct'))
+    except (TypeError, ValueError):
+        _urban_pct = None
+
     meta_rows = [
         ['Analysis Date', analysis_date, 'Country / Region', country or '—'],
         ['Water excluded', f'{water_ha:,.1f} ha' if water_ha else '—',
@@ -513,6 +531,15 @@ def generate_pdf_report(
         }[_stat],
          'Price Level', 'Int$2025/ha/yr'],
     ]
+    if _urban_present:
+        meta_rows.append([
+            'Urban Green/Blue',
+            (f'{_urban_pct:.0f}% of urban area assumed'
+             if _urban_pct is not None else 'not recorded for this analysis'),
+            'Urban Share of Site',
+            (f'{_urban_share * 100:.0f}%'
+             if _urban_share is not None and 0 < _urban_share < 1 else '100%'),
+        ])
     meta_table = Table(meta_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
     meta_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
@@ -555,6 +582,43 @@ def generate_pdf_report(
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
         story.append(_basis_box)
+        story.append(Spacer(1, 0.2 * cm))
+
+    # Informational rather than cautionary, so green rather than amber — but it
+    # sits beside the headline for the same reason the basis does: the number
+    # alone does not reveal it.
+    if _urban_present:
+        _urban_where = 'the urban area'
+        if _urban_share is not None and 0 < _urban_share < 1:
+            _urban_where = f'the urban area ({_urban_share * 100:.0f}% of this site)'
+        if _urban_pct is not None:
+            _urban_lead = (f'this valuation assumes <b>{_urban_pct:.0f}%</b> of '
+                           f'{_urban_where} is green/blue infrastructure')
+        else:
+            # Analyses saved before the figure was recorded (pre-v3.11.1). The
+            # current setting is not necessarily the one this run used, and a
+            # report that gets shared must not assert a number it cannot stand
+            # behind — so name the assumption without putting a value on it.
+            _urban_lead = (f'a green/blue infrastructure share of {_urban_where} was '
+                           f'applied, but the percentage used was not recorded for this '
+                           f'analysis. Re-run it to capture the figure')
+        _urban_note = Paragraph(
+            f'<b>Urban green/blue infrastructure:</b> {_urban_lead} — '
+            f'parks, street trees, verges, ponds and canals. Urban ecosystem values are '
+            f'stated per hectare of that green/blue space rather than per hectare of urban '
+            f'land, so this share is what converts them to the area measured here, and the '
+            f'urban contribution to the totals scales directly with it.',
+            caption)
+        _urban_box = Table([[_urban_note]], colWidths=[17 * cm])
+        _urban_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EVE_GREEN_LIGHT),
+            ('BOX', (0, 0), (-1, -1), 0.8, EVE_GREEN),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(_urban_box)
 
     story.append(Spacer(1, 0.4 * cm))
 

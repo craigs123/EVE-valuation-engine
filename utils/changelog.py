@@ -13,6 +13,24 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
+    # ACCUMULATING — not yet deployed. Add further v3.11.2 changes to this
+    # entry as they land, rather than opening a new version for each one.
+    {
+        "version": "v3.11.2 beta",
+        "date": "2026-08-10",
+        "changes": [
+            "PDF reports now carry the urban green and blue infrastructure "
+            "assumption, matching what the dashboard shows. Reports for areas "
+            "containing urban land gain an Urban Green/Blue line in the "
+            "summary table, showing the percentage assumed and how much of the "
+            "site is urban, together with a short note explaining that urban "
+            "values are quoted per hectare of green and blue space. Reports "
+            "for areas with no urban land are unchanged.",
+            "Analyses saved before the percentage began being recorded will "
+            "say so plainly rather than showing a figure that may not be the "
+            "one they were calculated with. Re-run the analysis to capture it.",
+        ],
+    },
     {
         "version": "v3.11.1 beta",
         "date": "2026-08-10",
