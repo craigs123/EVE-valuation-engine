@@ -26,6 +26,14 @@ CHANGELOG: List[Dict] = [
             "from the place being in good condition, so a damaged site should "
             "not carry the recreation value of a healthy one. Valuations of "
             "degraded natural areas will fall as a result.",
+            "When your analysis includes urban land, the results now state the "
+            "green and blue infrastructure assumption directly: \"This "
+            "valuation assumes 18% of the urban area is green/blue "
+            "infrastructure\", using whichever percentage the analysis was run "
+            "with. Urban values are quoted per hectare of green and blue "
+            "space rather than per hectare of city, so this figure has a large "
+            "effect on urban totals and is worth seeing alongside them. Areas "
+            "with no urban land are unaffected.",
             "Urban areas are unchanged: they remain exempt from the condition "
             "multiplier entirely, so a city park still keeps its full "
             "recreation and aesthetic value even where ecological condition "

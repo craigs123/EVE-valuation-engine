@@ -1066,6 +1066,51 @@ def display_valuation_basis_banner(results: Dict = None):
         )
 
 
+def display_urban_greenblue_note(results: Dict = None):
+    """State the green/blue extent assumption whenever urban land is valued.
+
+    The urban ESVD coefficients are per hectare OF green/blue infrastructure,
+    not per hectare of urban land, so this percentage is a load-bearing
+    assumption rather than a refinement — at the 18% default it scales urban
+    value to roughly a fifth of what the raw coefficients would give. A reader
+    seeing an urban total has no way to know that from the number alone.
+
+    Silent for analyses with no urban land, so it never becomes wallpaper.
+    """
+    if not results:
+        return
+
+    urban_share = None
+    urban_present = str(results.get('ecosystem_type', '')).strip().lower() == 'urban'
+    composition = (results.get('metadata') or {}).get('ecosystem_composition') or {}
+    for name, share in composition.items():
+        if str(name).strip().lower() == 'urban':
+            urban_present = True
+            try:
+                urban_share = float(share)
+            except (TypeError, ValueError):
+                urban_share = None
+
+    if not urban_present:
+        return
+
+    pct = results.get('urban_green_blue_pct')
+    if pct is None:
+        pct = st.session_state.get('urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT)
+
+    where = "the urban area"
+    if urban_share is not None and 0 < urban_share < 1:
+        where = f"the urban area ({urban_share * 100:.0f}% of this site)"
+
+    st.info(
+        f"🏙️ This valuation assumes **{float(pct):.0f}%** of {where} is "
+        f"green/blue infrastructure — parks, street trees, verges, ponds and "
+        f"canals. Urban ecosystem values are stated per hectare of that "
+        f"green/blue space, so this share converts them to the urban land "
+        f"measured here. Change it in Analysis Settings → Green/Blue Coverage."
+    )
+
+
 def display_data_source_status(analysis_results: Dict = None):
     """Display clear indicators of which data source is being used"""
     openlandmap_status = preload_openlandmap_status()
@@ -6502,6 +6547,13 @@ if analyze_button and st.session_state.selected_area:
                     'coefficient_statistic',
                     esvd_results.get('metadata', {}).get('coefficient_statistic'),
                 ),
+                # Green/blue extent assumed for any urban land in this run.
+                # Stamped for the same reason as coefficient_statistic: the
+                # setting is changeable, so a saved analysis must record the
+                # value it was actually costed on rather than whatever the
+                # slider happens to say when it is reopened.
+                'urban_green_blue_pct': st.session_state.get(
+                    'urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT),
             }
             # Indicator-driven target valuation, if all committed indicators
             # have a target_score. Display code below reads these keys and
@@ -6605,6 +6657,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         st.toast("Loading valuation results...", icon="⏳")
         
         display_valuation_basis_banner(results)
+        display_urban_greenblue_note(results)
 
         # Summary totals — one unified panel, no per-metric card chrome
         with st.container(border=True, key="results_totals_panel"):
@@ -6724,6 +6777,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         st.toast("Loading detailed valuation results...", icon="⏳")
         
         display_valuation_basis_banner(results)
+        display_urban_greenblue_note(results)
 
         col_metrics = st.columns(3)
         _total_target_d = results.get('total_value_target')
