@@ -13,12 +13,22 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed. Add further v3.11.2 changes to this
-    # entry as they land, rather than opening a new version for each one.
     {
         "version": "v3.11.2 beta",
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "changes": [
+            "The size of your selected area is now shown next to the map, in "
+            "hectares and square kilometres, right beneath its coordinates. It "
+            "appears as soon as you draw an area, load a saved one or enter "
+            "corner points, so you no longer have to run an analysis to find "
+            "out how large your selection is.",
+            "Summary Statistics now states the total area analysed, above the "
+            "breakdown by ecosystem type. Previously only the area of each "
+            "individual ecosystem was listed, with no total to check them "
+            "against. The total is shown whether or not you have overridden "
+            "the ecosystem type. Note that ecosystem types making up less than "
+            "1% of your area are not listed, so the individual figures may not "
+            "add up to the total.",
             "PDF reports now carry the urban green and blue infrastructure "
             "assumption, matching what the dashboard shows. Reports for areas "
             "containing urban land gain an Urban Green/Blue line in the "

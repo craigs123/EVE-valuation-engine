@@ -1584,9 +1584,20 @@ def display_data_source_status(analysis_results: Dict = None):
                 # detection, so hide it when the ecosystem has been overridden
                 # (it may list types the user has overridden). Geographic
                 # distribution below is unaffected and still shows.
+                # Total area of the selection, stated before the per-ecosystem
+                # split — those are shares of this figure, and types under 1%
+                # are hidden below, so without it the listed hectares don't
+                # visibly add up to anything. Shown whether or not the
+                # ecosystem type was overridden.
+                total_area = results.get('area_ha', results.get('area_hectares', 0))
+                if total_area:
+                    st.markdown(
+                        f"**Total Area Analysed:** {total_area:,.1f} hectares "
+                        f"({total_area / 100:,.2f} km²)"
+                    )
+
                 if st.session_state.get('ecosystem_override', 'Auto-detect') == 'Auto-detect':
                     st.markdown("**Ecosystem Composition (from Sample Points):**")
-                    total_area = results.get('area_ha', results.get('area_hectares', 0))
                     for ecosystem_type, count in sorted(ecosystem_counts.items()):
                         percentage = (count / len(sampling_point_data)) * 100
                         area_ha = total_area * (percentage / 100)
@@ -5171,11 +5182,26 @@ with col3_map:
                     st.session_state.cached_bbox = bbox
                 except Exception:
                     bbox = None
+            # Size of the selection, alongside its coordinates. Uses the cached
+            # value where one exists so this doesn't re-run the area maths on
+            # every rerun; falls back to computing (and caching) it for areas
+            # restored without a cached figure.
+            area_ha = st.session_state.get('cached_area_ha')
+            if not area_ha and len(coords) > 2:
+                try:
+                    area_ha = calculate_area_optimized(coords)
+                    st.session_state.cached_area_ha = area_ha
+                except Exception:
+                    area_ha = None
             if bbox:
+                area_line = (
+                    f"Area: {area_ha:,.1f} ha ({area_ha / 100:,.2f} km²)<br>"
+                    if area_ha else ""
+                )
                 st.markdown(f"""
                 <div style='font-size:0.78rem; color:#2E7D32; line-height:1.8; padding:0.3rem 0 0.6rem 0;'>
                     <strong>📍 Selected area</strong><br>
-                    Lat: {bbox['min_lat']:.4f} – {bbox['max_lat']:.4f}<br>
+                    {area_line}Lat: {bbox['min_lat']:.4f} – {bbox['max_lat']:.4f}<br>
                     Lon: {bbox['min_lon']:.4f} – {bbox['max_lon']:.4f}
                 </div>
                 """, unsafe_allow_html=True)
