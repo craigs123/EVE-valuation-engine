@@ -653,9 +653,34 @@ def build_corner_preview_layer(points):
     return fg
 
 
+# Smallest area EVE will accept as a selection. Areas below this are refused at
+# the point of drawing (see the map-draw and "Use this area" handlers) rather
+# than clamped, so no sub-hectare area ever reaches the valuation: the ESVD
+# coefficients are per hectare, and a silently rounded-up area would overstate
+# the value of a small site in proportion to how far below 1 ha it fell.
+MIN_AREA_HA = 1.0
+
+
+def format_area(area_ha):
+    """Render an area the way the drawing cursor does, so the two agree.
+
+    Leaflet.draw's readout shows hectares to 2 dp; km² is only worth showing
+    once an area is large enough for the hectare figure to get unwieldy.
+    """
+    if area_ha >= 10000:
+        return f"{area_ha:,.0f} ha ({area_ha / 100:,.1f} km²)"
+    if area_ha >= 100:
+        return f"{area_ha:,.1f} ha ({area_ha / 100:,.2f} km²)"
+    return f"{area_ha:,.2f} ha"
+
+
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
-    """Ultra-optimized area calculation with latitude correction and error handling"""
+    """Ultra-optimized area calculation with latitude correction and error handling.
+
+    Returns the true area in hectares; callers that accept a user selection are
+    responsible for rejecting anything below MIN_AREA_HA.
+    """
 
     try:
         if not coordinates or len(coordinates) < 3:
@@ -701,10 +726,10 @@ def calculate_area_optimized(coordinates):
         area_ha = area_km2 * 100
         
         # Round to 2 decimal places to avoid floating-point precision issues
-        area_ha = round(area_ha, 2)
-        
-        return max(1.0, area_ha)  # Minimum 1 hectare
-        
+        # (2 dp also matches the precision of the live readout on the drawing
+        # cursor, so the two figures agree digit for digit).
+        return round(area_ha, 2)
+
     except Exception as e:
         st.error(f"Error in area calculation: {e}")
         return 0.0
@@ -1591,10 +1616,7 @@ def display_data_source_status(analysis_results: Dict = None):
                 # ecosystem type was overridden.
                 total_area = results.get('area_ha', results.get('area_hectares', 0))
                 if total_area:
-                    st.markdown(
-                        f"**Total Area Analysed:** {total_area:,.1f} hectares "
-                        f"({total_area / 100:,.2f} km²)"
-                    )
+                    st.markdown(f"**Total Area Analysed:** {format_area(total_area)}")
 
                 if st.session_state.get('ecosystem_override', 'Auto-detect') == 'Auto-detect':
                     st.markdown("**Ecosystem Composition (from Sample Points):**")
@@ -1893,7 +1915,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.11.2 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.11.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2122,7 +2144,7 @@ def analysis_settings_dialog():
                 break
         if st.session_state.get('cached_area_ha'):
             _gs = int(np.sqrt(_samp))
-            st.caption(f"~{st.session_state.cached_area_ha:.0f} ha → {_gs**2} points")
+            st.caption(f"~{format_area(st.session_state.cached_area_ha)} → {_gs**2} points")
 
         st.divider()
 
@@ -5022,62 +5044,84 @@ if map_data['all_drawings'] and len(map_data['all_drawings']) > 0:
         # analysis (bouncing the user back to the pre-Analyze panel).
         
         if coordinates != current_coords:
-            # List the vertices of a free-form polygon so they can be read off
-            # and fine-tuned numerically. Rectangles are left alone — the square
-            # tool keeps its original behaviour, with no corner list.
-            if is_axis_aligned_rectangle(coordinates):
-                # The square tool closes corner mode, per its original behaviour.
-                st.session_state.coord_entry_points = []
-                st.session_state['corner_mode'] = False
-            else:
-                ring = coordinates[:-1] if coordinates[0] == coordinates[-1] else coordinates
-                st.session_state.coord_entry_points = [
-                    (round_coord(lat), round_coord(lon)) for lon, lat in ring
-                ]
-                st.session_state['corner_mode'] = True
-            st.session_state['_corner_text_dirty'] = True
+            # Size check first, before any session state is touched. A rejected
+            # draw must leave the previous selection (and any completed
+            # analysis) exactly as it was — the user has drawn something
+            # unusable, not asked to throw away what they already had.
+            try:
+                _drawn_area_ha = calculate_area_optimized(coordinates)
+            except Exception as _area_err:
+                st.error(f"Error calculating area: {_area_err}")
+                _drawn_area_ha = 0.0
 
-            # Save the new selection with batch state updates
-            st.session_state.update({
-                'selected_area': {
-                    'type': latest_drawing['geometry']['type'],
-                    'coordinates': coordinates
-                },
-                'area_coordinates': coordinates,
-                'analysis_results': None,
-                'calculation_ready': False,  # Hide results until recalculated
-                # Clear caches to force recalculation
-                'cached_bbox': None,
-                'cached_area_ha': None,
-                'cached_ecosystem_results': None,
-                # Flag the next render to clear the search box (we can't
-                # modify the widget's session_state key inline here because
-                # the widget already rendered earlier in this run).
-                '_clear_location_search': True,
-            })
-            # Clear scenario state for new area
-            for key in ['scenario_results', 'scenario_distribution', 'scenario_eco_intactness', 
-                        'scenario_builder_expanded', 'detected_ecosystem']:
-                if key in st.session_state:
-                    del st.session_state[key]
-            
-            # Reset default area name for new area selection
-            if 'default_area_name' in st.session_state:
-                del st.session_state['default_area_name']
-            
-            # Quick area display using optimized calculation (cached)
-            if len(coordinates) > 2:
+            if _drawn_area_ha < MIN_AREA_HA:
+                # Nothing is stored, so this warning re-shows on every rerun
+                # for as long as the undersized shape is on the map — which is
+                # what we want, since the shape is still there to be fixed.
+                st.warning(
+                    f"⚠️ **That area is too small to analyse** — "
+                    f"{format_area(_drawn_area_ha)}, against a minimum of "
+                    f"{MIN_AREA_HA:,.0f} ha. Please draw a larger area (use the "
+                    f"bin icon on the map to remove this one). Ecosystem values "
+                    f"are measured per hectare, so areas below a hectare cannot "
+                    f"be valued reliably."
+                )
+            else:
+                # List the vertices of a free-form polygon so they can be read off
+                # and fine-tuned numerically. Rectangles are left alone — the square
+                # tool keeps its original behaviour, with no corner list.
+                if is_axis_aligned_rectangle(coordinates):
+                    # The square tool closes corner mode, per its original behaviour.
+                    st.session_state.coord_entry_points = []
+                    st.session_state['corner_mode'] = False
+                else:
+                    ring = coordinates[:-1] if coordinates[0] == coordinates[-1] else coordinates
+                    st.session_state.coord_entry_points = [
+                        (round_coord(lat), round_coord(lon)) for lon, lat in ring
+                    ]
+                    st.session_state['corner_mode'] = True
+                st.session_state['_corner_text_dirty'] = True
+
+                # Save the new selection with batch state updates
+                st.session_state.update({
+                    'selected_area': {
+                        'type': latest_drawing['geometry']['type'],
+                        'coordinates': coordinates
+                    },
+                    'area_coordinates': coordinates,
+                    'analysis_results': None,
+                    'calculation_ready': False,  # Hide results until recalculated
+                    # Clear caches to force recalculation
+                    'cached_bbox': None,
+                    'cached_ecosystem_results': None,
+                    # Area is known and validated already — cache it here rather
+                    # than clearing it, so the panel beside the map has a figure
+                    # to show on the rerun below.
+                    'cached_area_ha': _drawn_area_ha,
+                    # Flag the next render to clear the search box (we can't
+                    # modify the widget's session_state key inline here because
+                    # the widget already rendered earlier in this run).
+                    '_clear_location_search': True,
+                })
+                # Clear scenario state for new area
+                for key in ['scenario_results', 'scenario_distribution', 'scenario_eco_intactness',
+                            'scenario_builder_expanded', 'detected_ecosystem']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+
+                # Reset default area name for new area selection
+                if 'default_area_name' in st.session_state:
+                    del st.session_state['default_area_name']
+
                 try:
-                    area_ha = calculate_area_optimized(coordinates)
-                    st.success(f"Area selected: {area_ha:.2f} hectares")
-                    
+                    st.success(f"Area selected: {format_area(_drawn_area_ha)}")
+
                     # Pre-cache all calculations to speed up future operations
-                    st.session_state.cached_area_ha = area_ha
                     st.session_state.cached_bbox = calculate_bbox_optimized(coordinates)
-                    
+
                     # Enable map zoom to user-drawn area
                     st.session_state.use_test_area_zoom = True
-                    
+
                     # Trigger map zoom to selected area
                     st.rerun()
                 except Exception as e:
@@ -5120,7 +5164,18 @@ with col3_map:
             _ring = [[lon, lat] for lat, lon in _preview_pts]
             _ring.append(_ring[0])
             try:
-                st.caption(f"{len(_preview_pts)} corners · {calculate_area_optimized(_ring):,.1f} ha")
+                _preview_ha = calculate_area_optimized(_ring)
+                # Flag an undersized polygon here, before the user commits it,
+                # rather than only rejecting it on 'Use this area'.
+                _preview_flag = "⚠️ " if _preview_ha < MIN_AREA_HA else ""
+                _preview_note = (
+                    f" · below the {MIN_AREA_HA:,.0f} ha minimum"
+                    if _preview_ha < MIN_AREA_HA else ""
+                )
+                st.caption(
+                    f"{_preview_flag}{len(_preview_pts)} corners · "
+                    f"{format_area(_preview_ha)}{_preview_note}"
+                )
             except Exception:
                 st.caption(f"{len(_preview_pts)} corners")
         elif _preview_pts:
@@ -5155,18 +5210,29 @@ with col3_map:
                 except Exception as _calc_err:
                     st.error(f"Error calculating area: {_calc_err}")
                 else:
-                    clear_analysis_cache()
-                    st.session_state.area_coordinates = _coords
-                    st.session_state.selected_area = True
-                    st.session_state.use_test_area_zoom = True  # Drives zoom-to-fit
-                    st.session_state.default_area_name = "Custom coordinates"
-                    st.session_state.cached_area_ha = _area_ha
-                    st.session_state.cached_bbox = _bbox
-                    st.session_state.area_coords_cache = _coords
-                    # Committing ends corner mode: the polygon replaces the
-                    # pending markers and clicks stop adding corners.
-                    reset_corner_points(close_mode=True)
-                    st.rerun()
+                    if _area_ha < MIN_AREA_HA:
+                        # Same minimum as the drawing tools. The corner list is
+                        # left intact so the user can nudge a corner outwards
+                        # rather than start again.
+                        st.error(
+                            f"That area is too small to analyse — "
+                            f"{format_area(_area_ha)}, against a minimum of "
+                            f"{MIN_AREA_HA:,.0f} ha. Adjust the corner points "
+                            f"to cover a larger area."
+                        )
+                    else:
+                        clear_analysis_cache()
+                        st.session_state.area_coordinates = _coords
+                        st.session_state.selected_area = True
+                        st.session_state.use_test_area_zoom = True  # Drives zoom-to-fit
+                        st.session_state.default_area_name = "Custom coordinates"
+                        st.session_state.cached_area_ha = _area_ha
+                        st.session_state.cached_bbox = _bbox
+                        st.session_state.area_coords_cache = _coords
+                        # Committing ends corner mode: the polygon replaces the
+                        # pending markers and clicks stop adding corners.
+                        reset_corner_points(close_mode=True)
+                        st.rerun()
 
         st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
@@ -5194,10 +5260,7 @@ with col3_map:
                 except Exception:
                     area_ha = None
             if bbox:
-                area_line = (
-                    f"Area: {area_ha:,.1f} ha ({area_ha / 100:,.2f} km²)<br>"
-                    if area_ha else ""
-                )
+                area_line = f"Area: {format_area(area_ha)}<br>" if area_ha else ""
                 st.markdown(f"""
                 <div style='font-size:0.78rem; color:#2E7D32; line-height:1.8; padding:0.3rem 0 0.6rem 0;'>
                     <strong>📍 Selected area</strong><br>

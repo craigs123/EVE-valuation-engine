@@ -13,6 +13,29 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
+    # ACCUMULATING — not yet deployed. Add further v3.11.3 changes to this
+    # entry as they land, rather than opening a new version for each one.
+    {
+        "version": "v3.11.3 beta",
+        "date": "2026-08-11",
+        "changes": [
+            "Areas smaller than 1 hectare can no longer be selected. If you "
+            "draw one, EVE now says so and asks you to draw a larger area "
+            "instead of accepting it. Previously any selection below a hectare "
+            "was quietly treated as exactly 1 hectare, which overstated its "
+            "value — a quarter-hectare plot was valued as four times its real "
+            "size. Selections of 1 hectare and above are unaffected and are "
+            "valued at their exact size, so a 1.5 hectare site is valued as "
+            "1.5 hectares.",
+            "Area figures now match the readout shown on the drawing cursor "
+            "while you draw. Areas are given to two decimal places in hectares, "
+            "with square kilometres added only for larger sites where the "
+            "hectare figure becomes unwieldy. Previously the panel beside the "
+            "map rounded to one decimal place and always added a square "
+            "kilometre figure, which disagreed with the cursor and was too "
+            "coarse to be useful for small areas.",
+        ],
+    },
     {
         "version": "v3.11.2 beta",
         "date": "2026-08-11",
