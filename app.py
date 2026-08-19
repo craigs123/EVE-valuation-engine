@@ -2016,7 +2016,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.11.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -5484,6 +5484,16 @@ if st.session_state.get('selected_area'):
     if st.button(_calc_btn_label, type='primary', use_container_width=True,
                  key='calc_below_dropdown', help=_calc_btn_help):
         st.session_state.analysis_in_progress = True
+        # A prepared report belongs to the analysis it was built from, so
+        # retire it whenever a new analysis starts. Without this the download
+        # button outlived its results: switching on project-specific
+        # indicators and re-calculating left the previous STANDARD report on
+        # offer, and downloading it produced a report with none of the
+        # project detail — the EROI appraisal, the baseline/target comparison
+        # — that the new run exists to show. The report looked simply wrong
+        # rather than stale, because nothing said it was the old one.
+        st.session_state.pop('_pdf_bytes', None)
+        st.session_state.pop('_pdf_fname', None)
         if _indicators_on and _ready:
             # Indicator re-calc path — keep cached sampling data, regional
             # factor, country and ecosystem detection; setting
@@ -8147,7 +8157,22 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
         with _pdf_col2:
             _prepare_pdf = st.button("Prepare PDF Report", type="primary", use_container_width=True,
                                      key="prepare_pdf_btn")
+        # The download button lives in a slot reserved BEFORE the build runs.
+        # Streamlit keeps the previous frame on screen while the script
+        # re-runs, so a button rendered only after the build would leave the
+        # PREVIOUS report's button visible - and clickable - for the several
+        # seconds a build takes. Reserving the slot here means clicking
+        # Prepare clears that button immediately, and nothing is offered again
+        # until the new report actually exists.
+        _pdf_dl_slot = st.empty()
+
         if _prepare_pdf:
+            # Drop the previous report the moment a new one is asked for. It is
+            # about to be superseded, and handing someone a report that is not
+            # the one they just requested is worse than handing them none.
+            st.session_state.pop('_pdf_bytes', None)
+            st.session_state.pop('_pdf_fname', None)
+            _pdf_dl_slot.empty()
             with st.spinner("Building PDF report…"):
                 try:
                     from utils.pdf_report import generate_pdf_report as _gen_pdf_fn
@@ -8261,14 +8286,15 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 except Exception as _pdf_err:
                     st.error(f"PDF generation failed: {_pdf_err}")
         if st.session_state.get('_pdf_bytes'):
-            st.download_button(
-                label="⬇️ Download PDF Report",
-                data=st.session_state['_pdf_bytes'],
-                file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
-                mime="application/pdf",
-                use_container_width=True,
-                key="pdf_dl_btn",
-            )
+            with _pdf_dl_slot.container():
+                st.download_button(
+                    label="⬇️ Download PDF Report",
+                    data=st.session_state['_pdf_bytes'],
+                    file_name=st.session_state.get('_pdf_fname', 'EVE_report.pdf'),
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="pdf_dl_btn",
+                )
 
     render_pdf_download()
 
