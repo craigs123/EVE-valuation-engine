@@ -765,6 +765,24 @@ def generate_pdf_report(
             story.append(Paragraph(_note, caption))
             story.append(Spacer(1, 0.25 * cm))
 
+        # Measurement failures are not the same as fabricated data: the
+        # service reported that it could not answer. Say so, and say why, so a
+        # report never implies coverage it did not have.
+        if eei_enabled and eei_status.get('any_failed'):
+            _fail_note = (
+                f'Note: the EEI service could not measure '
+                f'{eei_status.get("failed", 0)} of {eei_status.get("total", 0)} '
+                f'sample points.'
+            )
+            if eei_status.get('error_detail'):
+                _fail_note += f' Reason given: {eei_status.get("error_detail")}'
+            _fail_note += (
+                ' Ecosystems left without any measurement use a conservative '
+                'intactness default rather than being assumed pristine.'
+            )
+            story.append(Paragraph(_fail_note, caption))
+            story.append(Spacer(1, 0.25 * cm))
+
         # Ecosystem composition from sample points — forced onto its own page
         # so the Ecosystem Type breakdown always starts fresh rather than
         # being split across a page boundary.

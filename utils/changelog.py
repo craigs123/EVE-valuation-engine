@@ -19,6 +19,15 @@ CHANGELOG: List[Dict] = [
         "version": "v3.11.5 beta",
         "date": "2026-08-19",
         "changes": [
+            "When the ecosystem condition service cannot measure a sample "
+            "point, EVE now says so and says why, and treats that ecosystem "
+            "cautiously rather than assuming it is in perfect condition. "
+            "Previously the service quietly substituted placeholder figures "
+            "for any point it could not measure, and those figures were far "
+            "higher than real ones. EVE already detected and discarded them, "
+            "but the underlying reason was never reported. The service has "
+            "been corrected to report a failure as a failure, and EVE now "
+            "shows the reason on the dashboard and in PDF reports.",
             "Sample points are now spread evenly across areas of any shape. "
             "On a rectangle they always were, but on a drawn polygon the "
             "points bunched up and left gaps \u2014 parts of the area could sit "

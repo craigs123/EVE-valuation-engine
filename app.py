@@ -1604,6 +1604,28 @@ def display_data_source_status(analysis_results: Dict = None):
                             )
                         st.warning(_msg)
 
+                    # Points the EEI service could not measure at all. Unlike a
+                    # demo response, nothing was fabricated — the service told us
+                    # the query failed, and told us why. Report the reason: the
+                    # usual cause is the Earth Engine daily compute quota, which
+                    # is a fixable configuration problem rather than a property
+                    # of the area being analysed.
+                    if eei_status.get('any_failed'):
+                        _fail_msg = (
+                            f"⚠️ The EEI service could not measure "
+                            f"{eei_status.get('failed', 0)} of "
+                            f"{eei_status.get('total', 0)} sample points."
+                        )
+                        _reason = eei_status.get('error_detail')
+                        if _reason:
+                            _fail_msg += f" Reason given: {_reason}"
+                        _fail_msg += (
+                            " Those points carry no measurement, so the ecosystems "
+                            "affected use a conservative intactness default rather "
+                            "than being assumed pristine."
+                        )
+                        st.warning(_fail_msg)
+
                     # Ecosystems the EEI dataset simply has no value for — open
                     # ocean and genuine data gaps, chiefly. Nothing was
                     # fabricated and nothing is wrong with the service; there is
@@ -6231,9 +6253,14 @@ if analyze_button and st.session_state.selected_area:
                                     # Ecosystems whose EEI came back entirely as demo
                                     # (fabricated) data get a conservative fallback
                                     # intactness instead of the optimistic 100% default.
+                                    # Points the service fabricated AND points it
+                                    # could not measure both mean "no trustworthy
+                                    # reading", so both take the conservative
+                                    # fallback rather than the optimistic default.
                                     _demo_ecos = get_demo_affected_ecosystems(
                                         sampling_point_data, point_eei_values,
-                                        eei_status.get('demo_point_ids', []))
+                                        eei_status.get('demo_point_ids', [])
+                                        + eei_status.get('failed_point_ids', []))
                                     st.session_state.ecosystem_eei_demo = {
                                         e: DEMO_FALLBACK_INTACTNESS_PCT for e in _demo_ecos
                                     }
@@ -6328,9 +6355,14 @@ if analyze_button and st.session_state.selected_area:
                                 # Ecosystems whose EEI came back entirely as demo
                                 # (fabricated) data get a conservative fallback
                                 # intactness instead of the optimistic 100% default.
+                                # Points the service fabricated AND points it could
+                                # not measure both mean "no trustworthy reading", so
+                                # both take the conservative fallback rather than the
+                                # optimistic default.
                                 _demo_ecos = get_demo_affected_ecosystems(
                                     sampling_point_data, point_eei_values,
-                                    eei_status.get('demo_point_ids', []))
+                                    eei_status.get('demo_point_ids', [])
+                                    + eei_status.get('failed_point_ids', []))
                                 st.session_state.ecosystem_eei_demo = {
                                     e: DEMO_FALLBACK_INTACTNESS_PCT for e in _demo_ecos
                                 }

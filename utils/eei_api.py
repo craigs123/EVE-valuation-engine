@@ -47,6 +47,17 @@ def _result_is_demo(result: Dict) -> bool:
     return result.get("demo_mode") is True
 
 
+def _result_failed(result: Dict) -> bool:
+    """True when the service could not measure this point at all.
+
+    Distinct from a demo result (fabricated numbers) and from a real result
+    with no pixel at that location (ocean, coverage gap). The EEI service
+    marks these with "measurement_failed" and an "error"; the error key alone
+    also covers a coordinate it rejected.
+    """
+    return result.get("measurement_failed") is True or bool(result.get("error"))
+
+
 def get_eei_batch(coordinates: List[Tuple[float, float]], timeout: int = 30) -> Dict:
     """
     Get EEI values for multiple coordinates (up to 100).
@@ -87,7 +98,20 @@ def get_eei_batch(coordinates: List[Tuple[float, float]], timeout: int = 30) -> 
             headers=_get_headers(),
             timeout=timeout,
         )
-        response.raise_for_status()
+        # A 4xx/5xx from the EEI service carries a JSON body explaining
+        # itself ("quota exceeded", and so on). raise_for_status() alone
+        # discards that in favour of a generic status-code message, which is
+        # how "your usage exceeded the custom quota" never reached anyone.
+        if response.status_code >= 400:
+            detail = None
+            try:
+                body = response.json()
+                detail = body.get("error") if isinstance(body, dict) else None
+            except Exception:
+                detail = None
+            message = detail or f"EEI service returned HTTP {response.status_code}"
+            logger.error(f"EEI API error: {message}")
+            return {"error": message, "results": [], "averages": None}
         data = response.json()
         # The API sets "truncated": true if it received >100 coordinates and
         # silently dropped the overflow. We pre-truncate above, so this should
@@ -175,9 +199,10 @@ def extract_eei_for_sample_points(
           'count_mismatch', 'error'
     """
     status = {
-        "total": 0, "real": 0, "demo": 0, "null": 0,
-        "any_demo": False, "count_mismatch": False, "error": None,
-        "demo_point_ids": [], "null_point_ids": [],
+        "total": 0, "real": 0, "demo": 0, "null": 0, "failed": 0,
+        "any_demo": False, "any_failed": False,
+        "count_mismatch": False, "error": None, "error_detail": None,
+        "demo_point_ids": [], "null_point_ids": [], "failed_point_ids": [],
     }
 
     valid_points = extract_coordinates(sampling_point_data)
@@ -190,9 +215,15 @@ def extract_eei_for_sample_points(
 
     eei_response = get_eei_batch(coordinates)
 
-    if eei_response.get("error"):
+    # An error with no results at all is a dead request - nothing to read.
+    # An error WITH results is a partial failure: the service answered for
+    # some points and reported why it could not answer for the rest, so keep
+    # going and classify them individually. Bailing out here would throw away
+    # every good point because some of them failed.
+    if eei_response.get("error") and not (eei_response.get("results") or []):
         logger.warning(f"EEI API returned error: {eei_response.get('error')}")
         status["error"] = eei_response.get("error")
+        status["error_detail"] = eei_response.get("error")
         return {}, None, status
 
     results = eei_response.get('results', []) or []
@@ -209,11 +240,22 @@ def extract_eei_for_sample_points(
     # result is also checked individually below.
     top_level_demo = eei_response.get("demo_mode") is True
 
+    # A per-point error the service reported. Counted separately because it
+    # must not fall through to the "real data, no pixel here" branch below,
+    # which leaves the ecosystem out of ecosystem_eei and therefore lands on
+    # the optimistic 100% intactness default. A point Earth Engine could not
+    # answer for is not evidence of a pristine ecosystem.
+    status["error_detail"] = eei_response.get("error")
+
     point_eei_values = {}
     for point_id, result in zip(point_ids, results):
         if top_level_demo or _result_is_demo(result):
             status["demo"] += 1
             status["demo_point_ids"].append(point_id)
+            continue
+        if _result_failed(result):
+            status["failed"] += 1
+            status["failed_point_ids"].append(point_id)
             continue
         status["real"] += 1
         values = result.get('values', {}) or {}
@@ -228,6 +270,7 @@ def extract_eei_for_sample_points(
         point_eei_values[point_id] = eii
 
     status["any_demo"] = status["demo"] > 0
+    status["any_failed"] = status["failed"] > 0
 
     # Average over REAL, non-null points only. The API's own top-level
     # "averages" block is deliberately NOT used: if any result was a demo
@@ -241,6 +284,11 @@ def extract_eei_for_sample_points(
         logger.warning(
             f"EEI returned demo (fabricated) data for {status['demo']} of "
             f"{status['total']} points; demo values were discarded"
+        )
+    if status["any_failed"]:
+        logger.warning(
+            f"EEI could not measure {status['failed']} of {status['total']} "
+            f"points: {status['error_detail'] or 'reason not reported'}"
         )
 
     return point_eei_values, average_eei, status
@@ -280,35 +328,44 @@ def get_eei_per_ecosystem(sampling_point_data: Dict, point_eei_values: Dict[str,
 
 
 # Conservative intactness (%) applied to an ecosystem whose EEI could not be
-# measured because the service returned demo (fabricated) data. Used instead
-# of the optimistic 100% default so demo coverage never inflates the valuation.
+# measured — either because the service returned demo (fabricated) data, or
+# because it reported that it could not measure the point at all. Used instead
+# of the optimistic 100% default so neither can inflate the valuation.
 DEMO_FALLBACK_INTACTNESS_PCT = 50.0
 
 
 def get_demo_affected_ecosystems(
     sampling_point_data: Dict,
     point_eei_values: Dict[str, float],
-    demo_point_ids: List[str],
+    unmeasurable_point_ids: List[str],
 ) -> List[str]:
     """
-    Return the ecosystem types whose EEI could not be measured because the
-    service returned demo (fabricated) data.
+    Return the ecosystem types whose EEI could not be established — because
+    the service returned demo (fabricated) data, or because it reported that
+    it could not measure the point at all (an Earth Engine failure such as an
+    exhausted compute quota).
 
-    An ecosystem qualifies only if it has at least one demo point AND no point
+    Both causes are handled the same way and for the same reason: there is no
+    trustworthy reading, so the conservative fallback is used rather than the
+    optimistic 100% default. They differ from a REAL response carrying no
+    value at that pixel — see get_unmeasured_ecosystems.
+
+    An ecosystem qualifies only if it has at least one such point AND no point
     with a real EEI value — i.e. there is no real EEI data to fall back on.
     Ecosystems that still have at least one real point keep their real
-    (demo-free) average and are not included here.
+    average and are not included here.
 
     Args:
         sampling_point_data: Dict of sample point data from EVE analysis
         point_eei_values: Dict mapping point_id to REAL EEI value
-        demo_point_ids: point_ids that returned demo data (eei_status)
+        unmeasurable_point_ids: point_ids that returned demo data or a
+            measurement failure (eei_status demo_point_ids + failed_point_ids)
 
     Returns:
         List of ecosystem_type names that should use the conservative
-        demo-fallback intactness instead of the 100% default.
+        fallback intactness instead of the 100% default.
     """
-    demo_set = set(demo_point_ids or [])
+    demo_set = set(unmeasurable_point_ids or [])
     eco_has_real = set()
     eco_has_demo = set()
 
