@@ -28,6 +28,8 @@ from utils.analysis_helpers import (
     parse_latlon_search,
     format_points_as_text,
     format_latlon,
+    format_area,
+    format_area_ha,
     round_coord,
     COORD_DP,
 )
@@ -661,19 +663,6 @@ def build_corner_preview_layer(points):
 MIN_AREA_HA = 1.0
 
 
-def format_area(area_ha):
-    """Render an area the way the drawing cursor does, so the two agree.
-
-    Leaflet.draw's readout shows hectares to 2 dp; km² is only worth showing
-    once an area is large enough for the hectare figure to get unwieldy.
-    """
-    if area_ha >= 10000:
-        return f"{area_ha:,.0f} ha ({area_ha / 100:,.1f} km²)"
-    if area_ha >= 100:
-        return f"{area_ha:,.1f} ha ({area_ha / 100:,.2f} km²)"
-    return f"{area_ha:,.2f} ha"
-
-
 @st.cache_data(ttl=3600, max_entries=500, show_spinner=False)  # Massive cache for instant calculations
 def calculate_area_optimized(coordinates):
     """Ultra-optimized area calculation with latitude correction and error handling.
@@ -873,6 +862,59 @@ def get_esvd_ecosystem_from_landcover_code(code: int, analysis_results: Dict = N
         return "Forest"  # Default if no specific forest type detected
     
     return base_ecosystem
+
+
+# Ecosystem-override display name -> the ecosystem name stamped onto every
+# sample point when that override is active. Nearly always the display name
+# itself; "Water (ocean)" is the one selector label that isn't an ESVD
+# ecosystem name, so it resolves to its ESVD counterpart.
+OVERRIDE_POINT_ECOSYSTEM_NAME = {
+    "Water (ocean)": "Marine",
+}
+
+
+def override_point_ecosystem_name(override: str) -> str:
+    """Per-point ecosystem name for a forced ecosystem override."""
+    return OVERRIDE_POINT_ECOSYSTEM_NAME.get(override, override)
+
+
+def apply_ecosystem_override_to_points(sampling_point_data: Dict,
+                                       ecosystem_info: Dict = None) -> str:
+    """Stamp a user-forced ecosystem override onto every sample point.
+
+    The main-page selector forces one ecosystem for the whole area, but the
+    sampling pipeline still records each point's *detected* type. Anything
+    that groups by per-point ecosystem — EEI averaging
+    (``get_eei_per_ecosystem``), the ecosystem composition lists, the PDF
+    breakdown, the saved per-point rows — would otherwise keep reporting the
+    detected types, and the EEI-derived intactness would be filed under a
+    name the valuation (which runs on the forced type) never looks up, so the
+    condition multiplier silently fell through to the 100% default.
+
+    Overwrites ``ecosystem_type`` on every point, keeping the satellite
+    classification under ``detected_ecosystem_type`` for provenance, and
+    collapses ``ecosystem_info`` onto the forced type. ``landcover_class`` is
+    left untouched — the raw ESA codes stay honest.
+
+    Returns the stamped ecosystem name, or None when no override is active.
+    """
+    override = st.session_state.get('ecosystem_override', 'Auto-detect')
+    if not override or override == 'Auto-detect':
+        return None
+
+    forced_name = override_point_ecosystem_name(override)
+    for point_data in (sampling_point_data or {}).values():
+        if 'detected_ecosystem_type' not in point_data:
+            point_data['detected_ecosystem_type'] = point_data.get('ecosystem_type')
+        point_data['ecosystem_type'] = forced_name
+
+    if ecosystem_info is not None and sampling_point_data:
+        ecosystem_info['primary_ecosystem'] = forced_name
+        ecosystem_info['ecosystem_distribution'] = {
+            forced_name: {'count': len(sampling_point_data)}
+        }
+
+    return forced_name
 
 @st.cache_data(ttl=1800, show_spinner=False) 
 def preload_openlandmap_status():
@@ -1551,15 +1593,10 @@ def display_data_source_status(analysis_results: Dict = None):
                             "real-world urban green and blue space."
                         )
 
-                        # The per-ecosystem EEI breakdown is meaningful only under
-                        # auto-detect. When the user has overridden the ecosystem
-                        # type it would list the satellite-detected types that have
-                        # just been overridden — misleading — so hide it. The
-                        # average EEI above still shows.
-                        _autodetect = (
-                            st.session_state.get('ecosystem_override', 'Auto-detect')
-                            == 'Auto-detect'
-                        )
+                        # The breakdown is keyed by each point's ecosystem, and a
+                        # forced override is stamped onto every point, so under an
+                        # override this collapses to a single row naming the forced
+                        # type — which is exactly the row the valuation uses.
                         # Exempt ecosystems are still measured and still shown —
                         # the reading is real and worth seeing — but flagged so the
                         # heading's "used for intactness" is not read as covering
@@ -1573,12 +1610,12 @@ def display_data_source_status(analysis_results: Dict = None):
                                         f"— measured, but not applied to this ecosystem type")
                             return f"• **{eco_type}**: {eei_value:.3f} ({_pct:.3f}%)"
 
-                        if _autodetect and ecosystem_eei and len(ecosystem_eei) > 1:
+                        if ecosystem_eei and len(ecosystem_eei) > 1:
                             st.markdown("**EEI by Ecosystem Type (used for intactness defaults):**")
                             for eco_type, eei_value in sorted(ecosystem_eei.items()):
                                 if eei_value is not None:
                                     st.write(_eei_row(eco_type, eei_value))
-                        elif _autodetect and ecosystem_eei and len(ecosystem_eei) == 1:
+                        elif ecosystem_eei and len(ecosystem_eei) == 1:
                             eco_type, eei_value = list(ecosystem_eei.items())[0]
                             if eei_value is not None:
                                 if eco_type.lower() in CONDITION_EXEMPT_ECOSYSTEMS:
@@ -1605,10 +1642,10 @@ def display_data_source_status(analysis_results: Dict = None):
                     esvd_ecosystem = specialized_ecosystem or get_esvd_ecosystem_from_landcover_code(code, analysis_results)
                     ecosystem_counts[esvd_ecosystem] = ecosystem_counts.get(esvd_ecosystem, 0) + count
 
-                # Ecosystem composition is built from per-point satellite
-                # detection, so hide it when the ecosystem has been overridden
-                # (it may list types the user has overridden). Geographic
-                # distribution below is unaffected and still shows.
+                # Ecosystem composition is built from the per-point ecosystem,
+                # which a forced override overwrites on every point — so under an
+                # override this reads as 100% of the forced type, confirming the
+                # force landed rather than contradicting it.
                 # Total area of the selection, stated before the per-ecosystem
                 # split — those are shares of this figure, and types under 1%
                 # are hidden below, so without it the listed hectares don't
@@ -1618,13 +1655,12 @@ def display_data_source_status(analysis_results: Dict = None):
                 if total_area:
                     st.markdown(f"**Total Area Analysed:** {format_area(total_area)}")
 
-                if st.session_state.get('ecosystem_override', 'Auto-detect') == 'Auto-detect':
-                    st.markdown("**Ecosystem Composition (from Sample Points):**")
-                    for ecosystem_type, count in sorted(ecosystem_counts.items()):
-                        percentage = (count / len(sampling_point_data)) * 100
-                        area_ha = total_area * (percentage / 100)
-                        if percentage >= 1.0:
-                            st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
+                st.markdown("**Ecosystem Composition (from Sample Points):**")
+                for ecosystem_type, count in sorted(ecosystem_counts.items()):
+                    percentage = (count / len(sampling_point_data)) * 100
+                    area_ha = total_area * (percentage / 100)
+                    if percentage >= 1.0:
+                        st.write(f"• **{ecosystem_type}**: {percentage:.1f}% ({count} points, {area_ha:.1f} hectares)")
 
                 # Country breakdown (water bodies excluded)
                 country_counts = {}
@@ -1915,7 +1951,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.11.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.11.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2920,8 +2956,8 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
             )
             st.session_state['pending_indicator_baseline_area_pct'] = _baseline_area_pct
             st.caption(
-                f"Project area: {_sel_area_ha * _baseline_area_pct / 100.0:,.1f} ha "
-                f"of {_sel_area_ha:,.1f} ha selected"
+                f"Project area: {format_area_ha(_sel_area_ha * _baseline_area_pct / 100.0)} "
+                f"of {format_area_ha(_sel_area_ha)} selected"
             )
         with _date_col_b:
             _target_date = st.date_input(
@@ -2943,8 +2979,8 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
             )
             st.session_state['pending_indicator_target_area_pct'] = _target_area_pct
             st.caption(
-                f"Project area: {_sel_area_ha * _target_area_pct / 100.0:,.1f} ha "
-                f"of {_sel_area_ha:,.1f} ha selected"
+                f"Project area: {format_area_ha(_sel_area_ha * _target_area_pct / 100.0)} "
+                f"of {format_area_ha(_sel_area_ha)} selected"
             )
 
         # Estimated project cost — drives the EROI (Ecological Return on
@@ -2971,7 +3007,7 @@ div[class*='st-key-pi_pre_'] [data-baseweb='radio'] [data-testid='stMarkdownCont
             _cost / _cost_proj_area / 30.0 if _cost_proj_area > 0 else 0.0
         )
         st.caption(
-            f"Int$ {_cost_per_ha_yr:,.0f}/ha/yr over {_cost_proj_area:,.1f} ha"
+            f"Int$ {_cost_per_ha_yr:,.0f}/ha/yr over {format_area_ha(_cost_proj_area)}"
         )
 
         # Discount rate for the EROI net present value / benefit-cost ratio.
@@ -4202,7 +4238,7 @@ with st.sidebar:
                                     f"<div style='font-size:0.8rem;padding:0.1rem 0;'>"
                                     f"<strong>{_area['name']}</strong><br>"
                                     f"<span style='color:#666;font-size:0.72rem;'>"
-                                    f"{_area['area_hectares']:.0f} ha · "
+                                    f"{format_area_ha(_area['area_hectares'])} · "
                                     f"{_area['created_at'].strftime('%Y-%m-%d')}"
                                     f"</span></div>",
                                     unsafe_allow_html=True,
@@ -4250,7 +4286,7 @@ with st.sidebar:
                                 f"<span style='color:#2E7D32;'>"
                                 f"Int$ {_h.get('total_value', 0):,.0f}/yr</span> · "
                                 f"{_h.get('ecosystem_type', '—')} · "
-                                f"{_h.get('area_hectares', 0):.0f} ha<br>"
+                                f"{format_area_ha(_h.get('area_hectares', 0))}<br>"
                                 f"<span style='color:#999;font-size:0.73rem;'>"
                                 f"{_h['created_at'].strftime('%Y-%m-%d %H:%M')}</span></div>",
                                 unsafe_allow_html=True,
@@ -4329,7 +4365,7 @@ if use_load_saved_area:
         
         if saved_areas:
             # Create options for saved area selection
-            saved_area_names = [f"{area['name']} ({area['area_hectares']:.1f} ha)" for area in saved_areas]
+            saved_area_names = [f"{area['name']} ({format_area_ha(area['area_hectares'])})" for area in saved_areas]
             saved_area_names.insert(0, "Select a saved area...")
             
             # Left-aligned saved area dropdown
@@ -4633,7 +4669,7 @@ elif use_test_area_random and _area_selection_changed:
     st.session_state['_active_area_signature'] = _current_area_signature
 
     st.success("**Random Global Test Area Selected**")
-    st.caption(f"Random location in {region_name} ({lat_center:.{COORD_DP}f}°N, {lon_center:.{COORD_DP}f}°{'E' if lon_center >= 0 else 'W'}) | Area: {area_ha:.0f} ha")
+    st.caption(f"Random location in {region_name} ({lat_center:.{COORD_DP}f}°N, {lon_center:.{COORD_DP}f}°{'E' if lon_center >= 0 else 'W'}) | Area: {format_area_ha(area_ha)}")
 else:
     # Clear test area flag when unchecked, but preserve manual area zoom
     if not st.session_state.get('area_coordinates'):
@@ -5561,7 +5597,7 @@ if False and st.session_state.get('analysis_results'):
             **Step-by-Step Calculation for {ecosystem_type} Ecosystem:**
             
             **1. Area Calculation**
-            - Selected area: **{area_ha:,.0f} hectares**
+            - Selected area: **{format_area_ha(area_ha)}**
             - Coordinate-based area calculation using shoelace formula
             
             **2. Base ESVD Coefficients (Pre-computed from 10,874+ studies)**
@@ -5695,7 +5731,7 @@ if False and st.session_state.get('analysis_results'):
                     # Fallback calculation display
                     st.markdown(f"\n**📊 Summary:**")
                     st.markdown(f"- **Total Value**: ${actual_total:,.0f}/year")
-                    st.markdown(f"- **Area**: {area_ha:,.0f} hectares")
+                    st.markdown(f"- **Area**: {format_area_ha(area_ha)}")
                     st.markdown(f"- **Value per Hectare**: ${actual_per_ha:,.0f}/ha/year")
                     st.markdown(f"- **Regional Factor**: {regional_factor:.2f}")
                     st.markdown(f"- **Quality Factor**: {quality_factor:.2f}")
@@ -5759,7 +5795,7 @@ if False and st.session_state.get('analysis_results'):
             **5. Final Calculation**
             ```
             Total Value = Base Coefficients × Area × Regional Factor × Intactness Factor
-            Total Value = [Service Values] × {area_ha:,.0f} ha × {regional_factor:.2f} × {quality_factor:.2f}
+            Total Value = [Service Values] × {format_area_ha(area_ha)} × {regional_factor:.2f} × {quality_factor:.2f}
             Total Value = ${total_value:,.0f}/year
             ```
             
@@ -5784,7 +5820,7 @@ elif st.session_state.get('selected_area'):
         
         area_ha = st.session_state.get('cached_area_ha', 0)
         if area_ha and area_ha > 0:
-            st.markdown(f'<p class="result-info-lg"><strong>Area Size:</strong> {area_ha:.2f} hectares</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="result-info-lg"><strong>Area Size:</strong> {format_area_ha(area_ha)}</p>', unsafe_allow_html=True)
         else:
             st.markdown('<p class="result-info-lg"><strong>Area Size:</strong> Calculating...</p>', unsafe_allow_html=True)
         
@@ -5883,7 +5919,12 @@ if analyze_button and st.session_state.selected_area:
                 st.info("🌊 Using existing sample data with water body classifications...")
                 sampling_point_data = st.session_state.get('sampling_point_data', {})
                 data_source = st.session_state.get('landcover_data_source', 'openlandmap')
-                
+
+                # A forced ecosystem override outranks the cached per-point
+                # classifications (including any earlier water-body answers),
+                # so re-stamp before the composition is rebuilt from them.
+                apply_ecosystem_override_to_points(sampling_point_data)
+
                 # Create ecosystem_info from existing data
                 ecosystem_counts = {}
                 for point_data in sampling_point_data.values():
@@ -6038,7 +6079,15 @@ if analyze_button and st.session_state.selected_area:
                             # Set final data source based on whether we found any real satellite data
                             if has_real_satellite_data:
                                 data_source = 'openlandmap'
-                    
+
+                    # A forced ecosystem override applies to the whole area, so
+                    # stamp it onto every sample point before anything groups by
+                    # per-point ecosystem (water-body prompt, EEI averaging,
+                    # composition, PDF, saved point rows).
+                    _forced_ecosystem_name = apply_ecosystem_override_to_points(
+                        sampling_point_data, ecosystem_info
+                    )
+
                     # Handle water body classification with automatic continuation
                     water_body_points = {}
                     needs_classification = False
@@ -6054,8 +6103,11 @@ if analyze_button and st.session_state.selected_area:
                         if point_data.get('landcover_class') == 210:
                             water_body_points[point_id] = point_data
                     
-                    # Check if we need classification (water bodies exist but not yet classified)
-                    if water_body_points:
+                    # Check if we need classification (water bodies exist but not yet classified).
+                    # A forced ecosystem override has already answered the question
+                    # the prompt asks — every point, water or not, is the forced
+                    # type — so don't stop the analysis to ask it again.
+                    if water_body_points and not _forced_ecosystem_name:
                         for point_id, point_data in water_body_points.items():
                             if not point_data.get('user_classified', False):
                                 needs_classification = True
@@ -6768,10 +6820,10 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 water_area = results.get('water_area_hectares', 0)
 
                 if water_area > 0:
-                    st.metric("Land Area Analyzed", f"{land_area:,.0f} ha")
-                    st.caption(f"🌊 {water_area:,.0f} ha water excluded")
+                    st.metric("Land Area Analyzed", format_area_ha(land_area))
+                    st.caption(f"🌊 {format_area_ha(water_area)} water excluded")
                 else:
-                    st.metric("Area Analyzed", f"{land_area:,.0f} ha")
+                    st.metric("Area Analyzed", format_area_ha(land_area))
 
                 # When project-specific indicators scale the valuation to a
                 # subset of the selected area, show what was selected vs the
@@ -6781,7 +6833,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 if _baseline_area_pct != 100 or _target_area_pct != 100:
                     _selected_area_ha = results.get('selected_area_ha', land_area)
                     st.caption(
-                        f"{_selected_area_ha:,.0f} ha selected · baseline "
+                        f"{format_area_ha(_selected_area_ha)} selected · baseline "
                         f"{_baseline_area_pct}% / target {_target_area_pct}%"
                     )
         
@@ -7859,6 +7911,32 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
 
     render_scenario_builder(results)
 
+    def _pdf_sample_points(sampling_point_data):
+        """Sample-point coordinates for the PDF map's markers.
+
+        Numbered the same way as the on-screen Sample Points table (1-based,
+        from the numeric part of the point id, not dict order) so the markers
+        and the table refer to the same points. Skips the (0, 0) sentinel used
+        when a point has no coordinates."""
+        points = []
+        for point_id, point_data in (sampling_point_data or {}).items():
+            try:
+                idx = int(str(point_id).replace('point_', ''))
+            except ValueError:
+                continue
+            coords = point_data.get('coordinates') or {}
+            if not isinstance(coords, dict):
+                continue
+            lat = coords.get('lat', 0)
+            lon = coords.get('lon', 0)
+            if not lat and not lon:
+                continue
+            points.append({'lat': lat, 'lon': lon, 'label': str(idx + 1), '_i': idx})
+        points.sort(key=lambda p: p['_i'])
+        for p in points:
+            del p['_i']
+        return points
+
     def _build_pdf_env_indicators(sampling_point_data):
         """Rebuild the Supplementary Environmental Indicators table for the PDF,
         mirroring the on-screen table. Columns are gated by the same
@@ -8088,6 +8166,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                 'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
                                 'target_date': st.session_state.get('pending_indicator_target_date'),
                                 'env_indicators': _build_pdf_env_indicators(_sampling),
+                                'sample_points': _pdf_sample_points(_sampling),
                             }
                     except Exception:
                         _pdf_summary = None

@@ -13,8 +13,44 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed. Add further v3.11.3 changes to this
+    # ACCUMULATING — not yet deployed. Add further v3.11.4 changes to this
     # entry as they land, rather than opening a new version for each one.
+    {
+        "version": "v3.11.4 beta",
+        "date": "2026-08-19",
+        "changes": [
+            "Choosing a specific ecosystem type instead of Auto-detect now "
+            "applies that choice to every sample point, not just to the "
+            "valuation. Previously each point kept the ecosystem the satellite "
+            "data detected for it, which meant the ecosystem condition (EEI) "
+            "reading was recorded against the detected ecosystem and then not "
+            "picked up by the valuation — so a forced analysis could quietly "
+            "value the area as though it were in perfect condition. Ecosystem "
+            "condition is now applied correctly to forced analyses.",
+            "As part of that, the ecosystem composition and the EEI breakdown "
+            "are shown again when you force an ecosystem type — they now "
+            "confirm the choice was applied to all sample points instead of "
+            "listing the types it replaced. EVE also no longer stops to ask "
+            "how to classify water bodies when you have already chosen the "
+            "ecosystem type yourself.",
+            "PDF reports now mark the sample point locations on the area map, "
+            "numbered to match the Sample Point table, so you can see where in "
+            "the area the analysis actually sampled rather than only the "
+            "boundary that was drawn. Numbering is omitted above 25 points to "
+            "keep the map readable.",
+            "Areas are now shown to two decimal places wherever they appear, "
+            "so a 1.35 hectare site reads as \"1.35 ha\" rather than being "
+            "rounded to \"1 ha\". The analysis always used the exact area — "
+            "this was a display issue only, and no valuation changes as a "
+            "result — but the rounded figure made small sites look wrong and "
+            "disagreed with the area shown beside the map. Larger areas are "
+            "unchanged and still shown without unnecessary decimals.",
+            "This applies everywhere an area is shown: the Area Analysed "
+            "figure with the results, the step-by-step calculation, saved "
+            "areas and analysis history, the project area for indicator-based "
+            "analyses, and the Area (land) row in PDF reports.",
+        ],
+    },
     {
         "version": "v3.11.3 beta",
         "date": "2026-08-11",
