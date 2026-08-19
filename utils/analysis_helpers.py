@@ -220,6 +220,38 @@ def format_latlon(lat: float, lon: float, sep: str = ", ") -> str:
     return f"{float(lat):.{COORD_DP}f}{sep}{float(lon):.{COORD_DP}f}"
 
 
+def format_area_ha(area_ha: float) -> str:
+    """Render an area in hectares, at a precision that suits its size.
+
+    Small selections are the ones that need decimals: EVE accepts areas from
+    1 ha upwards, so a whole-number figure would report a 1.35 ha site as
+    "1 ha" and lose a quarter of it. Large sites don't need that precision and
+    read better without it. Two decimal places also match the live readout on
+    the drawing cursor, so the two figures agree digit for digit.
+    """
+    area_ha = float(area_ha or 0)
+    if area_ha >= 10000:
+        return f"{area_ha:,.0f} ha"
+    if area_ha >= 100:
+        return f"{area_ha:,.1f} ha"
+    return f"{area_ha:,.2f} ha"
+
+
+def format_area(area_ha: float) -> str:
+    """As :func:`format_area_ha`, plus km² once hectares get unwieldy.
+
+    Use this where there is room for the longer form; :func:`format_area_ha`
+    where there isn't, such as inside a metric card.
+    """
+    area_ha = float(area_ha or 0)
+    base = format_area_ha(area_ha)
+    if area_ha >= 10000:
+        return f"{base} ({area_ha / 100:,.1f} km²)"
+    if area_ha >= 100:
+        return f"{base} ({area_ha / 100:,.2f} km²)"
+    return base
+
+
 def format_points_as_text(points: Sequence[Sequence[float]]) -> str:
     """Render (lat, lon) points as the one-per-line text the entry box shows.
 

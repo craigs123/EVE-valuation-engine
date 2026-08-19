@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from utils.analysis_helpers import format_latlon
+from utils.analysis_helpers import format_latlon, format_area_ha
 
 _LOGO_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -38,7 +38,8 @@ def generate_pdf_report(
         summary_stats:  dict from the UI's Summary Statistics section
                         (sample_points_total, land_points, water_points,
                          country_counts, ecosystem_counts, average_eei,
-                         ecosystem_eei, eei_enabled, predominant_country)
+                         ecosystem_eei, eei_enabled, predominant_country,
+                         sample_points)
     """
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -631,7 +632,11 @@ def generate_pdf_report(
         try:
             from utils.static_map import render_area_map_image, attribution as _map_attr
             from reportlab.lib.utils import ImageReader
-            _map_png = render_area_map_image(bbox, coordinates)
+            # Sample-point markers, so the reader can see where the analysis
+            # actually sampled rather than only the area boundary.
+            _map_points = (summary_stats or {}).get('sample_points') or []
+            _map_png = render_area_map_image(bbox, coordinates,
+                                             sample_points=_map_points)
             if _map_png:
                 _ir = ImageReader(io.BytesIO(_map_png))
                 _iw, _ih = _ir.getSize()
@@ -644,7 +649,14 @@ def generate_pdf_report(
                 _map_img = Image(io.BytesIO(_map_png), width=_disp_w, height=_disp_h)
                 _map_img.hAlign = 'CENTER'
                 story.append(_map_img)
-                story.append(Paragraph(_map_attr(), caption))
+                _map_caption = _map_attr()
+                if _map_points:
+                    _map_caption = (
+                        f'Numbered markers show the {len(_map_points)} sample '
+                        f'points used for this analysis; the numbers match the '
+                        f'Sample Point table. {_map_caption}'
+                    )
+                story.append(Paragraph(_map_caption, caption))
                 story.append(Spacer(1, 0.3 * cm))
         except Exception:
             pass
@@ -658,7 +670,7 @@ def generate_pdf_report(
         geo_rows = [
             ['Centre', format_latlon(c_lat, c_lon),
              'Bounding box (N, S)', format_latlon(max_lat, min_lat)],
-            ['Area (land)', f'{area_ha:,.1f} ha',
+            ['Area (land)', format_area_ha(area_ha),
              'Bounding box (E, W)', format_latlon(max_lon, min_lon)],
         ]
         geo_table = Table(geo_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])

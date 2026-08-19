@@ -4,7 +4,8 @@ Static map image for the PDF report.
 Given the analysis bounding box (and optionally the drawn polygon vertices),
 this fetches Esri World Imagery satellite tiles for the area, stitches them
 into a single image, crops to the (padded) bounding box and draws the
-selected-area outline on top. Returns JPEG bytes for embedding in the report
+selected-area outline — plus, when supplied, a numbered marker for each
+analysis sample point — on top. Returns JPEG bytes for embedding in the report
 (JPEG keeps satellite imagery to a few hundred KB rather than ~2 MB as PNG).
 
 Everything is best-effort: any failure (no network, tile server down, missing
@@ -31,6 +32,16 @@ _ATTRIBUTION = "Source: Esri, Maxar, Earthstar Geographics, and the GIS User Com
 # Outline / fill for the drawn area — matches the on-screen draw colour (#2E8B57).
 _OUTLINE_RGB = (46, 139, 87)
 _FILL_RGBA = (46, 139, 87, 60)
+
+# Sample-point markers. Amber reads against the translucent green area fill,
+# against blue water and against green/brown imagery, and is distinct from the
+# area outline above so the two never get confused.
+_SAMPLE_POINT_RGB = (255, 193, 7)
+_SAMPLE_RING_RGB = (255, 255, 255)
+
+# Above this many points the numbers become unreadable, so markers are drawn
+# unlabelled (the sample-point cap in the app is 100).
+_MAX_LABELLED_POINTS = 25
 
 
 def _lonlat_to_global_px(lon: float, lat: float, zoom: int):
@@ -76,6 +87,7 @@ def _pad_bbox(bbox: Dict[str, float], frac: float) -> Dict[str, float]:
 def render_area_map_image(
     bbox: Optional[Dict[str, float]],
     coordinates: Optional[List] = None,
+    sample_points: Optional[List[Dict]] = None,
     padding_frac: float = 0.18,
     max_tiles_per_axis: int = 5,
     max_tiles_total: int = 36,
@@ -86,9 +98,12 @@ def render_area_map_image(
     """Build a satellite image of the selected area with its outline drawn on.
 
     Args:
-        bbox:        dict with min_lat/max_lat/min_lon/max_lon.
-        coordinates: polygon vertices as [lon, lat] pairs (GeoJSON order); the
-                     outline is drawn if provided.
+        bbox:          dict with min_lat/max_lat/min_lon/max_lon.
+        coordinates:   polygon vertices as [lon, lat] pairs (GeoJSON order);
+                       the outline is drawn if provided.
+        sample_points: analysis sample points as dicts with 'lat'/'lon' and an
+                       optional 'label'; drawn as numbered markers on top of
+                       the area outline if provided.
     Returns:
         JPEG bytes, or None on any failure.
     """
@@ -96,7 +111,7 @@ def render_area_map_image(
                            ('min_lat', 'max_lat', 'min_lon', 'max_lon')):
         return None
     try:
-        from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw, ImageFont
         import requests
     except Exception as exc:  # pragma: no cover - dependency guard
         logger.warning("static_map: Pillow/requests unavailable (%s)", exc)
@@ -180,6 +195,14 @@ def render_area_map_image(
                     joint='curve',
                 )
 
+        # Sample-point markers, drawn on top of the area fill/outline. They
+        # come from the same sampling data the report's tables are built from,
+        # so the numbering matches the on-screen Sample Points table.
+        if sample_points:
+            _draw_sample_points(
+                crop, sample_points, zoom, left_px, top_px, ImageDraw, ImageFont
+            )
+
         # Keep the embedded image a sensible size for the PDF.
         max_px = 1100
         if max(crop.size) > max_px:
@@ -195,6 +218,66 @@ def render_area_map_image(
     except Exception as exc:  # pragma: no cover - defensive
         logger.warning("static_map: render failed (%s)", exc)
         return None
+
+
+def _draw_sample_points(crop, sample_points, zoom, left_px, top_px,
+                        ImageDraw, ImageFont) -> None:
+    """Draw numbered sample-point markers onto ``crop`` (modified in place).
+
+    Best-effort like the rest of the module: a failure here must not cost the
+    caller its map, so everything is wrapped and simply skipped on error.
+    """
+    try:
+        placed = []
+        for pt in sample_points:
+            try:
+                lat = float(pt.get('lat'))
+                lon = float(pt.get('lon'))
+            except (TypeError, ValueError):
+                continue
+            # (0, 0) is the app's "no coordinates" sentinel, not a location.
+            if lat == 0 and lon == 0:
+                continue
+            gx, gy = _lonlat_to_global_px(lon, lat, zoom)
+            x, y = gx - left_px, gy - top_px
+            # Defensive: the sampler clips points to the drawn polygon, so a
+            # point outside the padded crop shouldn't happen — skip it rather
+            # than let Pillow draw it clamped against an edge.
+            if not (0 <= x < crop.width and 0 <= y < crop.height):
+                continue
+            placed.append((x, y, str(pt.get('label') or '')))
+
+        if not placed:
+            return
+
+        draw = ImageDraw.Draw(crop)
+        radius = max(3.0, min(crop.size) / 110.0)
+        ring_w = max(1, int(round(radius / 3)))
+        for x, y, _label in placed:
+            draw.ellipse(
+                [x - radius, y - radius, x + radius, y + radius],
+                fill=_SAMPLE_POINT_RGB, outline=_SAMPLE_RING_RGB, width=ring_w,
+            )
+
+        if len(placed) > _MAX_LABELLED_POINTS:
+            return
+
+        font_size = max(10, int(round(radius * 2.2)))
+        try:
+            font = ImageFont.load_default(size=font_size)
+        except TypeError:
+            # Pillow < 10.1: only the fixed-size bitmap default is available,
+            # which is unreadable at this scale — leave the markers unlabelled.
+            return
+        for x, y, label in placed:
+            if not label:
+                continue
+            draw.text(
+                (x + radius + ring_w + 2, y), label, font=font, anchor='lm',
+                fill=(255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0),
+            )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("static_map: sample-point markers failed (%s)", exc)
 
 
 def attribution() -> str:
