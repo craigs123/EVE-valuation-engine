@@ -13,8 +13,30 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed. Add further v3.11.5 changes to this
+    # ACCUMULATING — not yet deployed. Add further v3.12.0 changes to this
     # entry as they land, rather than opening a new version for each one.
+    {
+        "version": "v3.12.0 beta",
+        "date": "2026-08-19",
+        "changes": [
+            "The Download PDF Report button now disappears the moment you ask "
+            "for a new report, and returns only once the new one is ready. It "
+            "used to stay on screen throughout, so during the seconds a report "
+            "takes to build you could click it and get the previous report "
+            "instead of the one you had just asked for. If a report failed to "
+            "build, the old one was left on offer with nothing to indicate it "
+            "was out of date.",
+            "A prepared report is now cleared when you run a new analysis, so "
+            "the download button can no longer hand you a report for the "
+            "previous run. This was most obvious when switching on "
+            "project-specific indicators: after re-calculating you would "
+            "download the earlier standard report, which has none of the "
+            "project detail — the return-on-investment appraisal and the "
+            "baseline-to-target comparison — that the indicator run produces. "
+            "Prepare the report again after any analysis to get the current "
+            "one.",
+        ],
+    },
     {
         "version": "v3.11.5 beta",
         "date": "2026-08-19",
