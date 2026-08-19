@@ -13,8 +13,63 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed. Add further v3.11.4 changes to this
+    # ACCUMULATING — not yet deployed. Add further v3.11.5 changes to this
     # entry as they land, rather than opening a new version for each one.
+    {
+        "version": "v3.11.5 beta",
+        "date": "2026-08-19",
+        "changes": [
+            "When the ecosystem condition service cannot measure a sample "
+            "point, EVE now says so and says why, and treats that ecosystem "
+            "cautiously rather than assuming it is in perfect condition. "
+            "Previously the service quietly substituted placeholder figures "
+            "for any point it could not measure, and those figures were far "
+            "higher than real ones. EVE already detected and discarded them, "
+            "but the underlying reason was never reported. The service has "
+            "been corrected to report a failure as a failure, and EVE now "
+            "shows the reason on the dashboard and in PDF reports.",
+            "Sample points are now spread evenly across areas of any shape. "
+            "On a rectangle they always were, but on a drawn polygon the "
+            "points bunched up and left gaps \u2014 parts of the area could sit "
+            "twice as far from the nearest sample as they should. Coverage of "
+            "irregular areas is improved by around a quarter to a third, so "
+            "the ecosystem mix EVE reports is based on a fairer spread of the "
+            "area you actually drew. Rectangles are unchanged in quality.",
+            "The number of sample points you ask for is now the number you "
+            "get. The setting accepted any value from 9 to 100 but quietly "
+            "rounded down to the nearest square number, so asking for 50 gave "
+            "49 and asking for 48 gave 36 \u2014 a quarter fewer than requested, "
+            "with nothing on screen to say so.",
+            "Sample points are also now spaced evenly on the ground rather "
+            "than evenly in degrees of latitude and longitude. The old spacing "
+            "stretched with the shape of the area and with distance from the "
+            "equator, so points were further apart in one direction than the "
+            "other.",
+            "Because of the above, an area re-analysed after this update will "
+            "sample slightly different locations than it did before, and may "
+            "return a slightly different value. Analyses saved before this "
+            "update are not directly comparable with ones run after it.",
+            "Analyses with a high sample point count now say what they are "
+            "doing while you wait. Identifying the country for each sample "
+            "point relies on an external map service that permits one lookup "
+            "per second, so a 100-point area could sit for well over a minute "
+            "with nothing on screen. There is now a progress message and bar "
+            "for that step, and the sampling progress bar updates on every "
+            "point instead of every twenty-five per cent.",
+            "PDF reports no longer say that water bodies are excluded from the "
+            "analysis — they are not. Water sample points are classified as "
+            "ocean, rivers and lakes, or coastal and valued using that "
+            "ecosystem's coefficients, so they contribute to the totals. The "
+            "sample point summary previously labelled them \"Water Points "
+            "(excluded)\", and the report header carried a \"Water excluded\" "
+            "row left over from an older method that removed open water. Only "
+            "the country breakdown excludes water points, and it says so.",
+            "The report now states positively what happens to water points "
+            "whenever any are found, and the area figure is labelled simply "
+            "\"Area Analysed\" rather than \"Area (land)\", which suggested "
+            "water had been taken out of it.",
+        ],
+    },
     {
         "version": "v3.11.4 beta",
         "date": "2026-08-19",

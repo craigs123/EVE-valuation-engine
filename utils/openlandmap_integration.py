@@ -3,6 +3,7 @@ OpenLandMap Integration for Ecosystem Type Detection
 Uses OpenLandMap.com services to determine land cover and ecosystem types
 """
 
+import math
 import requests
 import numpy as np
 from typing import Dict, List, Tuple, Optional
@@ -734,7 +735,7 @@ class OpenLandMapIntegrator:
                 return {
                     'landcover_class': 50,
                     'ecosystem_type': "Urban",
-                    'source': f'Urban Center ({city["name"]})'
+                    'source': f'Urban Centre ({city["name"]})'
                 }
         
         if self._is_likely_urban_area(lat, lon):
@@ -1347,81 +1348,287 @@ class OpenLandMapIntegrator:
         lat_grid, lon_grid = np.meshgrid(lats, lons, indexing='ij')
         return np.column_stack([lon_grid.ravel(), lat_grid.ravel()])  # (lon, lat)
 
+    # Metres per degree, used to project lon/lat onto a local plane so the
+    # sampling lattice can be laid out with equal spacing on the ground rather
+    # than equal spacing in degrees (a degree of longitude is ~62% of a degree
+    # of latitude at 51 deg N, and shrinks further towards the poles).
+    _M_PER_DEG_LAT = 110574.0
+    _M_PER_DEG_LON_EQ = 111320.0
+
+    # Lattice seatings tried for each spacing: one cell scanned in thirds. A
+    # lattice that fits a shape badly at one seating often fits it well a
+    # fraction of a cell over, which buys more than fine spacing tuning does.
+    _PHASES = [(i / 3.0, j / 3.0) for i in range(3) for j in range(3)]
+
+    # Spacings tried, as fractions of the coarsest spacing that still fits the
+    # requested number of points. Finer spacings overshoot and get thinned back,
+    # which can seat points against an edge better than the coarsest fit does.
+    _SPACING_STEPS = (1.0, 0.94, 0.88, 0.82)
+
+    def _local_plane(self, coords: np.ndarray):
+        """Return (to_xy, to_lonlat) for a local equirectangular plane centred
+        on the polygon. Accurate to well under a metre over the area sizes EVE
+        analyses, and free of any projection-library dependency."""
+        lon0 = float(coords[:, 0].mean())
+        lat0 = float(coords[:, 1].mean())
+        kx = self._M_PER_DEG_LON_EQ * math.cos(math.radians(lat0))
+        ky = self._M_PER_DEG_LAT
+        if kx <= 0:  # a pole-adjacent selection; fall back to unscaled lon
+            kx = 1.0
+
+        def to_xy(a):
+            return np.column_stack([(a[:, 0] - lon0) * kx, (a[:, 1] - lat0) * ky])
+
+        def to_lonlat(a):
+            return np.column_stack([a[:, 0] / kx + lon0, a[:, 1] / ky + lat0])
+
+        return to_xy, to_lonlat
+
+    @staticmethod
+    def _lattice(kind, x0, y0, x1, y1, spacing, phase=(0.0, 0.0)):
+        """Lattice points covering the rectangle, as an (N, 2) array.
+
+        ``kind='hex'`` builds a hexagonal (triangular) lattice: rows sit
+        ``spacing * sqrt(3)/2`` apart and alternate rows are offset by half a
+        spacing, so every point is ``spacing`` from all six neighbours. That is
+        the arrangement covering an unbounded plane with the smallest maximum
+        gap for a given number of points, and its rows do not align with the
+        rectilinear features (field boundaries, roads, drainage) a square grid
+        can alias against.
+
+        ``kind='square'`` builds the plain square grid. It stays in the running
+        because the hexagonal advantage is asymptotic: in a small bounded shape
+        the edges dominate, and a square grid tiles a rectangle exactly.
+
+        The block is centred on the rectangle so a shape it fits neatly gets an
+        even margin all round rather than points hugging one corner. ``phase``
+        then shifts it by a fraction of a cell.
+        """
+        if spacing <= 0:
+            return np.empty((0, 2))
+        dy = spacing * (math.sqrt(3.0) / 2.0 if kind == 'hex' else 1.0)
+        row_offset = spacing / 2.0 if kind == 'hex' else 0.0
+        n_rows = int(math.floor((y1 - y0) / dy)) + 2
+        n_cols = int(math.floor((x1 - x0) / spacing)) + 2
+        if n_rows <= 0 or n_cols <= 0:
+            return np.empty((0, 2))
+        cc, rr = np.meshgrid(np.arange(n_cols), np.arange(n_rows), indexing='xy')
+        block_w = (n_cols - 1) * spacing + row_offset
+        block_h = (n_rows - 1) * dy
+        ox = x0 + ((x1 - x0) - block_w) / 2.0 + phase[0] * spacing
+        oy = y0 + ((y1 - y0) - block_h) / 2.0 + phase[1] * dy
+        xs = ox + cc * spacing + (rr % 2) * row_offset
+        ys = oy + rr * dy
+        return np.column_stack([xs.ravel(), ys.ravel()])
+
+    @staticmethod
+    def _thin_to_count(pts: np.ndarray, target: int) -> np.ndarray:
+        """Drop the most crowded points until exactly ``target`` remain.
+
+        Each round removes the point with the smallest distance to its nearest
+        surviving neighbour, breaking ties by dropping the one nearest the
+        centroid so edges stay represented. Fully deterministic.
+
+        The pairwise distances are computed once and then masked, rather than
+        rebuilt every round - this runs inside the layout search, which scores
+        on the order of a hundred candidates per analysis."""
+        if len(pts) <= target:
+            return pts
+        d = np.linalg.norm(pts[:, None, :] - pts[None, :, :], axis=-1)
+        np.fill_diagonal(d, np.inf)
+        d_centre = np.linalg.norm(pts - pts.mean(axis=0), axis=1)
+        active = np.ones(len(pts), dtype=bool)
+        n_active = len(pts)
+        while n_active > target:
+            idx = np.flatnonzero(active)
+            nn = d[np.ix_(idx, idx)].min(axis=1)
+            order = np.lexsort((d_centre[idx], nn))
+            active[idx[order[0]]] = False
+            n_active -= 1
+        return pts[active]
+
+    @staticmethod
+    def _interior_probe(path, x0, y0, x1, y1, n_side: int = 64) -> np.ndarray:
+        """A fixed, deterministic set of points inside the polygon, used to
+        score how well a candidate layout covers the area. A measuring
+        instrument, not a sample - these never leave this module."""
+        xs = np.linspace(x0, x1, n_side)
+        ys = np.linspace(y0, y1, n_side)
+        gx, gy = np.meshgrid(xs, ys, indexing='xy')
+        cand = np.column_stack([gx.ravel(), gy.ravel()])
+        return cand[path.contains_points(cand)]
+
+    @staticmethod
+    def _coverage_radius(pts: np.ndarray, probe: np.ndarray) -> float:
+        """Largest distance from anywhere in the area to its nearest sample
+        point - the gap a reader would notice on the map. Lower is better."""
+        if len(pts) == 0 or len(probe) == 0:
+            return float('inf')
+        d = np.linalg.norm(probe[:, None, :] - pts[None, :, :], axis=-1)
+        return float(d.min(axis=1).max())
+
     def _generate_sample_points(self, coordinates: List[List[float]], num_points: int = 4) -> List[Tuple[float, float]]:
         """
-        Generate sample points that fall INSIDE the drawn polygon.
+        Generate exactly ``num_points`` sample points spread evenly INSIDE the
+        drawn polygon.
 
-        A regular grid is laid over the polygon's bounding box and clipped to
-        the polygon itself via a vectorized point-in-polygon test
-        (``matplotlib.path.Path``). Points landing in the bounding-box corners
-        but outside the actual polygon — which the old bbox-only grid wrongly
-        included — are discarded.
+        The polygon is projected onto a local metric plane and candidate layouts
+        are laid over it - hexagonal and square lattices, a range of spacings
+        around the coarsest that fits, and nine seatings of each - with every
+        candidate clipped to the polygon itself by a vectorised point-in-polygon
+        test (``matplotlib.path.Path``) and thinned to exactly the requested
+        count. The winner is the layout with the smallest worst-case gap between
+        anywhere in the area and its nearest sample point.
 
-        Behaviour by shape:
-          * Rectangle selection — the polygon equals its bounding box, so the
-            native-density grid is fully inside and is returned unchanged
-            (bit-for-bit identical to the previous implementation).
-          * Arbitrary polygon — if the native-density grid loses points to
-            clipping, the grid is densified until at least the target count of
-            interior points is found, then deterministically subsampled back
-            down so the returned count matches the requested sampling density.
+        Three properties this guarantees that the previous bbox grid did not:
 
-        Points are deterministic grid cell centres (no randomness), preserving
-        reproducibility of analyses. Returns a list of (lat, lon) tuples.
+          * **Exact count.** The old code used ``grid_size = int(sqrt(n))`` and
+            returned ``grid_size ** 2`` points, so any request that was not a
+            perfect square was silently rounded down - 50 gave 49, 48 gave 36.
+          * **Even coverage on drawn polygons.** The old code densified the grid
+            when clipping removed points, then thinned with ``linspace`` over a
+            raster-ordered list. That is not a spatial operation and it left
+            holes: the worst gap on a drawn polygon ran to roughly twice the
+            ideal, against 0.71 spacings for a true grid. Rectangles were
+            unaffected, which is why only polygons looked ragged.
+          * **Equal spacing on the ground.** Lattices are built in metres, so
+            spacing no longer follows the bounding box aspect ratio or stretches
+            with latitude.
+
+        Scoring both lattice types rather than mandating one keeps rectangles at
+        the quality they already had (a square grid tiles a rectangle exactly)
+        while letting drawn polygons take the hexagonal layout where it wins.
+
+        Deterministic - no randomness - so re-running an analysis over the same
+        area reproduces the same points. Returns a list of (lat, lon) tuples.
         """
         try:
             from matplotlib.path import Path
 
-            coords = np.asarray(coordinates[:-1], dtype=np.float64)  # vertices are (lon, lat)
+            coords = np.asarray(coordinates[:-1], dtype=np.float64)  # (lon, lat)
             if coords.shape[0] < 3:
                 raise ValueError("at least 3 polygon vertices are required")
 
-            min_lon, min_lat = coords[:, 0].min(), coords[:, 1].min()
-            max_lon, max_lat = coords[:, 0].max(), coords[:, 1].max()
+            target = max(1, int(num_points))
 
-            # Native grid density — matches the old grid_size = int(sqrt(N)).
-            grid_size0 = int(np.sqrt(num_points)) or 1
-            target_count = max(1, grid_size0 ** 2)
+            to_xy, to_lonlat = self._local_plane(coords)
+            poly_xy = to_xy(coords)
+            path = Path(poly_xy)
 
-            polygon = Path(coords)
+            x0, y0 = poly_xy[:, 0].min(), poly_xy[:, 1].min()
+            x1, y1 = poly_xy[:, 0].max(), poly_xy[:, 1].max()
+            probe = self._interior_probe(path, x0, y0, x1, y1)
 
-            def interior_points(grid_size):
-                cand = self._bbox_grid(min_lon, min_lat, max_lon, max_lat, grid_size)
-                return cand[polygon.contains_points(cand)]
+            def interior(kind, spacing, phase):
+                cand = self._lattice(kind, x0, y0, x1, y1, spacing, phase)
+                if len(cand) == 0:
+                    return cand
+                return cand[path.contains_points(cand)]
 
-            # First pass at native density. For a rectangle every point is
-            # inside and len == target_count, so we return the exact old grid.
-            inside = interior_points(grid_size0)
+            def recentre(pts):
+                """Slide a clipped lattice so its points sit centrally in the
+                area. Clipping is what knocks a lattice off centre: a block
+                that overhangs the bounding box loses its outer row, leaving
+                the survivors with a wide margin on one side and a narrow one
+                on the other. The shift is kept only if every point is still
+                inside the polygon, so it can never push a sample out of the
+                area the user drew."""
+                if len(pts) == 0:
+                    return pts
+                dx = ((x0 + x1) - (pts[:, 0].min() + pts[:, 0].max())) / 2.0
+                dy = ((y0 + y1) - (pts[:, 1].min() + pts[:, 1].max())) / 2.0
+                if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+                    return pts
+                moved = pts + np.array([dx, dy])
+                return moved if path.contains_points(moved).all() else pts
 
-            # Polygon clipped some points away — densify until we recover at
-            # least target_count interior points (or hit a sane cap).
-            if len(inside) < target_count:
-                for grid_size in range(grid_size0 + 1, 129):
-                    denser = interior_points(grid_size)
-                    if len(denser) >= len(inside):
-                        inside = denser
-                    if len(inside) >= target_count:
+            def max_fit(kind, spacing):
+                """Most interior points across the seatings - the cheap
+                objective used while bracketing the spacing."""
+                return max(len(interior(kind, spacing, ph)) for ph in self._PHASES)
+
+            # Shoelace area in the metric plane seeds the spacing search: a
+            # hexagonal cell covers spacing**2 * sqrt(3)/2.
+            px, py = poly_xy[:, 0], poly_xy[:, 1]
+            area = 0.5 * abs(np.dot(px, np.roll(py, 1)) - np.dot(py, np.roll(px, 1)))
+            if area <= 0:
+                raise ValueError("polygon has zero area")
+            s_seed = math.sqrt(2.0 * area / (math.sqrt(3.0) * target))
+
+            best_pts, best_score, best_key = None, None, None
+            for kind in ('hex', 'square'):
+                # Bracket: s_lo fits at least `target` points, s_hi does not.
+                s_lo = s_seed
+                fitted = False
+                for _ in range(60):
+                    if max_fit(kind, s_lo) >= target:
+                        fitted = True
                         break
+                    s_lo /= 1.5
+                if not fitted:
+                    continue
 
-            if len(inside) == 0:
-                # Pathological case (e.g. a polygon thinner than one grid cell):
-                # never return empty — fall back to the bbox grid so the run
-                # still completes, matching legacy behaviour.
-                inside = self._bbox_grid(min_lon, min_lat, max_lon, max_lat, grid_size0)
+                s_hi = s_lo * 1.5
+                for _ in range(60):
+                    if max_fit(kind, s_hi) < target:
+                        break
+                    s_hi *= 1.5
 
-            # When densification overshot, evenly (deterministically) subsample
-            # down to the requested count so per-point API cost stays bounded.
-            if len(inside) > target_count:
-                idx = np.linspace(0, len(inside) - 1, target_count).round().astype(int)
-                inside = inside[idx]
+                # Geometric bisection for the coarsest spacing that still fits.
+                for _ in range(24):
+                    mid = math.sqrt(s_lo * s_hi)
+                    if max_fit(kind, mid) >= target:
+                        s_lo = mid
+                    else:
+                        s_hi = mid
 
-            # Return as (lat, lon) tuples, preserving the previous contract.
-            return [(float(lat), float(lon)) for lon, lat in inside]
+                # Score the coarsest fit and a few finer ones, at every
+                # seating. The textbook spacing for this lattice and count is
+                # included explicitly: on a shape the lattice tiles exactly (a
+                # rectangle under a square grid) it is the optimum, and the
+                # multiplicative steps off the coarsest fit can step straight
+                # over it.
+                s_ideal = (s_seed if kind == 'hex'
+                           else math.sqrt(area / target))
+                spacings = {s_lo * step for step in self._SPACING_STEPS}
+                if s_ideal <= s_lo:
+                    spacings.add(s_ideal)
+                for spacing in sorted(spacings, reverse=True):
+                    for ph in self._PHASES:
+                        pts = interior(kind, spacing, ph)
+                        # Too few to use; or so many that the layout being
+                        # scored would be mostly thinning rather than lattice.
+                        if len(pts) < target or len(pts) > target + max(12, int(0.35 * target)):
+                            continue
+                        trial = self._thin_to_count(recentre(pts), target)
+                        score = self._coverage_radius(trial, probe)
+                        key = (kind, spacing, ph)
+                        if best_score is None or score < best_score - 1e-9:
+                            best_pts, best_score, best_key = trial, score, key
+
+            if best_pts is None or len(best_pts) == 0:
+                # Pathological shape (e.g. a sliver thinner than any lattice
+                # tried). Never return empty - the run must complete.
+                grid_size0 = int(np.sqrt(target)) or 1
+                min_lon, min_lat = coords[:, 0].min(), coords[:, 1].min()
+                max_lon, max_lat = coords[:, 0].max(), coords[:, 1].max()
+                return [
+                    (float(lat), float(lon))
+                    for lon, lat in self._bbox_grid(
+                        min_lon, min_lat, max_lon, max_lat, grid_size0)
+                ]
+
+            # Raster order (north to south, west to east) so point numbering in
+            # the UI table and on the PDF map reads across the area rather than
+            # in lattice-construction order.
+            order = np.lexsort((best_pts[:, 0], -best_pts[:, 1]))
+            out = to_lonlat(best_pts[order])
+            return [(float(lat), float(lon)) for lon, lat in out]
 
         except Exception as e:
             # Return error instead of fallback single point sampling
             raise ValueError(f"Failed to generate sample points: {str(e)}. Area coordinates may be invalid or insufficient for grid sampling.")
-    
+
     def _calculate_area_km2(self, coordinates: List[List[float]]) -> float:
         """
         Calculate approximate area of polygon in square kilometers

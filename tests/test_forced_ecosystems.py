@@ -60,10 +60,13 @@ def test_forced_results_shape_and_stamping():
         assert 0.0 <= coords["lon"] <= 1.0 and 0.0 <= coords["lat"] <= 1.0
 
 
-def test_forced_results_count_bounded():
-    # Mirrors _generate_sample_points: count is the native grid target.
-    res = build_forced_ecosystem_results(SQUARE, "Peatland", num_points=10)
-    assert 0 < len(res["sample_results"]) <= 9  # int(sqrt(10))**2 == 9
+def test_forced_results_count_is_exact():
+    # Mirrors _generate_sample_points, which now returns exactly the requested
+    # count for any n. It used to round down to the nearest perfect square,
+    # so 10 came back as 9.
+    for n in (9, 10, 25, 37):
+        res = build_forced_ecosystem_results(SQUARE, "Peatland", num_points=n)
+        assert len(res["sample_results"]) == n, (n, len(res["sample_results"]))
 
 
 def test_registry_helpers():
@@ -86,7 +89,7 @@ _TESTS = [
     ("multi-word ecosystem lookup resolves", test_multiword_ecosystem_lookup_resolves),
     ("single-word lookup still works", test_single_word_lookup_still_works),
     ("forced results shape + stamping", test_forced_results_shape_and_stamping),
-    ("forced results count bounded", test_forced_results_count_bounded),
+    ("forced results count is exact", test_forced_results_count_is_exact),
     ("registry helpers", test_registry_helpers),
 ]
 
