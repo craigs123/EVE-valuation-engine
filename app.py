@@ -1245,7 +1245,50 @@ def display_data_source_status(analysis_results: Dict = None):
             sampling_point_data = analysis_results.get('sampling_point_data', {})
             landcover_codes = analysis_results.get('landcover_codes', {})
             data_source = analysis_results.get('landcover_data_source', 'estimated')
-            
+
+            # Warm the country lookups behind one visible wait message before
+            # anything below needs them. Nominatim allows one request per
+            # second, so a 100-point area spends up to ~100s here on its first
+            # run — and it used to spend it inside the sample-points table and
+            # the country breakdown with nothing on screen to say so, which
+            # reads as a hung app. Streamlit runs collapsed expanders anyway,
+            # so collapsing the panel never avoided the cost.
+            _country_todo = []
+            _country_seen = set()
+            for _pt in sampling_point_data.values():
+                _c = _pt.get('coordinates') or {}
+                if not isinstance(_c, dict):
+                    continue
+                _la, _lo = _c.get('lat', 0), _c.get('lon', 0)
+                if not (_la or _lo):
+                    continue
+                # Marine points are never assigned a country (no regional
+                # adjustment applies), so they cost nothing to skip here.
+                if get_esvd_ecosystem_from_landcover_code(
+                        _pt.get('landcover_class', 0), analysis_results) == 'Marine':
+                    continue
+                # The lookup caches on coordinates rounded to ~1 km, so points
+                # sharing a cell cost one request between them.
+                _key = (round(float(_la), 2), round(float(_lo), 2))
+                if _key in _country_seen:
+                    continue
+                _country_seen.add(_key)
+                _country_todo.append((_la, _lo))
+
+            if len(_country_todo) > 1:
+                with st.spinner(
+                    f"Please wait — identifying the country for "
+                    f"{len(_country_todo)} sample locations. OpenStreetMap "
+                    f"allows one lookup per second, so this can take up to "
+                    f"{len(_country_todo)} seconds the first time an area is "
+                    f"analysed. Repeat runs reuse the result and are instant."
+                ):
+                    _country_bar = st.progress(0.0)
+                    for _i, (_la, _lo) in enumerate(_country_todo, start=1):
+                        get_country_from_coordinates(_la, _lo)
+                        _country_bar.progress(_i / len(_country_todo))
+                    _country_bar.empty()
+
             with st.expander("Sampling Points Analysis Details", expanded=False):
                 data_source_check = st.session_state.get('landcover_data_source', data_source)
                 
@@ -1951,7 +1994,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.11.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.11.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -5879,7 +5922,7 @@ if analyze_button and st.session_state.selected_area:
             # Enhanced loading state with modern design
             st.markdown("""
             <div class="modern-card loading-pulse">
-                <h4>🔄 Analyzing Your Ecosystem...</h4>
+                <h4>🔄 Analysing Your Ecosystem...</h4>
                 <p>We're processing your selected area using satellite data and scientific valuation coefficients.</p>
             </div>
             """, unsafe_allow_html=True)
@@ -5887,7 +5930,7 @@ if analyze_button and st.session_state.selected_area:
             progress_text = st.empty()
             progress_bar = st.progress(0)
         
-        with st.spinner("Please wait - Analyzing ecosystem and calculating values..."):
+        with st.spinner("Please wait - Analysing ecosystem and calculating values..."):
             # Detect ecosystem type if auto-detection is enabled or convert manual selection
             ecosystem_type = st.session_state.ecosystem_override
             
@@ -5994,14 +6037,16 @@ if analyze_button and st.session_state.selected_area:
                     
                     # Enhanced progress callback with sample count and percentage
                     def update_progress(current_point, total_points):
-                        # Update progress every 25% or final point for maximum performance
-                        if current_point % max(1, total_points // 4) == 0 or current_point == total_points:
-                            progress = current_point / total_points
-                            progress_bar.progress(progress)
-                            if current_point == total_points:
-                                progress_text.success(f"✅ Analysis complete: {current_point}/{total_points} samples ({progress:.0%})")
-                            else:
-                                progress_text.info(f"🔍 Sampling progress: {current_point}/{total_points} samples ({progress:.0%})")
+                        # Update on every point. The old every-25% throttle left
+                        # the bar motionless for a quarter of the run at a time,
+                        # which at high sample counts is long enough to read as
+                        # a hung app.
+                        progress = current_point / total_points
+                        progress_bar.progress(progress)
+                        if current_point == total_points:
+                            progress_text.success(f"✅ Analysis complete: {current_point}/{total_points} samples ({progress:.0%})")
+                        else:
+                            progress_text.info(f"🔍 Sampling progress: {current_point}/{total_points} samples ({progress:.0%})")
                     
                     if not _pending_classification:
                         # Pass the selected test area through so analyze_area_ecosystem
@@ -6815,15 +6860,13 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                 if _per_ha_target is not None:
                     st.caption(f"${_per_ha_target:,.0f}/ha (target)")
             with col3:
-                # Area display with water exclusion for summary
+                # The whole selected area is analysed — open water included,
+                # valued with its classified ecosystem's coefficients. The old
+                # 'water excluded' variant of this metric read from
+                # water_area_hectares, which only the inactive
+                # utils/ecosystem_services module ever set.
                 land_area = results.get('area_ha', results.get('area_hectares', 0))
-                water_area = results.get('water_area_hectares', 0)
-
-                if water_area > 0:
-                    st.metric("Land Area Analyzed", format_area_ha(land_area))
-                    st.caption(f"🌊 {format_area_ha(water_area)} water excluded")
-                else:
-                    st.metric("Area Analyzed", format_area_ha(land_area))
+                st.metric("Area Analysed", format_area_ha(land_area))
 
                 # When project-specific indicators scale the valuation to a
                 # subset of the selected area, show what was selected vs the
@@ -6959,7 +7002,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             **TEEB Integration**:
             - TEEB coefficients integrated into pre-computed ESVD values
             - Focus on policy-relevant ecosystem service values
-            - All values standardized and pre-calculated for consistency
+            - All values standardised and pre-calculated for consistency
             
             **Regional Adjustment**:
             Base ESVD values are adjusted for local conditions:
@@ -6967,7 +7010,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             - Cost of living: Local economic conditions and price levels
             - Data quality: Availability and reliability of regional studies
             
-            **Standardization**:
+            **Standardisation**:
             - All values converted to 2025 International dollars
             - Per hectare per year basis for global comparability
             - Quality assurance: Only peer-reviewed studies included
@@ -6975,7 +7018,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
             **Calculation Formula**:
             Final Value = (Pre-computed ESVD Coefficient) × (Area in hectares) × (Regional Factor)
             
-            **Performance Optimization**:
+            **Performance Optimisation**:
             - Pre-computed coefficients eliminate database query overhead
             - 238,270x performance improvement (6.7 million calculations/second)
             - Zero accuracy loss compared to dynamic ESVD database queries
@@ -7537,7 +7580,7 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     **Total Records**: {esvd_status['total_records']:,} peer-reviewed ecosystem service values  
                     **Studies**: {esvd_status['unique_studies']:,} unique research studies  
                     **Biomes**: {esvd_status['unique_biomes']:,} different ecosystem types  
-                    **Standardization**: All values in Int$/ha/year (2025 price levels)
+                    **Standardisation**: All values in Int$/ha/year (2025 price levels)
                     
                     🎯 **Your analysis uses real peer-reviewed data from 30+ years of ecosystem service research**
                     """)

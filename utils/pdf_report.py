@@ -486,7 +486,6 @@ def generate_pdf_report(
 
     # --- summary meta table ---
     area_ha = results.get('area_ha', results.get('area_hectares', 0))
-    water_ha = results.get('water_area_hectares', 0)
     total_value = results.get('total_value', 0)
     per_ha = results.get('value_per_ha', total_value / area_ha if area_ha else 0)
     analysis_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
@@ -521,7 +520,7 @@ def generate_pdf_report(
 
     meta_rows = [
         ['Analysis Date', analysis_date, 'Country / Region', country or '—'],
-        ['Water excluded', f'{water_ha:,.1f} ha' if water_ha else '—',
+        ['Area Analysed', format_area_ha(area_ha),
          'Regional Factor', f'{regional_factor:.2f}×'],
         ['Total Annual Value', f'Int$ {total_value:,.0f}/yr',
          'Value per Hectare', f'Int$ {per_ha:,.0f}/ha/yr'],
@@ -670,7 +669,7 @@ def generate_pdf_report(
         geo_rows = [
             ['Centre', format_latlon(c_lat, c_lon),
              'Bounding box (N, S)', format_latlon(max_lat, min_lat)],
-            ['Area (land)', format_area_ha(area_ha),
+            ['Area Analysed', format_area_ha(area_ha),
              'Bounding box (E, W)', format_latlon(max_lon, min_lon)],
         ]
         geo_table = Table(geo_rows, colWidths=[4 * cm, 6 * cm, 4 * cm, 4 * cm])
@@ -707,7 +706,7 @@ def generate_pdf_report(
         sample_meta = [
             ['Total Sample Points', str(total_pts),
              'Land Points', str(land_pts)],
-            ['Water Points (excluded)', str(water_pts),
+            ['Water Points', str(water_pts),
              'Average EEI',
              f'{avg_eei:.3f} ({avg_eei * 100:.1f}%)' if (eei_enabled and avg_eei is not None) else '—'],
         ]
@@ -729,6 +728,18 @@ def generate_pdf_report(
         ]))
         story.append(sm_table)
         story.append(Spacer(1, 0.25 * cm))
+
+        # Open water is valued, not excluded — say so, because the count above
+        # sat under a "(excluded)" label until v3.11.5 and readers may carry
+        # that assumption over.
+        if water_pts:
+            story.append(Paragraph(
+                'Water points are classified as ocean, rivers and lakes, or coastal '
+                'and valued using the coefficients for that ecosystem, so they '
+                'contribute to the totals in this report. They are excluded only from the '
+                'country breakdown below, which covers land points.',
+                caption))
+            story.append(Spacer(1, 0.25 * cm))
 
         # Demo-data caveat: if the EEI service fell back to fabricated data
         # for any point, those points were excluded — say so explicitly so
