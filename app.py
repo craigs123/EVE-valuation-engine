@@ -2016,7 +2016,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.0 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.1 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -3740,12 +3740,33 @@ def _eroi_calc_details_dialog(eroi: dict) -> None:
         st.rerun()
 
 
+def _is_project_run(results: dict) -> bool:
+    """Was this analysis driven by 'Use project-specific indicators'?
+
+    Reads the stamp written at calculation time rather than the live
+    checkbox, so the dashboard and the report both describe the run that
+    produced the numbers. A target valuation is accepted as evidence on its
+    own because only the indicator path can produce one — that keeps
+    analyses saved before the stamp existed working.
+    """
+    if not results:
+        return False
+    return bool(results.get('project_indicators_used')
+                or results.get('total_value_target') is not None)
+
+
 def render_eroi_panel(results: dict) -> None:
     """Render the Ecological Return on Investment panel beneath the results
-    totals. Shows nothing for non-project runs (no target valuation); nudges
-    the user when a project cost is still needed."""
-    if not results or results.get('total_value_target') is None:
-        return  # Not a project run with a target valuation.
+    totals.
+
+    Shown for every project run — every analysis driven by 'Use
+    project-specific indicators' — so the dashboard and the Investment
+    Report agree on which analyses are detailed ones. When the appraisal
+    itself cannot be computed (no cost, no target condition, or no uplift)
+    the panel says which input is missing instead of vanishing.
+    """
+    if not results or not _is_project_run(results):
+        return  # Not a project run.
 
     cost = float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0)
     baseline_date = st.session_state.get('pending_indicator_baseline_date')
@@ -3763,6 +3784,13 @@ def render_eroi_panel(results: dict) -> None:
 
     # Heading sits above the panel, matching "## Ecosystem Services Breakdown".
     st.markdown("## Ecological Return on Investment (EROI)")
+    # Report the missing input in the same order compute_eroi tests them, so
+    # the message names the first thing the user actually has to supply.
+    if results.get('total_value_target') is None:
+        st.info("No target condition set — give every committed indicator a "
+                "target score in the project-indicator panel and re-calculate "
+                "to see EROI.")
+        return
     if cost <= 0:
         st.info("Enter an estimated project cost in the project-indicator "
                 "panel to see EROI.")
@@ -6522,6 +6550,11 @@ if analyze_button and st.session_state.selected_area:
             # mixed-ecosystem path always values the full selected area.
             _baseline_pct = _target_pct = 100
             _baseline_area_ha = _target_area_ha = area_ha
+            # Did project-specific indicators actually drive this run? Set by
+            # whichever branch runs below, and stamped into analysis_results
+            # so the report describes the analysis that produced the numbers
+            # rather than whatever the checkbox says when the PDF is built.
+            _indicator_driven = False
 
             if has_mixed_ecosystems:
 
@@ -6571,6 +6604,7 @@ if analyze_button and st.session_state.selected_area:
                     ecosystem_intactness = _effective_intactness_dict()
                     _ind_dict = _build_indicator_multiplier_dict(eco_type)
                     if _ind_dict is not None:
+                        _indicator_driven = True
                         intactness_arg = _ind_dict
                     else:
                         intactness_arg = _get_ecosystem_intactness_multiplier(eco_type, ecosystem_intactness)
@@ -6663,6 +6697,7 @@ if analyze_button and st.session_state.selected_area:
                 # responses exist for this ecosystem) or uniform BBI scalar.
                 ecosystem_intactness = _effective_intactness_dict()
                 _ind_dict = _build_indicator_multiplier_dict(ecosystem_type)
+                _indicator_driven = _ind_dict is not None
                 if _ind_dict is not None:
                     intactness_arg = _ind_dict
                 else:
@@ -6782,6 +6817,13 @@ if analyze_button and st.session_state.selected_area:
                 # slider happens to say when it is reopened.
                 'urban_green_blue_pct': st.session_state.get(
                     'urban_green_blue_multiplier', URBAN_MULTIPLIER_DEFAULT_PCT),
+                # True when 'Use project-specific indicators' drove this run.
+                # This — not the presence of EROI metrics — is what makes the
+                # report an Investment Report: a project run with no cost
+                # entered, or no target condition set, is still a project run
+                # and still gets the full report, minus the sections whose
+                # inputs are genuinely missing.
+                'project_indicators_used': _indicator_driven,
             }
             # Indicator-driven target valuation, if all committed indicators
             # have a target_score. Display code below reads these keys and
@@ -8189,9 +8231,109 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     except Exception:
                         pass
 
-                    # Recompute the Summary Statistics bundle (sample-point
-                    # breakdown) so the PDF mirrors what the UI shows.
-                    _pdf_summary = None
+                    # The report bundle is assembled in independent pieces so
+                    # that one failing piece degrades only itself. Previously
+                    # every piece lived inside a single try/except that set the
+                    # whole bundle to None, so an unrelated error — or simply
+                    # having no sample points — silently downgraded a project
+                    # run to the basic report.
+                    _pdf_summary: Dict[str, Any] = {
+                        'average_eei': st.session_state.get('average_eei'),
+                        'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
+                        'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
+                        'eei_status': st.session_state.get('eei_status'),
+                        'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
+                        'predominant_country': st.session_state.get('predominant_country_info'),
+                        'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
+                        'target_date': st.session_state.get('pending_indicator_target_date'),
+                        # Whether this is an Investment Report. Read from the
+                        # analysis itself, not from the live checkbox, so the
+                        # report matches the run it was built from.
+                        'project_run': _is_project_run(_pdf_results),
+                    }
+
+                    # ---- project parameters + EROI (project runs only) ----
+                    # project_params is populated whether or not EROI resolves,
+                    # so the Project Inputs table stands on its own.
+                    _pdf_summary['eroi'] = None
+                    _pdf_summary['project_params'] = None
+                    _pdf_summary['eroi_unavailable_reason'] = None
+                    if _pdf_summary['project_run']:
+                        try:
+                            from utils.analysis_helpers import (
+                                compute_eroi as _ch_eroi,
+                                EROI_APPRAISAL_HORIZON_YEARS as _ch_horizon,
+                            )
+                            _p_cost = float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0)
+                            _p_duration = _project_duration_years(
+                                st.session_state.get('pending_indicator_baseline_date'),
+                                st.session_state.get('pending_indicator_target_date'))
+                            _p_rate = float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0
+                            _p_maint = float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0)
+                            _p_buffer = float(st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0)
+                            _pdf_summary['project_params'] = {
+                                'cost': _p_cost,
+                                'duration_years': _p_duration,
+                                'discount_rate': _p_rate,
+                                'maintenance_cost': _p_maint,
+                                'reversal_buffer_pct': _p_buffer,
+                                'horizon_years': _ch_horizon,
+                            }
+                            _pdf_summary['eroi'] = _ch_eroi(
+                                baseline_value=_pdf_results.get('total_value'),
+                                target_value=_pdf_results.get('total_value_target'),
+                                cost=_p_cost,
+                                duration_years=_p_duration,
+                                discount_rate=_p_rate,
+                                maintenance_cost=_p_maint,
+                                reversal_buffer_pct=_p_buffer,
+                            )
+                            if _pdf_summary['eroi'] is None:
+                                # Say which input is missing rather than
+                                # dropping the investment sections in silence.
+                                _t_val = _pdf_results.get('total_value_target')
+                                if _t_val is None:
+                                    _pdf_summary['eroi_unavailable_reason'] = (
+                                        'no target condition was set — every committed '
+                                        'indicator needs a target score before a target '
+                                        'valuation, and therefore an investment return, '
+                                        'can be computed')
+                                elif _p_cost <= 0:
+                                    _pdf_summary['eroi_unavailable_reason'] = (
+                                        'no project cost was entered — enter an estimated '
+                                        'capital cost in the project-indicator panel to '
+                                        'appraise the investment')
+                                else:
+                                    _pdf_summary['eroi_unavailable_reason'] = (
+                                        'the target valuation does not exceed the baseline, '
+                                        'so there is no value uplift to return on the '
+                                        'investment')
+                        except Exception:
+                            _pdf_summary['eroi'] = None
+                            _pdf_summary['eroi_unavailable_reason'] = (
+                                'the investment metrics could not be computed from the '
+                                'project inputs recorded for this analysis')
+
+                    # ---- carbon revenue opportunity (all report types) ----
+                    try:
+                        from utils.analysis_helpers import compute_carbon_revenue as _ccr
+                        _cr_area = _pdf_results.get('area_ha') or _pdf_results.get('area_hectares') or 0
+                        _cr_total = _climate_regulation_total(_pdf_results)
+                        if _cr_area and _cr_total > 0:
+                            _pdf_summary['carbon'] = _ccr(
+                                climate_reg_per_ha=_cr_total / _cr_area,
+                                regional_factor=_pdf_results.get('regional_adjustment_factor', _pdf_results.get('regional_factor', 1.0)),
+                                assumed_scc=float(st.session_state.get('carbon_scc', 190.0) or 190.0),
+                                carbon_price_low=float(st.session_state.get('carbon_price_low', 10.0) or 0.0),
+                                carbon_price_high=float(st.session_state.get('carbon_price_high', 30.0) or 0.0),
+                                intervention_area_ha=(_pdf_results.get('area_ha_target') or _cr_area),
+                                ecosystem_type=_pdf_results.get('ecosystem_type'),
+                            )
+                    except Exception:
+                        _pdf_summary['carbon'] = None
+
+                    # ---- sample-point breakdown, mirroring the UI's
+                    # Summary Statistics section ----
                     try:
                         _sampling = st.session_state.get('sampling_point_data', {}) or {}
                         if _sampling:
@@ -8214,62 +8356,17 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                                     _pt.get('landcover_class'), _pdf_results
                                 ) or 'Unknown'
                                 _eco_counts[_eco] = _eco_counts.get(_eco, 0) + 1
-                            # EROI metrics for the PDF (project runs only).
-                            _eroi_pdf = None
-                            try:
-                                from utils.analysis_helpers import compute_eroi as _ch_eroi
-                                _eroi_pdf = _ch_eroi(
-                                    baseline_value=_pdf_results.get('total_value'),
-                                    target_value=_pdf_results.get('total_value_target'),
-                                    cost=float(st.session_state.get('pending_indicator_project_cost', 0.0) or 0.0),
-                                    duration_years=_project_duration_years(
-                                        st.session_state.get('pending_indicator_baseline_date'),
-                                        st.session_state.get('pending_indicator_target_date')),
-                                    discount_rate=float(st.session_state.get('pending_indicator_discount_rate', 3.5) or 0.0) / 100.0,
-                                    maintenance_cost=float(st.session_state.get('pending_indicator_maintenance_cost', 0.0) or 0.0),
-                                    reversal_buffer_pct=float(st.session_state.get('pending_indicator_reversal_buffer', 0.20) or 0.0),
-                                )
-                            except Exception:
-                                _eroi_pdf = None
-                            # Carbon revenue opportunity for the PDF.
-                            _carbon_pdf = None
-                            try:
-                                from utils.analysis_helpers import compute_carbon_revenue as _ccr
-                                _cr_area = _pdf_results.get('area_ha') or _pdf_results.get('area_hectares') or 0
-                                _cr_total = _climate_regulation_total(_pdf_results)
-                                if _cr_area and _cr_total > 0:
-                                    _carbon_pdf = _ccr(
-                                        climate_reg_per_ha=_cr_total / _cr_area,
-                                        regional_factor=_pdf_results.get('regional_adjustment_factor', _pdf_results.get('regional_factor', 1.0)),
-                                        assumed_scc=float(st.session_state.get('carbon_scc', 190.0) or 190.0),
-                                        carbon_price_low=float(st.session_state.get('carbon_price_low', 10.0) or 0.0),
-                                        carbon_price_high=float(st.session_state.get('carbon_price_high', 30.0) or 0.0),
-                                        intervention_area_ha=(_pdf_results.get('area_ha_target') or _cr_area),
-                                        ecosystem_type=_pdf_results.get('ecosystem_type'),
-                                    )
-                            except Exception:
-                                _carbon_pdf = None
-                            _pdf_summary = {
+                            _pdf_summary.update({
                                 'sample_points_total': len(_sampling),
                                 'land_points': _land_pts,
                                 'water_points': _water_pts,
                                 'country_counts': _country_counts,
                                 'ecosystem_counts': _eco_counts,
-                                'average_eei': st.session_state.get('average_eei'),
-                                'ecosystem_eei': st.session_state.get('ecosystem_eei', {}),
-                                'eei_enabled': st.session_state.get('use_eei_for_intactness', False),
-                                'eei_status': st.session_state.get('eei_status'),
-                                'eei_demo_ecosystems': st.session_state.get('ecosystem_eei_demo') or {},
-                                'predominant_country': st.session_state.get('predominant_country_info'),
-                                'eroi': _eroi_pdf,
-                                'carbon': _carbon_pdf,
-                                'baseline_date': st.session_state.get('pending_indicator_baseline_date'),
-                                'target_date': st.session_state.get('pending_indicator_target_date'),
                                 'env_indicators': _build_pdf_env_indicators(_sampling),
                                 'sample_points': _pdf_sample_points(_sampling),
-                            }
+                            })
                     except Exception:
-                        _pdf_summary = None
+                        pass
 
                     _pdf_bytes = _gen_pdf_fn(
                         results=_pdf_results,
