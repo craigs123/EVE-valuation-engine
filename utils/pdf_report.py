@@ -258,7 +258,8 @@ def generate_pdf_report(
         story.append(Spacer(1, 0.35 * cm))
         _bt_chart = _baseline_target_chart(results)
         if _bt_chart:
-            _bt_img = Image(io.BytesIO(_bt_chart), width=14 * cm, height=7 * cm)
+            _bt_img = Image(io.BytesIO(_bt_chart),
+                            width=_CHART_WIDE[0] * cm, height=_CHART_WIDE[1] * cm)
             _bt_img.hAlign = 'CENTER'
             story.append(_bt_img)
         story.append(PageBreak())
@@ -431,7 +432,8 @@ def generate_pdf_report(
             story.append(Spacer(1, 0.3 * cm))
             _cum_chart = _cumulative_value_chart(eroi)
             if _cum_chart:
-                _cum_img = Image(io.BytesIO(_cum_chart), width=14 * cm, height=7 * cm)
+                _cum_img = Image(io.BytesIO(_cum_chart),
+                                 width=_CHART_WIDE[0] * cm, height=_CHART_WIDE[1] * cm)
                 _cum_img.hAlign = 'CENTER'
                 story.append(_cum_img)
                 story.append(Spacer(1, 0.1 * cm))
@@ -492,18 +494,30 @@ def generate_pdf_report(
                 _sens_rows.append((_lbl, _lb, _ln, _hb, _hn))
 
             story.append(Paragraph('Sensitivity Analysis', h2))
-            _sens_tbl = [['Parameter', 'Low BCR', 'Low NPV', 'Central BCR',
-                          'Central NPV', 'High BCR', 'High NPV']]
+            # Header and parameter cells are Paragraphs so they wrap inside
+            # their column. As plain strings ReportLab does not wrap them: the
+            # longer parameter names ran straight through the Low BCR column
+            # and overprinted its figures, and 'Central BCR' overprinted
+            # 'Central NPV'. The parameter name and its variant range are put
+            # on separate lines, matching the tornado's y-axis labels.
+            _sens_hdr_st = ParagraphStyle(
+                'sensHdr', parent=body, fontName='Helvetica-Bold',
+                fontSize=7.5, leading=9, textColor=colors.white)
+            _sens_cell_st = ParagraphStyle(
+                'sensCell', parent=body, fontSize=7.5, leading=9)
+            _sens_tbl = [[Paragraph(_h, _sens_hdr_st) for _h in
+                          ('Parameter', 'Low BCR', 'Low NPV', 'Central BCR',
+                           'Central NPV', 'High BCR', 'High NPV')]]
             for _lbl, _lb, _ln, _hb, _hn in _sens_rows:
                 _sens_tbl.append([
-                    _lbl,
+                    Paragraph(_lbl.replace('  (', '<br/>('), _sens_cell_st),
                     f'{_lb:.2f}×', f'{_ln:,.0f}',
                     f'{_central_bcr:.2f}×', f'{_central_npv:,.0f}',
                     f'{_hb:.2f}×', f'{_hn:,.0f}',
                 ])
-            _sens_table = Table(_sens_tbl, colWidths=[4.2 * cm, 1.8 * cm, 2.4 * cm,
-                                                      1.85 * cm, 2.4 * cm, 1.8 * cm,
-                                                      2.4 * cm])
+            _sens_table = Table(_sens_tbl, colWidths=[4.4 * cm, 1.75 * cm, 2.3 * cm,
+                                                      1.9 * cm, 2.3 * cm, 1.75 * cm,
+                                                      2.3 * cm])
             _sens_table.setStyle(_standard_table_style(EVE_GREEN, EVE_GREEN_LIGHT))
             story.append(_sens_table)
             story.append(Paragraph('All NPV figures in Int$. The Central column '
@@ -513,7 +527,9 @@ def generate_pdf_report(
 
             _torn = _tornado_chart(_sens_rows, _central_npv)
             if _torn:
-                _torn_img = Image(io.BytesIO(_torn), width=15 * cm, height=9.5 * cm)
+                _torn_img = Image(io.BytesIO(_torn),
+                                  width=_CHART_TORNADO[0] * cm,
+                                  height=_CHART_TORNADO[1] * cm)
                 _torn_img.hAlign = 'CENTER'
                 story.append(_torn_img)
                 story.append(Spacer(1, 0.25 * cm))
@@ -1052,7 +1068,8 @@ def generate_pdf_report(
     pie_img = _service_pie_chart(results)
     if pie_img:
         story.append(Paragraph('Service Category Share', h2))
-        _pie_obj = Image(io.BytesIO(pie_img), width=11 * cm, height=7.3 * cm)
+        _pie_obj = Image(io.BytesIO(pie_img),
+                         width=_CHART_DONUT[0] * cm, height=_CHART_DONUT[1] * cm)
         _pie_obj.hAlign = 'CENTER'
         story.append(_pie_obj)
         story.append(Spacer(1, 0.3 * cm))
@@ -1062,7 +1079,8 @@ def generate_pdf_report(
         chart_img = _try_chart_image(results)
         if chart_img:
             story.append(Paragraph('Service Value Breakdown', h2))
-            img_obj = Image(io.BytesIO(chart_img), width=14 * cm, height=7 * cm)
+            img_obj = Image(io.BytesIO(chart_img),
+                            width=_CHART_WIDE[0] * cm, height=_CHART_WIDE[1] * cm)
             img_obj.hAlign = 'CENTER'
             story.append(img_obj)
             story.append(Spacer(1, 0.3 * cm))
@@ -1324,6 +1342,31 @@ def _standard_table_style(header_colour, stripe_colour):
 _CHART_GREEN_DARK = '#1B5E20'
 _CHART_PLOT_BG = '#F9FBF9'
 
+# Raster density of the chart PNGs. They are placed at exactly the figure
+# size, so this is the true dpi on the page.
+_CHART_DPI = 300
+
+# Placed size (width_cm, height_cm) of each chart in the document. The figure
+# is built at exactly this size and saved WITHOUT a tight bounding box, so the
+# PNG lands 1:1: no rescaling, no aspect distortion, and text renders at the
+# point size it was specified in. These constants are used both to build the
+# figure and to place it, so the two cannot drift apart — a tight bbox plus a
+# fixed width/height is what stretched the glyphs sideways before.
+_CHART_WIDE = (14.0, 7.0)        # bar / baseline-vs-target / cumulative
+_CHART_DONUT = (11.0, 7.3)
+_CHART_TORNADO = (15.0, 9.5)
+
+
+def _new_fig(size_cm):
+    """Figure sized to its final placement, with constrained layout so long
+    tick labels shrink the axes rather than overflow the canvas. Using
+    bbox_inches='tight' at save time instead would change the output size and
+    reintroduce the rescaling this is here to avoid."""
+    plt = _mpl()
+    w_cm, h_cm = size_cm
+    return plt.subplots(figsize=(w_cm / 2.54, h_cm / 2.54),
+                        dpi=_CHART_DPI, layout='constrained')
+
 
 def _mpl():
     """Import pyplot with the Agg backend pinned. Agg is headless and
@@ -1336,16 +1379,25 @@ def _mpl():
 
 
 def _compact_money(v, _pos=None):
-    """Axis tick label: 1.2M / 850k / 430, mirroring Plotly's SI-style
-    abbreviation so the axes stay readable at these magnitudes."""
+    """Axis tick label: 1.25M / 850k / 430, mirroring Plotly's SI-style
+    abbreviation so the axes stay readable at these magnitudes.
+
+    Trailing zeros are trimmed rather than padded to a fixed precision. At one
+    decimal place an evenly spaced 250k series rendered as 1M / 1.2M / 1.5M /
+    1.8M, which reads as irregular steps because 1.25 and 1.75 were being
+    rounded; it now reads 1M / 1.25M / 1.5M / 1.75M.
+    """
+    def _trim(x, unit):
+        return f'{x:,.2f}'.rstrip('0').rstrip('.') + unit
+
     a = abs(v)
     if a >= 1_000_000_000:
-        return f'{v / 1_000_000_000:,.1f}B'
+        return _trim(v / 1_000_000_000, 'B')
     if a >= 1_000_000:
-        return f'{v / 1_000_000:,.1f}M'
+        return _trim(v / 1_000_000, 'M')
     if a >= 1_000:
-        return f'{v / 1_000:,.0f}k'
-    return f'{v:,.0f}'
+        return _trim(v / 1_000, 'k')
+    return _trim(v, '')
 
 
 def _style_axes(ax, grid_axis='y'):
@@ -1362,10 +1414,10 @@ def _style_axes(ax, grid_axis='y'):
 
 
 def _finish_chart(fig):
-    """Render the figure to PNG bytes and release it."""
+    """Render the figure to PNG bytes and release it. No bbox_inches — the
+    saved image must keep the exact figure size it was built at."""
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', facecolor='white', bbox_inches='tight',
-                pad_inches=0.12)
+    fig.savefig(buf, format='png', facecolor='white', dpi=_CHART_DPI)
     _mpl().close(fig)
     return buf.getvalue()
 
@@ -1385,14 +1437,14 @@ def _try_chart_image(results: Dict[str, Any]) -> Optional[bytes]:
             return None
 
         bar_colours = ['#2E7D32', '#4CAF50', '#81C784', '#C8E6C9']
-        fig, ax = plt.subplots(figsize=(6, 3.2), dpi=150)
+        fig, ax = _new_fig(_CHART_WIDE)
         bars = ax.bar(labels, values, color=bar_colours, width=0.6)
         ax.bar_label(bars, labels=[f'Int$ {v:,.0f}' for v in values],
-                     padding=3, fontsize=7.5, color='#333333')
+                     padding=3, fontsize=6.5, color='#333333')
         ax.set_title('Annual Value by Ecosystem Service Category (Int$/yr)',
-                     fontsize=9, color=_CHART_GREEN_DARK, pad=10)
-        ax.set_ylabel('Int$/year', fontsize=8)
-        ax.tick_params(labelsize=8)
+                     fontsize=8.5, color=_CHART_GREEN_DARK, pad=6)
+        ax.set_ylabel('Int$/year', fontsize=7.5)
+        ax.tick_params(labelsize=7)
         ax.yaxis.set_major_formatter(FuncFormatter(_compact_money))
         # Headroom so the value labels above each bar are never clipped.
         ax.set_ylim(0, (max(values) * 1.18) or 1)
@@ -1415,17 +1467,17 @@ def _baseline_target_chart(results: Dict[str, Any]) -> Optional[bytes]:
             return None
         uplift = target - baseline
 
-        fig, ax = plt.subplots(figsize=(6, 3.2), dpi=150)
+        fig, ax = _new_fig(_CHART_WIDE)
         bars = ax.bar(['Baseline', 'Target'], [baseline, target],
                       color=['#81C784', '#2E7D32'], width=0.5)
         ax.bar_label(bars,
                      labels=[f'Int$ {baseline:,.0f}', f'Int$ {target:,.0f}'],
-                     padding=3, fontsize=8, color='#333333')
+                     padding=3, fontsize=7, color='#333333')
         ax.set_title(f'Annual Ecosystem-Service Value — Baseline vs Target\n'
                      f'(uplift Int$ {uplift:,.0f}/yr)',
-                     fontsize=9, color=_CHART_GREEN_DARK, pad=10)
-        ax.set_ylabel('Int$/year', fontsize=8)
-        ax.tick_params(labelsize=8)
+                     fontsize=8.5, color=_CHART_GREEN_DARK, pad=6)
+        ax.set_ylabel('Int$/year', fontsize=7.5)
+        ax.tick_params(labelsize=7)
         ax.yaxis.set_major_formatter(FuncFormatter(_compact_money))
         ax.set_ylim(0, (max(baseline, target) * 1.18) or 1)
         _style_axes(ax)
@@ -1453,12 +1505,12 @@ def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
             run += v
             cum.append(run)
 
-        fig, ax = plt.subplots(figsize=(6, 3.2), dpi=150)
-        ax.plot(years, cum, color='#2E7D32', linewidth=2.0)
+        fig, ax = _new_fig(_CHART_WIDE)
+        ax.plot(years, cum, color='#2E7D32', linewidth=1.6)
         ax.fill_between(years, cum, 0, color='#2E7D32', alpha=0.12)
         ax.axhline(0, color='#C62828', linewidth=1.0, linestyle='--')
         ax.annotate('Break-even', xy=(years[0], 0), xytext=(2, 5),
-                    textcoords='offset points', fontsize=7, color='#C62828',
+                    textcoords='offset points', fontsize=6.5, color='#C62828',
                     va='bottom')
         pb = eroi.get('payback_years')
         if pb is not None:
@@ -1472,12 +1524,12 @@ def _cumulative_value_chart(eroi: Dict[str, Any]) -> Optional[bytes]:
                         xycoords=blended_transform_factory(ax.transData,
                                                            ax.transAxes),
                         textcoords='offset points',
-                        fontsize=7, color='#555555', va='top')
+                        fontsize=6.5, color='#555555', va='top')
         ax.set_title('Cumulative Net Cash Flow (after capital & maintenance)',
-                     fontsize=9, color=_CHART_GREEN_DARK, pad=10)
-        ax.set_xlabel('Year', fontsize=8)
-        ax.set_ylabel('Cumulative Int$', fontsize=8)
-        ax.tick_params(labelsize=8)
+                     fontsize=8.5, color=_CHART_GREEN_DARK, pad=6)
+        ax.set_xlabel('Year', fontsize=7.5)
+        ax.set_ylabel('Cumulative Int$', fontsize=7.5)
+        ax.tick_params(labelsize=7)
         ax.yaxis.set_major_formatter(FuncFormatter(_compact_money))
         ax.set_xlim(years[0], years[-1])
         _style_axes(ax)
@@ -1508,7 +1560,7 @@ def _service_pie_chart(results: Dict[str, Any]) -> Optional[bytes]:
         shown = [(c.title(), v, palette[i])
                  for i, (c, v) in enumerate(zip(categories, values)) if v > 0]
 
-        fig, ax = plt.subplots(figsize=(3.73, 2.53), dpi=150)
+        fig, ax = _new_fig(_CHART_DONUT)
         ax.pie(
             [v for _, v, _ in shown],
             labels=[lbl for lbl, _, _ in shown],
@@ -1518,11 +1570,11 @@ def _service_pie_chart(results: Dict[str, Any]) -> Optional[bytes]:
             labeldistance=1.12,
             startangle=90,
             counterclock=False,
-            wedgeprops=dict(width=0.6, edgecolor='white', linewidth=1.2),
-            textprops=dict(fontsize=7),
+            wedgeprops=dict(width=0.6, edgecolor='white', linewidth=1.0),
+            textprops=dict(fontsize=6.5),
         )
         ax.set_title('Share of Annual Value by Service Category',
-                     fontsize=9, color=_CHART_GREEN_DARK, pad=8)
+                     fontsize=8.5, color=_CHART_GREEN_DARK, pad=4)
         ax.axis('equal')
         return _finish_chart(fig)
     except Exception:
@@ -1555,18 +1607,18 @@ def _tornado_chart(sens_rows, central_npv: float) -> Optional[bytes]:
         # Index 0 plots at the bottom, so the ascending sort above puts the
         # widest range at the top — the tornado shape.
         ypos = list(range(len(rows)))
-        fig, ax = plt.subplots(figsize=(4.4, 2.8), dpi=150)
+        fig, ax = _new_fig(_CHART_TORNADO)
         ax.barh(ypos, widths, left=lows, color=colours, height=0.62)
-        ax.axvline(central_npv, color='#555555', linewidth=1.2, linestyle='--')
+        ax.axvline(central_npv, color='#555555', linewidth=1.0, linestyle='--')
         ax.annotate(f'Central NPV Int$ {central_npv:,.0f}',
                     xy=(central_npv, len(rows) - 0.4), xytext=(3, 0),
-                    textcoords='offset points', fontsize=6.5, color='#555555')
+                    textcoords='offset points', fontsize=7, color='#555555')
         ax.set_yticks(ypos)
-        ax.set_yticklabels(labels, fontsize=6.5)
+        ax.set_yticklabels(labels, fontsize=8)
         ax.set_xlabel('Net present value (Int$)', fontsize=8)
         ax.set_title('NPV Sensitivity (tornado)',
-                     fontsize=9, color=_CHART_GREEN_DARK, pad=8)
-        ax.tick_params(axis='x', labelsize=7)
+                     fontsize=10, color=_CHART_GREEN_DARK, pad=6)
+        ax.tick_params(axis='x', labelsize=7.5)
         ax.xaxis.set_major_formatter(FuncFormatter(_compact_money))
         ax.set_ylim(-0.6, len(rows) - 0.15)
         _style_axes(ax, grid_axis='x')
