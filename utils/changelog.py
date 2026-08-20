@@ -13,8 +13,49 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed. Add further v3.12.0 changes to this
-    # entry as they land, rather than opening a new version for each one.
+    # ACCUMULATING — not yet deployed to production. Add further v3.12.3
+    # changes to this entry as they land, rather than opening a new version
+    # for each one.
+    {
+        "version": "v3.12.3 beta",
+        "date": "2026-08-20",
+        "changes": [
+            "The detailed Investment Report now appears whenever you tick "
+            "'Use project-specific indicators'. Before, it only appeared once "
+            "you had also set a target condition for every indicator, entered "
+            "a project cost, and the target came out above the baseline — miss "
+            "any one of those and you silently got the short basic report "
+            "instead, with nothing to say why. The full report is now always "
+            "produced: the sections that genuinely need those figures are "
+            "replaced by a line telling you which one is still missing.",
+            "The Ecological Return on Investment panel on the results page "
+            "now follows the same rule, so the screen and the report always "
+            "agree on whether a run is a detailed one. Previously the panel "
+            "vanished entirely when no target condition had been set.",
+            "Charts now appear in PDF reports. The chart images were being "
+            "produced by a component that needed a hidden web browser to run; "
+            "where that browser could not start, report building would stall "
+            "indefinitely instead of reporting a problem. Charts are now drawn "
+            "directly, which is both reliable and considerably faster.",
+            "Charts in the PDF are much sharper, and no longer stretched. They "
+            "were being drawn at a lower resolution than the page and at a "
+            "slightly different shape from the space they were placed in, so "
+            "the report squashed them to fit — which made lettering look "
+            "smeared, worst of all on the sensitivity (tornado) chart. Each "
+            "chart is now drawn at exactly its printed size and at full print "
+            "resolution.",
+            "The Sensitivity Analysis table no longer prints its parameter "
+            "names over the top of the neighbouring figures. Longer names such "
+            "as 'Ecosystem service uplift' ran past the end of their column "
+            "and overlapped the Low BCR values, making both unreadable; names "
+            "now wrap onto two lines within the column.",
+            "The headline figures at the top of the Investment Report no "
+            "longer overflow their boxes on large projects. The currency is "
+            "now named once in the caption beneath each figure — 'Net Present "
+            "Value (Int$)' — rather than repeated on the figure itself, which "
+            "leaves the room a nine- or ten-digit value needs.",
+        ],
+    },
     {
         "version": "v3.12.0 beta",
         "date": "2026-08-19",
