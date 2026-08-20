@@ -13,11 +13,11 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed to production. Add further v3.12.2
+    # ACCUMULATING — not yet deployed to production. Add further v3.12.3
     # changes to this entry as they land, rather than opening a new version
     # for each one.
     {
-        "version": "v3.12.2 beta",
+        "version": "v3.12.3 beta",
         "date": "2026-08-20",
         "changes": [
             "The detailed Investment Report now appears whenever you tick "
@@ -49,6 +49,11 @@ CHANGELOG: List[Dict] = [
             "as 'Ecosystem service uplift' ran past the end of their column "
             "and overlapped the Low BCR values, making both unreadable; names "
             "now wrap onto two lines within the column.",
+            "The headline figures at the top of the Investment Report no "
+            "longer overflow their boxes on large projects. The currency is "
+            "now named once in the caption beneath each figure — 'Net Present "
+            "Value (Int$)' — rather than repeated on the figure itself, which "
+            "leaves the room a nine- or ten-digit value needs.",
         ],
     },
     {

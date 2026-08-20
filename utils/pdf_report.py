@@ -176,33 +176,44 @@ def generate_pdf_report(
         story.append(Paragraph('Executive Summary', h1))
         story.append(HRFlowable(width="100%", thickness=1.5, color=EVE_GREEN,
                                 spaceAfter=10))
+        # The currency is named in the label, not repeated on every figure —
+        # it buys back the width that large values need.
         if eroi:
-            kpi_values = [f'{eroi["bcr"]:.2f}×', f'Int$ {eroi["npv"]:,.0f}',
+            kpi_values = [f'{eroi["bcr"]:.2f}×', f'{eroi["npv"]:,.0f}',
                           _irr_s, _pb_s, f'{eroi["annual_yield"] * 100:.1f}%/yr']
-            kpi_labels = ['Benefit–Cost Ratio', 'Net Present Value',
+            kpi_labels = ['Benefit–Cost Ratio', 'Net Present Value (Int$)',
                           'Internal Rate of Return', 'Payback Period', 'Annual Yield']
         else:
             # Without investment returns the headline is the valuation itself:
             # what the site is worth now, and what the target condition is
             # worth if one was set.
-            kpi_values = [f'Int$ {baseline_val:,.0f}',
-                          (f'Int$ {target_val:,.0f}' if _has_target else '—'),
-                          _money(_uplift_gross, '/yr')]
-            kpi_labels = ['Baseline Annual Value', 'Target Annual Value',
-                          'Annual Uplift']
+            kpi_values = [f'{baseline_val:,.0f}',
+                          (f'{target_val:,.0f}' if _has_target else '—'),
+                          (f'{_uplift_gross:,.0f}' if _uplift_gross is not None
+                           else '—')]
+            kpi_labels = ['Baseline Annual Value (Int$/yr)',
+                          'Target Annual Value (Int$/yr)',
+                          'Annual Uplift (Int$/yr)']
+        # Both rows are Paragraphs so they wrap inside their cell. As plain
+        # strings ReportLab does not wrap: a large NPV simply ran past the
+        # edge of its box, and the longer labels would do the same.
+        _kpi_val_st = ParagraphStyle(
+            'kpiVal', parent=body, fontName='Helvetica-Bold', fontSize=10,
+            leading=12, textColor=colors.white, alignment=TA_CENTER)
+        _kpi_lbl_st = ParagraphStyle(
+            'kpiLbl', parent=body, fontSize=6.5, leading=8,
+            textColor=EVE_DARK, alignment=TA_CENTER)
         # Fill the 17 cm text frame whichever KPI set is in play.
-        kpi_table = Table([kpi_values, kpi_labels],
-                          colWidths=[(17.0 / len(kpi_values)) * cm] * len(kpi_values))
+        kpi_table = Table(
+            [[Paragraph(_v, _kpi_val_st) for _v in kpi_values],
+             [Paragraph(_l, _kpi_lbl_st) for _l in kpi_labels]],
+            colWidths=[(17.0 / len(kpi_values)) * cm] * len(kpi_values))
         kpi_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), EVE_GREEN),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
             ('BACKGROUND', (0, 1), (-1, 1), EVE_GREEN_LIGHT),
-            ('TEXTCOLOR', (0, 1), (-1, 1), EVE_DARK),
-            ('FONTSIZE', (0, 1), (-1, 1), 7),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('GRID', (0, 0), (-1, -1), 1.5, colors.white),
