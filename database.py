@@ -497,6 +497,30 @@ class UserDB:
             return []
 
     @staticmethod
+    def account_summary() -> Dict:
+        """Headline account counts for the admin digest in the new-signup email.
+
+        removed_last_7_days is the number the reader should care about most:
+        those are people who registered and were auto-removed for not
+        verifying, which is also what a broken email channel looks like from
+        the outside.
+        """
+        try:
+            with get_db() as db:
+                cutoff = datetime.utcnow() - timedelta(days=7)
+                return {
+                    'active': db.query(User).filter(User.status == 'Active').count(),
+                    'pending': db.query(User).filter(User.status == 'Pending').count(),
+                    'removed_last_7_days': db.query(User).filter(
+                        User.status == 'Removed',
+                        User.updated_at >= cutoff,
+                    ).count(),
+                }
+        except Exception as e:
+            logger.error(f"account_summary failed: {e}")
+            return {}
+
+    @staticmethod
     def approve_user(email: str, approved_by: Optional[str] = None) -> tuple:
         """Admin override for the email-verification step: promote a Pending
         account straight to Active so the user can sign in without ever
@@ -617,8 +641,11 @@ class UserDB:
                 # a failure here must never break the registration itself.
                 try:
                     from utils.email_utils import send_new_signup_notification
+                    # Stats are gathered here rather than inside email_utils so
+                    # that module stays free of any database dependency.
                     send_new_signup_notification(
-                        user.email, user.display_name, user.organisation
+                        user.email, user.display_name, user.organisation,
+                        stats=UserDB.account_summary(),
                     )
                 except Exception as e:
                     logger.warning(f"Signup notification failed: {e}")
