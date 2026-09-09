@@ -22,6 +22,8 @@ set -euo pipefail
 PROJECT_ID="eve-solutions-482317"
 REGION="us-central1"
 SERVICE="eve-valuation-engine"
+JOB_NAME="eve-account-lifecycle"
+CLOUDSQL_INSTANCE="eve-solutions-482317:us-central1:eve-db"
 IMAGE_NAME="us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/eve-valuation-engine"
 
 echo "─── Building image via Cloud Build + Kaniko cache ───────────────────────"
@@ -52,6 +54,24 @@ gcloud run deploy "$SERVICE" \
 # until traffic is explicitly shifted. This bit us on 2026-05-28
 # after the v3.8.22 rollback. `--to-latest` is a safe no-op when
 # traffic is already on the new revision.
+echo ""
+echo "─── Deploying $JOB_NAME (lifecycle) ─────────────────────────────"
+# The prod Job runs from the same image as the service and must be
+# redeployed with it — it was left out of this script until 2026-09-09,
+# so the nightly lifecycle pass could quietly run weeks-old code. It now
+# also carries the SMTP canary feeding the "EVE — email sending is broken"
+# alert, which is worth nothing if the Job never picks up a new image.
+# Mirrors the block in deploy_staging.sh.
+gcloud run jobs deploy "$JOB_NAME" \
+    --image "${IMAGE_NAME}:latest" \
+    --region "$REGION" --project "$PROJECT_ID" \
+    --command=python \
+    --args=-m,scripts.check_unverified \
+    --set-cloudsql-instances "$CLOUDSQL_INSTANCE" \
+    --task-timeout=300 \
+    --max-retries=1 \
+    --quiet
+
 echo ""
 echo "─── Routing 100% traffic to latest revision ─────────────────────────────"
 gcloud run services update-traffic "$SERVICE" \

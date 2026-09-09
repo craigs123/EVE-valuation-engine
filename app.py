@@ -2016,7 +2016,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2126,6 +2126,24 @@ analysis_detail = st.session_state.get('analysis_detail', 'Summary Analysis')
 income_elasticity = st.session_state.get('income_elasticity', 0.6)
 time_preset = st.session_state.get('time_preset', 'Current Year (2024)')
 analyze_button = False
+
+
+# ── Admin: outgoing-mail health ────────────────────────────────────────────
+@st.cache_data(ttl=300, show_spinner=False)
+def _smtp_health() -> tuple:
+    """(ok, detail) for the Gmail login, cached for 5 minutes.
+
+    Without the cache every rerun of the settings dialog would pay an SMTP
+    round-trip. The Re-check button clears it. This is the in-app half of the
+    mail-health story — it only helps when someone looks, so the nightly
+    canary in scripts/check_unverified.py and its Cloud Monitoring alert are
+    what actually catch a dead App Password.
+    """
+    try:
+        from utils.email_utils import check_smtp_login
+        return check_smtp_login()
+    except Exception as e:
+        return False, f"Could not run the check: {e}"
 
 
 # ── Admin: approve a Pending account ───────────────────────────────────────
@@ -2560,6 +2578,35 @@ def analysis_settings_dialog():
             with st.expander("User Administration (admin)", expanded=False):
                 try:
                     from database import UserDB as _AdminUserDB
+
+                    # Outgoing-mail health. A dead Gmail App Password has
+                    # twice gone unnoticed for weeks; its only symptom is that
+                    # verification emails silently stop arriving.
+                    _smtp_ok, _smtp_detail = _smtp_health()
+                    _mcol1, _mcol2 = st.columns([5, 1], vertical_alignment="center")
+                    with _mcol1:
+                        if _smtp_ok:
+                            st.success(
+                                "Email is sending normally. Verification, reset and "
+                                "approval emails are all going out.",
+                                icon="✉️",
+                            )
+                        else:
+                            st.error(
+                                "**EVE cannot send any email.** New users get no "
+                                "verification link, and unverified accounts are still "
+                                "removed automatically after 48 hours — approve them "
+                                "by hand below until this is fixed.\n\n"
+                                f"Details: {_smtp_detail}",
+                                icon="⚠️",
+                            )
+                    with _mcol2:
+                        st.button(
+                            "Re-check",
+                            key="admin_smtp_recheck",
+                            on_click=_smtp_health.clear,
+                            use_container_width=True,
+                        )
 
                     # Outcome of an Approve click from the previous rerun.
                     _approve_result = st.session_state.pop('admin_approve_result', None)

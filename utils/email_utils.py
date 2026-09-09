@@ -43,6 +43,38 @@ def _send(to_email: str, subject: str, html_body: str) -> bool:
         return False
 
 
+# Distinctive token for the Cloud Monitoring log-based alert. Changing this
+# string breaks the "EVE - email sending is broken" alert policy, whose filter
+# matches on it. See scripts/check_unverified.py.
+SMTP_CANARY_FAILURE_TOKEN = 'EVE_SMTP_CANARY_FAILED'
+
+
+def check_smtp_login() -> tuple:
+    """Authenticate against Gmail without sending anything.
+
+    Returns (ok, detail). This is the whole of what breaks in practice: the
+    App Password is revoked or expires, every send starts failing with
+    535 BadCredentials, and because failures are logged and swallowed the
+    only symptom is silence. Used by the nightly canary in the lifecycle job
+    and by the admin panel's status line.
+    """
+    if not _GMAIL_USER or not _GMAIL_APP_PASSWORD:
+        return False, "GMAIL_USER or GMAIL_APP_PASSWORD is not set"
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587, timeout=15) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.login(_GMAIL_USER, _GMAIL_APP_PASSWORD)
+        return True, f"Signed in to smtp.gmail.com as {_GMAIL_USER}"
+    except smtplib.SMTPAuthenticationError as e:
+        return False, (
+            f"Gmail rejected the App Password for {_GMAIL_USER}: {e.smtp_code} "
+            f"{e.smtp_error.decode(errors='replace') if isinstance(e.smtp_error, bytes) else e.smtp_error}"
+        )
+    except Exception as e:
+        return False, f"Could not reach smtp.gmail.com as {_GMAIL_USER}: {e}"
+
+
 def send_verification_email(to_email: str, token: str) -> bool:
     verify_url = f"{_APP_BASE_URL}?verify={token}"
     html = f"""
@@ -156,8 +188,35 @@ def send_account_approved_email(to_email: str, display_name: Optional[str] = Non
     return _send(to_email, f"Your {_APP_NAME} account has been approved", html)
 
 
+def _signup_digest_html(stats: Optional[dict]) -> str:
+    """Account digest appended to the new-signup notification.
+
+    Deliberately excludes any claim about email health — see the note in
+    send_new_signup_notification(). removed_last_7_days is the line worth
+    watching: a run of removals is what a broken mail channel looks like
+    from the outside, since unverified accounts are cleared after 48h.
+    """
+    if not stats:
+        return ''
+    removed = stats.get('removed_last_7_days', 0)
+    removed_style = 'color:#B71C1C;font-weight:600;' if removed else 'color:#1F2937;'
+    return f"""
+      <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
+      <p style="color:#666;font-size:0.85rem;margin-bottom:0.4rem;">Accounts right now</p>
+      <table style="border-collapse:collapse;font-size:0.9rem;">
+        <tr><td style="padding:0.2rem 1rem 0.2rem 0;color:#666;">Active</td>
+            <td style="padding:0.2rem 0;">{stats.get('active', 0)}</td></tr>
+        <tr><td style="padding:0.2rem 1rem 0.2rem 0;color:#666;">Awaiting approval</td>
+            <td style="padding:0.2rem 0;">{stats.get('pending', 0)}</td></tr>
+        <tr><td style="padding:0.2rem 1rem 0.2rem 0;color:#666;">Auto-removed, last 7 days</td>
+            <td style="padding:0.2rem 0;{removed_style}">{removed}</td></tr>
+      </table>
+    """
+
+
 def send_new_signup_notification(user_email: str, display_name: Optional[str] = None,
-                                 organisation: Optional[str] = None) -> bool:
+                                 organisation: Optional[str] = None,
+                                 stats: Optional[dict] = None) -> bool:
     """Tell the administrators that someone has registered.
 
     Sent from UserDB.register() as soon as the account row exists, i.e. while
@@ -168,6 +227,14 @@ def send_new_signup_notification(user_email: str, display_name: Optional[str] = 
 
     The app URL is included so a staging signup is distinguishable from a
     production one at a glance.
+
+    `stats` is the optional account digest from UserDB.account_summary() —
+    passed in rather than fetched here so this module keeps no database
+    dependency. Note what this email can and cannot tell you: its arrival
+    proves the mail channel works, so there is deliberately no "SMTP healthy"
+    line. A dead App Password can never report itself this way; that is the
+    nightly canary's job (scripts/check_unverified.py) and the Cloud
+    Monitoring alert that watches for SMTP_CANARY_FAILURE_TOKEN.
     """
     recipients = [a.strip() for a in _ADMIN_NOTIFY_EMAILS.split(',') if a.strip()]
     if not recipients:
@@ -197,6 +264,7 @@ def send_new_signup_notification(user_email: str, display_name: Optional[str] = 
           Open {_APP_NAME}
         </a>
       </p>
+      {_signup_digest_html(stats)}
     </div>
     """
     sent = False
