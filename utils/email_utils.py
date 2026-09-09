@@ -18,6 +18,8 @@ _GMAIL_FROM = os.getenv('GMAIL_FROM', _GMAIL_USER)  # alias to send from (defaul
 
 _APP_NAME = "Ecosystem Valuation Engine"
 _APP_BASE_URL = os.getenv('APP_BASE_URL', 'https://eve-valuation-engine-1025191764754.us-central1.run.app')
+# Where new-signup notifications go. Comma-separated if more than one.
+_ADMIN_NOTIFY_EMAILS = os.getenv('ADMIN_NOTIFY_EMAILS', 'craig@greenoxford.com')
 
 
 def _send(to_email: str, subject: str, html_body: str) -> bool:
@@ -152,3 +154,53 @@ def send_account_approved_email(to_email: str, display_name: Optional[str] = Non
     </div>
     """
     return _send(to_email, f"Your {_APP_NAME} account has been approved", html)
+
+
+def send_new_signup_notification(user_email: str, display_name: Optional[str] = None,
+                                 organisation: Optional[str] = None) -> bool:
+    """Tell the administrators that someone has registered.
+
+    Sent from UserDB.register() as soon as the account row exists, i.e. while
+    it is still Pending and the user has not clicked their verification link.
+    Recipients come from the ADMIN_NOTIFY_EMAILS env var (comma-separated),
+    defaulting to the product owner. Failure is never allowed to affect the
+    signup itself — the caller swallows exceptions.
+
+    The app URL is included so a staging signup is distinguishable from a
+    production one at a glance.
+    """
+    recipients = [a.strip() for a in _ADMIN_NOTIFY_EMAILS.split(',') if a.strip()]
+    if not recipients:
+        return False
+    html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:2rem;">
+      <h2 style="color:#2E7D32;">New {_APP_NAME} signup</h2>
+      <table style="border-collapse:collapse;font-size:0.95rem;">
+        <tr><td style="padding:0.3rem 1rem 0.3rem 0;color:#666;">Email</td>
+            <td style="padding:0.3rem 0;"><strong>{user_email}</strong></td></tr>
+        <tr><td style="padding:0.3rem 1rem 0.3rem 0;color:#666;">Name</td>
+            <td style="padding:0.3rem 0;">{display_name or '—'}</td></tr>
+        <tr><td style="padding:0.3rem 1rem 0.3rem 0;color:#666;">Organisation</td>
+            <td style="padding:0.3rem 0;">{organisation or '—'}</td></tr>
+        <tr><td style="padding:0.3rem 1rem 0.3rem 0;color:#666;">App</td>
+            <td style="padding:0.3rem 0;">{_APP_BASE_URL}</td></tr>
+      </table>
+      <p style="color:#666;font-size:0.9rem;margin-top:1.25rem;">
+        The account is <strong>Pending</strong> until they click the verification
+        link we have just emailed them. If they don't, it is removed automatically
+        48 hours after signup — you can approve it by hand before then under
+        <em>Analysis Settings → User Administration</em>.
+      </p>
+      <p style="margin:1.5rem 0;">
+        <a href="{_APP_BASE_URL}"
+           style="background:#2E7D32;color:white;padding:0.7rem 1.4rem;border-radius:6px;text-decoration:none;font-weight:600;">
+          Open {_APP_NAME}
+        </a>
+      </p>
+    </div>
+    """
+    sent = False
+    for recipient in recipients:
+        if _send(recipient, f"New {_APP_NAME} signup: {user_email}", html):
+            sent = True
+    return sent

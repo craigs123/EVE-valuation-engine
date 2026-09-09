@@ -613,6 +613,15 @@ class UserDB:
                     email_sent = send_verification_email(user.email, token)
                 except Exception as e:
                     logger.warning(f"Verification email failed: {e}")
+                # Tell the administrators someone has signed up. Best-effort:
+                # a failure here must never break the registration itself.
+                try:
+                    from utils.email_utils import send_new_signup_notification
+                    send_new_signup_notification(
+                        user.email, user.display_name, user.organisation
+                    )
+                except Exception as e:
+                    logger.warning(f"Signup notification failed: {e}")
                 result = UserDB._user_dict(user)
                 # Transient flag (not a DB column) so the caller can tell the
                 # user whether the verification email actually went out.

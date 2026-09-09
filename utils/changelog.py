@@ -29,6 +29,10 @@ CHANGELOG: List[Dict] = [
             "signups 48 hours after registration. The user list marks these "
             "accounts as 'Admin approved' rather than 'Verified', so it stays "
             "clear whose email address has actually been confirmed.",
+            "EVE now emails the administrators whenever someone registers, "
+            "so a new signup no longer has to be spotted by chance. The "
+            "message carries the person's name, email and organisation, and "
+            "says which site they signed up on.",
         ],
     },
     {
