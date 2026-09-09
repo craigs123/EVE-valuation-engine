@@ -13,9 +13,28 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed to production. Add further v3.12.3
+    # ACCUMULATING — not yet deployed to production. Add further v3.12.4
     # changes to this entry as they land, rather than opening a new version
     # for each one.
+    {
+        "version": "v3.12.4 beta",
+        "date": "2026-09-09",
+        "changes": [
+            "Administrators can now approve a new account from inside EVE. "
+            "Analysis Settings → User Administration lists everyone who has "
+            "signed up but not yet clicked the verification link in their email, "
+            "with an Approve button beside each one. Approving lets that person "
+            "sign in immediately and emails them to say the account is ready. It "
+            "also protects the account from the automatic clear-out of unverified "
+            "signups 48 hours after registration. The user list marks these "
+            "accounts as 'Admin approved' rather than 'Verified', so it stays "
+            "clear whose email address has actually been confirmed.",
+            "EVE now emails the administrators whenever someone registers, "
+            "so a new signup no longer has to be spotted by chance. The "
+            "message carries the person's name, email and organisation, and "
+            "says which site they signed up on.",
+        ],
+    },
     {
         "version": "v3.12.3 beta",
         "date": "2026-08-20",

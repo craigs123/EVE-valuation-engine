@@ -2016,7 +2016,7 @@ require_login()
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.3 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.4 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2126,6 +2126,23 @@ analysis_detail = st.session_state.get('analysis_detail', 'Summary Analysis')
 income_elasticity = st.session_state.get('income_elasticity', 0.6)
 time_preset = st.session_state.get('time_preset', 'Current Year (2024)')
 analyze_button = False
+
+
+# ── Admin: approve a Pending account ───────────────────────────────────────
+def _approve_pending_user(email: str, admin_email: str | None = None) -> None:
+    """Promote a Pending account to Active from the admin panel.
+
+    Wired as a button on_click callback so the database write happens before
+    the rerun renders the panel — a click handled inline would leave the
+    just-approved account still listed as pending until the next interaction.
+    The outcome is parked in session_state and shown at the top of the panel.
+    """
+    try:
+        from database import UserDB as _UserDB
+        result = _UserDB.approve_user(email, approved_by=admin_email)
+    except Exception as e:
+        result = (False, f"Could not approve {email}: {e}")
+    st.session_state['admin_approve_result'] = result
 
 
 # ── Analysis Settings dialog ───────────────────────────────────────────────
@@ -2536,14 +2553,58 @@ def analysis_settings_dialog():
                        "Customise per-code values in **Ecosystem Mapping** above.")
             st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True)
 
-        # Admin-only section: list of registered users.
+        # Admin-only section: approve pending accounts, list registered users.
         _auth_user = st.session_state.get('auth_user') or {}
         if _auth_user.get('is_admin'):
             st.divider()
             with st.expander("User Administration (admin)", expanded=False):
                 try:
                     from database import UserDB as _AdminUserDB
+
+                    # Outcome of an Approve click from the previous rerun.
+                    _approve_result = st.session_state.pop('admin_approve_result', None)
+                    if _approve_result:
+                        _ok, _msg = _approve_result
+                        (st.success if _ok else st.error)(_msg)
+
                     _all_users = _AdminUserDB.list_all_users()
+                    _pending = [u for u in _all_users if u.get('status') == 'Pending']
+
+                    st.markdown("##### Awaiting approval")
+                    if _pending:
+                        st.caption(
+                            f"{len(_pending)} account(s) signed up but haven't clicked "
+                            "their verification link. Approving one lets the person sign "
+                            "in straight away and emails them to say so; accounts left "
+                            "unapproved and unverified are removed automatically 48 hours "
+                            "after signup."
+                        )
+                        for _pu in _pending:
+                            _pcol1, _pcol2 = st.columns([4, 1], vertical_alignment="center")
+                            with _pcol1:
+                                _reg = (
+                                    _pu['created_at'].strftime('%Y-%m-%d %H:%M')
+                                    if _pu.get('created_at') else 'unknown date'
+                                )
+                                st.markdown(
+                                    f"**{_pu['email']}**  \n"
+                                    f"{_pu.get('display_name') or 'no name'} · "
+                                    f"{_pu.get('organisation') or 'no organisation'} · "
+                                    f"registered {_reg} UTC"
+                                )
+                            with _pcol2:
+                                st.button(
+                                    "Approve",
+                                    key=f"admin_approve_{_pu['email']}",
+                                    on_click=_approve_pending_user,
+                                    args=(_pu['email'], _auth_user.get('email')),
+                                    use_container_width=True,
+                                )
+                    else:
+                        st.caption("No accounts are awaiting approval.")
+
+                    st.markdown("")
+                    st.markdown("##### All registered users")
                     if _all_users:
                         import pandas as pd
                         _user_rows = [
@@ -2556,7 +2617,13 @@ def analysis_settings_dialog():
                                 "Display name": u['display_name'] or '—',
                                 "Organisation": u.get('organisation') or '—',
                                 "Status": u.get('status', '—'),
-                                "Verified": "Yes" if u['email_verified'] else "No",
+                                # Active but never email-verified means an admin
+                                # approved the account by hand (UserDB.approve_user).
+                                "Verified": (
+                                    "Yes" if u['email_verified']
+                                    else ("Admin approved" if u.get('status') == 'Active'
+                                          else "No")
+                                ),
                                 "Admin": "Yes" if u['is_admin'] else "No",
                             }
                             for u in _all_users
