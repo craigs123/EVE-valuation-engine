@@ -69,7 +69,9 @@ class User(Base):
     reset_token_expiry = Column(DateTime, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
     # 'Pending' = signed up, awaiting verification (cannot log in)
-    # 'Active'  = email verified, normal user
+    # 'Active'  = email verified, normal user. Active with email_verified=False
+    #             means an admin approved the account by hand in place of the
+    #             verification link (UserDB.approve_user)
     # 'Removed' = soft-deleted after failing to verify within 48h; row retained
     #             for audit (email + display_name kept, credentials cleared)
     status = Column(String(16), default='Pending', nullable=False)
@@ -493,6 +495,62 @@ class UserDB:
         except Exception as e:
             logger.error(f"list_all_users failed: {e}")
             return []
+
+    @staticmethod
+    def approve_user(email: str, approved_by: Optional[str] = None) -> tuple:
+        """Admin override for the email-verification step: promote a Pending
+        account straight to Active so the user can sign in without ever
+        clicking their verification link.
+
+        email_verified is deliberately left False. Active + unverified is a
+        combination only this method can produce (verify_email always sets
+        both), so it doubles as the audit trail for "an admin vouched for this
+        address" — the admin panel reports it as 'Admin approved' rather than
+        'Yes'. Nothing in the app gates on email_verified; login only checks
+        status == 'Active'.
+
+        Verification tokens and the reminder stamp are cleared. The lifecycle
+        pass in process_unverified_accounts() only looks at Pending rows, so
+        from this point the account is safe from the 48h auto-removal.
+
+        Returns (ok, message) — message is written for the admin to read.
+        The CALLER is responsible for checking that the requester is an admin.
+        """
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.email == email.lower()).first()
+                if not user:
+                    return False, f"No account found for {email}."
+                if user.status == 'Removed':
+                    return False, (
+                        f"{email} was removed after failing to verify — the "
+                        "credentials are gone, so they have to register again."
+                    )
+                if user.status == 'Active':
+                    return False, f"{email} is already active — nothing to approve."
+                user.status = 'Active'
+                user.verification_token = None
+                user.verification_token_expiry = None
+                user.verification_reminder_sent_at = None
+                db.commit()
+                user_email = user.email
+                display_name = user.display_name
+            logger.info(f"Account {user_email} approved by admin {approved_by or 'unknown'}")
+            email_sent = False
+            try:
+                from utils.email_utils import send_account_approved_email
+                email_sent = send_account_approved_email(user_email, display_name)
+            except Exception as e:
+                logger.warning(f"Approval email failed for {user_email}: {e}")
+            if email_sent:
+                return True, f"{user_email} approved — they can sign in now, and have been emailed."
+            return True, (
+                f"{user_email} approved — they can sign in now, but the "
+                "notification email could not be sent, so tell them directly."
+            )
+        except Exception as e:
+            logger.error(f"approve_user failed for {email}: {e}")
+            return False, f"Could not approve {email}: {e}"
 
     @staticmethod
     def register(email: str, password: str, display_name: Optional[str] = None,

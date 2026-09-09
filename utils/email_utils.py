@@ -8,6 +8,7 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -120,3 +121,34 @@ def send_password_reset_email(to_email: str, token: str) -> bool:
     </div>
     """
     return _send(to_email, f"Reset your {_APP_NAME} password", html)
+
+
+def send_account_approved_email(to_email: str, display_name: Optional[str] = None) -> bool:
+    """Sent when an admin approves a Pending account from inside the app,
+    instead of the user clicking their verification link. The account is
+    already usable by the time this goes out, so the email just tells them
+    they can sign in."""
+    greeting = f"Hi {display_name}," if display_name else "Hi,"
+    html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:2rem;">
+      <h2 style="color:#2E7D32;">Your {_APP_NAME} account is ready</h2>
+      <p>{greeting}</p>
+      <p>An administrator has approved your account, so there's no need to
+         click the verification link we sent you earlier. You can sign in now
+         with the email address and password you registered with.</p>
+      <p style="margin:1.5rem 0;">
+        <a href="{_APP_BASE_URL}"
+           style="background:#2E7D32;color:white;padding:0.7rem 1.4rem;border-radius:6px;text-decoration:none;font-weight:600;">
+          Sign in to {_APP_NAME}
+        </a>
+      </p>
+      <p style="color:#666;font-size:0.85rem;">
+        If you didn't create this account, please reply to this email and let us know.
+      </p>
+      <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;">
+      <p style="color:#aaa;font-size:0.8rem;">
+        Or copy this URL: {_APP_BASE_URL}
+      </p>
+    </div>
+    """
+    return _send(to_email, f"Your {_APP_NAME} account has been approved", html)
