@@ -75,6 +75,14 @@ class User(Base):
     # 'Removed' = soft-deleted after failing to verify within 48h; row retained
     #             for audit (email + display_name kept, credentials cleared)
     status = Column(String(16), default='Pending', nullable=False)
+    # Last successful sign-in (explicit form login or "Remember me" cookie
+    # restore). NULL means the account has never signed in since the column
+    # was added — there is no historical data to backfill from.
+    last_login_at = Column(DateTime, nullable=True)
+    # Which ESVD valuation basis this user has chosen (one of ESVD_STATISTICS).
+    # NULL means they have never been asked — that is what triggers the
+    # first-run prompt, so it must not be defaulted to the shipped basis.
+    valuation_basis = Column(String(32), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -104,6 +112,11 @@ class EcosystemAnalysis(Base):
     sustainability_responses = Column(JSON, nullable=True)  # Store sustainability assessment responses
     sampling_points = Column(Integer, nullable=False, default=10)
     data_source = Column(String(255), nullable=False, default='ESVD')
+    # The ESVD statistic these figures were computed on. Also stamped inside
+    # analysis_results; promoted to a column so the history list can show it
+    # without loading every JSON blob. NULL = unknown (pre-dates the setting),
+    # which is NOT the same as the current default.
+    coefficient_statistic = Column(String(32), nullable=True)
     use_indicator_multipliers = Column(Boolean, nullable=False, default=False, server_default='false')
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -188,6 +201,12 @@ class NaturalCapitalBaseline(Base):
     area_hectares = Column(Float, nullable=False)
     sampling_points = Column(Integer, nullable=False)
     source_coefficients = Column(JSON, nullable=True)  # ESVD coefficients used
+    # The ESVD statistic this baseline was captured on. Load-bearing: a later
+    # analysis on a different basis differs by up to two orders of magnitude,
+    # and differencing the two would report that as ecological change. NULL =
+    # unknown (captured before this was recorded); compare_to_baseline()
+    # refuses to write a trend row rather than guessing.
+    coefficient_statistic = Column(String(32), nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -471,6 +490,10 @@ class UserDB:
             'email_verified': bool(user.email_verified),
             'is_admin': bool(user.is_admin),
             'status': user.status or 'Pending',
+            'last_login_at': user.last_login_at,
+            # None means this user has never chosen a valuation basis, which
+            # is what the first-run prompt tests. Do not substitute a default.
+            'valuation_basis': user.valuation_basis,
         }
 
     @staticmethod
@@ -489,6 +512,7 @@ class UserDB:
                         'is_admin': bool(u.is_admin),
                         'status': u.status or 'Pending',
                         'created_at': u.created_at,
+                        'last_login_at': u.last_login_at,
                     }
                     for u in users
                 ]
@@ -684,10 +708,78 @@ class UserDB:
                     return None, 'invalid_credentials'
                 if user.status != 'Active':
                     return None, 'pending_verification'
-                return UserDB._user_dict(user), None
+                # Stamp the sign-in before building the dict so the caller
+                # (and the admin panel) sees this login, not the previous one.
+                # Best-effort: an audit timestamp that fails to write must
+                # never turn a valid sign-in into "invalid credentials".
+                user.last_login_at = datetime.utcnow()
+                result = UserDB._user_dict(user)
+                try:
+                    db.commit()
+                except Exception as stamp_err:
+                    db.rollback()
+                    logger.warning(f"Could not record last_login_at for {email}: {stamp_err}")
+                return result, None
         except Exception as e:
             logger.error(f"Login failed: {e}")
             return None, 'invalid_credentials'
+
+    @staticmethod
+    def set_valuation_basis(user_id: str, basis: str) -> bool:
+        """Persist this user's chosen ESVD valuation basis.
+
+        Stored per user rather than in session state so the choice survives a
+        sign-out, a new device and a Streamlit reconnect — otherwise the
+        first-run prompt would reappear on every reconnect, which reads as a
+        bug rather than a question.
+
+        The value is validated against ESVD_STATISTICS before it is written:
+        this column feeds resolve_esvd_statistic(), which silently falls back
+        to the default for anything unrecognised, so a bad write would show up
+        later as "my setting keeps resetting" rather than as an error here.
+        """
+        try:
+            from utils.precomputed_esvd_coefficients import ESVD_STATISTICS
+            if basis not in ESVD_STATISTICS:
+                logger.warning(f"Refusing to store unknown valuation basis {basis!r}")
+                return False
+            with get_db() as db:
+                user = db.query(User).filter(User.id == user_id).first()
+                if not user:
+                    return False
+                user.valuation_basis = basis
+                db.commit()
+                return True
+        except Exception as e:
+            logger.error(f"set_valuation_basis failed for {user_id}: {e}")
+            return False
+
+    @staticmethod
+    def record_login(user_id: str, min_gap_minutes: int = 0) -> None:
+        """Stamp users.last_login_at for a session that began without going
+        through login() — i.e. a "Remember me" cookie restore.
+
+        min_gap_minutes throttles the write: a Streamlit reconnect re-hydrates
+        from the cookie and would otherwise stamp a fresh "login" every time
+        the socket drops. Anything inside the gap is treated as the same
+        visit and skipped. Best-effort — never raises into the auth path.
+        """
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.id == user_id).first()
+                if not user:
+                    return
+                if (
+                    min_gap_minutes
+                    and user.last_login_at
+                    and (datetime.utcnow() - user.last_login_at)
+                    < timedelta(minutes=min_gap_minutes)
+                ):
+                    return
+                user.last_login_at = datetime.utcnow()
+                db.commit()
+        except Exception as e:
+            logger.warning(f"record_login failed for {user_id}: {e}")
 
     @staticmethod
     def get_by_id(user_id: str) -> Optional[Dict]:
@@ -939,7 +1031,12 @@ class EcosystemAnalysisDB:
                     analysis_results=clean_analysis_results,
                     sustainability_responses=clean_sustainability_responses,
                     sampling_points=sampling_points,
-                    data_source=clean_analysis_results.get('data_source', 'ESVD/TEEB Database')
+                    data_source=clean_analysis_results.get('data_source', 'ESVD/TEEB Database'),
+                    # Mirrors the stamp already inside analysis_results. Read
+                    # straight from the blob rather than session state so a
+                    # saved row always records the basis the numbers were
+                    # actually computed on, not whatever the setting says now.
+                    coefficient_statistic=clean_analysis_results.get('coefficient_statistic'),
                 )
 
                 db.add(analysis)
@@ -995,6 +1092,10 @@ class EcosystemAnalysisDB:
                         'area_hectares': a.area_hectares,
                         'created_at': a.created_at,
                         'coordinates': a.coordinates,
+                        # None = unknown basis (row pre-dates the setting).
+                        # Callers must render that as unknown rather than
+                        # resolving it to the current default.
+                        'coefficient_statistic': a.coefficient_statistic,
                     }
                     for a in analyses
                 ]
@@ -1230,7 +1331,12 @@ class NaturalCapitalBaselineDB:
                     coordinates=coordinates,
                     area_hectares=area_hectares,
                     sampling_points=sampling_points,
-                    source_coefficients=esvd_data
+                    source_coefficients=esvd_data,
+                    # The basis this baseline is denominated in. Without it a
+                    # later comparison on a different basis reports the change
+                    # of statistic as ecological change — see
+                    # compare_to_baseline().
+                    coefficient_statistic=analysis_results.get('coefficient_statistic'),
                 )
 
                 db.add(baseline)
@@ -1277,7 +1383,27 @@ class NaturalCapitalBaselineDB:
         current_analysis: Dict[str, Any],
         baseline_id: str
     ) -> Optional[Dict]:
-        """Compare current analysis to baseline and create trend data"""
+        """Compare current analysis to baseline and create trend data.
+
+        Returns a dict describing the change, or one of:
+          * None — no such baseline.
+          * {'basis_mismatch': True, ...} — the baseline and the current
+            analysis are denominated in different ESVD statistics, or the
+            baseline's is unknown. NO trend row is written in that case.
+
+        The guard exists because the bases are not small adjustments of each
+        other: the same Rivers and Lakes hectare is 1,680,691 Int$/yr on the
+        log-winsorised mean and 37,166 on the evidence-guarded basis.
+        Differencing across them and storing the result would record a 98%
+        collapse that never happened, as a durable trend row, indistinguishable
+        afterwards from real ecosystem decline.
+
+        An unknown baseline basis is treated exactly like a mismatch rather
+        than assumed to match. Unstamped baselines pre-date the Valuation Basis
+        setting, which means they also pre-date the 2026-08-10 coefficient
+        replacement — doubly incomparable, and the one case where guessing is
+        most likely to be wrong.
+        """
         try:
             with get_db() as db:
                 baseline = db.query(NaturalCapitalBaseline).filter(
@@ -1286,6 +1412,20 @@ class NaturalCapitalBaselineDB:
 
                 if baseline is None:
                     return None
+
+                current_basis = current_analysis.get('coefficient_statistic')
+                baseline_basis = baseline.coefficient_statistic
+                if not baseline_basis or baseline_basis != current_basis:
+                    logger.info(
+                        f"Baseline {baseline_id} basis {baseline_basis!r} does not "
+                        f"match current {current_basis!r} — no trend recorded"
+                    )
+                    return {
+                        'basis_mismatch': True,
+                        'baseline_basis': baseline_basis,
+                        'current_basis': current_basis,
+                        'baseline_date': baseline.baseline_date,
+                    }
 
                 baseline_value = float(baseline.total_baseline_value) if baseline.total_baseline_value is not None else 0.0
                 current_value = float(current_analysis['total_value'])

@@ -1575,6 +1575,242 @@ _MANGROVES = {
     'primary_production': 0.00      # Service 22: (no mangrove mapping in TEEB)
 }
 
+# Number of qualifying ESVD value records behind each coefficient above —
+# the same ``n`` that appears in every coefficient line's trailing comment,
+# lifted into a lookup the code can actually read.
+#
+# Source: the "n (number of value records)" block of the workbook's
+# "Cross-Biome Pivot (2025)" tab (header row 57, services 1-22 in rows 58-79;
+# row 80 is service 23, existence/bequest, which the engine omits). Ecosystem
+# and service keys are positionally identical to the three coefficient tables,
+# which is asserted in test_calculations.py rather than trusted.
+#
+# n < 15 is the WORKBOOK's own "indicative only" threshold, not one invented
+# here. It matters twice: it flags a coefficient as thinly evidenced in the UI,
+# and it is the switch for _ESVD_HYBRID below. Note n == 15 is NOT flagged
+# (coastal 'cultural' sits exactly there), so every test is strictly ``< 15``.
+#
+# n == 0 means no qualifying record — which is why the paired coefficient is
+# 0.00. That is an absence of evidence, not a measured zero.
+#
+# The non-ESVD blocks (_LEGACY_FOREST, _MANGROVES) are deliberately absent:
+# they have no record count, and get_sample_count() returns None for them.
+_ESVD_SAMPLE_COUNTS: dict[str, dict[str, int]] = {
+    # Marine
+    'marine': {
+        'food': 94, 'water': 1, 'raw_materials': 5, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 3, 'pollution': 0,
+        'climate': 19, 'extreme_events': 22, 'water_regulation': 0,
+        'water_purification': 14, 'erosion': 17, 'soil_formation': 5,
+        'pollination': 0, 'biological_control': 0, 'nursery_services': 14,
+        'habitat': 1, 'aesthetic_value': 18, 'recreation': 361, 'cultural': 1,
+        'spiritual_value': 1, 'primary_production': 18
+    },
+    # Coastal Systems
+    'coastal': {
+        'food': 279, 'water': 16, 'raw_materials': 140, 'genetic_resources': 1,
+        'medicinal_resources': 1, 'ornamental_resources': 0, 'pollution': 10,
+        'climate': 65, 'extreme_events': 46, 'water_regulation': 2,
+        'water_purification': 58, 'erosion': 24, 'soil_formation': 7,
+        'pollination': 0, 'biological_control': 0, 'nursery_services': 26,
+        'habitat': 4, 'aesthetic_value': 36, 'recreation': 146, 'cultural': 15,
+        'spiritual_value': 0, 'primary_production': 24
+    },
+    # Inland Wetlands
+    'wetland': {
+        'food': 23, 'water': 19, 'raw_materials': 69, 'genetic_resources': 4,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 9,
+        'climate': 17, 'extreme_events': 22, 'water_regulation': 6,
+        'water_purification': 26, 'erosion': 2, 'soil_formation': 6,
+        'pollination': 0, 'biological_control': 1, 'nursery_services': 5,
+        'habitat': 7, 'aesthetic_value': 12, 'recreation': 25, 'cultural': 11,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    # Rivers and Lakes
+    'rivers_and_lakes': {
+        'food': 20, 'water': 15, 'raw_materials': 8, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 0,
+        'climate': 2, 'extreme_events': 3, 'water_regulation': 3,
+        'water_purification': 6, 'erosion': 0, 'soil_formation': 2,
+        'pollination': 0, 'biological_control': 1, 'nursery_services': 3,
+        'habitat': 0, 'aesthetic_value': 4, 'recreation': 23, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 1
+    },
+    # Tropical and Subtropical Forests
+    'tropical_forest': {
+        'food': 74, 'water': 14, 'raw_materials': 79, 'genetic_resources': 5,
+        'medicinal_resources': 64, 'ornamental_resources': 8, 'pollution': 1,
+        'climate': 53, 'extreme_events': 26, 'water_regulation': 11,
+        'water_purification': 4, 'erosion': 11, 'soil_formation': 6,
+        'pollination': 70, 'biological_control': 1, 'nursery_services': 3,
+        'habitat': 5, 'aesthetic_value': 0, 'recreation': 26, 'cultural': 3,
+        'spiritual_value': 0, 'primary_production': 2
+    },
+    # Temperate Forest and Woodland
+    'temperate_forest': {
+        'food': 17, 'water': 32, 'raw_materials': 29, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 312,
+        'climate': 37, 'extreme_events': 2, 'water_regulation': 2,
+        'water_purification': 5, 'erosion': 10, 'soil_formation': 9,
+        'pollination': 4, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 4, 'aesthetic_value': 0, 'recreation': 39, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    # Cold Climate Evergreen Forest
+    'boreal_forest': {
+        'food': 18, 'water': 3, 'raw_materials': 34, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 3, 'pollution': 1,
+        'climate': 11, 'extreme_events': 2, 'water_regulation': 0,
+        'water_purification': 0, 'erosion': 3, 'soil_formation': 2,
+        'pollination': 0, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 0, 'recreation': 12, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    # Shrubland and Shrubby Woodland
+    'shrubland': {
+        'food': 13, 'water': 3, 'raw_materials': 43, 'genetic_resources': 1,
+        'medicinal_resources': 5, 'ornamental_resources': 0, 'pollution': 0,
+        'climate': 6, 'extreme_events': 2, 'water_regulation': 0,
+        'water_purification': 0, 'erosion': 2, 'soil_formation': 0,
+        'pollination': 1, 'biological_control': 1, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 1, 'recreation': 2, 'cultural': 4,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    # Rangelands and Natural Grasslands
+    'grassland': {
+        'food': 7, 'water': 4, 'raw_materials': 16, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 0, 'pollution': 9,
+        'climate': 9, 'extreme_events': 0, 'water_regulation': 3,
+        'water_purification': 0, 'erosion': 2, 'soil_formation': 2,
+        'pollination': 2, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 7, 'aesthetic_value': 1, 'recreation': 4, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    # Desert and Semi-Desert
+    'desert': {
+        'food': 0, 'water': 21, 'raw_materials': 22, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 0,
+        'climate': 1, 'extreme_events': 1, 'water_regulation': 0,
+        'water_purification': 0, 'erosion': 0, 'soil_formation': 0,
+        'pollination': 0, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 0, 'recreation': 0, 'cultural': 2,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    # Polar and Alpine Systems
+    'polar': {
+        'food': 10, 'water': 4, 'raw_materials': 11, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 1, 'pollution': 1,
+        'climate': 5, 'extreme_events': 1, 'water_regulation': 0,
+        'water_purification': 0, 'erosion': 2, 'soil_formation': 3,
+        'pollination': 0, 'biological_control': 0, 'nursery_services': 1,
+        'habitat': 3, 'aesthetic_value': 0, 'recreation': 1, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 1
+    },
+    # Intensive Land Use
+    'agricultural': {
+        'food': 66, 'water': 16, 'raw_materials': 81, 'genetic_resources': 0,
+        'medicinal_resources': 3, 'ornamental_resources': 0, 'pollution': 8,
+        'climate': 75, 'extreme_events': 27, 'water_regulation': 25,
+        'water_purification': 23, 'erosion': 33, 'soil_formation': 80,
+        'pollination': 60, 'biological_control': 52, 'nursery_services': 4,
+        'habitat': 2, 'aesthetic_value': 14, 'recreation': 19, 'cultural': 24,
+        'spiritual_value': 0, 'primary_production': 4
+    },
+    # Urban Green and Blue Infrastructure
+    'urban': {
+        'food': 2, 'water': 3, 'raw_materials': 2, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 106,
+        'climate': 16, 'extreme_events': 5, 'water_regulation': 4,
+        'water_purification': 5, 'erosion': 0, 'soil_formation': 0,
+        'pollination': 0, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 6, 'recreation': 17, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 5
+    },
+}
+
+# Threshold below which the workbook flags a cell as indicative only.
+INDICATIVE_N_THRESHOLD = 15
+
+
+def _build_hybrid_table() -> dict[str, dict[str, float]]:
+    """Log-winsorised means, falling back to the median where n < 15.
+
+    The log-winsorising cap is ``geometric_mean(non-zero) x exp(2 x SD(ln(
+    non-zero)))``. That needs enough records for the log SD to be tight, so in
+    a thin cell the cap lands above every observation, binds on nothing, and
+    the "winsorised" figure is just the raw mean. It bound in only 36 of the
+    184 populated cells; in the other 148 the two are identical to the cent.
+
+    Where it cannot bind, this table uses the median instead, which is robust
+    at any n. The worst case it fixes is rivers_and_lakes 'aesthetic_value':
+    1,644,139 off n=4, which alone is 98 per cent of that biome's per-hectare
+    total.
+
+    This is NOT a uniformly conservative table. In 11 of these cells the median
+    is the HIGHER figure (polar 'climate' 847 -> 977, temperate_forest
+    'habitat' 525 -> 600), and it is used there too. The rule is "prefer the
+    statistic the evidence can support", not "prefer the smaller number" — so
+    do not describe this basis to users as more conservative.
+
+    Derived at import from the two source tables rather than transcribed, so a
+    fourth hand-maintained table cannot drift out of step with them.
+    """
+    hybrid: dict[str, dict[str, float]] = {}
+    for ecosystem, services in _ESVD_LOG_WINSORISED.items():
+        counts = _ESVD_SAMPLE_COUNTS.get(ecosystem, {})
+        hybrid[ecosystem] = {
+            service: (
+                _ESVD_MEDIAN[ecosystem][service]
+                if 0 < counts.get(service, 0) < INDICATIVE_N_THRESHOLD
+                else value
+            )
+            for service, value in services.items()
+        }
+    return hybrid
+
+
+_ESVD_HYBRID = _build_hybrid_table()
+
+
+# A single service is reported as dominating once it is this much of the area
+# total. A quarter of everything resting on one service is worth saying out
+# loud; below that the per-service breakdown already shows the shape.
+EVIDENCE_CONCENTRATION_THRESHOLD = 0.25
+
+
+def summarise_evidence_concentration(service_evidence: dict, total_value: float) -> dict | None:
+    """Flag a total that rests mostly on one thinly evidenced service.
+
+    Both halves have to be true before this says anything. A service that is
+    most of a total is unremarkable when it is well evidenced — air quality
+    regulation dominates urban totals off 106 records, and that is a finding,
+    not a warning. A thinly evidenced service is likewise unremarkable when it
+    is a rounding error in the total. It is the combination that misleads: on
+    the log-winsorised basis a Rivers and Lakes hectare is 98 per cent one
+    service, aesthetic information, drawn from four valuation records.
+
+    Returns None when nothing qualifies, or a dict naming the worst offender:
+    service key, its category, its share of the total, and n.
+    """
+    if not service_evidence or total_value <= 0:
+        return None
+
+    worst = None
+    for service, info in service_evidence.items():
+        if not info.get('indicative'):
+            continue
+        share = info.get('value', 0.0) / total_value
+        if share < EVIDENCE_CONCENTRATION_THRESHOLD:
+            continue
+        if worst is None or share > worst['share']:
+            worst = {
+                'service': service,
+                'category': info.get('category'),
+                'share': share,
+                'n': info.get('n'),
+            }
+    return worst
+
 # Ecosystem blocks that do not come from the ESVD consolidation and are shared
 # by all three statistics. Deep-copied per statistic so a caller mutating one
 # table's block cannot reach into the other's.
@@ -1583,17 +1819,22 @@ _SHARED_BLOCKS = {
     'mangroves': _MANGROVES,
 }
 
-# The three selectable coefficient tables. Keyed by the value stored in
+# The selectable coefficient tables. Keyed by the value stored in
 # st.session_state['esvd_statistic'].
 COEFFICIENTS_BY_STATISTIC: dict[str, dict[str, dict[str, float]]] = {
+    'log_winsorised_guarded': {**_ESVD_HYBRID, **copy.deepcopy(_SHARED_BLOCKS)},
     'log_winsorised': {**_ESVD_LOG_WINSORISED, **copy.deepcopy(_SHARED_BLOCKS)},
     'median': {**_ESVD_MEDIAN, **copy.deepcopy(_SHARED_BLOCKS)},
     'mean': {**_ESVD_MEAN, **copy.deepcopy(_SHARED_BLOCKS)},
 }
 
 # Selectable statistics, in the order they should be offered in the UI:
-# recommended first, then the conservative floor, then the unmoderated mean.
-ESVD_STATISTICS: tuple[str, ...] = ('log_winsorised', 'median', 'mean')
+# the evidence-guarded basis first, then the plain log-winsorised mean that
+# every analysis before it was costed on, then the conservative floor and the
+# unmoderated mean.
+ESVD_STATISTICS: tuple[str, ...] = (
+    'log_winsorised_guarded', 'log_winsorised', 'median', 'mean',
+)
 
 # Log-winsorised mean is the default — the workbook's own preferred block for
 # cross-service aggregation. It keeps every record in play (unlike the median)
@@ -1760,7 +2001,54 @@ class PrecomputedESVDCoefficients:
         ecosystem_key = ecosystem_type.lower().replace(' ', '_')
         ecosystem_coeffs = self.coefficients.get(ecosystem_key, self.coefficients.get('temperate_forest', self.coefficients['grassland']))
         return ecosystem_coeffs.get(service_type, 100.0)  # Default fallback
-    
+
+    def get_sample_count(self, ecosystem_type: str, service_type: str,
+                         coordinates: tuple | None = None) -> int | None:
+        """How many ESVD value records stand behind the paired coefficient.
+
+        Resolves the forest sub-type from coordinates exactly as
+        get_coefficient() does, so a resolved forest key returns the count for
+        the coefficient that call returns.
+
+        It deliberately does NOT mirror get_coefficient()'s last-resort
+        substitution of temperate_forest/grassland for an unrecognised
+        ecosystem key: reporting that fallback's n would attach a confident
+        "well evidenced" or "indicative" claim to a coefficient the caller did
+        not ask for. An unrecognised key yields None instead.
+
+        Returns None where no count exists, which is NOT the same as 0:
+          * None — the block is outside the ESVD consolidation (the legacy
+            'forest' fallback, mangroves), or the key is unrecognised. Nothing
+            is known about how well evidenced the figure is.
+          * 0    — a real answer from the workbook: no qualifying record, which
+            is why the coefficient is 0.00. Absence of evidence, not a
+            measured zero.
+
+        Callers must keep the two apart; is_indicative() does.
+        """
+        if ecosystem_type.lower() == 'forest' and coordinates:
+            center_lat, center_lon = coordinates[0], coordinates[1]
+            ecosystem_type = self._determine_forest_type(center_lat, center_lon)
+
+        ecosystem_key = ecosystem_type.lower().replace(' ', '_')
+        counts = _ESVD_SAMPLE_COUNTS.get(ecosystem_key)
+        if counts is None:
+            return None
+        return counts.get(service_type)
+
+    def is_indicative(self, ecosystem_type: str, service_type: str,
+                      coordinates: tuple | None = None) -> bool:
+        """True when the workbook flags this coefficient as indicative only.
+
+        That is n < 15 — the workbook's own threshold, also the switch used by
+        the 'log_winsorised_guarded' basis. An unknown count (None) is not
+        indicative: nothing is claimed either way, and saying "thin evidence"
+        about a figure whose evidence is simply unrecorded would be inventing
+        a finding. A count of 0 IS indicative — there is no evidence at all.
+        """
+        n = self.get_sample_count(ecosystem_type, service_type, coordinates)
+        return n is not None and n < INDICATIVE_N_THRESHOLD
+
     def get_country_gdp(self, coordinates: tuple | None = None) -> float:
         """
         Get country-specific GDP per capita based on coordinates
@@ -1864,7 +2152,9 @@ class PrecomputedESVDCoefficients:
         
         results = {}
         total_value = 0
-        
+        # service key -> {n, indicative, value, category}; see below.
+        service_evidence: dict[str, dict] = {}
+
         for category, services in self.service_categories.items():
             category_total = 0
             category_services = {}
@@ -1901,13 +2191,31 @@ class PrecomputedESVDCoefficients:
                 
                 category_services[service] = value
                 category_total += value
-            
+
+                # How much evidence stands behind this service's coefficient,
+                # carried alongside the money so the UI and the PDF can say so
+                # without re-deriving it. Recorded for every service; the
+                # caller decides what is worth surfacing.
+                _n = self.get_sample_count(
+                    detected_ecosystem_type, esvd_service,
+                    coordinates if coordinates else None,
+                )
+                service_evidence[service] = {
+                    'n': _n,
+                    'indicative': _n is not None and _n < INDICATIVE_N_THRESHOLD,
+                    'value': value,
+                    'category': category,
+                }
+
             results[category] = {
                 'services': category_services,
                 'total': category_total
             }
             total_value += category_total
         
+        results['evidence'] = service_evidence
+        results['evidence_concentration'] = summarise_evidence_concentration(
+            service_evidence, total_value)
         results['total_value'] = total_value
         results['total_annual_value'] = total_value  # Compatibility key for app.py
         results['current_value'] = total_value  # Compatibility key for ecosystem_services.py
