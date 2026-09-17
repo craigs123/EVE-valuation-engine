@@ -125,7 +125,64 @@ valuations, and the gap is not a rounding matter:
 Whichever table a run used is stamped into its results as
 'coefficient_statistic', shown on the dashboard above the totals, and printed
 in the PDF's summary table beside the headline value — the number alone cannot
-tell the three apart.
+tell the four apart.
+
+A FOURTH BASIS — EVIDENCE-GUARDED (2026-09-17)
+-----------------------------------------------
+Added as 'log_winsorised_guarded', offered first in the UI and recommended,
+though NOT the shipped default: log-winsorised remains the fallback so that a
+user who does not engage with the choice stays comparable with their own
+earlier work. Users are prompted once, before their first analysis, and the
+choice is stored against their account.
+
+The rule is one line. Where a biome x service cell has 0 < n < 15, use the
+MEDIAN; otherwise use the log-winsorised mean. n < 15 is the workbook's own
+"indicative only" threshold, not a new one, and n = 15 is NOT flagged (coastal
+inspiration sits exactly there), so the test is strictly "<".
+
+It exists because of the caveat immediately above: the winsorising cap needs
+enough records for the log SD to be tight, so in a thin cell it binds on
+nothing and the "log-winsorised" figure is the raw mean. The median is robust
+at any n. The table is DERIVED at import from the log-winsorised and median
+tables plus a sample-count table lifted from the workbook's own n block — it is
+not a fourth transcription, and cannot drift from the other three.
+
+Effect on biome totals, Int$2025/ha/yr:
+
+                                     log-winsorised   evidence-guarded
+  Marine                                    269,199            230,146
+  Coastal Systems                            96,918             90,989
+  Inland Wetlands                           110,458             85,774
+  Rivers and Lakes                        1,680,691             37,166
+  Tropical & Subtropical Forests             25,298             21,244
+  Temperate Forest & Woodland                26,797             12,227
+  Cold Climate Evergreen Forest              13,784              8,807
+  Shrubland & Shrubby Woodland                1,608                623
+  Rangelands & Natural Grasslands           121,726             12,599
+  Desert & Semi-Desert                        1,238              1,238
+  Polar & Alpine Systems                      4,268              1,158
+  Intensive Land Use                         25,175             24,156
+  Urban Green & Blue Infrastructure         153,739            140,039
+
+Well-evidenced biomes barely move. Rivers and Lakes falls 98%, essentially all
+of it the single aesthetic information cell (1,644,139 -> 3,357.59 off n=4).
+
+IT IS NOT A UNIFORMLY CONSERVATIVE TABLE. In 11 cells the median is the HIGHER
+figure and is used there too — polar climate regulation 847 -> 977,
+temperate forest genetic diversity 525 -> 600, boreal water 131 -> 155. The
+rule is "prefer the statistic the evidence can support", not "prefer the
+smaller number", and the UI copy must not describe it as more conservative.
+
+CULTURAL SERVICES — WHY THIS WAS NEEDED
+----------------------------------------
+Cultural services (18-22) are the thinnest-evidenced block in the database and
+the largest share of several biome totals. On the log-winsorised basis they are
+98.7% of the Rivers and Lakes total, 80.8% of Urban, 65.7% of Marine and 60.4%
+of Rangelands. Spiritual experience has data in exactly one biome (n=1);
+cognitive development is n<=5 outside Marine and Coastal; aesthetic information
+is n<15 in six of the eight biomes where it has any data at all. The
+evidence-guarded basis addresses the concentration without editing any
+coefficient.
 
 OPEN CAVEATS
 ------------

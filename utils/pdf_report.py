@@ -634,7 +634,13 @@ def generate_pdf_report(
          'Regional Factor', f'{regional_factor:.2f}×'],
         ['Total Annual Value', f'Int$ {total_value:,.0f}/yr',
          'Value per Hectare', f'Int$ {per_ha:,.0f}/ha/yr'],
+        # Keyed by statistic. resolve_esvd_statistic() only ever returns a
+        # member of ESVD_STATISTICS, so .get() would hide a missing entry
+        # rather than fix it — a new basis must be added here (and to the
+        # methodology sentence below) or the report has no honest label for
+        # the numbers in it. test_calculations.py checks both maps.
         ['Valuation Basis', {
+            'log_winsorised_guarded': 'ESVD LOG-WINSORISED MEAN, median where n<15',
             'log_winsorised': 'ESVD LOG-WINSORISED MEAN',
             'median': 'ESVD MEDIAN coefficients',
             'mean': 'ESVD MEAN coefficients',
@@ -1100,6 +1106,16 @@ def generate_pdf_report(
     # _stat was resolved with the summary meta table above, which also carries
     # the basis as its own row and, for mean, a callout beside the headline.
     _stat_sentence = {
+        'log_winsorised_guarded': (
+            'Per-service coefficients are the <b>log-winsorised mean</b> of the qualifying '
+            'valuation records for each biome and service — every record contributes, but values '
+            'above the geometric mean times exp(2 SD of the logged records) are capped at that '
+            'level, so a long right tail is compressed rather than discarded. Where a service has '
+            'fewer than 15 records the cap cannot bind and the <b>median</b> is used instead, '
+            'which is robust at any number of records. This avoids a handful of thinly evidenced '
+            'services dominating a total; it is not uniformly lower than the plain log-winsorised '
+            'mean, because in a few thin services the median is the higher figure. '
+        ),
         'log_winsorised': (
             'Per-service coefficients are the <b>log-winsorised mean</b> of the qualifying '
             'valuation records for each biome and service: every record contributes, but values '

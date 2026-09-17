@@ -13,9 +13,52 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed to production. Add further v3.12.5
+    # ACCUMULATING — not yet deployed to production. Add further v3.12.6
     # changes to this entry as they land, rather than opening a new version
     # for each one.
+    {
+        "version": "v3.12.6 beta",
+        "date": "2026-09-17",
+        "changes": [
+            "There is a new way of calculating values, called "
+            "**Evidence-guarded**, and EVE now asks you to choose one before "
+            "your first analysis. It is the recommended setting. EVE prices "
+            "each ecosystem service from published valuation studies, but "
+            "those studies are spread very unevenly: some services rest on "
+            "hundreds, others on two or three. Evidence-guarded uses the "
+            "typical (median) value wherever a service has fewer than 15 "
+            "studies behind it, which is the ESVD database's own threshold "
+            "for calling a figure indicative.",
+            "This matters most for water. A hectare of river or lake was "
+            "valued at about 1.68 million dollars a year, of which 98% came "
+            "from a single service — aesthetic information — resting on four "
+            "studies. On the evidence-guarded basis the same hectare comes to "
+            "about 37,000 dollars. Neither figure is a mistake; the second "
+            "simply does not let four studies carry the whole total.",
+            "Your previous setting, the log-winsorised mean, is still there "
+            "and is now labelled 'consistent with previous valuations'. "
+            "Choose it if you need new work to line up with assessments you "
+            "have already saved. Nothing you have saved has changed.",
+            "Every analysis now records which basis produced it, and your "
+            "recent-analyses list shows it, marking any that were calculated "
+            "on a different basis from your current one. Where a baseline was "
+            "captured on a different basis, EVE now refuses to report the "
+            "difference as ecosystem change and explains why — previously it "
+            "would have recorded a change of method as a change on the ground.",
+            "When a large share of an area's value comes from one thinly "
+            "evidenced service, EVE now says so above the totals instead of "
+            "leaving you to spot it in the service breakdown.",
+            "Corrected a note under the Ecosystem Integrity score which said "
+            "that cultural services were excluded from the condition "
+            "adjustment. They have not been excluded since August 2026 — the "
+            "note was out of date and contradicted the calculation breakdown "
+            "shown lower down the same page.",
+            "The User Administration panel now shows when each person last "
+            "signed in, so it is clear who is actually using EVE rather than "
+            "only who registered.",
+        ],
+    },
+    # Released to staging and merged to main 2026-09-09.
     {
         "version": "v3.12.5 beta",
         "date": "2026-09-09",

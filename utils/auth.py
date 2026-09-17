@@ -82,6 +82,14 @@ def hydrate_from_cookie() -> None:
         user = None
     if user:
         st.session_state['auth_user'] = user
+        # A cookie restore is a real visit, so it counts as a sign-in for the
+        # admin panel's "Last login" column — otherwise anyone who ticked
+        # "Remember me" would look dormant forever. Throttled, because a
+        # Streamlit reconnect re-hydrates and shouldn't read as a new visit.
+        try:
+            UserDB.record_login(user['id'], min_gap_minutes=30)
+        except Exception:
+            pass
     else:
         # User no longer exists — clear the stale cookie.
         _delete_auth_cookie()
@@ -358,7 +366,7 @@ def _render_auth_ui():
         <p class="tagline">Empowering nature-based projects everywhere.</p>
         <p class="sub">Sign in to access your workspace and run ecosystem analyses.</p>
         <div class="accent"></div>
-        <p class="ver">v3.12.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
+        <p class="ver">v3.12.6 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</p>
     </div>
     """, unsafe_allow_html=True)
 
