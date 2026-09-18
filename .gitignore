@@ -1,0 +1,5 @@
+
+# Python bytecode — never belongs in the repo (23 .pyc files were committed
+# by an over-broad `git add` on 2026-09-18 and removed again).
+__pycache__/
+*.py[cod]

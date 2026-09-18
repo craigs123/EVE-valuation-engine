@@ -138,19 +138,29 @@ if 'analysis_detail' not in st.session_state:
 if 'income_elasticity' not in st.session_state:
     st.session_state.income_elasticity = 0.6
 
-# Which ESVD statistic the coefficient tables are read from —
-# 'log_winsorised', 'median' or 'mean'. Read by resolve_esvd_statistic() in
+# Which ESVD statistic the coefficient tables are read from — one of
+# ESVD_STATISTICS. Read by resolve_esvd_statistic() in
 # utils/precomputed_esvd_coefficients.py, which every construction site of
 # PrecomputedESVDCoefficients() goes through, so setting it here steers the
 # whole app (calculations, breakdown panels, exports) from one place.
 #
-# Log-winsorised mean is the default and the workbook's own preferred basis for
-# summing across services: it keeps every record while compressing a long right
-# tail. Median remains available as the conservative floor and mean as the
-# unmoderated upper bound — the three can differ by two orders of magnitude for
-# the same area, which is why the choice is stamped onto every result.
+# This is only the FALLBACK. A signed-in user's own choice is loaded over it
+# once per session by hydrate_user_valuation_basis(), after the auth gate —
+# it cannot happen here, because at import time there is no user yet. The key
+# still has to be initialised in this block: a settings-dialog key missing
+# from it silently reads as the wrong value on the first render.
+#
+# The default stays the plain log-winsorised mean deliberately. It is what
+# every analysis before the evidence-guarded basis was costed on, so a user
+# who dismisses the first-run prompt stays comparable with their own earlier
+# work rather than being moved onto a new basis without being asked. The four
+# bases can differ by two orders of magnitude for the same area, which is why
+# the choice is stamped onto every result.
 if 'esvd_statistic' not in st.session_state:
-    st.session_state.esvd_statistic = 'log_winsorised'
+    from utils.precomputed_esvd_coefficients import (
+        DEFAULT_ESVD_STATISTIC as _DEFAULT_STAT,
+    )
+    st.session_state.esvd_statistic = _DEFAULT_STAT
 
 if 'time_preset' not in st.session_state:
     st.session_state.time_preset = "Current Year (2024)"
@@ -1083,6 +1093,89 @@ def get_country_from_coordinates(lat: float, lon: float) -> str:
     except Exception as e:
         return "Unknown"
 
+#: Short human names for each ESVD statistic, for anywhere a STORED basis is
+#: shown — history rows, baseline mismatches. Deliberately NOT routed through
+#: resolve_esvd_statistic(): that falls back to the shipped default for an
+#: unrecognised or missing value, which would silently relabel an analysis
+#: saved before the Valuation Basis setting existed as whatever EVE ships
+#: today — the one basis it certainly was not.
+_BASIS_DISPLAY_NAMES = {
+    'log_winsorised_guarded': 'Evidence-guarded',
+    'log_winsorised': 'Log-winsorised mean',
+    'median': 'Median',
+    'mean': 'Mean',
+}
+
+
+def _basis_display_name(statistic: str | None) -> str:
+    """Human name for a stored valuation basis; honest about not knowing."""
+    if not statistic:
+        return 'an unrecorded basis'
+    return _BASIS_DISPLAY_NAMES.get(statistic, str(statistic))
+
+
+#: Service keys in the calc results are TEEB-slug style; these are what a
+#: reader would call them.
+_SERVICE_DISPLAY_NAMES = {
+    'aesthetic_information': 'Aesthetic information',
+    'recreation_and_tourism': 'Recreation and tourism',
+    'culture_art_and_design': 'Culture, art and design',
+    'spiritual_experience': 'Spiritual experience',
+    'cognitive_development': 'Information for cognitive development',
+    'maintenance_of_life_cycles': 'Maintenance of life cycles',
+    'maintenance_of_genetic_diversity': 'Maintenance of genetic diversity',
+    'maintenance_of_soil_fertility': 'Maintenance of soil fertility',
+    'moderation_of_extreme_events': 'Moderation of extreme events',
+    'regulation_of_water_flows': 'Regulation of water flows',
+    'air_quality_regulation': 'Air quality regulation',
+    'waste_treatment': 'Waste treatment',
+    'erosion_prevention': 'Erosion prevention',
+    'biological_control': 'Biological control',
+}
+
+
+def display_evidence_concentration_note(esvd_data: Dict = None):
+    """Warn when most of a total rests on one thinly evidenced service.
+
+    The per-service breakdown further down already shows this if you read it
+    carefully and know the sample sizes. Almost nobody does either, and the
+    figure it produces looks as solid as any other — a Rivers and Lakes
+    hectare on the log-winsorised basis is 98% aesthetic information drawn
+    from four valuation records, and nothing on screen says so.
+
+    Names the remedy as well as the problem: the evidence-guarded basis
+    substitutes the median exactly where this arises, so the note effectively
+    disappears once a user is on it.
+    """
+    if not esvd_data:
+        return
+    conc = esvd_data.get('evidence_concentration')
+    if not conc:
+        return
+
+    _svc = _SERVICE_DISPLAY_NAMES.get(
+        conc['service'], str(conc['service']).replace('_', ' ').capitalize())
+    _n = conc.get('n')
+    _n_phrase = (f"just {_n} valuation record{'s' if _n != 1 else ''}"
+                 if _n else "no qualifying valuation records")
+
+    _on_guarded = st.session_state.get('esvd_statistic') == 'log_winsorised_guarded'
+    _remedy = (
+        ""
+        if _on_guarded else
+        " Switching **Analysis Settings → Valuation Basis** to "
+        "**Evidence-guarded** substitutes the median for services this thinly "
+        "evidenced."
+    )
+    st.warning(
+        f"**{conc['share']:.0%} of this total comes from a single service** — "
+        f"{_svc} ({conc.get('category', '')}) — based on {_n_phrase}. The ESVD "
+        f"workbook flags anything under 15 records as indicative only, so treat "
+        f"this total as indicative rather than a measurement.{_remedy}",
+        icon="📉",
+    )
+
+
 def display_valuation_basis_banner(results: Dict = None):
     """State, prominently, whether a valuation is on median or mean coefficients.
 
@@ -1122,14 +1215,25 @@ def display_valuation_basis_banner(results: Dict = None):
             "Int$2025/ha/yr.",
             icon="📊",
         )
+    elif statistic == 'log_winsorised':
+        st.info(
+            "**Valuation basis: LOG-WINSORISED MEAN** — every valuation record "
+            "counts, with extreme values compressed rather than discarded. "
+            "ESVD SEP2025V1.0, Int$2025/ha/yr. Closer to the mean than to the "
+            "median; where a service has few records the cap does not bind and "
+            "this returns the plain mean. Consistent with every EVE analysis "
+            "saved before the evidence-guarded basis was added.",
+            icon="📊",
+        )
     else:
         st.info(
-            "**Valuation basis: LOG-WINSORISED MEAN** (recommended) — every "
-            "valuation record counts, with extreme values compressed rather "
-            "than discarded. ESVD SEP2025V1.0, Int$2025/ha/yr. Closer to the "
-            "mean than to the median; where a service has few records the cap "
-            "does not bind and this returns the plain mean.",
-            icon="📊",
+            "**Valuation basis: EVIDENCE-GUARDED** (recommended) — the "
+            "log-winsorised mean, except where a service has fewer than 15 "
+            "valuation records, where the median is used instead because the "
+            "outlier cap cannot bind on so few. ESVD SEP2025V1.0, "
+            "Int$2025/ha/yr. Totals are not directly comparable with analyses "
+            "saved on the log-winsorised basis.",
+            icon="🛡️",
         )
 
 
@@ -1629,31 +1733,56 @@ def display_data_source_status(analysis_results: Dict = None):
                     # Ecosystems the EEI dataset simply has no value for — open
                     # ocean and genuine data gaps, chiefly. Nothing was
                     # fabricated and nothing is wrong with the service; there is
-                    # just no score to read. They fall back to 100% intactness,
-                    # which is optimistic, so say so rather than let it pass
-                    # silently: the manual sliders are the remedy.
+                    # just no score to read. They take the same conservative
+                    # midpoint as fabricated data — an assumption, not a
+                    # reading, so it is named rather than left implicit.
                     _unmeasured = st.session_state.get('ecosystem_eei_unmeasured') or []
                     if _unmeasured:
+                        from utils.eei_api import NO_DATA_FALLBACK_INTACTNESS_PCT as _NODATA
                         st.warning(
                             f"⚠️ The EEI dataset holds no integrity value for: "
                             f"{', '.join(_unmeasured)} — this is normal for open "
                             f"ocean and other gaps in coverage. These ecosystems "
-                            f"are being valued at the default **100% intactness**, "
-                            f"which may overstate them. Turn off \"Use EEI for "
-                            f"Default Intactness\" in Analysis Settings to set "
-                            f"them by hand."
+                            f"are being valued at an assumed **{_NODATA:.0f}% "
+                            f"intactness**, the midpoint of the range, because "
+                            f"nothing is known about their condition either way. "
+                            f"It is an assumption, not a measurement: turn off "
+                            f"\"Use EEI for Default Intactness\" in Analysis "
+                            f"Settings to set them by hand."
                         )
 
                     if average_eei is not None:
+                        # Both exemption axes drive the caption below as well as
+                        # the per-ecosystem rows further down, so import them
+                        # together before either is needed.
+                        from utils.precomputed_esvd_coefficients import (
+                            CONDITION_EXEMPT_CATEGORIES,
+                            CONDITION_EXEMPT_ECOSYSTEMS,
+                        )
+
                         eei_percent = int(average_eei * 100)
                         st.info(f"**Average Ecosystem Integrity (EEI):** {average_eei:.3f} ({eei_percent}%)")
+                        # Scope wording is derived, not hardcoded. This caption
+                        # claimed cultural services were exempt for a year after
+                        # CONDITION_EXEMPT_CATEGORIES was emptied on 2026-08-10,
+                        # contradicting the calculation breakdown a few hundred
+                        # lines below. Reading the constant is what stops the two
+                        # drifting apart again — see the same pattern at the
+                        # "Condition" step of display_calculation_breakdown().
+                        _exempt_cats = ", ".join(sorted(CONDITION_EXEMPT_CATEGORIES))
+                        _cat_scope = (
+                            f"Applied to every service category except "
+                            f"{_exempt_cats}."
+                            if _exempt_cats else
+                            "Applied to every service category — provisioning, "
+                            "regulating, supporting and cultural. For a natural "
+                            "ecosystem, cultural value is tied to condition: "
+                            "people visit a wood or a reef substantially because "
+                            "it is intact."
+                        )
                         st.caption(
-                            "Applied to provisioning, regulating and supporting "
-                            "services. Cultural services (recreation, aesthetic, "
-                            "spiritual) are excluded — they depend on the setting "
-                            "and who can reach it rather than on ecological "
-                            "condition, so they persist in nature-depleted areas. "
-                            "It is also not applied to urban ecosystems at all, "
+                            f"{_cat_scope} "
+                            "It is not applied to urban ecosystems at all, "
                             "whose ESVD values already come from studies of "
                             "real-world urban green and blue space."
                         )
@@ -1666,7 +1795,6 @@ def display_data_source_status(analysis_results: Dict = None):
                         # the reading is real and worth seeing — but flagged so the
                         # heading's "used for intactness" is not read as covering
                         # rows it does not apply to.
-                        from utils.precomputed_esvd_coefficients import CONDITION_EXEMPT_ECOSYSTEMS
 
                         def _eei_row(eco_type, eei_value):
                             _pct = eei_value * 100
@@ -2012,11 +2140,167 @@ require_login()
 # Post-login banners removed: signup now requires email verification before the
 # first sign-in, so an authenticated session always implies a verified email.
 
+
+def hydrate_user_valuation_basis() -> None:
+    """Load this user's stored valuation basis over the session default.
+
+    Has to run here rather than in the startup block: at import time nobody is
+    signed in yet, so the block near the top of this file can only set the
+    shipped fallback. This overwrites it once per session with the user's own
+    choice.
+
+    Once per session is the point. Running it on every rerun would fight the
+    Analysis Settings radio — the user would move the setting, the next rerun
+    would reload the old stored value, and the control would appear not to
+    work. The settings dialog writes through to the database itself, so the
+    two never disagree.
+
+    A user who has never chosen (valuation_basis is NULL) is left on the
+    fallback and picked up by the first-run prompt at analysis time.
+    """
+    if st.session_state.get('_valuation_basis_hydrated'):
+        return
+    _user = st.session_state.get('auth_user') or {}
+    _stored = _user.get('valuation_basis')
+    if _stored:
+        from utils.precomputed_esvd_coefficients import ESVD_STATISTICS
+        if _stored in ESVD_STATISTICS:
+            st.session_state.esvd_statistic = _stored
+    st.session_state['_valuation_basis_hydrated'] = True
+
+
+hydrate_user_valuation_basis()
+
+
+def persist_valuation_basis(basis: str) -> None:
+    """Store the user's valuation-basis choice on their account.
+
+    Best-effort by design. If the write fails the session still honours the
+    choice — refusing to let someone change a display setting because the
+    database is briefly unreachable is worse than re-asking them next time.
+    ``auth_user`` is updated in step so nothing later in this session re-reads
+    the stale value and re-prompts.
+    """
+    _user = st.session_state.get('auth_user') or {}
+    _uid = _user.get('id')
+    if not _uid:
+        return
+    try:
+        from database import UserDB as _UserDB
+        if _UserDB.set_valuation_basis(_uid, basis):
+            _user['valuation_basis'] = basis
+            st.session_state['auth_user'] = _user
+    except Exception:
+        pass
+
+
+def user_has_chosen_valuation_basis() -> bool:
+    """True once this user has been asked which valuation basis to use.
+
+    Keyed off a stored value being present at all, not off what it is: a user
+    who deliberately picks the basis EVE already ships has still made the
+    choice and must not be asked again. The session flag covers the case where
+    the write itself failed, so a database blip cannot re-block the analysis
+    the user just asked for.
+    """
+    if st.session_state.get('_valuation_basis_prompted'):
+        return True
+    return bool((st.session_state.get('auth_user') or {}).get('valuation_basis'))
+
+
+@st.dialog("Choose your valuation basis", width="large")
+def valuation_basis_prompt():
+    """Asked once, before a user's first analysis.
+
+    EVE reads per-service coefficients from ESVD's valuation records, and the
+    statistic chosen to summarise them changes the answer enormously — for a
+    water-dominated area by more than 40x. That is too large to leave in a
+    setting nobody has seen, which is why this blocks the first analysis
+    rather than waiting in Settings to be found.
+
+    There is no "decide later" button: every option is a real answer, the
+    recommended one is pre-selected, so choosing is one click.
+    """
+    from utils.precomputed_esvd_coefficients import (
+        DEFAULT_ESVD_STATISTIC, ESVD_STATISTICS,
+    )
+
+    st.markdown(
+        "EVE values each ecosystem service from the peer-reviewed valuation "
+        "records in the **ESVD** database. Those records are spread very "
+        "unevenly — some services rest on hundreds of studies, others on two "
+        "or three — so **how they are summarised changes the total "
+        "substantially**. For a river or lake the choice below moves the "
+        "per-hectare value by more than 40x."
+    )
+    st.markdown(
+        "Pick the basis for your analyses. You can change it later in "
+        "**Analysis Settings → Valuation Basis**."
+    )
+
+    _labels = {
+        'log_winsorised_guarded': "**Evidence-guarded** — recommended",
+        'log_winsorised': "**Log-winsorised mean** — consistent with previous valuations",
+        'median': "**Median** — most conservative",
+        'mean': "**Mean** — upper bound, outlier-driven",
+    }
+    _blurbs = {
+        'log_winsorised_guarded':
+            "Compresses extreme valuations, and where a service has fewer than "
+            "15 records — the ESVD workbook's own threshold for calling a "
+            "figure indicative — uses the median instead, because the "
+            "outlier cap needs a reasonable number of records to do anything "
+            "at all. Stops a service resting on three studies dominating your "
+            "total. Not uniformly lower: in a few thin services the median is "
+            "the higher figure, and it is used there too.",
+        'log_winsorised':
+            "Compresses extreme valuations but keeps every record. What every "
+            "EVE analysis before this prompt was costed on — choose it if "
+            "you need new work to line up with assessments you have already "
+            "saved.",
+        'median':
+            "The typical valuation for each service. Unaffected by outliers, "
+            "but it discards the information in the rest of the distribution.",
+        'mean':
+            "The plain average, with high valuations at full weight. For some "
+            "services this is hundreds of times the median. Read totals as an "
+            "upper bound.",
+    }
+
+    _choice = st.radio(
+        "Valuation basis",
+        options=list(ESVD_STATISTICS),
+        format_func=lambda s: _labels[s],
+        index=list(ESVD_STATISTICS).index('log_winsorised_guarded'),
+        key="first_run_basis_choice",
+        label_visibility="collapsed",
+    )
+    st.caption(_blurbs[_choice])
+
+    if _choice == 'log_winsorised_guarded':
+        st.info(
+            "Totals on this basis are **not** directly comparable with EVE "
+            "analyses saved before today, which used the log-winsorised mean. "
+            "Every saved analysis records the basis it was costed on.",
+            icon="ℹ️",
+        )
+
+    if st.button("Use this basis", type="primary", use_container_width=True):
+        st.session_state.esvd_statistic = _choice
+        persist_valuation_basis(_choice)
+        # Mark it answered for THIS session even if the write failed, or the
+        # analysis the user just asked for is blocked again on the next rerun.
+        st.session_state['_valuation_basis_prompted'] = True
+        if _choice != DEFAULT_ESVD_STATISTIC:
+            reset_analysis_state()
+        st.rerun()
+
+
 # Clean text-only header - Professional Dashboard Style
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.5 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.7 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2285,12 +2569,14 @@ def analysis_settings_dialog():
         st.divider()
 
         st.markdown("##### Valuation Basis")
+        from utils.precomputed_esvd_coefficients import DEFAULT_ESVD_STATISTIC
         _stat_labels = {
-            'log_winsorised': "Log-winsorised mean (recommended)",
+            'log_winsorised_guarded': "Evidence-guarded (recommended)",
+            'log_winsorised': "Log-winsorised mean (consistent with previous valuations)",
             'median': "Median (conservative)",
             'mean': "Mean (includes outliers)",
         }
-        _cur_stat = st.session_state.get('esvd_statistic', 'log_winsorised')
+        _cur_stat = st.session_state.get('esvd_statistic', DEFAULT_ESVD_STATISTIC)
         _stat = st.radio(
             "ESVD coefficient statistic",
             options=list(_stat_labels),
@@ -2299,9 +2585,19 @@ def analysis_settings_dialog():
             key="dlg_esvd_statistic",
             help=(
                 "Which statistic to read from the ESVD valuation records.\n\n"
-                "• Log-winsorised mean — every record counts, but extreme "
-                "values are compressed rather than allowed to dominate. The "
-                "recommended basis for adding services together.\n\n"
+                "• Evidence-guarded — the log-winsorised mean, except where a "
+                "service has fewer than 15 valuation records, which is the "
+                "ESVD workbook's own threshold for treating a figure as "
+                "indicative. There the median is used instead, because the "
+                "outlier cap needs a reasonable number of records to do "
+                "anything at all. This stops a service resting on two or "
+                "three studies from dominating a total. It is not uniformly "
+                "lower — in a few thin services the median is the higher "
+                "figure, and it is used there too.\n\n"
+                "• Log-winsorised mean — every record counts, with extreme "
+                "values compressed rather than allowed to dominate. What "
+                "every EVE analysis before this option was costed on, so "
+                "choose it to stay comparable with your earlier work.\n\n"
                 "• Median — the typical valuation for a service. The most "
                 "conservative, and unaffected by outliers, but it discards "
                 "the information in the rest of the distribution.\n\n"
@@ -2312,6 +2608,12 @@ def analysis_settings_dialog():
         )
         if _stat != _cur_stat:
             st.session_state.esvd_statistic = _stat
+            # Write through to the user's row, so the choice survives a
+            # sign-out and so hydrate_user_valuation_basis() reloads THIS value
+            # next session rather than the one it replaced. Also counts as
+            # having been asked: a user who sets the basis here is not shown
+            # the first-run prompt afterwards.
+            persist_valuation_basis(_stat)
             reset_analysis_state()
         if _stat == 'mean':
             st.warning(
@@ -2320,12 +2622,19 @@ def analysis_settings_dialog():
             )
         elif _stat == 'median':
             st.caption("Median: the typical valuation per service. ESVD SEP2025V1.0, Int$2025/ha/yr.")
-        else:
+        elif _stat == 'log_winsorised':
             st.caption(
                 "Log-winsorised mean: outliers compressed in the log domain, "
                 "no records discarded. ESVD SEP2025V1.0, Int$2025/ha/yr. Note "
                 "the cap only binds where a service has enough records — where "
                 "evidence is thin it returns the plain mean."
+            )
+        else:
+            st.caption(
+                "Evidence-guarded: the log-winsorised mean, with the median "
+                "substituted wherever a service has fewer than 15 valuation "
+                "records. ESVD SEP2025V1.0, Int$2025/ha/yr. Totals are not "
+                "comparable with analyses saved on the log-winsorised basis."
             )
 
         st.divider()
@@ -2660,6 +2969,14 @@ def analysis_settings_dialog():
                                     u['created_at'].strftime('%Y-%m-%d %H:%M')
                                     if u.get('created_at') else ''
                                 ),
+                                # 'Never' covers both genuinely dormant accounts
+                                # and everyone who last signed in before this
+                                # column started being recorded — the caption
+                                # below says so, since there's no backfill.
+                                "Last login (UTC)": (
+                                    u['last_login_at'].strftime('%Y-%m-%d %H:%M')
+                                    if u.get('last_login_at') else 'Never'
+                                ),
                                 "Email": u['email'],
                                 "Display name": u['display_name'] or '—',
                                 "Organisation": u.get('organisation') or '—',
@@ -2675,7 +2992,13 @@ def analysis_settings_dialog():
                             }
                             for u in _all_users
                         ]
-                        st.caption(f"{len(_all_users)} registered users")
+                        st.caption(
+                            f"{len(_all_users)} registered users. Click a column "
+                            "heading to sort. **Last login** counts both signing "
+                            "in and returning on a device where **Remember me** "
+                            "was ticked; it reads *Never* for anyone who hasn't "
+                            "signed in since this column was added."
+                        )
                         st.dataframe(
                             pd.DataFrame(_user_rows),
                             use_container_width=True,
@@ -2848,14 +3171,28 @@ def _effective_intactness_dict() -> Dict:
             # (which does case-normalisation as a fallback) finds it
             # whether ecosystem_eei is keyed by snake_case or display name.
             out[k.replace('_', ' ').title()] = pct
-        # Ecosystems whose EEI came back entirely as demo (fabricated) data
-        # have no trustworthy value. Apply a conservative fallback intactness
-        # rather than letting the calc fall through to the optimistic 100%
-        # default. Real EEI values above always take precedence.
-        for eco, demo_pct in (st.session_state.get('ecosystem_eei_demo') or {}).items():
+        # Ecosystems with no trustworthy EEI value take the conservative
+        # midpoint rather than falling through to an optimistic 100%. Real EEI
+        # values above always take precedence — including a real 0.0, which is
+        # a measurement (built-up land scores zero), not an absence.
+        #
+        # Two sources, treated identically since 2026-09-18:
+        #   ecosystem_eei_demo       — fabricated data, or a reported failure
+        #   ecosystem_eei_unmeasured — a real response carrying no value at
+        #                              the pixel (open ocean, coverage gaps)
+        # The second used to be left out of this dict entirely, which handed
+        # it 100%. Splitting two "we don't know" cases on which way the
+        # service failed was never defensible, and it flattered every
+        # water-heavy area. See NO_DATA_FALLBACK_INTACTNESS_PCT.
+        from utils.eei_api import NO_DATA_FALLBACK_INTACTNESS_PCT
+
+        _fallbacks = dict(st.session_state.get('ecosystem_eei_demo') or {})
+        for eco in (st.session_state.get('ecosystem_eei_unmeasured') or []):
+            _fallbacks.setdefault(eco, NO_DATA_FALLBACK_INTACTNESS_PCT)
+        for eco, fallback_pct in _fallbacks.items():
             for key in (eco, eco.replace('_', ' ').title()):
                 if key not in out:
-                    out[key] = demo_pct
+                    out[key] = fallback_pct
         return out
     return st.session_state.get('ecosystem_intactness', {}) or {}
 
@@ -4495,7 +4832,15 @@ with st.sidebar:
                                 f"{_h.get('ecosystem_type', '—')} · "
                                 f"{format_area_ha(_h.get('area_hectares', 0))}<br>"
                                 f"<span style='color:#999;font-size:0.73rem;'>"
-                                f"{_h['created_at'].strftime('%Y-%m-%d %H:%M')}</span></div>",
+                                f"{_h['created_at'].strftime('%Y-%m-%d %H:%M')}"
+                                # Two totals here are only comparable if they
+                                # share a basis, and they can differ by two
+                                # orders of magnitude if they do not. Flag the
+                                # rows that are not on the current basis rather
+                                # than letting the list read as like-for-like.
+                                f" · {_basis_display_name(_h.get('coefficient_statistic'))}"
+                                f"{'' if _h.get('coefficient_statistic') == st.session_state.get('esvd_statistic') else ' ⚠️'}"
+                                f"</span></div>",
                                 unsafe_allow_html=True,
                             )
                     else:
@@ -6078,6 +6423,19 @@ elif st.session_state.get('selected_area'):
 # Progress display container for analysis (always available)
 analysis_progress_container = st.empty()
 
+# First analysis for this user: make them choose a valuation basis before any
+# numbers are produced. Deliberately placed AHEAD of the analysis rather than
+# after it — showing a total and then asking which basis it should have been on
+# is the wrong order, and the bases differ by up to 40x for water-dominated
+# areas.
+#
+# analysis_in_progress is cleared so the run does not fire again underneath the
+# dialog on the next rerun; the user re-presses Calculate once they have chosen.
+if analyze_button and st.session_state.selected_area and not user_has_chosen_valuation_basis():
+    st.session_state['analysis_in_progress'] = False
+    analyze_button = False
+    valuation_basis_prompt()
+
 # Analysis with OpenLandMap ecosystem detection
 if analyze_button and st.session_state.selected_area:
     try:
@@ -6355,7 +6713,28 @@ if analyze_button and st.session_state.selected_area:
                         
                         
                         st.info("**Classify all water bodies at once:**")
-                        
+
+                        # The EEI dataset usually holds no integrity value over
+                        # water, so whichever type is chosen here will most
+                        # likely be costed on the no-data assumption rather than
+                        # a measurement. Say so at the point of choosing, not
+                        # only afterwards in the results panel — the choice and
+                        # its consequence belong together.
+                        from utils.eei_api import NO_DATA_FALLBACK_INTACTNESS_PCT as _NODATA_PCT
+                        st.caption(
+                            f"Note on condition: the Ecosystem Integrity (EEI) "
+                            f"dataset generally holds no value over open water, "
+                            f"so these points will normally be valued at an "
+                            f"assumed **{_NODATA_PCT:.0f}% intactness** — the "
+                            f"midpoint of the range, used because nothing is "
+                            f"known about their condition either way. It is an "
+                            f"assumption, not a measurement. Where EEI does "
+                            f"return a real reading it is used instead, and you "
+                            f"can set the figure by hand by turning off "
+                            f"\"Use EEI for Default Intactness\" in Analysis "
+                            f"Settings."
+                        )
+
                         bulk_water_type = st.radio(
                             f"How should ALL {len(water_body_points)} water bodies be classified?",
                             options=["Please select...", "All Ocean", "All Rivers/Lakes", "All Coastal"],
@@ -7124,7 +7503,38 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     comparison = None
             except Exception:
                 comparison = None
-            if comparison:
+            if comparison and comparison.get('basis_mismatch'):
+                # The baseline is denominated in a different ESVD statistic (or
+                # in none we know of), so the difference between it and this run
+                # is mostly a change of statistic, not of ecosystem. No trend row
+                # was written — say why, and name the basis that would make the
+                # comparison mean something.
+                _b_basis = comparison.get('baseline_basis')
+                _c_basis = comparison.get('current_basis')
+                _b_label = _basis_display_name(_b_basis)
+                _c_label = _basis_display_name(_c_basis)
+                st.markdown("### 📊 Baseline Comparison")
+                st.warning(
+                    f"**Not compared — the baseline uses a different valuation "
+                    f"basis.** This baseline is recorded on **{_b_label}**; the "
+                    f"analysis above is on **{_c_label}**. The bases differ by up "
+                    f"to two orders of magnitude for the same hectare, so the gap "
+                    f"between them would show as ecosystem change that has not "
+                    f"happened. Nothing has been recorded against this area's "
+                    f"trend.\n\n"
+                    + (
+                        "Set **Valuation Basis** in Analysis Settings to "
+                        f"**{_b_label}** and re-run to compare like with like, or "
+                        "capture a fresh baseline on your current basis."
+                        if _b_basis else
+                        "This baseline pre-dates the Valuation Basis setting, so "
+                        "there is no basis to match — it also pre-dates the "
+                        "August 2026 coefficient replacement. Capture a fresh "
+                        "baseline to start tracking again."
+                    ),
+                    icon="⚠️",
+                )
+            elif comparison:
                 st.markdown("### 📊 Baseline Comparison")
                 
                 col_comp1, col_comp2, col_comp3 = st.columns(3)
@@ -7288,6 +7698,8 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                             _t = _target_totals.get(category, 0)
                             _t_per_ha = _t / area_denom
                             st.caption(f"${_t_per_ha:.0f}/ha (target)")
+
+                display_evidence_concentration_note(data_source)
 
             # Pie chart: % share of each service category. When target results
             # exist, render a bar chart of Baseline vs Target alongside.

@@ -634,7 +634,21 @@ def generate_pdf_report(
          'Regional Factor', f'{regional_factor:.2f}×'],
         ['Total Annual Value', f'Int$ {total_value:,.0f}/yr',
          'Value per Hectare', f'Int$ {per_ha:,.0f}/ha/yr'],
+        # Keyed by statistic. resolve_esvd_statistic() only ever returns a
+        # member of ESVD_STATISTICS, so .get() would hide a missing entry
+        # rather than fix it — a new basis must be added here (and to the
+        # methodology sentence below) or the report has no honest label for
+        # the numbers in it. test_calculations.py checks both maps.
+        #
+        # These are plain strings in a fixed-width ReportLab table cell, which
+        # does NOT wrap — an over-long value runs straight over the 'Price
+        # Level' label beside it. Keep every label inside the value column:
+        # 6cm less 5pt padding each side, Helvetica 8.5pt, so ~160pt. What
+        # each basis actually does is spelled out in the methodology note at
+        # the end of the report; this cell only has to name it.
+        # test_calculations.py measures them.
         ['Valuation Basis', {
+            'log_winsorised_guarded': 'ESVD EVIDENCE-GUARDED',
             'log_winsorised': 'ESVD LOG-WINSORISED MEAN',
             'median': 'ESVD MEDIAN coefficients',
             'mean': 'ESVD MEAN coefficients',
@@ -1100,6 +1114,16 @@ def generate_pdf_report(
     # _stat was resolved with the summary meta table above, which also carries
     # the basis as its own row and, for mean, a callout beside the headline.
     _stat_sentence = {
+        'log_winsorised_guarded': (
+            'Per-service coefficients are the <b>log-winsorised mean</b> of the qualifying '
+            'valuation records for each biome and service — every record contributes, but values '
+            'above the geometric mean times exp(2 SD of the logged records) are capped at that '
+            'level, so a long right tail is compressed rather than discarded. Where a service has '
+            'fewer than 15 records the cap cannot bind and the <b>median</b> is used instead, '
+            'which is robust at any number of records. This avoids a handful of thinly evidenced '
+            'services dominating a total; it is not uniformly lower than the plain log-winsorised '
+            'mean, because in a few thin services the median is the higher figure. '
+        ),
         'log_winsorised': (
             'Per-service coefficients are the <b>log-winsorised mean</b> of the qualifying '
             'valuation records for each biome and service: every record contributes, but values '
@@ -1128,8 +1152,13 @@ def generate_pdf_report(
         'is applied: <i>factor = 1 + (elasticity × (country_GDP / global_GDP − 1))</i>, '
         'bounded to 0.4–2.5×. Ecosystem Ecological Integrity (EEI) intactness multipliers — '
         'sourced from live Google Earth Engine data via the EEI Explorer API — are applied '
-        'where available; demo (fabricated) fallback data is never used, and an ecosystem '
-        'with no real EEI data defaults to a conservative 50% intactness rather than 100%. '
+        'where available, and a measured integrity of zero is a real reading that is applied '
+        'as such. Demo (fabricated) fallback data is never used as a value. Where no real '
+        'integrity reading could be established for an ecosystem — fabricated data, a '
+        'reported measurement failure, or a real response carrying no value at that location, '
+        'as is normal for open ocean and coverage gaps — that ecosystem is valued at an '
+        'assumed 50% intactness, the midpoint of the range. This is an assumption rather than '
+        'a measurement, and any ecosystem relying on it is named in the notes above. '
         'Open-water areas are included in natural capital totals: sample points '
         'identified as water bodies are classified by the user as ocean, rivers and '
         'lakes, or coastal, and valued using the corresponding ESVD coefficients. '

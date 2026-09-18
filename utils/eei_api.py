@@ -331,7 +331,31 @@ def get_eei_per_ecosystem(sampling_point_data: Dict, point_eei_values: Dict[str,
 # measured — either because the service returned demo (fabricated) data, or
 # because it reported that it could not measure the point at all. Used instead
 # of the optimistic 100% default so neither can inflate the valuation.
-DEMO_FALLBACK_INTACTNESS_PCT = 50.0
+# Intactness applied to an ecosystem EVE could not establish a real EEI value
+# for, whatever the reason. 50% is the midpoint of the range: it is not a
+# measurement and is not presented as one, but it is the least committal answer
+# available when nothing is known.
+#
+# Applies to all three no-data cases alike — fabricated (demo) data, a reported
+# measurement failure, and a real response carrying no value at the pixel
+# (open ocean, coverage gaps). Until 2026-09-18 the third case instead fell
+# through to an optimistic 100%, on the reasoning that 50% would be as
+# unfounded as 100% for open ocean. That is true as far as it goes, but it
+# proves too much: if both are unfounded, the defensible tie-break is the one
+# that does not systematically flatter the total. Valuing unmeasured
+# ecosystems as pristine biased every water-heavy area upward, and split two
+# epistemically identical situations on nothing more than which way the
+# upstream service happened to fail.
+#
+# It remains an assumption, not a reading, so every surface that uses it says
+# so and names the ecosystems affected. The manual intactness sliders override
+# it, and a catchment-derived figure would be strictly better where one can be
+# computed — see the parked work on deriving inland/coastal water condition
+# from surrounding land.
+NO_DATA_FALLBACK_INTACTNESS_PCT = 50.0
+
+# Retained name for the demo-specific case, which now shares the same value.
+DEMO_FALLBACK_INTACTNESS_PCT = NO_DATA_FALLBACK_INTACTNESS_PCT
 
 
 def get_demo_affected_ecosystems(
@@ -392,13 +416,17 @@ def get_unmeasured_ecosystems(
     Marine areas land here routinely. Distinct from the demo case: nothing was
     fabricated, there is just nothing to read.
 
-    It matters because such an ecosystem is absent from ``ecosystem_eei``, and
-    a missing key makes ``_get_ecosystem_intactness_multiplier`` fall through
-    to its optimistic 100% default. No conservative percentage is invented
-    here — 50% would be as unfounded as 100% for open ocean, and inventing one
-    would be a second methodological error on top of the first. The list is
-    returned so the caller can say plainly which ecosystems are running on the
-    default and let the user set them deliberately.
+    It matters because such an ecosystem is absent from ``ecosystem_eei``, so
+    the caller must supply an intactness for it or
+    ``_get_ecosystem_intactness_multiplier`` falls through to an optimistic
+    100%. Since 2026-09-18 these ecosystems take
+    NO_DATA_FALLBACK_INTACTNESS_PCT, the same conservative midpoint used for
+    fabricated data and measurement failures — see that constant for why the
+    earlier "invent nothing, default to 100%" rule was withdrawn.
+
+    The list is still returned, and callers must still name these ecosystems
+    to the user: 50% is an assumption rather than a reading, and the manual
+    sliders remain the way to set them deliberately.
 
     An ecosystem qualifies only if it has at least one null point AND no point
     with a real EEI value.

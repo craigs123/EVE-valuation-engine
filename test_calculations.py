@@ -8,9 +8,16 @@ import sys
 sys.path.insert(0, '.')
 
 from utils.precomputed_esvd_coefficients import (
+    COEFFICIENTS_BY_STATISTIC,
     CONDITION_EXEMPT_CATEGORIES,
     DEFAULT_ESVD_STATISTIC,
+    ESVD_STATISTICS,
+    INDICATIVE_N_THRESHOLD,
     PrecomputedESVDCoefficients,
+    _ESVD_HYBRID,
+    _ESVD_LOG_WINSORISED,
+    _ESVD_MEDIAN,
+    _ESVD_SAMPLE_COUNTS,
 )
 
 # Pinned rather than left to the default, so that changing the shipped default
@@ -429,6 +436,171 @@ def run_condition_exemption_tests():
     return passed, failed
 
 
+def run_guarded_basis_tests():
+    """The 'log_winsorised_guarded' basis: log-winsorised, median where n < 15.
+
+    _ESVD_HYBRID is DERIVED at import from _ESVD_LOG_WINSORISED, _ESVD_MEDIAN
+    and _ESVD_SAMPLE_COUNTS rather than transcribed, so what needs guarding is
+    the derivation rule and the sample-count table it keys off — not a list of
+    hand-copied numbers.
+
+    _ESVD_SAMPLE_COUNTS is itself checked against the `n=` recorded in each
+    coefficient line's trailing comment, which is the only independent copy of
+    those counts in the repo. If someone edits a coefficient without its count,
+    or vice versa, the two disagree and this fails.
+    """
+    import re
+
+    checks = []
+
+    def check(label, ok):
+        checks.append((label, bool(ok)))
+
+    # --- Structural: keys line up with the coefficient tables ---
+    check("Guarded: sample counts cover every ESVD ecosystem",
+          set(_ESVD_SAMPLE_COUNTS) == set(_ESVD_LOG_WINSORISED))
+    check("Guarded: sample counts cover every service in every ecosystem",
+          all(set(_ESVD_SAMPLE_COUNTS[e]) == set(_ESVD_LOG_WINSORISED[e])
+              for e in _ESVD_LOG_WINSORISED))
+
+    # --- The derivation rule, cell by cell over all 286 ---
+    thin = well = absent = 0
+    rule_ok = True
+    for eco, services in _ESVD_LOG_WINSORISED.items():
+        for svc, lw_value in services.items():
+            n = _ESVD_SAMPLE_COUNTS[eco][svc]
+            got = _ESVD_HYBRID[eco][svc]
+            if 0 < n < INDICATIVE_N_THRESHOLD:
+                thin += 1
+                rule_ok &= got == _ESVD_MEDIAN[eco][svc]
+            else:
+                if n:
+                    well += 1
+                else:
+                    absent += 1
+                rule_ok &= got == lw_value
+    check(f"Guarded: rule holds in all {thin + well + absent} cells "
+          f"({thin} thin -> median, {well} well-evidenced + {absent} empty -> log-winsorised)",
+          rule_ok)
+
+    # n == 15 is NOT indicative in the workbook, so the test must be strictly
+    # '<'. Coastal 'cultural' sits exactly on the boundary and is the guard.
+    check("Guarded: n == 15 is not treated as thin (coastal 'cultural')",
+          _ESVD_SAMPLE_COUNTS['coastal']['cultural'] == 15
+          and _ESVD_HYBRID['coastal']['cultural']
+          == _ESVD_LOG_WINSORISED['coastal']['cultural'])
+
+    # --- Sample counts agree with the n= in the coefficient comments ---
+    lines = open('utils/precomputed_esvd_coefficients.py', encoding='utf-8').read().splitlines()
+    start = next(i for i, l in enumerate(lines) if l.startswith('_ESVD_MEDIAN = {'))
+    end = next(i for i, l in enumerate(lines) if l.startswith('_LEGACY_FOREST = {'))
+    cur, compared, disagree = None, 0, []
+    for line in lines[start:end]:
+        m_eco = re.match(r"\s{4}'([a-z_]+)':\s*\{\s*$", line)
+        if m_eco and m_eco.group(1) in _ESVD_SAMPLE_COUNTS:
+            cur = m_eco.group(1)
+            continue
+        m_svc = re.match(r"\s*'([a-z_]+)':\s*[\d.]+,?\s*#", line)
+        if m_svc and cur and m_svc.group(1) in _ESVD_SAMPLE_COUNTS[cur]:
+            m_n = re.search(r'\(n=(\d+)', line)
+            compared += 1
+            if (int(m_n.group(1)) if m_n else 0) != _ESVD_SAMPLE_COUNTS[cur][m_svc.group(1)]:
+                disagree.append((cur, m_svc.group(1)))
+    expected = len(_ESVD_SAMPLE_COUNTS) * 22 * 3  # 13 ecosystems x 22 services x 3 tables
+    check(f"Guarded: parsed all {expected} coefficient comment lines",
+          compared == expected)
+    check(f"Guarded: every comment n= matches _ESVD_SAMPLE_COUNTS "
+          f"({len(disagree)} disagreements)", not disagree)
+
+    # --- The headline case this basis exists for ---
+    guarded = PrecomputedESVDCoefficients(statistic='log_winsorised_guarded')
+    check("Guarded: instance resolves to the guarded table",
+          guarded.statistic == 'log_winsorised_guarded')
+    rl = sum(_ESVD_HYBRID['rivers_and_lakes'].values())
+    check(f"Guarded: rivers_and_lakes per-ha total is ~37,166 (was 1,680,691) "
+          f"[{rl:,.0f}]", abs(rl - 37166) < 1)
+    check("Guarded: rivers_and_lakes aesthetic_value drops to its median",
+          abs(guarded.get_coefficient('rivers_and_lakes', 'aesthetic_value')
+              - 3357.59) < 0.01)
+
+    # Not a uniformly conservative table: where the median is the higher
+    # figure in a thin cell, the guarded basis uses it. Documented in
+    # _build_hybrid_table and load-bearing for the UI copy, which must not
+    # call this basis 'more conservative'.
+    raised = [(e, s) for e in _ESVD_HYBRID for s in _ESVD_HYBRID[e]
+              if _ESVD_HYBRID[e][s] > _ESVD_LOG_WINSORISED[e][s]]
+    check(f"Guarded: is not uniformly downward ({len(raised)} cells raised)",
+          len(raised) > 0)
+    # The two largest, pinned by value rather than by counting cells — the
+    # count shifts when coefficients are re-rounded, these do not.
+    check("Guarded: polar 'climate' takes the higher median (847 -> 977)",
+          abs(_ESVD_HYBRID['polar']['climate'] - 976.68) < 0.01
+          and _ESVD_HYBRID['polar']['climate']
+          > _ESVD_LOG_WINSORISED['polar']['climate'])
+    check("Guarded: temperate_forest 'habitat' takes the higher median (525 -> 600)",
+          abs(_ESVD_HYBRID['temperate_forest']['habitat'] - 600.12) < 0.01
+          and _ESVD_HYBRID['temperate_forest']['habitat']
+          > _ESVD_LOG_WINSORISED['temperate_forest']['habitat'])
+
+    # --- Non-ESVD blocks pass through untouched on every basis ---
+    check("Guarded: mangroves and legacy forest are shared, not guarded",
+          all(COEFFICIENTS_BY_STATISTIC['log_winsorised_guarded'][b]
+              == COEFFICIENTS_BY_STATISTIC['log_winsorised'][b]
+              for b in ('mangroves', 'forest')))
+    check("Guarded: no sample count for the non-ESVD blocks",
+          guarded.get_sample_count('mangroves', 'recreation') is None
+          and guarded.get_sample_count('forest', 'recreation') is None)
+
+    # An unknown count must not read as 'thin evidence' — see is_indicative().
+    check("Guarded: unknown count is not reported as indicative",
+          guarded.is_indicative('mangroves', 'recreation') is False)
+    check("Guarded: a zero count IS indicative (no evidence at all)",
+          guarded.get_sample_count('rivers_and_lakes', 'pollution') == 0
+          and guarded.is_indicative('rivers_and_lakes', 'pollution'))
+
+    # --- Every registered statistic must be selectable and complete ---
+    check("Guarded: registered in ESVD_STATISTICS",
+          'log_winsorised_guarded' in ESVD_STATISTICS)
+    check("Guarded: every ESVD_STATISTICS entry has a coefficient table",
+          all(s in COEFFICIENTS_BY_STATISTIC for s in ESVD_STATISTICS))
+    # Both PDF label maps are keyed by statistic and indexed with [], not
+    # .get() — a statistic missing from either takes PDF generation down with
+    # a KeyError, and no other test exercises that path.
+    pdf_src = open('utils/pdf_report.py', encoding='utf-8').read()
+    check("Guarded: every statistic appears in both pdf_report label maps",
+          all(pdf_src.count(f"'{s}':") >= 2 for s in ESVD_STATISTICS))
+
+    # The Valuation Basis cell is a plain string in a fixed-width ReportLab
+    # table, which does not wrap — too long a label silently overruns into the
+    # 'Price Level' label beside it. Measure rather than eyeball: the value
+    # column is 6cm less 5pt padding each side, set in Helvetica 8.5pt.
+    # 'ESVD LOG-WINSORISED MEAN, median where n<15' shipped at 208pt against
+    # 160pt available, which is how this check came to exist.
+    try:
+        from reportlab.lib.units import cm
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+        _avail = 6 * cm - 10
+        _labels = re.findall(r"'(\w+)':\s*'(ESVD [^']+)'", pdf_src)
+        _too_wide = [(k, v, stringWidth(v, 'Helvetica', 8.5))
+                     for k, v in _labels
+                     if stringWidth(v, 'Helvetica', 8.5) > _avail]
+        check(f"Guarded: all {len(_labels)} PDF basis labels fit the "
+              f"{_avail:.0f}pt column "
+              + (f"(too wide: {_too_wide})" if _too_wide else ""),
+              _labels and not _too_wide)
+    except ImportError:
+        check("Guarded: PDF basis label widths (skipped, reportlab absent)", True)
+
+    passed = failed = 0
+    for label, ok in checks:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
+        if ok:
+            passed += 1
+        else:
+            failed += 1
+    return passed, failed
+
+
 def run_tests():
     passed = 0
     failed = 0
@@ -469,6 +641,10 @@ def run_tests():
     cond_passed, cond_failed = run_condition_exemption_tests()
     passed += cond_passed
     failed += cond_failed
+
+    guarded_passed, guarded_failed = run_guarded_basis_tests()
+    passed += guarded_passed
+    failed += guarded_failed
 
     print(f"\n{passed}/{passed + failed} tests passed.")
     return failed == 0
