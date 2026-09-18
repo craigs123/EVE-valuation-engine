@@ -639,8 +639,16 @@ def generate_pdf_report(
         # rather than fix it — a new basis must be added here (and to the
         # methodology sentence below) or the report has no honest label for
         # the numbers in it. test_calculations.py checks both maps.
+        #
+        # These are plain strings in a fixed-width ReportLab table cell, which
+        # does NOT wrap — an over-long value runs straight over the 'Price
+        # Level' label beside it. Keep every label inside the value column:
+        # 6cm less 5pt padding each side, Helvetica 8.5pt, so ~160pt. What
+        # each basis actually does is spelled out in the methodology note at
+        # the end of the report; this cell only has to name it.
+        # test_calculations.py measures them.
         ['Valuation Basis', {
-            'log_winsorised_guarded': 'ESVD LOG-WINSORISED MEAN, median where n<15',
+            'log_winsorised_guarded': 'ESVD EVIDENCE-GUARDED',
             'log_winsorised': 'ESVD LOG-WINSORISED MEAN',
             'median': 'ESVD MEDIAN coefficients',
             'mean': 'ESVD MEAN coefficients',
@@ -1144,8 +1152,13 @@ def generate_pdf_report(
         'is applied: <i>factor = 1 + (elasticity × (country_GDP / global_GDP − 1))</i>, '
         'bounded to 0.4–2.5×. Ecosystem Ecological Integrity (EEI) intactness multipliers — '
         'sourced from live Google Earth Engine data via the EEI Explorer API — are applied '
-        'where available; demo (fabricated) fallback data is never used, and an ecosystem '
-        'with no real EEI data defaults to a conservative 50% intactness rather than 100%. '
+        'where available, and a measured integrity of zero is a real reading that is applied '
+        'as such. Demo (fabricated) fallback data is never used as a value. Where no real '
+        'integrity reading could be established for an ecosystem — fabricated data, a '
+        'reported measurement failure, or a real response carrying no value at that location, '
+        'as is normal for open ocean and coverage gaps — that ecosystem is valued at an '
+        'assumed 50% intactness, the midpoint of the range. This is an assumption rather than '
+        'a measurement, and any ecosystem relying on it is named in the notes above. '
         'Open-water areas are included in natural capital totals: sample points '
         'identified as water bodies are classified by the user as ocean, rivers and '
         'lakes, or coastal, and valued using the corresponding ESVD coefficients. '

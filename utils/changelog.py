@@ -13,13 +13,27 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
-    # ACCUMULATING — not yet deployed to production. Add further v3.12.6
-    # changes to this entry as they land, rather than opening a new version
-    # for each one.
+    # Released to staging and production 2026-09-18.
     {
-        "version": "v3.12.6 beta",
-        "date": "2026-09-17",
+        "version": "v3.12.7 beta",
+        "date": "2026-09-18",
         "changes": [
+            "Ecosystems EVE cannot measure the condition of are now valued "
+            "at an assumed 50% intactness rather than being treated as "
+            "pristine. This mainly affects open water — oceans, rivers, lakes "
+            "and coastal areas — where the satellite integrity dataset usually "
+            "holds no reading. Previously those were valued at full 100% "
+            "intactness, which overstated them, while areas the service merely "
+            "failed to measure already used 50%. Splitting two identical "
+            "'we don't know' cases that way was not defensible, so they now "
+            "match. Water-heavy areas will value lower than before. A measured "
+            "integrity of zero is still a real reading and is applied as such.",
+            "The prompt that asks you to classify water points as ocean, "
+            "rivers/lakes or coastal now says up front that their condition "
+            "will normally fall back to that 50% assumption, rather than "
+            "leaving you to discover it in the results.",
+            "Fixed the Valuation Basis label in PDF reports running over the "
+            "label beside it.",
             "There is a new way of calculating values, called "
             "**Evidence-guarded**, and EVE now asks you to choose one before "
             "your first analysis. It is the recommended setting. EVE prices "

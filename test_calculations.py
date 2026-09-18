@@ -570,6 +570,27 @@ def run_guarded_basis_tests():
     check("Guarded: every statistic appears in both pdf_report label maps",
           all(pdf_src.count(f"'{s}':") >= 2 for s in ESVD_STATISTICS))
 
+    # The Valuation Basis cell is a plain string in a fixed-width ReportLab
+    # table, which does not wrap — too long a label silently overruns into the
+    # 'Price Level' label beside it. Measure rather than eyeball: the value
+    # column is 6cm less 5pt padding each side, set in Helvetica 8.5pt.
+    # 'ESVD LOG-WINSORISED MEAN, median where n<15' shipped at 208pt against
+    # 160pt available, which is how this check came to exist.
+    try:
+        from reportlab.lib.units import cm
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+        _avail = 6 * cm - 10
+        _labels = re.findall(r"'(\w+)':\s*'(ESVD [^']+)'", pdf_src)
+        _too_wide = [(k, v, stringWidth(v, 'Helvetica', 8.5))
+                     for k, v in _labels
+                     if stringWidth(v, 'Helvetica', 8.5) > _avail]
+        check(f"Guarded: all {len(_labels)} PDF basis labels fit the "
+              f"{_avail:.0f}pt column "
+              + (f"(too wide: {_too_wide})" if _too_wide else ""),
+              _labels and not _too_wide)
+    except ImportError:
+        check("Guarded: PDF basis label widths (skipped, reportlab absent)", True)
+
     passed = failed = 0
     for label, ok in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
