@@ -1733,19 +1733,22 @@ def display_data_source_status(analysis_results: Dict = None):
                     # Ecosystems the EEI dataset simply has no value for — open
                     # ocean and genuine data gaps, chiefly. Nothing was
                     # fabricated and nothing is wrong with the service; there is
-                    # just no score to read. They fall back to 100% intactness,
-                    # which is optimistic, so say so rather than let it pass
-                    # silently: the manual sliders are the remedy.
+                    # just no score to read. They take the same conservative
+                    # midpoint as fabricated data — an assumption, not a
+                    # reading, so it is named rather than left implicit.
                     _unmeasured = st.session_state.get('ecosystem_eei_unmeasured') or []
                     if _unmeasured:
+                        from utils.eei_api import NO_DATA_FALLBACK_INTACTNESS_PCT as _NODATA
                         st.warning(
                             f"⚠️ The EEI dataset holds no integrity value for: "
                             f"{', '.join(_unmeasured)} — this is normal for open "
                             f"ocean and other gaps in coverage. These ecosystems "
-                            f"are being valued at the default **100% intactness**, "
-                            f"which may overstate them. Turn off \"Use EEI for "
-                            f"Default Intactness\" in Analysis Settings to set "
-                            f"them by hand."
+                            f"are being valued at an assumed **{_NODATA:.0f}% "
+                            f"intactness**, the midpoint of the range, because "
+                            f"nothing is known about their condition either way. "
+                            f"It is an assumption, not a measurement: turn off "
+                            f"\"Use EEI for Default Intactness\" in Analysis "
+                            f"Settings to set them by hand."
                         )
 
                     if average_eei is not None:
@@ -2297,7 +2300,7 @@ def valuation_basis_prompt():
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.6 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.7 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -3168,14 +3171,28 @@ def _effective_intactness_dict() -> Dict:
             # (which does case-normalisation as a fallback) finds it
             # whether ecosystem_eei is keyed by snake_case or display name.
             out[k.replace('_', ' ').title()] = pct
-        # Ecosystems whose EEI came back entirely as demo (fabricated) data
-        # have no trustworthy value. Apply a conservative fallback intactness
-        # rather than letting the calc fall through to the optimistic 100%
-        # default. Real EEI values above always take precedence.
-        for eco, demo_pct in (st.session_state.get('ecosystem_eei_demo') or {}).items():
+        # Ecosystems with no trustworthy EEI value take the conservative
+        # midpoint rather than falling through to an optimistic 100%. Real EEI
+        # values above always take precedence — including a real 0.0, which is
+        # a measurement (built-up land scores zero), not an absence.
+        #
+        # Two sources, treated identically since 2026-09-18:
+        #   ecosystem_eei_demo       — fabricated data, or a reported failure
+        #   ecosystem_eei_unmeasured — a real response carrying no value at
+        #                              the pixel (open ocean, coverage gaps)
+        # The second used to be left out of this dict entirely, which handed
+        # it 100%. Splitting two "we don't know" cases on which way the
+        # service failed was never defensible, and it flattered every
+        # water-heavy area. See NO_DATA_FALLBACK_INTACTNESS_PCT.
+        from utils.eei_api import NO_DATA_FALLBACK_INTACTNESS_PCT
+
+        _fallbacks = dict(st.session_state.get('ecosystem_eei_demo') or {})
+        for eco in (st.session_state.get('ecosystem_eei_unmeasured') or []):
+            _fallbacks.setdefault(eco, NO_DATA_FALLBACK_INTACTNESS_PCT)
+        for eco, fallback_pct in _fallbacks.items():
             for key in (eco, eco.replace('_', ' ').title()):
                 if key not in out:
-                    out[key] = demo_pct
+                    out[key] = fallback_pct
         return out
     return st.session_state.get('ecosystem_intactness', {}) or {}
 
@@ -6696,7 +6713,28 @@ if analyze_button and st.session_state.selected_area:
                         
                         
                         st.info("**Classify all water bodies at once:**")
-                        
+
+                        # The EEI dataset usually holds no integrity value over
+                        # water, so whichever type is chosen here will most
+                        # likely be costed on the no-data assumption rather than
+                        # a measurement. Say so at the point of choosing, not
+                        # only afterwards in the results panel — the choice and
+                        # its consequence belong together.
+                        from utils.eei_api import NO_DATA_FALLBACK_INTACTNESS_PCT as _NODATA_PCT
+                        st.caption(
+                            f"Note on condition: the Ecosystem Integrity (EEI) "
+                            f"dataset generally holds no value over open water, "
+                            f"so these points will normally be valued at an "
+                            f"assumed **{_NODATA_PCT:.0f}% intactness** — the "
+                            f"midpoint of the range, used because nothing is "
+                            f"known about their condition either way. It is an "
+                            f"assumption, not a measurement. Where EEI does "
+                            f"return a real reading it is used instead, and you "
+                            f"can set the figure by hand by turning off "
+                            f"\"Use EEI for Default Intactness\" in Analysis "
+                            f"Settings."
+                        )
+
                         bulk_water_type = st.radio(
                             f"How should ALL {len(water_body_points)} water bodies be classified?",
                             options=["Please select...", "All Ocean", "All Rivers/Lakes", "All Coastal"],

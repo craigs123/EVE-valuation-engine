@@ -272,7 +272,7 @@
     <p class="standfirst">A trace of the live calculation path — from a drawn polygon to an annual figure in 2024 International dollars — written against the code that actually executes.</p>
     <div class="meta">
       <span><b>Version</b> v3.10.0 beta</span>
-      <span><b>Compiled</b> 20 July 2026</span>
+      <span><b>Compiled</b> 20 July 2026 · <b>Revised</b> 18 September 2026</span>
       <span><b>Units</b> Int$ / ha / yr (2024)</span>
       <span><b>Entry point</b> <code>calculate_ecosystem_values()</code></span>
     </div>
@@ -368,7 +368,7 @@
 
     <div class="formula">
       <div class="formula-line">value = <span class="tok">coefficient</span> × <span class="tok">area_ha</span> × <span class="tok">regional_factor</span> × <span class="tok">urban_mult</span> × <span class="tok">intactness</span></div>
-      <div class="formula-note"><code>coefficient</code> — the ESVD median for this ecosystem type and service, in Int$/ha/yr.<br>
+      <div class="formula-note"><code>coefficient</code> — the ESVD value for this ecosystem type and service, in Int$2025/ha/yr, read from whichever of the four coefficient tables the user selected (below).<br>
       <code>area_ha</code> — this type's share of the drawn area, from stage 05.<br>
       <code>regional_factor</code> — GDP-based income adjustment (below).<br>
       <code>urban_mult</code> — applied only when the type is <code>Urban</code>; otherwise 1.0.<br>
@@ -389,7 +389,46 @@
       </table>
     </div>
 
-    <p>Coefficients are pre-computed medians drawn from peer-reviewed studies in the ESVD/TEEB database, held as a literal table keyed by ecosystem type. Ecosystem names normalise to that keyspace by lowercasing and replacing spaces with underscores, so <code>Rivers and Lakes</code> resolves to <code>rivers_and_lakes</code>.</p>
+    <p>Coefficients are pre-computed from peer-reviewed studies in the ESVD database (release <b>SEP2025V1.0</b>), held as literal tables keyed by ecosystem type. Ecosystem names normalise to that keyspace by lowercasing and replacing spaces with underscores, so <code>Rivers and Lakes</code> resolves to <code>rivers_and_lakes</code>. A record counts towards a service only if it carries exactly one TEEB tag; bundled multi-service records are excluded outright, which is what makes summing the 22 services into a per-hectare total safe.</p>
+
+    <h3>Four coefficient tables, one selected per run</h3>
+
+    <p>The same underlying records can be summarised four ways, and the choice is <em>not</em> a detail — for a water-dominated area the tables differ by more than 40×. The user picks one under <b>Analysis Settings → Valuation Basis</b>, and is prompted to choose before their first analysis.</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>Basis</th><th>Summarises each biome × service as</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Evidence-guarded</b><br><code>log_winsorised_guarded</code> — <em>recommended</em></td>
+            <td>The log-winsorised mean, except where a service has fewer than 15 qualifying records, where the <b>median</b> is used instead. Derived at import from the two tables below rather than transcribed separately.</td>
+          </tr>
+          <tr>
+            <td><b>Log-winsorised mean</b><br><code>log_winsorised</code> — <em>default</em></td>
+            <td>Every record counts, each capped at <code>geometric_mean(non-zero) × exp(2 × SD(ln(non-zero)))</code> before averaging, zeros included.</td>
+          </tr>
+          <tr>
+            <td><b>Median</b><br><code>median</code></td>
+            <td>The typical valuation per service. Unaffected by outliers, but discards the information in the rest of the distribution.</td>
+          </tr>
+          <tr>
+            <td><b>Mean</b><br><code>mean</code></td>
+            <td>The plain average, high valuations at full weight. For some services hundreds of times the median.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The evidence-guarded basis exists because the winsorising cap needs enough records for the log standard deviation to be tight. Below that, the cap lands above every observation, binds on nothing, and the &ldquo;log-winsorised&rdquo; figure is simply the raw mean. It bound in only <b>36 of the 184</b> populated biome × service cells; in the other 148 the two are identical to the cent. The median is robust at any sample size, so it is substituted where the cap cannot do its job. The <code>n &lt; 15</code> threshold is the ESVD workbook's own flag for treating a figure as indicative, not one invented here.</p>
+
+    <p>The worst case it addresses is <code>rivers_and_lakes</code> aesthetic information: <b>1,644,139</b> Int$/ha/yr off <b>four</b> records, which alone is 98% of that biome's per-hectare total. Under the guarded basis it becomes 3,358, and the biome total falls from 1,680,691 to 37,166. Well-evidenced biomes barely move — Coastal −6%, Intensive Land Use −4%, Urban −9%.</p>
+
+    <div class="callout">
+      <div class="callout-h">Not a conservative table</div>
+      <p>This is <em>not</em> a uniformly conservative table. In 11 cells the median is the <em>higher</em> figure and is used there too — polar climate regulation rises from 847 to 977, temperate forest genetic diversity from 525 to 600. The rule is &ldquo;prefer the statistic the evidence can support&rdquo;, not &ldquo;prefer the smaller number&rdquo;.</p>
+    </div>
+
+    <p>The log-winsorised mean remains the shipped default, so nothing re-baselines and a user who does not engage with the choice stays comparable with their own earlier work. Every analysis records the basis that produced it, because the four totals for the same area are not otherwise distinguishable.</p>
   </section>
 
   <section>
@@ -455,12 +494,17 @@
           <tr>
             <td>Real, but no data</td>
             <td class="k">nulls + message</td>
-            <td>Used as real. Ocean or a dataset gap legitimately has no pixel; this is <em>not</em> fabrication.</td>
+            <td>Not fabrication — ocean or a dataset gap legitimately has no pixel — but not a measurement either. Since 18 Sep 2026 the ecosystem takes the same conservative <b>50%</b> as the rows below.</td>
+          </tr>
+          <tr>
+            <td>Could not measure</td>
+            <td class="k">reported failure</td>
+            <td>Discarded. The ecosystem takes <b>50%</b>.</td>
           </tr>
           <tr>
             <td>Fabricated</td>
             <td class="k">demo_mode: true</td>
-            <td>Discarded before it can reach a valuation.</td>
+            <td>Discarded before it can reach a valuation. The ecosystem takes <b>50%</b>.</td>
           </tr>
         </tbody>
       </table>
@@ -468,9 +512,18 @@
 
     <p>The flag is checked twice. A <em>top-level</em> <code>demo_mode</code> means Earth Engine never came up and every result in the batch is fabricated; a <em>per-result</em> flag means Earth Engine is up but that individual coordinate fell back. A false top-level flag does not permit skipping the per-result check.</p>
 
-    <p>An ecosystem whose EEI came back entirely demo does not fall through to an optimistic 100% — it takes a deliberately conservative <strong>50%</strong>. An ecosystem with even one real point uses that demo-free average instead. The API's own <code>averages</code> block is deliberately unused, because it blends fabricated and real points into a single number that cannot be separated afterwards.</p>
+    <p>An ecosystem with even one real point uses that demo-free average instead. The API's own <code>averages</code> block is deliberately unused, because it blends fabricated and real points into a single number that cannot be separated afterwards.</p>
 
-    <p>None of this is silent. When any point returns demo data the user is told how many points were affected and which ecosystems fell back to 50% — both in Summary Statistics and in the exported PDF.</p>
+    <p>Where <em>no</em> real reading could be established, the ecosystem takes <code>NO_DATA_FALLBACK_INTACTNESS_PCT</code> — <strong>50%</strong>, the midpoint of the range — whatever the reason. A measured integrity of <code>0.0</code> is not this case: dense built-up land genuinely scores zero, and that is a reading, applied as such.</p>
+
+    <div class="callout">
+      <div class="callout-h">Changed 18 September 2026</div>
+      <p> The &ldquo;real, but no data&rdquo; case previously fell through to an optimistic <b>100%</b>, on the reasoning that any figure chosen for open ocean would be as unfounded as 100%. That is true, but it proves too much: if every available answer is unfounded, the defensible one is the answer that does not systematically flatter the total. It also split two epistemically identical &ldquo;we don't know&rdquo; cases on nothing more than which way the upstream service happened to fail — a reported failure took 50%, a null took 100%. They now match. The practical effect is that water-heavy areas, where the dataset usually holds no value, value roughly half what they did before.</p>
+    </div>
+
+    <p>50% remains an assumption rather than a reading, and is never presented as one. A catchment-derived figure — inferring inland and coastal water condition from the surrounding land, as the EU Water Framework Directive does — would be strictly better where one can be computed, and is recorded as future work. It would not apply to open ocean, where &ldquo;nearby land&rdquo; is meaningless.</p>
+
+    <p>None of this is silent. Whenever an ecosystem is running on the 50% assumption the user is told which ones and why — in Summary Statistics, in the exported PDF's methodology note, and, for water, in the prompt that asks them to classify water points as ocean, rivers/lakes or coastal, so the consequence is stated at the point of choosing rather than discovered afterwards.</p>
     <p class="ref">utils/eei_api.py:30, :206–216, :282 · app.py:1208–1224 · utils/pdf_report.py:617–630</p>
 
     <div class="callout">
