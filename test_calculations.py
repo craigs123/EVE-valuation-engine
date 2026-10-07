@@ -601,6 +601,60 @@ def run_guarded_basis_tests():
     return passed, failed
 
 
+def run_provenance_tests():
+    """Check the coefficient tables against the ESVD records they came from.
+
+    Every other test in this file checks the tables for internal consistency —
+    that the `n=` in a comment matches _ESVD_SAMPLE_COUNTS, that the guarded
+    derivation rule holds. None of them can tell whether a transcribed
+    coefficient is the right number, because until scripts/derive_esvd_tables.py
+    existed the repo had no copy of the evidence to compare against.
+
+    This recomputes median, mean, log-winsorised, n and the study counts from
+    the per-biome Records tabs of the source workbook and diffs them against
+    the live tables. As of 2026-10-07 all 184 populated cells agree.
+
+    SKIPS, rather than fails, when the workbook is absent. It is untracked in
+    git by deliberate choice (425KB of third-party data), so a clean checkout
+    and CI will not have it, and a test that cannot run is not a test that
+    failed. Point ESVD_WORKBOOK at a copy to run it elsewhere.
+    """
+    checks = []
+    try:
+        from scripts.derive_esvd_tables import (
+            WorkbookMissing, check as check_against_records, derive,
+            workbook_path,
+        )
+    except ImportError as exc:
+        checks.append((f"Provenance: derivation script unavailable ({exc})", False))
+    else:
+        try:
+            derived = derive()
+        except WorkbookMissing:
+            checks.append(
+                (f"Provenance: source workbook absent, skipped "
+                 f"({workbook_path().name})", True)
+            )
+        except Exception as exc:  # a renamed tab, a corrupt file
+            checks.append((f"Provenance: could not read the workbook ({exc})", False))
+        else:
+            problems = check_against_records(derived)
+            label = (f"Provenance: {len(derived)} populated cells reproduce from "
+                     f"the ESVD records")
+            if problems:
+                label += f" — {len(problems)} mismatch(es): " + "; ".join(problems[:3])
+            checks.append((label, not problems))
+
+    passed = failed = 0
+    for label, ok in checks:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {label}")
+        if ok:
+            passed += 1
+        else:
+            failed += 1
+    return passed, failed
+
+
 def run_tests():
     passed = 0
     failed = 0
@@ -645,6 +699,10 @@ def run_tests():
     guarded_passed, guarded_failed = run_guarded_basis_tests()
     passed += guarded_passed
     failed += guarded_failed
+
+    prov_passed, prov_failed = run_provenance_tests()
+    passed += prov_passed
+    failed += prov_failed
 
     print(f"\n{passed}/{passed + failed} tests passed.")
     return failed == 0

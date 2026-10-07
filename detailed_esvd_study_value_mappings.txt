@@ -196,19 +196,114 @@ OPEN CAVEATS
      marked * has n<15 and the workbook flags it as indicative only. Desert and
      Semi-Desert, Polar and Alpine Systems, Cold Climate Evergreen Forest and
      Shrubland and Shrubby Woodland are almost entirely in that bracket.
-  3. NO PER-STUDY DERIVATION RECORDED HERE. Full record-level traceability now
+  3. NO PER-STUDY DERIVATION RECORDED HERE. Full record-level traceability
      lives in the workbook's per-biome "[Biome] Records" tabs, which list every
      underlying single-tag value record. It has not been transcribed into this
-     document; consult the workbook when a specific figure needs auditing.
-  4. SINGLE-STUDY CONCENTRATION can still occur where one paper contributes
-     several single-service site values to the same category. The consolidated
-     workbook does not re-flag this per biome; the earlier per-biome workbooks'
-     Section 3/4 notes cover it if a specific category needs checking.
+     document, but it is no longer only auditable by hand: as of 2026-10-07
+     scripts/derive_esvd_tables.py recomputes every table from those tabs and
+     test_calculations.py diffs the result against the live module. See
+     "RECORD-LEVEL VERIFICATION" below.
+  4. SINGLE-STUDY CONCENTRATION — QUANTIFIED 2026-10-07, previously flagged
+     here as unmeasured. One paper routinely contributes several single-service
+     site values to the same cell, so n overstates independent evidence. The
+     per-cell study count is now held in _ESVD_STUDY_COUNTS and the gap is
+     large: 64 of the 184 populated cells pass the workbook's n>=15 threshold
+     on records, but only 24 pass it on studies. See "STUDY COUNTS" below.
   5. MANGROVES AND THE LEGACY 'forest' BLOCK are not part of this update. ESVD
      has no separate mangrove biome — mangrove studies sit inside Coastal
      Systems — so the mangrove block is unchanged, has no mean variant, and is
      shared by both statistics. Same for the legacy generic-forest block, which
      the normal code path resolves away before lookup.
+
+STUDY COUNTS — EVIDENCE INDEPENDENCE
+-------------------------------------
+Added 2026-10-07. The workbook's n counts VALUE RECORDS, and nothing in it
+counts studies. Since one publication commonly reports several sites, years or
+methods, n measures volume of records rather than independence of evidence:
+
+  temperate_forest  air quality regulation   312 records   13 studies   4 countries
+  urban             air quality regulation   106 records    8 studies   1 country
+  agricultural      pollination               60 records    4 studies
+  desert            water                     21 records    1 study
+  urban             recreation                17 records    5 studies   5 countries
+
+Applying the workbook's own n<15 "indicative only" line to studies instead of
+records moves 40 cells from well-evidenced to thin — 64 of 184 populated cells
+pass on records, 24 pass on studies. Share of each biome's log-winsorised
+per-hectare total drawn from cells with fewer than fifteen STUDIES:
+
+  Cold Climate Evergreen Forest             100%
+  Desert & Semi-Desert                      100%
+  Rangelands & Natural Grasslands           100%
+  Polar & Alpine Systems                    100%
+  Shrubland & Shrubby Woodland              100%
+  Urban Green & Blue Infrastructure         100%
+  Rivers & Lakes                             99%
+  Marine                                     91%
+  Temperate Forest & Woodland                90%
+  Intensive Land Use                         88%
+  Inland Wetlands                            75%
+  Coastal Systems                            32%
+  Tropical & Subtropical Forest              29%
+
+Urban is the sharpest change: 25% of its total is record-thin but 100% is
+study-thin — 64% of the total is recreation from 5 studies, and its 106-record
+air quality figure is 8 studies in a single country.
+
+THIS DOES NOT FEED THE GUARDED BASIS. _ESVD_HYBRID switches on the RECORD
+count, and repointing it at study counts would move those 40 cells onto the
+median and re-baseline every analysis already costed on
+'log_winsorised_guarded'. Study thinness is reported through the separate
+is_thinly_studied() predicate and the 'studies' / 'thinly_studied' keys on each
+service's evidence record. No coefficient and no total changed when this was
+added. Whether the guarded basis SHOULD switch on studies is an open
+methodology question, not an oversight.
+
+Countries are counted by splitting ESVD's Countries field on SEMICOLONS, not
+commas: the names themselves contain commas ("Korea, Republic of"; "Bonaire,
+Sint Eustatius and Saba") and 99 of the 124 distinct field values have one.
+
+RECORD-LEVEL VERIFICATION
+-------------------------
+Added 2026-10-07. Until then the workbook was the single point of truth for the
+engine's economic core while being untracked in git, present in two versions
+(_FILLED is newer than the cited source and is NOT what is live), and
+unverifiable from the repo — test_calculations.py could only check coefficients
+against their own code comments.
+
+scripts/derive_esvd_tables.py now recomputes median, arithmetic mean,
+log-winsorised mean, n and study counts from the per-biome Records tabs.
+Verified 2026-10-07: 184 populated cells, ZERO mismatches against the live
+module, confirming the 2026-08-10 transcription and the x1.2 restatement.
+
+  python -m scripts.derive_esvd_tables --check    verify (exit 1 on mismatch)
+  python -m scripts.derive_esvd_tables --report   per-cell evidence CSV
+  python -m scripts.derive_esvd_tables --emit study_counts
+
+test_calculations.py runs --check as the "Provenance" test, and SKIPS when the
+workbook is absent so a clean checkout still passes.
+
+The log-winsorising formula was RECOVERED BY REPRODUCTION, not read off the
+prose, because the workbook states it only in the Log-Scaled tab's row 30
+header and the arithmetic is locked inside array formulas. Only one variant
+reproduces all 184 cells:
+
+  cap  = geometric_mean(non-zero) * exp(2 * SD_sample(ln(non-zero)))
+  coef = arithmetic_mean(min(v, cap) for v in ALL records) * 1.2
+
+Three details are not guessable and each was wrong in a tested variant:
+  * the geometric mean is the PLAIN one over non-zero records, not the shifted
+    exp(mean(ln(1+x)))-1 form used by the tab's own geometric mean block
+    (shifted: 30 mismatches)
+  * SD is the SAMPLE standard deviation, Excel STDEV, denominator n-1
+    (population SD: 35 mismatches)
+  * zeros are EXCLUDED from the cap but INCLUDED in the final average
+
+Also now computable per cell, though not yet stored or surfaced: min, p25, p75,
+max and the geometric SD. The dispersion is extreme where the evidence is thin
+— rivers_and_lakes aesthetic_value is n=4 with p25 1,024 and p75 1,646,473, a
+GSD of 99 — which is a far more informative statement than the n<15 flag. See
+--report.
 
 CONTENT LICENSING
 -----------------

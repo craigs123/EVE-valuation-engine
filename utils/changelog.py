@@ -13,6 +13,35 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
+    # Released to staging and production 2026-10-07. No change to any value:
+    # verification, provenance and evidence-quality recording only.
+    {
+        "version": "v3.12.8 beta",
+        "date": "2026-10-07",
+        "changes": [
+            "No valuations change in this release. Your results, saved "
+            "analyses and reports are unaffected.",
+            "Every ecosystem value EVE uses has been checked back against the "
+            "ESVD research database it was taken from. All 184 ecosystem and "
+            "service combinations match exactly, so the figures in the app are "
+            "confirmed to be the ones the source database publishes. This check "
+            "now runs automatically whenever the calculations are tested.",
+            "EVE also now records how many separate STUDIES sit behind each "
+            "value, not just how many individual valuation figures. These are "
+            "not the same thing: one piece of research often reports many "
+            "figures from different sites or years. Air quality regulation in "
+            "temperate woodland, for example, draws on 312 figures but only 13 "
+            "studies, and the urban equivalent on 106 figures from 8 studies "
+            "in a single country.",
+            "This matters for how much weight a value can carry. Judged on "
+            "study counts rather than figure counts, far fewer values are "
+            "well-evidenced than previously appeared: 24 of the 184 "
+            "combinations rather than 64. Urban values are the most affected. "
+            "The information is being recorded now and will be shown in the "
+            "app and reports in a future release; nothing in today's "
+            "calculations uses it, which is why no total has moved.",
+        ],
+    },
     # Released to staging and production 2026-09-18.
     {
         "version": "v3.12.7 beta",

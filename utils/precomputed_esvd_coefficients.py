@@ -1728,6 +1728,150 @@ _ESVD_SAMPLE_COUNTS: dict[str, dict[str, int]] = {
     },
 }
 
+# Number of distinct STUDIES behind each coefficient, and the reason it is held
+# separately from _ESVD_SAMPLE_COUNTS above.
+#
+# That table counts VALUE RECORDS. One study routinely contributes several --
+# different sites, years or valuation methods within a single publication -- so
+# a record count overstates how much independent evidence stands behind a
+# figure. The gap is not marginal:
+#
+#   temperate_forest 'pollution'   312 records from  13 studies in  4 countries
+#   urban            'pollution'   106 records from   8 studies in  1 country
+#   agricultural     'pollination'  60 records from   4 studies
+#   desert           'water'        21 records from   1 study
+#
+# Applying the workbook's own n<15 threshold to studies rather than records,
+# 64 of the 184 populated cells pass on records but only 24 pass on studies:
+# 40 cells read as well-evidenced while resting on fewer than fifteen separate
+# pieces of work. Urban is the sharpest case -- 25 per cent of its per-hectare
+# total comes from record-thin cells, but 100 per cent from study-thin ones.
+#
+# Source: derived, not transcribed. scripts/derive_esvd_tables.py counts
+# distinct StudyId values per biome x service over the workbook's per-biome
+# "<Biome> Records" tabs. The workbook tabulates this nowhere, which is why it
+# was not part of the 2026-08-10 transcription. Regenerate with
+# ``python -m scripts.derive_esvd_tables --emit study_counts``; verify with
+# ``--check``, which test_calculations.py runs when the workbook is present.
+#
+# THIS TABLE DELIBERATELY DOES NOT FEED is_indicative() OR _ESVD_HYBRID.
+# The hybrid/guarded basis switches on the RECORD count (see
+# _build_hybrid_table), and repointing that switch at study counts would move
+# 40 cells onto the median and silently re-baseline every saved analysis costed
+# on 'log_winsorised_guarded'. Study thinness is reported through the separate
+# is_thinly_studied() predicate instead, so the two concerns stay independent:
+# one decides which statistic to use, the other decides what to tell the user.
+#
+# Zero means no qualifying record, matching n == 0 in _ESVD_SAMPLE_COUNTS. The
+# non-ESVD blocks (_LEGACY_FOREST, _MANGROVES) are absent for the same reason
+# as there: no record-level source, so get_study_count() returns None.
+_ESVD_STUDY_COUNTS: dict[str, dict[str, int]] = {
+    'marine': {
+        'food': 57, 'water': 1, 'raw_materials': 3, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 3, 'pollution': 0, 'climate': 11,
+        'extreme_events': 15, 'water_regulation': 0, 'water_purification': 7, 'erosion': 14,
+        'soil_formation': 3, 'pollination': 0, 'biological_control': 0, 'nursery_services': 7,
+        'habitat': 1, 'aesthetic_value': 6, 'recreation': 93, 'cultural': 1,
+        'spiritual_value': 1, 'primary_production': 14
+    },
+    'coastal': {
+        'food': 112, 'water': 7, 'raw_materials': 65, 'genetic_resources': 1,
+        'medicinal_resources': 1, 'ornamental_resources': 0, 'pollution': 4, 'climate': 31,
+        'extreme_events': 32, 'water_regulation': 2, 'water_purification': 18, 'erosion': 15,
+        'soil_formation': 6, 'pollination': 0, 'biological_control': 0, 'nursery_services': 15,
+        'habitat': 4, 'aesthetic_value': 9, 'recreation': 64, 'cultural': 2,
+        'spiritual_value': 0, 'primary_production': 9
+    },
+    'wetland': {
+        'food': 20, 'water': 18, 'raw_materials': 27, 'genetic_resources': 1,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 3, 'climate': 10,
+        'extreme_events': 11, 'water_regulation': 4, 'water_purification': 16, 'erosion': 2,
+        'soil_formation': 3, 'pollination': 0, 'biological_control': 1, 'nursery_services': 5,
+        'habitat': 7, 'aesthetic_value': 8, 'recreation': 12, 'cultural': 3,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    'rivers_and_lakes': {
+        'food': 16, 'water': 13, 'raw_materials': 6, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 0, 'climate': 2,
+        'extreme_events': 2, 'water_regulation': 3, 'water_purification': 5, 'erosion': 0,
+        'soil_formation': 2, 'pollination': 0, 'biological_control': 1, 'nursery_services': 3,
+        'habitat': 0, 'aesthetic_value': 4, 'recreation': 16, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 1
+    },
+    'tropical_forest': {
+        'food': 20, 'water': 8, 'raw_materials': 25, 'genetic_resources': 2,
+        'medicinal_resources': 12, 'ornamental_resources': 5, 'pollution': 1, 'climate': 26,
+        'extreme_events': 9, 'water_regulation': 7, 'water_purification': 4, 'erosion': 8,
+        'soil_formation': 2, 'pollination': 6, 'biological_control': 1, 'nursery_services': 3,
+        'habitat': 5, 'aesthetic_value': 0, 'recreation': 18, 'cultural': 3,
+        'spiritual_value': 0, 'primary_production': 2
+    },
+    'temperate_forest': {
+        'food': 5, 'water': 6, 'raw_materials': 14, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 13, 'climate': 21,
+        'extreme_events': 2, 'water_regulation': 2, 'water_purification': 2, 'erosion': 6,
+        'soil_formation': 4, 'pollination': 1, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 1, 'aesthetic_value': 0, 'recreation': 18, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    'boreal_forest': {
+        'food': 3, 'water': 2, 'raw_materials': 6, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 1, 'pollution': 1, 'climate': 6,
+        'extreme_events': 2, 'water_regulation': 0, 'water_purification': 0, 'erosion': 1,
+        'soil_formation': 1, 'pollination': 0, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 0, 'recreation': 4, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    'shrubland': {
+        'food': 5, 'water': 1, 'raw_materials': 6, 'genetic_resources': 1,
+        'medicinal_resources': 3, 'ornamental_resources': 0, 'pollution': 0, 'climate': 3,
+        'extreme_events': 1, 'water_regulation': 0, 'water_purification': 0, 'erosion': 1,
+        'soil_formation': 0, 'pollination': 1, 'biological_control': 1, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 1, 'recreation': 2, 'cultural': 1,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    'grassland': {
+        'food': 5, 'water': 2, 'raw_materials': 5, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 0, 'pollution': 2, 'climate': 6,
+        'extreme_events': 0, 'water_regulation': 3, 'water_purification': 0, 'erosion': 1,
+        'soil_formation': 1, 'pollination': 1, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 4, 'aesthetic_value': 1, 'recreation': 3, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    'desert': {
+        'food': 0, 'water': 1, 'raw_materials': 2, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 0, 'climate': 1,
+        'extreme_events': 1, 'water_regulation': 0, 'water_purification': 0, 'erosion': 0,
+        'soil_formation': 0, 'pollination': 0, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 0, 'recreation': 0, 'cultural': 1,
+        'spiritual_value': 0, 'primary_production': 0
+    },
+    'polar': {
+        'food': 3, 'water': 3, 'raw_materials': 4, 'genetic_resources': 0,
+        'medicinal_resources': 1, 'ornamental_resources': 1, 'pollution': 1, 'climate': 3,
+        'extreme_events': 1, 'water_regulation': 0, 'water_purification': 0, 'erosion': 1,
+        'soil_formation': 1, 'pollination': 0, 'biological_control': 0, 'nursery_services': 1,
+        'habitat': 1, 'aesthetic_value': 0, 'recreation': 1, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 1
+    },
+    'agricultural': {
+        'food': 17, 'water': 7, 'raw_materials': 12, 'genetic_resources': 0,
+        'medicinal_resources': 2, 'ornamental_resources': 0, 'pollution': 3, 'climate': 13,
+        'extreme_events': 9, 'water_regulation': 4, 'water_purification': 4, 'erosion': 7,
+        'soil_formation': 8, 'pollination': 4, 'biological_control': 14, 'nursery_services': 1,
+        'habitat': 1, 'aesthetic_value': 6, 'recreation': 8, 'cultural': 4,
+        'spiritual_value': 0, 'primary_production': 1
+    },
+    'urban': {
+        'food': 2, 'water': 2, 'raw_materials': 1, 'genetic_resources': 0,
+        'medicinal_resources': 0, 'ornamental_resources': 0, 'pollution': 8, 'climate': 9,
+        'extreme_events': 2, 'water_regulation': 4, 'water_purification': 2, 'erosion': 0,
+        'soil_formation': 0, 'pollination': 0, 'biological_control': 0, 'nursery_services': 0,
+        'habitat': 0, 'aesthetic_value': 4, 'recreation': 5, 'cultural': 0,
+        'spiritual_value': 0, 'primary_production': 2
+    },
+}
+
 # Threshold below which the workbook flags a cell as indicative only.
 INDICATIVE_N_THRESHOLD = 15
 
@@ -2049,6 +2193,48 @@ class PrecomputedESVDCoefficients:
         n = self.get_sample_count(ecosystem_type, service_type, coordinates)
         return n is not None and n < INDICATIVE_N_THRESHOLD
 
+    def get_study_count(self, ecosystem_type: str, service_type: str,
+                        coordinates: tuple | None = None) -> int | None:
+        """How many distinct STUDIES stand behind the paired coefficient.
+
+        The companion to get_sample_count(), and usually the smaller number:
+        that one counts value records, several of which may come from a single
+        publication. See _ESVD_STUDY_COUNTS for how far apart they get.
+
+        Resolves the forest sub-type from coordinates exactly as
+        get_coefficient() and get_sample_count() do. Returns None on the same
+        terms as get_sample_count() — outside the ESVD consolidation, or an
+        unrecognised key — which is NOT the same as 0 (no qualifying record).
+        """
+        if ecosystem_type.lower() == 'forest' and coordinates:
+            center_lat, center_lon = coordinates[0], coordinates[1]
+            ecosystem_type = self._determine_forest_type(center_lat, center_lon)
+
+        ecosystem_key = ecosystem_type.lower().replace(' ', '_')
+        counts = _ESVD_STUDY_COUNTS.get(ecosystem_key)
+        if counts is None:
+            return None
+        return counts.get(service_type)
+
+    def is_thinly_studied(self, ecosystem_type: str, service_type: str,
+                          coordinates: tuple | None = None) -> bool:
+        """True when fewer than 15 separate studies stand behind this figure.
+
+        Deliberately separate from is_indicative(), which tests the record
+        count. A cell can pass that test and fail this one — 40 of the 184
+        populated cells do, temperate_forest 'pollution' most starkly at 312
+        records from 13 studies. Independent studies are the better measure of
+        how much the evidence can carry, because repeated sites or methods
+        inside one publication are not independent observations.
+
+        The threshold is shared with is_indicative() on purpose: it is the
+        workbook's own n<15 line, applied to a better-chosen denominator rather
+        than replaced by an invented one. Unknown (None) is not thinly studied,
+        for the same reason as in is_indicative().
+        """
+        studies = self.get_study_count(ecosystem_type, service_type, coordinates)
+        return studies is not None and studies < INDICATIVE_N_THRESHOLD
+
     def get_country_gdp(self, coordinates: tuple | None = None) -> float:
         """
         Get country-specific GDP per capita based on coordinates
@@ -2200,9 +2386,22 @@ class PrecomputedESVDCoefficients:
                     detected_ecosystem_type, esvd_service,
                     coordinates if coordinates else None,
                 )
+                _studies = self.get_study_count(
+                    detected_ecosystem_type, esvd_service,
+                    coordinates if coordinates else None,
+                )
                 service_evidence[service] = {
                     'n': _n,
                     'indicative': _n is not None and _n < INDICATIVE_N_THRESHOLD,
+                    # Study-level evidence, carried alongside the record count
+                    # rather than replacing it. Nothing in the calculation reads
+                    # these — see _ESVD_STUDY_COUNTS for why the guarded basis
+                    # must keep switching on the record count — so they are
+                    # here for the UI and the PDF to report when they are ready
+                    # to, and adding them changes no total.
+                    'studies': _studies,
+                    'thinly_studied': (_studies is not None
+                                       and _studies < INDICATIVE_N_THRESHOLD),
                     'value': value,
                     'category': category,
                 }
