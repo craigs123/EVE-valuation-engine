@@ -14,6 +14,16 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.12.12 beta",
+        "date": "2026-10-09",
+        "changes": [
+            "Fixed the layout of the valuation basis prompt: its title no "
+            "longer sits squashed against the top-left corner of the window, "
+            "and the description of the selected basis no longer runs into "
+            "the \"Use this basis\" button.",
+        ],
+    },
+    {
         "version": "v3.12.11 beta",
         "date": "2026-10-09",
         "changes": [

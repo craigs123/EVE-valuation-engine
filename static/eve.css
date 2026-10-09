@@ -295,6 +295,25 @@ h1 { font-size: 1.5rem !important; font-weight: 700 !important; }
 h2 { font-size: 1.25rem !important; }
 h3 { font-size: 1.05rem !important; }
 
+/* Dialog titles. Newer Streamlit renders st.dialog's title as an <h2>, so the
+   heading reset above stripped its padding — the title sat flush against the
+   dialog's top-left edge, out of line with the body text. Restore Streamlit's
+   own spacing for the title only (slot="title"), not for headings inside
+   dialog content. */
+[role="dialog"] > h2[slot="title"] {
+    padding: 1.5rem 3.5rem 0.75rem 1.5rem !important;
+    line-height: 1.4 !important;
+}
+/* Streamlit gives a caption's <p> a 1rem bottom margin and cancels it with a
+   -1rem margin on the caption container. The paragraph reset in this file
+   removes the first but not the second, so a caption drags whatever follows
+   it up by 1rem — in the valuation-basis prompt, the blurb sat on top of the
+   "Use this basis" button. Fixed in that prompt only (scoped by the radio's
+   key); the rest of the layout has been tuned with the overlap in place. */
+[role="dialog"]:has(.st-key-first_run_basis_choice) [data-testid="stCaptionContainer"] {
+    margin-bottom: 0 !important;
+}
+
 /* Tabular numerals for tables and metric values (numbers align in columns) */
 [data-testid="stMetric"] [data-testid="stMetricValue"],
 .stDataFrame, [data-testid="stDataFrame"] {
