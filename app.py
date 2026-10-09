@@ -2298,8 +2298,8 @@ def valuation_basis_prompt():
 
     if _choice == 'log_winsorised_guarded':
         st.info(
-            "Totals on this basis are **not** directly comparable with EVE "
-            "analyses saved before today, which used the log-winsorised mean. "
+            "Totals on this basis are **not** directly comparable with older "
+            "EVE analyses, which used the log-winsorised mean. "
             "Every saved analysis records the basis it was costed on.",
             icon="ℹ️",
         )
@@ -2326,7 +2326,7 @@ def valuation_basis_prompt():
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.11 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>

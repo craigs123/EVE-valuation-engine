@@ -14,6 +14,15 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.12.11 beta",
+        "date": "2026-10-09",
+        "changes": [
+            "Clearer wording on the valuation basis prompt: the note on the "
+            "evidence-guarded basis now says its totals are not directly "
+            "comparable with older EVE analyses.",
+        ],
+    },
+    {
         "version": "v3.12.10 beta",
         "date": "2026-10-09",
         "changes": [
