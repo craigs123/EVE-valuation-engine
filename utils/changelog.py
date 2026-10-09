@@ -14,6 +14,15 @@ from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
     {
+        "version": "v3.12.10 beta",
+        "date": "2026-10-09",
+        "changes": [
+            "The note warning that much of a total rests on a service with "
+            "very few valuation records is now shown in smaller text, so it "
+            "reads as a caveat on the figures rather than competing with them.",
+        ],
+    },
+    {
         "version": "v3.12.9 beta",
         "date": "2026-10-09",
         "changes": [

@@ -1167,13 +1167,21 @@ def display_evidence_concentration_note(esvd_data: Dict = None):
         "**Evidence-guarded** substitutes the median for services this thinly "
         "evidenced."
     )
-    st.warning(
-        f"**{conc['share']:.0%} of this total comes from a single service** — "
-        f"{_svc} ({conc.get('category', '')}) — based on {_n_phrase}. The ESVD "
-        f"workbook flags anything under 15 records as indicative only, so treat "
-        f"this total as indicative rather than a measurement.{_remedy}",
-        icon="📉",
+    # Smaller type than a normal warning: it is a caveat on the figures above,
+    # and at full size it out-shouted the totals it qualifies.
+    st.markdown(
+        "<style>.st-key-evidence_concentration_note "
+        "[data-testid='stMarkdownContainer'] p { font-size: 0.8rem; }</style>",
+        unsafe_allow_html=True,
     )
+    with st.container(key="evidence_concentration_note"):
+        st.warning(
+            f"**{conc['share']:.0%} of this total comes from a single service** — "
+            f"{_svc} ({conc.get('category', '')}) — based on {_n_phrase}. The ESVD "
+            f"workbook flags anything under 15 records as indicative only, so treat "
+            f"this total as indicative rather than a measurement.{_remedy}",
+            icon="📉",
+        )
 
 
 def display_valuation_basis_banner(results: Dict = None):
@@ -2318,7 +2326,7 @@ def valuation_basis_prompt():
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.10 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
