@@ -13,6 +13,22 @@ Use date "" when the exact release date isn't known.
 from typing import List, Dict
 
 CHANGELOG: List[Dict] = [
+    {
+        "version": "v3.12.9 beta",
+        "date": "2026-10-09",
+        "changes": [
+            "You are now asked to confirm the valuation basis every time you "
+            "press Calculate or Re-calculate, not just before your first "
+            "analysis. Your last choice is pre-selected, so confirming it is "
+            "one click.",
+            "Pressing \"Use this basis\" now starts the calculation straight "
+            "away. You no longer need to press Calculate a second time.",
+            "The service-by-service breakdown now shows each service's share "
+            "of the total value as a percentage alongside its dollar value.",
+            "Clearer wording on the valuation basis prompt: rivers and lakes "
+            "are the ecosystems most affected by the choice of method.",
+        ],
+    },
     # Released to staging and production 2026-10-07. No change to any value:
     # verification, provenance and evidence-quality recording only.
     {

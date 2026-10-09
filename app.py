@@ -2210,16 +2210,18 @@ def user_has_chosen_valuation_basis() -> bool:
 
 @st.dialog("Choose your valuation basis", width="large")
 def valuation_basis_prompt():
-    """Asked once, before a user's first analysis.
+    """Asked every time the user presses Calculate / Re-calculate.
 
     EVE reads per-service coefficients from ESVD's valuation records, and the
     statistic chosen to summarise them changes the answer enormously — for a
     water-dominated area by more than 40x. That is too large to leave in a
-    setting nobody has seen, which is why this blocks the first analysis
-    rather than waiting in Settings to be found.
+    setting nobody has seen, so it is confirmed before every run rather than
+    waiting in Settings to be found.
 
-    There is no "decide later" button: every option is a real answer, the
-    recommended one is pre-selected, so choosing is one click.
+    There is no "decide later" button: every option is a real answer. The
+    user's current basis is pre-selected (the recommended one if they have
+    never chosen), so confirming is one click — and that click also starts
+    the analysis the prompt interrupted.
     """
     from utils.precomputed_esvd_coefficients import (
         DEFAULT_ESVD_STATISTIC, ESVD_STATISTICS,
@@ -2230,11 +2232,12 @@ def valuation_basis_prompt():
         "records in the **ESVD** database. Those records are spread very "
         "unevenly — some services rest on hundreds of studies, others on two "
         "or three — so **how they are summarised changes the total "
-        "substantially**. For a river or lake the choice below moves the "
-        "per-hectare value by more than 40x."
+        "substantially**. Rivers and lakes are the most impacted by a "
+        "change to the recommended method."
     )
     st.markdown(
-        "Pick the basis for your analyses. You can change it later in "
+        "Pick the basis for this analysis. Your choice is remembered and "
+        "pre-selected next time; it can also be changed in "
         "**Analysis Settings → Valuation Basis**."
     )
 
@@ -2267,11 +2270,19 @@ def valuation_basis_prompt():
             "upper bound.",
     }
 
+    # Pre-select what the user is already on; a user who has never chosen
+    # gets the recommended basis rather than the shipped default.
+    _current = st.session_state.get('esvd_statistic', DEFAULT_ESVD_STATISTIC)
+    _preselected = (
+        _current if user_has_chosen_valuation_basis() and _current in ESVD_STATISTICS
+        else 'log_winsorised_guarded'
+    )
+
     _choice = st.radio(
         "Valuation basis",
         options=list(ESVD_STATISTICS),
         format_func=lambda s: _labels[s],
-        index=list(ESVD_STATISTICS).index('log_winsorised_guarded'),
+        index=list(ESVD_STATISTICS).index(_preselected),
         key="first_run_basis_choice",
         label_visibility="collapsed",
     )
@@ -2286,13 +2297,20 @@ def valuation_basis_prompt():
         )
 
     if st.button("Use this basis", type="primary", use_container_width=True):
+        # Same as changing it in Settings: a different basis invalidates
+        # results costed on the old one. An unchanged basis keeps them, so an
+        # indicator re-calc still takes its cached-sampling fast path.
+        if _choice != _current:
+            reset_analysis_state()
         st.session_state.esvd_statistic = _choice
         persist_valuation_basis(_choice)
-        # Mark it answered for THIS session even if the write failed, or the
-        # analysis the user just asked for is blocked again on the next rerun.
         st.session_state['_valuation_basis_prompted'] = True
-        if _choice != DEFAULT_ESVD_STATISTIC:
-            reset_analysis_state()
+        # The prompt intercepted a Calculate click, so carry that request
+        # through rather than making the user press Calculate a second time.
+        # The confirmation flag lasts for this run only; the next Calculate
+        # click clears it and asks again.
+        st.session_state['_basis_confirmed_for_run'] = True
+        st.session_state['analysis_in_progress'] = True
         st.rerun()
 
 
@@ -2300,7 +2318,7 @@ def valuation_basis_prompt():
 st.markdown("""
 <div class="header-container">
     <span><span class="header-icon">🌱</span><span class="header-text">Ecological Valuation Engine</span></span>
-    <span class="version-text">v3.12.8 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
+    <span class="version-text">v3.12.9 beta &nbsp;·&nbsp; © 2026 Green &amp; Grey Associates</span>
 </div>
 <div style='display:flex; align-items:center; justify-content:center;
              gap:0.5rem; margin:-0.25rem 0 0.5rem 0;'>
@@ -2610,9 +2628,8 @@ def analysis_settings_dialog():
             st.session_state.esvd_statistic = _stat
             # Write through to the user's row, so the choice survives a
             # sign-out and so hydrate_user_valuation_basis() reloads THIS value
-            # next session rather than the one it replaced. Also counts as
-            # having been asked: a user who sets the basis here is not shown
-            # the first-run prompt afterwards.
+            # next session rather than the one it replaced, and so the
+            # per-run prompt pre-selects it.
             persist_valuation_basis(_stat)
             reset_analysis_state()
         if _stat == 'mean':
@@ -5971,6 +5988,8 @@ if st.session_state.get('selected_area'):
     if st.button(_calc_btn_label, type='primary', use_container_width=True,
                  key='calc_below_dropdown', help=_calc_btn_help):
         st.session_state.analysis_in_progress = True
+        # Every Calculate / Re-calculate re-asks for the valuation basis.
+        st.session_state['_basis_confirmed_for_run'] = False
         # A prepared report belongs to the analysis it was built from, so
         # retire it whenever a new analysis starts. Without this the download
         # button outlived its results: switching on project-specific
@@ -6423,15 +6442,16 @@ elif st.session_state.get('selected_area'):
 # Progress display container for analysis (always available)
 analysis_progress_container = st.empty()
 
-# First analysis for this user: make them choose a valuation basis before any
-# numbers are produced. Deliberately placed AHEAD of the analysis rather than
+# Every analysis: make the user confirm a valuation basis before any numbers
+# are produced. Deliberately placed AHEAD of the analysis rather than
 # after it — showing a total and then asking which basis it should have been on
 # is the wrong order, and the bases differ by up to 40x for water-dominated
 # areas.
 #
 # analysis_in_progress is cleared so the run does not fire again underneath the
-# dialog on the next rerun; the user re-presses Calculate once they have chosen.
-if analyze_button and st.session_state.selected_area and not user_has_chosen_valuation_basis():
+# dialog on the next rerun; "Use this basis" sets it again, so the analysis the
+# user asked for starts as soon as they have chosen.
+if analyze_button and st.session_state.selected_area and not st.session_state.get('_basis_confirmed_for_run'):
     st.session_state['analysis_in_progress'] = False
     analyze_button = False
     valuation_basis_prompt()
@@ -7954,6 +7974,15 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                         st.caption(_caption)
 
             with st.expander("Service-by-service breakdown"):
+                # Shares are of the sum of the category totals shown here, so
+                # the percentages in this panel add up to 100%.
+                _grand_total = sum(
+                    (data_source.get(c, {}).get('total', 0) or 0) for c in categories
+                )
+
+                def _share(v):
+                    return f" ({v / _grand_total * 100:.1f}%)" if _grand_total > 0 else ""
+
                 for category in categories:
                     cat_data = data_source.get(category, {})
                     services = cat_data.get('services', {})
@@ -7961,9 +7990,9 @@ if st.session_state.get('calculation_ready') and st.session_state.analysis_resul
                     if lines:
                         st.markdown(f"**{category.title()} Services**")
                         for name, val in lines:
-                            st.markdown(f"- {name}: ${val:,.0f}/yr")
+                            st.markdown(f"- {name}: ${val:,.0f}/yr{_share(val)}")
                     elif cat_data.get('total', 0) > 0:
-                        st.markdown(f"**{category.title()} Services**: ${cat_data['total']:,.0f}/yr (no sub-breakdown available)")
+                        st.markdown(f"**{category.title()} Services**: ${cat_data['total']:,.0f}/yr{_share(cat_data['total'])} (no sub-breakdown available)")
 
         if has_categories:
             categories = ['provisioning', 'regulating', 'cultural', 'supporting']
